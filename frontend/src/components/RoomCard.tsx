@@ -17,7 +17,6 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted }) => {
 
     useEffect(() => {
         if (room.file && room.file.length > 0) {
-            const newUrls: string[] = [];
             const filePromises = room.file.map(f => {
                 return new Promise<string>((resolve) => {
                     const reader = new FileReader();
