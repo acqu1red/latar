@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import RoomCard from './components/RoomCard';
-import { generatePlan, RoomState, ApiResponse } from './lib/api';
+import { generatePlan } from './lib/api';
+import type { RoomState, ApiResponse } from './lib/api';
 import './App.css';
 
 const initialRooms: RoomState[] = [
