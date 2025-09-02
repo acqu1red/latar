@@ -13,12 +13,28 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // --- Middleware ---
+const allowedOrigin = process.env.CORS_ORIGIN;
+console.log(`CORS configuration: Allowing origin -> ${allowedOrigin}`);
+
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN,
+    origin: function (origin, callback) {
+        console.log(`Request received from origin: ${origin}`);
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin || origin === allowedOrigin) {
+            callback(null, true);
+        } else {
+            console.error(`CORS Error: Origin ${origin} not allowed.`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ["POST", "GET", "OPTIONS"],
     credentials: false
 };
+
 app.use(cors(corsOptions));
+// Explicitly handle preflight requests
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 
 const maxFileMb = parseInt(process.env.MAX_FILE_MB || '10', 10);
