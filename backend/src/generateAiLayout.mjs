@@ -16,28 +16,36 @@ const RoomLayoutSchema = z.object({
 
 export const PlanLayoutSchema = z.array(RoomLayoutSchema);
 
-const getLayoutPrompt = (roomsData) => {
+const getLayoutPrompt = (roomsData, connectionMap) => {
     const roomsJsonString = JSON.stringify(roomsData, null, 2);
+    const connectionsJsonString = JSON.stringify(connectionMap, null, 2);
     return `
-Ты — опытный архитектор-планировщик.
-Твоя задача — создать логичную 2D-планировку квартиры на основе данных о комнатах.
-"Прихожая" (hallway) — это входная точка квартиры. Все остальные комнаты должны быть логически с ней связаны.
+ТЫ — ПРОГРАММА ДЛЯ МАТЕМАТИЧЕСКОГО РАСЧЕТА ПЛАНИРОВКИ.
+Твоя задача — строго на основе входных данных создать JSON с координатами комнат.
 
-Вот данные о комнатах в формате JSON:
-${roomsJsonString}
+**СТРОГИЕ ВХОДНЫЕ ДАННЫЕ:**
 
-Проанализируй эти данные и верни JSON-массив с расположением и размерами каждой комнаты на общем холсте.
-Координаты и размеры должны быть нормализованы (от 0 до 1).
-- x, y: координаты верхнего левого угла комнаты.
-- width, height: ширина и высота комнаты.
-- Прямоугольники комнат не должны пересекаться.
-- Сумма площадей комнат (width * height) должна примерно соответствовать изначальному распределению площадей по м².
+1.  **ИНФОРМАЦИЯ О КОМНАТАХ:**
+    ${roomsJsonString}
 
-Верни только JSON-массив, без какого-либо текста или комментариев.
+2.  **КАРТА СОЕДИНЕНИЙ (ЖЕСТКОЕ ПРАВИЛО):**
+    ${connectionsJsonString}
+
+**ПРАВИЛА ВЫПОЛНЕНИЯ:**
+
+1.  **СОБЛЮДАЙ СВЯЗИ:** Расположи комнаты так, чтобы смежные стены комнат из "КАРТЫ СОЕДИНЕНИЙ" соприкасались. Двери должны "встречаться".
+2.  **СОБЛЮДАЙ ПРОПОРЦИИ:** Площадь каждого прямоугольника (`width * height`) должна быть пропорциональна значению `sqm` комнаты.
+3.  **НЕТ ПЕРЕСЕЧЕНИЯМ:** Прямоугольники комнат не должны пересекаться или накладываться друг на друга.
+4.  **КОМПАКТНОСТЬ:** Постарайся расположить комнаты максимально компактно, чтобы получился единый план квартиры.
+5.  **ПРИХОЖАЯ ("hallway"):** Это точка входа.
+
+**ФОРМАТ ВЫХОДА:**
+Верни ТОЛЬКО JSON-массив с координатами и размерами каждой комнаты. Координаты и размеры нормализованы (от 0 до 1).
+
 Пример формата ответа:
 [
-  { "key": "hallway", "x": 0.4, "y": 0.6, "width": 0.2, "height": 0.2 },
-  { "key": "kitchen", "x": 0.4, "y": 0.4, "width": 0.2, "height": 0.2 },
+  { "key": "hallway", "x": 0.4, "y": 0.5, "width": 0.2, "height": 0.3 },
+  { "key": "kitchen", "x": 0.4, "y": 0.3, "width": 0.2, "height": 0.2 },
   { "key": "room1", "x": 0.0, "y": 0.0, "width": 0.4, "height": 1.0 }
 ]
 `;
@@ -46,18 +54,19 @@ ${roomsJsonString}
 /**
  * Generates a logical 2D layout for the apartment rooms using an AI model.
  * @param {any[]} analyzedRooms - Array of room data objects from the vision analysis step.
+ * @param {any[]} connectionMap - The map of connections between rooms.
  * @returns {Promise<z.infer<typeof PlanLayoutSchema>>} A promise that resolves to the layout data.
  */
-export async function generateAiLayout(analyzedRooms) {
-    const prompt = getLayoutPrompt(analyzedRooms.map(({ key, name, sqm, objects }) => ({ key, name, sqm, objectCount: objects.length })));
+export async function generateAiLayout(analyzedRooms, connectionMap) {
+    const prompt = getLayoutPrompt(analyzedRooms.map(({ key, name, sqm }) => ({ key, name, sqm })), connectionMap);
     
     try {
         const response = await openai.chat.completions.create({
-            model: process.env.OPENAI_MODEL || "gpt-4o-mini", // A smart model is needed for this logical task
+            model: "gpt-5-mini", // Using a more powerful model for this complex spatial reasoning task
             messages: [
                 {
                     role: "system",
-                    content: "Ты — архитектор-планировщик, который создает 2D-планировки квартир в формате JSON.",
+                    content: "Ты — программа, которая преобразует данные о комнатах и их связях в JSON с координатами для 2D-плана.",
                 },
                 {
                     role: "user",
