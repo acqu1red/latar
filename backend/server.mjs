@@ -77,7 +77,7 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
             }
             acc[key].push(file);
             return acc;
-        }, {} as Record<string, Express.Multer.File[]>);
+        }, {});
 
         const missingFiles = enabledRooms.filter(r => !filesByRoomKey[r.key] || filesByRoomKey[r.key].length === 0);
         if (missingFiles.length > 0) {
