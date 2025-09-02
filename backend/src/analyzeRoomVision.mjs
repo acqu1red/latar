@@ -87,6 +87,9 @@ async function callOpenAI(base64Image, promptText, isRepair = false) {
         return response.choices[0].message.content;
     } catch (error) {
         console.error("Error calling OpenAI API:", error);
+        if (error instanceof OpenAI.APIError) {
+            throw new Error(`OpenAI API Error: ${error.status} ${error.name} - ${error.message}`);
+        }
         throw new Error("Failed to communicate with OpenAI API.");
     }
 }

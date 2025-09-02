@@ -34,6 +34,9 @@ export async function generateImageFallback(rooms, totalSqm) {
     };
   } catch (error) {
     console.error("Error calling OpenAI Image API:", error);
+    if (error instanceof OpenAI.APIError) {
+        throw new Error(`OpenAI API Error: ${error.status} ${error.name} - ${error.message}`);
+    }
     throw new Error("Failed to generate image fallback from OpenAI API.");
   }
 }
