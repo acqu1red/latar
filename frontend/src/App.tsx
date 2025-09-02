@@ -5,11 +5,12 @@ import type { RoomState, ApiResponse } from './lib/api';
 import './App.css';
 
 const initialRooms: RoomState[] = [
-  { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: null },
-  { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: null },
-  { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: null },
-  { key: 'bathroom', name: 'Ванная комната/Санузел', sqm: 0, enabled: false, file: null },
-  { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: null },
+  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [] },
+  { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: [] },
+  { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: [] },
+  { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: [] },
+  { key: 'bathroom', name: 'Ванная комната/Санузел', sqm: 0, enabled: false, file: [] },
+  { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: [] },
 ];
 
 function App() {
@@ -36,9 +37,9 @@ function App() {
       return;
     }
 
-    const hasInvalidRoom = enabledRooms.some(r => r.sqm <= 0 || !r.file);
+    const hasInvalidRoom = enabledRooms.some(r => r.sqm <= 0 || r.file.length === 0);
     if (hasInvalidRoom) {
-      setError("Для каждой включённой комнаты необходимо указать площадь и загрузить фото.");
+      setError("Для каждой включённой комнаты необходимо указать площадь и загрузить хотя бы одно фото.");
       return;
     }
 
@@ -53,7 +54,7 @@ function App() {
     }
   };
 
-  const isGenerateButtonEnabled = rooms.some(r => r.enabled && r.sqm > 0 && r.file);
+  const isGenerateButtonEnabled = rooms.some(r => r.enabled && r.sqm > 0 && r.file.length > 0);
 
   return (
     <div className="container">

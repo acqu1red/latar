@@ -6,7 +6,7 @@ export interface RoomState {
     name: string;
     sqm: number;
     enabled: boolean;
-    file: File | null;
+    file: File[];
 }
 
 export interface ApiResponse {
@@ -22,14 +22,16 @@ export interface ApiResponse {
 export async function generatePlan(rooms: RoomState[]): Promise<ApiResponse> {
     const formData = new FormData();
 
-    const enabledRooms = rooms.filter(r => r.enabled && r.sqm > 0 && r.file);
+    const enabledRooms = rooms.filter(r => r.enabled && r.sqm > 0 && r.file.length > 0);
     
     const roomsJson = enabledRooms.map(({ file, ...rest }) => rest);
     formData.append('roomsJson', JSON.stringify(roomsJson));
 
     enabledRooms.forEach(room => {
         if (room.file) {
-            formData.append(`photo_${room.key}`, room.file);
+            room.file.forEach(f => {
+                formData.append(`photo_${room.key}`, f);
+            });
         }
     });
 

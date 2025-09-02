@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { analyzeRoomVision } from './src/analyzeRoomVision.mjs';
 import { renderSvgPlan } from './src/renderSvgPlan.mjs';
 import { generateImageFallback } from './src/generateImageFallback.mjs';
+import { generateAiLayout } from './src/generateAiLayout.mjs';
 
 dotenv.config();
 
@@ -69,8 +70,16 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
         }
 
         // Check if all enabled rooms have a corresponding file
-        const fileKeys = req.files.map(f => f.fieldname.replace('photo_', ''));
-        const missingFiles = enabledRooms.filter(r => !fileKeys.includes(r.key));
+        const filesByRoomKey = req.files.reduce((acc, file) => {
+            const key = file.fieldname.replace('photo_', '');
+            if (!acc[key]) {
+                acc[key] = [];
+            }
+            acc[key].push(file);
+            return acc;
+        }, {} as Record<string, Express.Multer.File[]>);
+
+        const missingFiles = enabledRooms.filter(r => !filesByRoomKey[r.key] || filesByRoomKey[r.key].length === 0);
         if (missingFiles.length > 0) {
             const missingKeys = missingFiles.map(r => r.key).join(', ');
             return res.status(400).json({ ok: false, error: `Missing photo files for: ${missingKeys}` });
@@ -90,13 +99,12 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
             });
         }
 
-        const analysisPromises = req.files.map(async file => {
-            const roomKey = file.fieldname.replace('photo_', '');
-            const room = enabledRooms.find(r => r.key === roomKey);
-            if (!room) return null;
+        const analysisPromises = enabledRooms.map(async (room) => {
+            const files = filesByRoomKey[room.key];
+            if (!files) return null;
 
             return analyzeRoomVision({
-                photoBuffer: file.buffer,
+                photoBuffers: files.map(f => f.buffer),
                 key: room.key,
                 name: room.name,
                 sqm: room.sqm,
@@ -105,7 +113,16 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
 
         const analyzedRooms = (await Promise.all(analysisPromises)).filter(Boolean);
 
-        const { svgDataUrl, pngDataUrl } = await renderSvgPlan(analyzedRooms, totalSqm);
+        // New Step: Generate a logical layout using AI
+        const roomLayouts = await generateAiLayout(analyzedRooms);
+
+        // Combine analysis data with layout data
+        const roomsWithLayout = analyzedRooms.map(room => {
+            const layout = roomLayouts.find(l => l.key === room.key);
+            return { ...room, ...layout };
+        });
+
+        const { svgDataUrl, pngDataUrl } = await renderSvgPlan(roomsWithLayout, totalSqm);
         
         res.json({
             ok: true,
@@ -113,7 +130,7 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
             svgDataUrl,
             pngDataUrl,
             totalSqm,
-            rooms: analyzedRooms,
+            rooms: roomsWithLayout,
         });
 
     } catch (error) {

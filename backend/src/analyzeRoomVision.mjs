@@ -48,22 +48,30 @@ const getPrompt = (name, sqm) => {
 Единицы: координаты x,y — центр объекта в долях от 0 до 1 по ширине/высоте комнаты; w,h — размер объекта как доля от габаритов комнаты; rotation — градусы по часовой.
 Обязательно используй только следующие типы:
 [${RoomObjectType.options.join(', ')}]
-Также, если уверенно видны, укажи двери и окна:
-doors: side in [left,right,top,bottom], pos 0..1
+Верни в JSON только те объекты, которые четко видны на фото. Не выдумывай и не добавляй ничего лишнего.
+Если дверь не видна, предположи, что фотография сделана из дверного проема и добавь дверь на соответствующую стену (например, side: "bottom", pos: 0.5).
+Также, если уверенно видны, укажи окна:
 windows: side in [left,right,top,bottom], pos 0..1, len 0..1
 Только JSON, без комментариев и текста вокруг.
 Комната: ${name}. Площадь: ${sqm} м².`;
 };
 
 
-async function callOpenAI(base64Image, promptText, isRepair = false) {
+async function callOpenAI(base64Images, promptText, isRepair = false) {
     const systemPrompt = isRepair
         ? "Ты — архитектор/дизайнер. Предыдущий JSON был невалидным. Пожалуйста, верни корректный JSON ровно по заданной схеме, без какого-либо текста вокруг."
-        : "Ты — архитектор/дизайнер. По фото комнаты определи расположение мебели и сантехники. Верни только JSON по заданной схеме (координаты и размеры нормализованные 0..1 относительно прямоугольника комнаты). Если чего-то нет — не выдумывай, просто не включай объект. Двери/окна оцени по фото, где видно.";
+        : "Ты — архитектор/дизайнер. По фото комнаты определи расположение мебели и сантехники. Верни только JSON по заданной схеме (координаты и размеры нормализованные 0..1 относительно прямоугольника комнаты). Если чего-то нет — не выдумывай, просто не включай объект. Если дверь не видна, предположи, что фотография сделана из дверного проема. Двери/окна оцени по фото, где видно.";
+
+    const imageUrls = base64Images.map(base64 => ({
+        type: "image_url",
+        image_url: {
+            url: `data:image/jpeg;base64,${base64}`,
+        },
+    }));
 
     try {
         const response = await openai.chat.completions.create({
-            model: process.env.OPENAI_MODEL || "gpt-4o",
+            model: process.env.OPENAI_MODEL || "gpt-4o-mini",
             messages: [
                 {
                     role: "system",
@@ -73,12 +81,7 @@ async function callOpenAI(base64Image, promptText, isRepair = false) {
                     role: "user",
                     content: [
                         { type: "text", text: promptText },
-                        {
-                            type: "image_url",
-                            image_url: {
-                                url: `data:image/jpeg;base64,${base64Image}`,
-                            },
-                        },
+                        ...imageUrls,
                     ],
                 },
             ],
@@ -98,18 +101,18 @@ async function callOpenAI(base64Image, promptText, isRepair = false) {
  * Analyzes a room photo using OpenAI's Vision model.
  *
  * @param {object} params
- * @param {Buffer} params.photoBuffer - The buffer of the photo to analyze.
+ * @param {Buffer[]} params.photoBuffers - The buffers of the photos to analyze.
  * @param {string} params.key - The unique key for the room.
  * @param {string} params.name - The name of the room.
  * @param {number} params.sqm - The square meters of the room.
  * @returns {Promise<z.infer<typeof RoomVisionSchema>>} The analyzed room data.
  */
-export async function analyzeRoomVision({ photoBuffer, key, name, sqm }) {
-    const base64Image = photoBuffer.toString('base64');
+export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
+    const base64Images = photoBuffers.map(buffer => buffer.toString('base64'));
     const promptText = getPrompt(name, sqm);
 
     // First attempt
-    let responseText = await callOpenAI(base64Image, promptText);
+    let responseText = await callOpenAI(base64Images, promptText);
     let jsonData = parseJson(responseText);
 
     if (!jsonData) {
@@ -133,7 +136,7 @@ export async function analyzeRoomVision({ photoBuffer, key, name, sqm }) {
 
     // If validation fails, try a repair prompt once
     console.warn("Initial validation failed. Attempting repair prompt.", validationResult.error.issues);
-    responseText = await callOpenAI(base64Image, promptText, true);
+    responseText = await callOpenAI(base64Images, promptText, true);
     jsonData = parseJson(responseText);
 
     if (!jsonData) {

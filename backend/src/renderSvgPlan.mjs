@@ -35,50 +35,19 @@ function getIcon(type, x, y, w, h, rotation) {
     `;
 }
 
-function treemapLayout(rooms, x, y, width, height) {
-    const totalSqm = rooms.reduce((sum, room) => sum + room.sqm, 0);
-    if (!totalSqm || rooms.length === 0) return [];
-  
-    let remainingRooms = [...rooms].sort((a, b) => b.sqm - a.sqm);
-    const layout = [];
-  
-    function recurse(subRooms, subX, subY, subWidth, subHeight) {
-      if (subRooms.length === 0) return;
-  
-      const subTotalSqm = subRooms.reduce((sum, r) => sum + r.sqm, 0);
-      const [pivot, ...rest] = subRooms;
-      const pivotFraction = pivot.sqm / subTotalSqm;
-  
-      const splitVertically = subWidth > subHeight;
-  
-      if (splitVertically) {
-        const pivotWidth = subWidth * pivotFraction;
-        layout.push({ ...pivot, x: subX, y: subY, width: pivotWidth, height: subHeight });
-        if (rest.length > 0) {
-          recurse(rest, subX + pivotWidth, subY, subWidth - pivotWidth, subHeight);
-        }
-      } else {
-        const pivotHeight = subHeight * pivotFraction;
-        layout.push({ ...pivot, x: subX, y: subY, width: subWidth, height: pivotHeight });
-        if (rest.length > 0) {
-          recurse(rest, subX, subY + pivotHeight, subWidth, subHeight - pivotHeight);
-        }
-      }
-    }
-  
-    recurse(remainingRooms, x, y, width, height);
-    return layout;
-}
-
-export async function renderSvgPlan(rooms, totalSqm) {
+export async function renderSvgPlan(roomsWithLayout, totalSqm) {
     const mainAreaWidth = SVG_WIDTH - 2 * PADDING;
     const mainAreaHeight = SVG_HEIGHT - HEADER_HEIGHT - 2 * PADDING;
 
-    const roomLayouts = treemapLayout(rooms, PADDING, PADDING + HEADER_HEIGHT, mainAreaWidth, mainAreaHeight);
-
     let roomsSvg = '';
-    for (const room of roomLayouts) {
-        const { x, y, width, height, name, sqm, objects, doors, windows } = room;
+    for (const room of roomsWithLayout) {
+        // The room layout is now absolute, based on the AI's plan
+        const x = PADDING + (room.x * mainAreaWidth);
+        const y = PADDING + HEADER_HEIGHT + (room.y * mainAreaHeight);
+        const width = room.width * mainAreaWidth;
+        const height = room.height * mainAreaHeight;
+
+        const { name, sqm, objects, doors, windows } = room;
 
         let objectsSvg = '';
         if (objects) {
