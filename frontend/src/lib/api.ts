@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../config';
 
+// Defining shared types for the application
 export interface RoomState {
     key: string;
     name: string;
