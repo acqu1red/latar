@@ -1,0 +1,23 @@
+{
+  "name": "apt-plan-backend",
+  "version": "1.0.0",
+  "description": "Backend for apartment plan generation from photos.",
+  "main": "server.mjs",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.mjs",
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^4.52.7",
+    "sharp": "^0.33.4",
+    "zod": "^3.23.8"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
