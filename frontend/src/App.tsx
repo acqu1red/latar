@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import RoomCard from './components/RoomCard';
+import LoadingSpinner from './components/LoadingSpinner';
 import { generatePlan } from './lib/api';
 import type { RoomState, ApiResponse } from './lib/api';
 import './App.css';
@@ -33,13 +34,13 @@ function App() {
 
     const enabledRooms = rooms.filter(r => r.enabled);
     if (enabledRooms.length === 0) {
-      setError("Включите хотя бы одну комнату для генерации плана.");
+      setError("Выберите хотя бы одну комнату, чтобы дать волю магии.");
       return;
     }
 
     const hasInvalidRoom = enabledRooms.some(r => r.sqm <= 0 || r.file.length === 0);
     if (hasInvalidRoom) {
-      setError("Для каждой включённой комнаты необходимо указать площадь и загрузить хотя бы одно фото.");
+      setError("Каждая комната жаждет внимания: укажите площадь и покажите её фото.");
       return;
     }
 
@@ -50,7 +51,7 @@ function App() {
     if (apiResponse.ok) {
       setResult(apiResponse);
     } else {
-      setError(apiResponse.error || 'Произошла неизвестная ошибка.');
+      setError(apiResponse.error || 'Что-то пошло не так. Попробуйте еще раз.');
     }
   };
 
@@ -59,8 +60,8 @@ function App() {
   return (
     <div className="container">
       <header>
-        <h1>Генератор 2D-плана по фото</h1>
-        <p>Загрузите фотографии ваших комнат, укажите их площадь, и мы сгенерируем для вас 2D-план.</p>
+        <h1>AI-Планировщик Интерьера</h1>
+        <p>Превратите фотографии вашего дома в детальный 2D-план. Просто загрузите снимки комнат, укажите их размеры, и наш искусственный интеллект создаст точную схему вашего пространства.</p>
       </header>
       
       <main>
@@ -81,13 +82,13 @@ function App() {
             disabled={!isGenerateButtonEnabled || loading}
             className="generate-btn"
           >
-            {loading ? 'Анализируем и строим...' : 'Генерировать'}
+            {loading ? 'Создаем план...' : 'Сгенерировать План'}
           </button>
         </div>
 
         {error && <div className="error-message">{error}</div>}
 
-        {loading && <div className="spinner"></div>}
+        {loading && <LoadingSpinner />}
 
         {result?.ok && (
           <div className="result-container">
