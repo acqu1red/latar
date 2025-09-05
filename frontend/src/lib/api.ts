@@ -9,6 +9,14 @@ export interface RoomState {
     file: File[];
 }
 
+export type BathroomType = 'combined' | 'separate';
+
+export interface BathroomConfig {
+    type: BathroomType;
+    bathroom: RoomState;
+    toilet: RoomState;
+}
+
 export interface ApiResponse {
     ok: boolean;
     mode?: 'svg' | 'image';

@@ -10,170 +10,148 @@ body {
 }
 
 .container {
-  max-width: 960px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 3rem 2rem;
-  animation: fadeIn 1s ease-in-out;
-  position: relative;
-  z-index: 1;
-}
-
-.container::before {
-    content: '';
-    position: absolute;
-    top: -5%;
-    left: -5%;
-    width: 110%;
-    height: 110%;
-    background-image: radial-gradient(circle, rgba(243, 243, 170, 0.15) 0%, transparent 70%);
-    z-index: -1;
-    animation: pulse 5s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(0.95); opacity: 0.7; }
-    70% { transform: scale(1.1); opacity: 1; }
-    100% { transform: scale(0.95); opacity: 0.7; }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
+  padding: 2rem;
 }
 
 header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 header h1 {
-  font-size: 3rem;
-  font-weight: 700;
-  color: var(--color-text);
-  margin-bottom: 1rem;
-  text-shadow: 0 0 15px rgba(243, 243, 170, 0.5);
+  font-size: 2.5rem;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
 }
 
 header p {
+  font-size: 1.1rem;
+  color: #4a5568;
+}
+
+.bathroom-type-selector {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin-bottom: 2rem;
+}
+
+.bathroom-type-selector h3 {
+  margin: 0 0 1rem 0;
+  color: #2d3748;
   font-size: 1.2rem;
-  color: var(--color-subtle-text);
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.6;
+}
+
+.radio-group {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #4a5568;
+}
+
+.radio-group input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
 }
 
 .rooms-grid {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .actions {
   text-align: center;
-  margin: 3rem 0;
+  margin: 2rem 0;
 }
 
 .generate-btn {
-  background-image: linear-gradient(45deg, var(--color-primary) 0%, #ff7e6e 100%);
+  background-color: #4299e1;
   color: white;
   border: none;
-  padding: 1.2rem 2.5rem;
-  font-size: 1.3rem;
-  font-weight: 500;
-  border-radius: 50px;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s;
 }
 
 .generate-btn:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(229, 76, 58, 0.4);
+  background-color: #3182ce;
 }
 
 .generate-btn:disabled {
-  background-image: none;
   background-color: #a0aec0;
   cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
 }
 
 .error-message {
-  background-color: rgba(229, 76, 58, 0.2);
-  color: #ffc1b8;
-  padding: 1.5rem;
-  border-radius: 12px;
+  background-color: #fed7d7;
+  color: #c53030;
+  padding: 1rem;
+  border-radius: 8px;
   text-align: center;
-  margin-top: 2rem;
-  border: 1px solid var(--color-primary);
+  margin-top: 1.5rem;
 }
 
 .result-container {
-  margin-top: 3rem;
+  margin-top: 2rem;
   text-align: center;
-  padding: 2.5rem;
-  background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  border: 1px solid #764637;
-  animation: slideInUp 0.7s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(50px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.result-container h2 {
-    color: var(--color-secondary);
-    font-size: 2rem;
-    margin-bottom: 1.5rem;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .result-image {
   max-width: 100%;
   height: auto;
-  border: 2px solid var(--color-surface);
-  border-radius: 8px;
-  margin-bottom: 2rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
 }
 
 .download-btn {
   display: inline-block;
-  background-color: transparent;
-  color: var(--color-secondary);
-  padding: 0.9rem 1.8rem;
+  background-color: #48bb78;
+  color: white;
+  padding: 0.8rem 1.5rem;
   text-decoration: none;
-  border-radius: 50px;
-  border: 2px solid var(--color-secondary);
-  transition: all 0.3s ease;
-  font-weight: 500;
+  border-radius: 8px;
+  transition: background-color 0.2s;
 }
 
 .download-btn:hover {
-  background-color: var(--color-secondary);
-  color: var(--color-background);
-  box-shadow: 0 0 20px rgba(243, 243, 170, 0.5);
+  background-color: #38a169;
 }
 
 .spinner {
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  width: 48px;
-  height: 48px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  border-left-color: var(--color-secondary);
-  margin: 2.5rem auto;
-  animation: spin 1s linear infinite;
+  border-left-color: #4299e1;
+  margin: 2rem auto;
+
+  animation: spin 1s ease infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
