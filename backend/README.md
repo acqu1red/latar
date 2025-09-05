@@ -4,11 +4,24 @@ This is the backend service for the "Apt-Plan" application. It receives room pho
 
 ## Features
 
--   **Image Analysis**: Uses OpenAI's `gpt-4o` (or a newer model) to analyze room layouts from images.
+-   **Image Analysis**: Uses OpenAI's `gpt-4o-mini` (FREE) or `gpt-4o` (paid) to analyze room layouts from images.
 -   **SVG Plan Generation**: Programmatically renders a 2D floor plan in SVG format based on the analysis.
 -   **PNG Fallback**: Can convert the SVG to PNG for easier download.
 -   **Image Generation Fallback**: An alternative mode to generate a complete floor plan image directly from a model like DALL-E.
 -   **Secure**: The OpenAI API key is handled securely on the backend and is never exposed to the client.
+
+## 💰 **Cost Information**
+
+**🆓 FREE Option (Recommended for testing):**
+- **Model**: `gpt-4o-mini` (default)
+- **Cost**: **FREE** for new OpenAI accounts
+- **Features**: Full vision analysis, room layout generation
+- **Limitations**: Slightly less accurate than paid models
+
+**💳 PAID Option (For production):**
+- **Model**: `gpt-4o` 
+- **Cost**: ~$0.01-0.02 per image analysis
+- **Features**: Highest accuracy, better reasoning
 
 ## API
 
