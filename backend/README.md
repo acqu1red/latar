@@ -12,9 +12,15 @@ This is the backend service for the "Apt-Plan" application. It receives room pho
 
 ## 💰 **Cost Information**
 
-**🆓 FREE Option (Recommended for testing):**
+**🎭 DEMO Mode (100% FREE - No API key needed):**
+- **Mode**: `DEMO_MODE=1`
+- **Cost**: **COMPLETELY FREE** - no API calls
+- **Features**: Mock data generation, full functionality
+- **Use case**: Testing, demos, development
+
+**🆓 FREE Option (Requires API key):**
 - **Model**: `gpt-4o-mini` (default)
-- **Cost**: **FREE** for new OpenAI accounts
+- **Cost**: **FREE** for new OpenAI accounts (but requires billing setup)
 - **Features**: Full vision analysis, room layout generation
 - **Limitations**: Slightly less accurate than paid models
 
