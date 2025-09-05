@@ -143,13 +143,17 @@ function App() {
         </div>
 
         <div className="rooms-grid">
-          {rooms.map(room => (
-            <RoomCard
+          {rooms.map((room, index) => (
+            <div
               key={room.key}
-              room={room}
-              onUpdate={handleRoomUpdate}
-              submitted={submitted}
-            />
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <RoomCard
+                room={room}
+                onUpdate={handleRoomUpdate}
+                submitted={submitted}
+              />
+            </div>
           ))}
           
           {bathroomConfig.type === 'separate' && (

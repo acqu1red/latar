@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import type { RoomState } from '../lib/api';
-import styles from './RoomCard.module.css';
-import UploadIcon from './UploadIcon';
 
 interface RoomCardProps {
     room: RoomState;
@@ -40,66 +38,75 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted }) => {
     
     const showError = submitted && room.enabled && (room.sqm <= 0 || room.file.length === 0);
 
-    const cardClasses = `${styles.card} ${room.enabled ? styles.enabled : ''} ${showError ? styles.error : ''}`;
-
     return (
-        <div className={cardClasses}>
-            <div className={styles.cardHeader}>
-                <h3 className={styles.roomName}>{room.name}</h3>
+        <div className={`room-card ${room.enabled ? 'enabled' : 'disabled'} ${showError ? 'error' : ''}`}>
+            <div className="room-card-header">
+                <h3>{room.name}</h3>
                 {room.key !== 'hallway' && (
-                    <label className={styles.toggle}>
-                        <span className={styles.toggleLabel}>Включить</span>
+                    <label className="toggle-switch">
+                        <span className="toggle-switch-label">Включить</span>
                         <input 
                             type="checkbox" 
+                            className="toggle-switch-input"
                             checked={room.enabled} 
                             onChange={e => onUpdate(room.key, { enabled: e.target.checked })} 
-                            className={styles.checkbox}
                         />
+                        <span className="toggle-switch-slider"></span>
                     </label>
                 )}
             </div>
             
-            <div className={styles.cardBody}>
-                <div className={styles.inputsGrid}>
-                    <div className={styles.inputGroup}>
-                        <label htmlFor={`sqm-${room.key}`} className={styles.label}>
-                            Площадь (м²)
-                        </label>
-                        <input 
-                            id={`sqm-${room.key}`}
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            value={room.sqm}
-                            onChange={e => onUpdate(room.key, { sqm: parseFloat(e.target.value) || 0 })}
-                            className={`${styles.input} ${submitted && room.sqm <= 0 ? styles.inputError : ''}`}
-                        />
-                         {submitted && room.sqm <= 0 && <p className={styles.errorMessage}>Укажите площадь</p>}
+            {room.enabled && (
+                <div className="room-content">
+                    <div className="room-content-grid">
+                        <div className="form-group">
+                            <label className="form-label">
+                                Площадь (м²)
+                            </label>
+                            <input 
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                value={room.sqm}
+                                onChange={e => onUpdate(room.key, { sqm: parseFloat(e.target.value) || 0 })}
+                                className={`form-input ${submitted && room.sqm <= 0 ? 'error' : ''}`}
+                            />
+                            {submitted && room.sqm <= 0 && <p className="error-text">Укажите площадь</p>}
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">
+                                Фотографии комнаты (можно несколько)
+                            </label>
+                            <div className="file-input-wrapper">
+                                <input 
+                                    type="file" 
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleFileChange}
+                                    className="file-input"
+                                    id={`file-${room.key}`}
+                                />
+                                <label htmlFor={`file-${room.key}`} className="file-input-button">
+                                    📸 Выбрать фото
+                                </label>
+                            </div>
+                            {submitted && room.file.length === 0 && <p className="error-text">Загрузите фото</p>}
+                        </div>
                     </div>
-                    <div className={styles.inputGroup}>
-                         <label htmlFor={`file-${room.key}`} className={styles.fileInputLabel}>
-                            <UploadIcon />
-                            {room.file.length > 0 ? `${room.file.length} фото выбрано` : 'Выберите фотографии'}
-                        </label>
-                        <input 
-                            id={`file-${room.key}`}
-                            type="file" 
-                            accept="image/*"
-                            multiple
-                            onChange={handleFileChange}
-                            className={styles.fileInput}
-                        />
-                         {submitted && room.file.length === 0 && <p className={styles.errorMessage}>Загрузите фото</p>}
-                    </div>
+                    {previewUrls.length > 0 && (
+                        <div className="preview-grid">
+                            {previewUrls.map((url, index) => (
+                                <img 
+                                    key={index} 
+                                    src={url} 
+                                    alt={`Preview ${index + 1}`} 
+                                    className="preview-image"
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
-                {previewUrls.length > 0 && (
-                    <div className={styles.previews}>
-                        {previewUrls.map((url, index) => (
-                            <img key={index} src={url} alt={`Preview ${index + 1}`} className={styles.previewImage} />
-                        ))}
-                    </div>
-                )}
-            </div>
+            )}
         </div>
     );
 };
