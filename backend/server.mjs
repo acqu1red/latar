@@ -7,7 +7,6 @@ import { analyzeRoomVision } from './src/analyzeRoomVision.mjs';
 import { renderSvgPlan } from './src/renderSvgPlan.mjs';
 import { generateImageFallback } from './src/generateImageFallback.mjs';
 import { generateAiLayout } from './src/generateAiLayout.mjs';
-import { createConnectionMap } from './src/createConnectionMap.mjs';
 
 dotenv.config();
 
@@ -114,11 +113,8 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
 
         const analyzedRooms = (await Promise.all(analysisPromises)).filter(Boolean);
 
-        // New Step 2: Create a connection map
-        const connectionMap = await createConnectionMap(analyzedRooms);
-
-        // New Step 3: Generate a logical layout using AI and the connection map
-        const roomLayouts = await generateAiLayout(analyzedRooms, connectionMap);
+        // New Step: Generate a logical layout using AI
+        const roomLayouts = await generateAiLayout(analyzedRooms);
 
         // Combine analysis data with layout data
         const roomsWithLayout = analyzedRooms.map(room => {
