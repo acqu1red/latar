@@ -157,13 +157,13 @@ function App() {
               <RoomCard
                 key="bathroom"
                 room={bathroomConfig.bathroom}
-                onUpdate={(key, updates) => handleBathroomUpdate('bathroom', updates)}
+                onUpdate={(_key, updates) => handleBathroomUpdate('bathroom', updates)}
                 submitted={submitted}
               />
               <RoomCard
                 key="toilet"
                 room={bathroomConfig.toilet}
-                onUpdate={(key, updates) => handleBathroomUpdate('toilet', updates)}
+                onUpdate={(_key, updates) => handleBathroomUpdate('toilet', updates)}
                 submitted={submitted}
               />
             </>
