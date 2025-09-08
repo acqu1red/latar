@@ -12,7 +12,8 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
-const allowImageFallback = process.env.ALLOW_IMAGE_FALLBACK !== '0';
+// Hard-disable image fallback (DALL·E) in code
+const allowImageFallback = false;
 
 // --- Middleware ---
 const allowedOrigin = process.env.CORS_ORIGIN;
@@ -89,7 +90,7 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
         const totalSqm = enabledRooms.reduce((sum, r) => sum + r.sqm, 0);
 
         // --- Logic Branch: Image Fallback vs SVG Generation ---
-        if (process.env.USE_GPT_IMAGE === '1') {
+        if (allowImageFallback && process.env.USE_GPT_IMAGE === '1') {
             const { pngDataUrl } = await generateImageFallback(enabledRooms, totalSqm);
             return res.json({
                 ok: true,
