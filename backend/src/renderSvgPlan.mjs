@@ -4,7 +4,7 @@ const SVG_WIDTH = 1200;
 const SVG_HEIGHT = 800;
 const PADDING = 40;
 const HEADER_HEIGHT = 60;
-const WALL_THICKNESS = 8;
+const WALL_THICKNESS = 12;
 const FONT_FAMILY = 'Helvetica, Arial, sans-serif';
 
 const ICONS = {
@@ -47,65 +47,53 @@ export async function renderSvgPlan(roomsWithLayout, totalSqm) {
         const width = room.width * mainAreaWidth;
         const height = room.height * mainAreaHeight;
 
-        const { name, sqm, objects, doors, windows } = room;
-
+        const { doors } = room;
         let objectsSvg = '';
-        if (objects && objects.length > 0) {
-            // Show only major furniture items, limit to 3-4 most important
-            const majorObjects = objects
-                .filter(obj => obj.w * obj.h > 0.02) // Only show larger objects
-                .slice(0, 4); // Limit to 4 objects max
-                
-            majorObjects.forEach(obj => {
-                const objWidth = Math.max(20, obj.w * width);
-                const objHeight = Math.max(20, obj.h * height);
-                const objX = x + obj.x * width;
-                const objY = y + obj.y * height;
-                
-                // Simple rectangle with type label instead of complex icons
-                objectsSvg += `
-                    <rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" 
-                          width="${objWidth}" height="${objHeight}" 
-                          fill="#f0f0f0" stroke="#999" stroke-width="1" rx="2"/>
-                    <text x="${objX}" y="${objY + 4}" font-size="10" font-family="${FONT_FAMILY}" 
-                          text-anchor="middle" fill="#666">${obj.type}</text>
-                `;
-            });
-        }
         
         let doorsSvg = '';
+        let doorMaskSvg = '';
         if (doors) {
+            const defaultLen = 0.16;
+            const maskWidth = WALL_THICKNESS + 2;
             doors.forEach(door => {
-                const halfThick = WALL_THICKNESS / 2;
-                if (door.side === 'top') doorsSvg += `<line x1="${x + width * door.pos}" y1="${y - halfThick}" x2="${x + width * door.pos}" y2="${y + halfThick}" stroke="#f00" stroke-width="2"/>`;
-                if (door.side === 'bottom') doorsSvg += `<line x1="${x + width * door.pos}" y1="${y + height - halfThick}" x2="${x + width * door.pos}" y2="${y + height + halfThick}" stroke="#f00" stroke-width="2"/>`;
-                if (door.side === 'left') doorsSvg += `<line x1="${x - halfThick}" y1="${y + height * door.pos}" x2="${x + halfThick}" y2="${y + height * door.pos}" stroke="#f00" stroke-width="2"/>`;
-                if (door.side === 'right') doorsSvg += `<line x1="${x + width - halfThick}" y1="${y + height * door.pos}" x2="${x + width + halfThick}" y2="${y + height * door.pos}" stroke="#f00" stroke-width="2"/>`;
+                const pos = Math.min(1, Math.max(0, Number(door.pos)));
+                const len = door.len != null ? Math.min(1, Math.max(0, Number(door.len))) : defaultLen;
+                const wallColor = '#111';
+                if (door.side === 'top') {
+                    const mid = x + width * pos;
+                    const half = (width * len) / 2;
+                    doorMaskSvg += `<line x1="${mid - half}" y1="${y}" x2="${mid + half}" y2="${y}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
+                    // optional minimal door arc
+                    doorsSvg += `<path d="M ${mid - 1} ${y} a 18 18 0 0 1 18 18" stroke="${wallColor}" stroke-width="1" fill="none"/>`;
+                }
+                if (door.side === 'bottom') {
+                    const mid = x + width * pos;
+                    const half = (width * len) / 2;
+                    doorMaskSvg += `<line x1="${mid - half}" y1="${y + height}" x2="${mid + half}" y2="${y + height}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
+                    doorsSvg += `<path d="M ${mid - 1} ${y + height} a 18 18 0 0 0 18 -18" stroke="${wallColor}" stroke-width="1" fill="none"/>`;
+                }
+                if (door.side === 'left') {
+                    const mid = y + height * pos;
+                    const half = (height * len) / 2;
+                    doorMaskSvg += `<line x1="${x}" y1="${mid - half}" x2="${x}" y2="${mid + half}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
+                    doorsSvg += `<path d="M ${x} ${mid - 1} a 18 18 0 0 1 18 18" stroke="#111" stroke-width="1" fill="none"/>`;
+                }
+                if (door.side === 'right') {
+                    const mid = y + height * pos;
+                    const half = (height * len) / 2;
+                    doorMaskSvg += `<line x1="${x + width}" y1="${mid - half}" x2="${x + width}" y2="${mid + half}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
+                    doorsSvg += `<path d="M ${x + width} ${mid - 1} a 18 18 0 0 0 -18 18" stroke="#111" stroke-width="1" fill="none"/>`;
+                }
             });
         }
 
         let windowsSvg = '';
-        if (windows) {
-            windows.forEach(win => {
-                const lenPx = Math.max(20, win.len * (win.side === 'top' || win.side === 'bottom' ? width : height));
-                const halfLen = lenPx / 2;
-                if (win.side === 'top') windowsSvg += `<line x1="${x + width * win.pos - halfLen}" y1="${y}" x2="${x + width * win.pos + halfLen}" y2="${y}" stroke="#00f" stroke-width="4"/>`;
-                if (win.side === 'bottom') windowsSvg += `<line x1="${x + width * win.pos - halfLen}" y1="${y + height}" x2="${x + width * win.pos + halfLen}" y2="${y + height}" stroke="#00f" stroke-width="4"/>`;
-                if (win.side === 'left') windowsSvg += `<line x1="${x}" y1="${y + height * win.pos - halfLen}" x2="${x}" y2="${y + height * win.pos + halfLen}" stroke="#00f" stroke-width="4"/>`;
-                if (win.side === 'right') windowsSvg += `<line x1="${x + width}" y1="${y + height * win.pos - halfLen}" x2="${x + width}" y2="${y + height * win.pos + halfLen}" stroke="#00f" stroke-width="4"/>`;
-            });
-        }
         
 
         roomsSvg += `
             <g>
-                <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#fff" stroke="#333" stroke-width="2" />
-                <text x="${x + width / 2}" y="${y + 20}" font-size="14" font-family="${FONT_FAMILY}" text-anchor="middle" fill="#333" font-weight="bold">
-                    ${name}
-                </text>
-                <text x="${x + width / 2}" y="${y + 36}" font-size="12" font-family="${FONT_FAMILY}" text-anchor="middle" fill="#666">
-                    ${sqm} м²
-                </text>
+                <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#fff" stroke="#111" stroke-width="${WALL_THICKNESS}" />
+                ${doorMaskSvg}
                 ${objectsSvg}
                 ${doorsSvg}
                 ${windowsSvg}
@@ -114,13 +102,7 @@ export async function renderSvgPlan(roomsWithLayout, totalSqm) {
     }
 
     const svgContent = `
-        <svg width="${SVG_WIDTH}" height="${SVG_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #f9f9f9; border: 1px solid #ccc;">
-            <style>
-                .header-text { font-size: 28px; font-weight: bold; font-family: ${FONT_FAMILY}; text-anchor: middle; }
-                .subheader-text { font-size: 18px; font-family: ${FONT_FAMILY}; text-anchor: middle; fill: #555; }
-            </style>
-            <text x="${SVG_WIDTH / 2}" y="${PADDING + 10}" class="header-text">2D План Квартиры</text>
-            <text x="${SVG_WIDTH / 2}" y="${PADDING + 40}" class="subheader-text">Общая площадь ~${totalSqm.toFixed(1)} м²</text>
+        <svg width="${SVG_WIDTH}" height="${SVG_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #ffffff;">
             ${roomsSvg}
         </svg>
     `;

@@ -12,6 +12,7 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
+const allowImageFallback = process.env.ALLOW_IMAGE_FALLBACK !== '0';
 
 // --- Middleware ---
 const allowedOrigin = process.env.CORS_ORIGIN;
@@ -118,8 +119,12 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
                 throw new Error('No rooms could be analyzed.');
             }
 
-            // New Step: Generate a logical layout using AI
-            const roomLayouts = await generateAiLayout(analyzedRooms);
+            // New Step: Generate a logical layout using AI (pass connections when available)
+            const analyzedWithConnections = analyzedRooms.map(room => {
+                const src = enabledRooms.find(r => r.key === room.key) || {};
+                return { ...room, connections: src.connections || [] };
+            });
+            const roomLayouts = await generateAiLayout(analyzedWithConnections);
 
             // Combine analysis data with layout data
             const roomsWithLayout = analyzedRooms.map(room => {
@@ -138,16 +143,19 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
                 rooms: roomsWithLayout,
             });
         } catch (genError) {
-            console.error('Primary SVG generation failed, falling back to image mode:', genError);
-            // Graceful fallback: generate a single image instead of detailed SVG
-            const { pngDataUrl } = await generateImageFallback(enabledRooms, totalSqm);
-            return res.json({
-                ok: true,
-                mode: 'image',
-                pngDataUrl,
-                totalSqm,
-                rooms: enabledRooms,
-            });
+            console.error('Primary SVG generation failed:', genError);
+            if (allowImageFallback) {
+                console.warn('Falling back to image mode (ALLOW_IMAGE_FALLBACK not disabled)');
+                const { pngDataUrl } = await generateImageFallback(enabledRooms, totalSqm);
+                return res.json({
+                    ok: true,
+                    mode: 'image',
+                    pngDataUrl,
+                    totalSqm,
+                    rooms: enabledRooms,
+                });
+            }
+            return res.status(500).json({ ok: false, error: genError.message || 'Failed to generate SVG plan' });
         }
 
     } catch (error) {
