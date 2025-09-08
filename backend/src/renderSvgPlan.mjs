@@ -47,8 +47,26 @@ export async function renderSvgPlan(roomsWithLayout, totalSqm) {
         const width = room.width * mainAreaWidth;
         const height = room.height * mainAreaHeight;
 
-        const { doors } = room;
+        const { objects = [], doors } = room;
         let objectsSvg = '';
+        if (objects && objects.length > 0) {
+            // Минималистичный рендер мебели: только 2-4 крупных прямоугольника без подписей
+            const majorObjects = objects
+                .filter(obj => obj.w * obj.h > 0.02)
+                .slice(0, 4);
+
+            majorObjects.forEach(obj => {
+                const objWidth = Math.max(20, obj.w * width);
+                const objHeight = Math.max(20, obj.h * height);
+                const objX = x + obj.x * width;
+                const objY = y + obj.y * height;
+                objectsSvg += `
+                    <rect x="${objX - objWidth/2}" y="${objY - objHeight/2}"
+                          width="${objWidth}" height="${objHeight}"
+                          fill="#eaeaea" stroke="#b5b5b5" stroke-width="1" rx="2"/>
+                `;
+            });
+        }
         
         let doorsSvg = '';
         let doorMaskSvg = '';
@@ -58,31 +76,30 @@ export async function renderSvgPlan(roomsWithLayout, totalSqm) {
             doors.forEach(door => {
                 const pos = Math.min(1, Math.max(0, Number(door.pos)));
                 const len = door.len != null ? Math.min(1, Math.max(0, Number(door.len))) : defaultLen;
-                const wallColor = '#111';
+                // const wallColor = '#111'; // отключаем дуги для ультра-минимального стиля
                 if (door.side === 'top') {
                     const mid = x + width * pos;
                     const half = (width * len) / 2;
                     doorMaskSvg += `<line x1="${mid - half}" y1="${y}" x2="${mid + half}" y2="${y}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
-                    // optional minimal door arc
-                    doorsSvg += `<path d="M ${mid - 1} ${y} a 18 18 0 0 1 18 18" stroke="${wallColor}" stroke-width="1" fill="none"/>`;
+                    // дуги не рисуем
                 }
                 if (door.side === 'bottom') {
                     const mid = x + width * pos;
                     const half = (width * len) / 2;
                     doorMaskSvg += `<line x1="${mid - half}" y1="${y + height}" x2="${mid + half}" y2="${y + height}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
-                    doorsSvg += `<path d="M ${mid - 1} ${y + height} a 18 18 0 0 0 18 -18" stroke="${wallColor}" stroke-width="1" fill="none"/>`;
+                    // дуги не рисуем
                 }
                 if (door.side === 'left') {
                     const mid = y + height * pos;
                     const half = (height * len) / 2;
                     doorMaskSvg += `<line x1="${x}" y1="${mid - half}" x2="${x}" y2="${mid + half}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
-                    doorsSvg += `<path d="M ${x} ${mid - 1} a 18 18 0 0 1 18 18" stroke="#111" stroke-width="1" fill="none"/>`;
+                    // дуги не рисуем
                 }
                 if (door.side === 'right') {
                     const mid = y + height * pos;
                     const half = (height * len) / 2;
                     doorMaskSvg += `<line x1="${x + width}" y1="${mid - half}" x2="${x + width}" y2="${mid + half}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
-                    doorsSvg += `<path d="M ${x + width} ${mid - 1} a 18 18 0 0 0 -18 18" stroke="#111" stroke-width="1" fill="none"/>`;
+                    // дуги не рисуем
                 }
             });
         }
