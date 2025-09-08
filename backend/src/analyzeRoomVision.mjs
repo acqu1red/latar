@@ -102,24 +102,40 @@ async function callOpenAI(base64Images, promptText, isRepair = false) {
     }));
 
     try {
-        const response = await openai.chat.completions.create({
-            model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content: systemPrompt,
-                },
-                {
-                    role: "user",
-                    content: [
-                        { type: "text", text: promptText },
-                        ...imageUrls,
+        // First, try with strict JSON mode if supported by the model
+        try {
+            const response = await openai.chat.completions.create({
+                model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+                messages: [
+                    {
+                        role: "system",
+                        content: systemPrompt,
+                    },
+                    {
+                        role: "user",
+                        content: [
+                            { type: "text", text: promptText },
+                            ...imageUrls,
+                        ],
+                    },
+                ],
+                response_format: { type: "json_object" },
+            });
+            return response.choices[0].message.content;
+        } catch (jsonModeError) {
+            // Fallback without response_format if not supported
+            if (jsonModeError instanceof OpenAI.APIError && jsonModeError.status === 400) {
+                const response = await openai.chat.completions.create({
+                    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: [ { type: "text", text: promptText }, ...imageUrls ] },
                     ],
-                },
-            ],
-            // response_format: { type: "json_object" }, // Not universally available yet
-        });
-        return response.choices[0].message.content;
+                });
+                return response.choices[0].message.content;
+            }
+            throw jsonModeError;
+        }
     } catch (error) {
         console.error("Error calling OpenAI API:", error);
         if (error instanceof OpenAI.APIError) {
@@ -151,7 +167,52 @@ export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
          throw new Error("AI model did not return valid JSON on the first attempt.");
     }
     
-    let validationResult = RoomVisionSchema.partial().safeParse({ key, name, sqm, ...jsonData });
+    // Sanitize/normalize AI JSON before validation
+    const sanitizeNumber01 = (value) => {
+        const n = typeof value === 'string' ? Number(value) : value;
+        if (!Number.isFinite(n)) return null;
+        return Math.min(1, Math.max(0, n));
+    };
+
+    const allowedTypes = RoomObjectType.options;
+    const sanitizeObjects = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr
+            .map((obj) => {
+                const type = typeof obj.type === 'string' ? obj.type : '';
+                if (!allowedTypes.includes(type)) return null;
+                const x = sanitizeNumber01(obj.x);
+                const y = sanitizeNumber01(obj.y);
+                const w = sanitizeNumber01(obj.w);
+                const h = sanitizeNumber01(obj.h);
+                if (x === null || y === null || w === null || h === null) return null;
+                const rotation = obj.rotation != null ? Number(obj.rotation) : undefined;
+                const confidence = obj.confidence != null ? Math.min(1, Math.max(0, Number(obj.confidence))) : undefined;
+                return { type, x, y, w, h, rotation, confidence };
+            })
+            .filter(Boolean);
+    };
+
+    const sanitizeEdgeFeature = (item) => {
+        if (!item || typeof item !== 'object') return null;
+        const side = ["left", "right", "top", "bottom"].includes(item.side) ? item.side : null;
+        if (!side) return null;
+        const pos = sanitizeNumber01(item.pos);
+        if (pos === null) return null;
+        const len = item.len != null ? sanitizeNumber01(item.len) : undefined;
+        return { side, pos, len };
+    };
+
+    const sanitized = {
+        key,
+        name,
+        sqm: typeof sqm === 'string' ? Number(sqm) : sqm,
+        objects: sanitizeObjects(jsonData.objects),
+        doors: Array.isArray(jsonData.doors) ? jsonData.doors.map(sanitizeEdgeFeature).filter(Boolean) : [],
+        windows: Array.isArray(jsonData.windows) ? jsonData.windows.map(sanitizeEdgeFeature).filter(Boolean) : [],
+    };
+
+    let validationResult = RoomVisionSchema.partial().safeParse(sanitized);
 
 
     if (validationResult.success) {
@@ -175,7 +236,17 @@ export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
         throw new Error("AI model did not return valid JSON on the repair attempt.");
     }
 
-    validationResult = RoomVisionSchema.partial().safeParse({ key, name, sqm, ...jsonData });
+    // Re-sanitize after repair attempt
+    const sanitizedRepair = {
+        key,
+        name,
+        sqm: typeof sqm === 'string' ? Number(sqm) : sqm,
+        objects: sanitizeObjects(jsonData.objects),
+        doors: Array.isArray(jsonData.doors) ? jsonData.doors.map(sanitizeEdgeFeature).filter(Boolean) : [],
+        windows: Array.isArray(jsonData.windows) ? jsonData.windows.map(sanitizeEdgeFeature).filter(Boolean) : [],
+    };
+
+    validationResult = RoomVisionSchema.partial().safeParse(sanitizedRepair);
 
     if (validationResult.success) {
         return {

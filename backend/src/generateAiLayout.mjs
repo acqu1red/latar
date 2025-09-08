@@ -52,20 +52,29 @@ export async function generateAiLayout(analyzedRooms) {
     const prompt = getLayoutPrompt(analyzedRooms.map(({ key, name, sqm, objects }) => ({ key, name, sqm, objectCount: objects.length })));
     
     try {
-        const response = await openai.chat.completions.create({
-            model: process.env.OPENAI_MODEL || "gpt-4o-mini", // A smart model is needed for this logical task
-            messages: [
-                {
-                    role: "system",
-                    content: "Ты — архитектор-планировщик, который создает 2D-планировки квартир в формате JSON.",
-                },
-                {
-                    role: "user",
-                    content: prompt,
-                },
-            ],
-            // response_format: { type: "json_object" },
-        });
+        let response;
+        try {
+            response = await openai.chat.completions.create({
+                model: process.env.OPENAI_MODEL || "gpt-4o-mini", // A smart model is needed for this logical task
+                messages: [
+                    { role: "system", content: "Ты — архитектор-планировщик, который создает 2D-планировки квартир в формате JSON." },
+                    { role: "user", content: prompt },
+                ],
+                response_format: { type: "json_object" },
+            });
+        } catch (jsonModeError) {
+            if (jsonModeError instanceof OpenAI.APIError && jsonModeError.status === 400) {
+                response = await openai.chat.completions.create({
+                    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+                    messages: [
+                        { role: "system", content: "Ты — архитектор-планировщик, который создает 2D-планировки квартир в формате JSON." },
+                        { role: "user", content: prompt },
+                    ],
+                });
+            } else {
+                throw jsonModeError;
+            }
+        }
 
         const responseText = response.choices[0].message.content;
         const jsonData = parseJson(responseText);

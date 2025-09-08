@@ -99,39 +99,56 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
             });
         }
 
-        const analysisPromises = enabledRooms.map(async (room) => {
-            const files = filesByRoomKey[room.key];
-            if (!files) return null;
+        let analyzedRooms;
+        try {
+            const analysisPromises = enabledRooms.map(async (room) => {
+                const files = filesByRoomKey[room.key];
+                if (!files) return null;
 
-            return analyzeRoomVision({
-                photoBuffers: files.map(f => f.buffer),
-                key: room.key,
-                name: room.name,
-                sqm: room.sqm,
+                return analyzeRoomVision({
+                    photoBuffers: files.map(f => f.buffer),
+                    key: room.key,
+                    name: room.name,
+                    sqm: room.sqm,
+                });
             });
-        });
 
-        const analyzedRooms = (await Promise.all(analysisPromises)).filter(Boolean);
+            analyzedRooms = (await Promise.all(analysisPromises)).filter(Boolean);
+            if (!analyzedRooms || analyzedRooms.length === 0) {
+                throw new Error('No rooms could be analyzed.');
+            }
 
-        // New Step: Generate a logical layout using AI
-        const roomLayouts = await generateAiLayout(analyzedRooms);
+            // New Step: Generate a logical layout using AI
+            const roomLayouts = await generateAiLayout(analyzedRooms);
 
-        // Combine analysis data with layout data
-        const roomsWithLayout = analyzedRooms.map(room => {
-            const layout = roomLayouts.find(l => l.key === room.key);
-            return { ...room, ...layout };
-        });
+            // Combine analysis data with layout data
+            const roomsWithLayout = analyzedRooms.map(room => {
+                const layout = roomLayouts.find(l => l.key === room.key);
+                return { ...room, ...layout };
+            });
 
-        const { svgDataUrl, pngDataUrl } = await renderSvgPlan(roomsWithLayout, totalSqm);
-        
-        res.json({
-            ok: true,
-            mode: 'svg',
-            svgDataUrl,
-            pngDataUrl,
-            totalSqm,
-            rooms: roomsWithLayout,
-        });
+            const { svgDataUrl, pngDataUrl } = await renderSvgPlan(roomsWithLayout, totalSqm);
+            
+            return res.json({
+                ok: true,
+                mode: 'svg',
+                svgDataUrl,
+                pngDataUrl,
+                totalSqm,
+                rooms: roomsWithLayout,
+            });
+        } catch (genError) {
+            console.error('Primary SVG generation failed, falling back to image mode:', genError);
+            // Graceful fallback: generate a single image instead of detailed SVG
+            const { pngDataUrl } = await generateImageFallback(enabledRooms, totalSqm);
+            return res.json({
+                ok: true,
+                mode: 'image',
+                pngDataUrl,
+                totalSqm,
+                rooms: enabledRooms,
+            });
+        }
 
     } catch (error) {
         console.error('Error in /api/generate-plan:', error);
