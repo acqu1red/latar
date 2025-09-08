@@ -123,7 +123,12 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
             // New Step: Generate a logical layout using AI (pass connections when available)
             const analyzedWithConnections = analyzedRooms.map(room => {
                 const src = enabledRooms.find(r => r.key === room.key) || {};
-                return { ...room, connections: src.connections || [] };
+                // Пробрасываем пользовательский layout, если задан (0..1)
+                const layout = src.layout;
+                const withLayout = layout && typeof layout.x === 'number' && typeof layout.y === 'number' && typeof layout.width === 'number' && typeof layout.height === 'number'
+                    ? { ...room, x: layout.x, y: layout.y, width: layout.width, height: layout.height }
+                    : room;
+                return { ...withLayout, connections: src.connections || [] };
             });
             const roomLayouts = await generateAiLayout(analyzedWithConnections);
 

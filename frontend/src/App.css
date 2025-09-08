@@ -629,6 +629,59 @@ header p {
   100% { opacity: 1; transform: translateY(0); }
 }
 
+/* Layout Editor */
+.layout-editor {
+  margin-top: 1.5rem;
+}
+
+.layout-canvas {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  height: 520px;
+  background: var(--primary-50);
+  border: 1px dashed var(--primary-300);
+  border-radius: 0.75rem;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.layout-box {
+  position: absolute;
+  background: #fff;
+  border: 2px solid var(--primary-500);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.layout-box-header {
+  background: var(--primary-100);
+  color: var(--primary-700);
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--primary-200);
+}
+
+.layout-box-body {
+  flex: 1;
+  cursor: move;
+}
+
+.layout-resizer {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--accent-500);
+  border-radius: 50%;
+  border: 2px solid #fff;
+  cursor: nwse-resize;
+}
+
 /* Image Previews */
 .preview-grid {
   display: grid;

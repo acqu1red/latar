@@ -3,14 +3,15 @@ import RoomCard from './components/RoomCard';
 import { generatePlan } from './lib/api';
 import type { RoomState, ApiResponse, BathroomType, BathroomConfig } from './lib/api';
 import './App.css';
+import LayoutEditor from './components/LayoutEditor';
 
 const initialRooms: RoomState[] = [
-  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [], connections: [] },
-  { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: [], connections: [] },
-  { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: [], connections: [] },
-  { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: [], connections: [] },
-  { key: 'bathroom', name: 'Ванная комната/Санузел', sqm: 0, enabled: false, file: [], connections: [] },
-  { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: [], connections: [] },
+  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [], connections: [], layout: null },
+  { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: [], connections: [], layout: null },
+  { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: [], connections: [], layout: null },
+  { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: [], connections: [], layout: null },
+  { key: 'bathroom', name: 'Ванная комната/Санузел', sqm: 0, enabled: false, file: [], connections: [], layout: null },
+  { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: [], connections: [], layout: null },
 ];
 
 const initialBathroomConfig: BathroomConfig = {
@@ -116,6 +117,12 @@ function App() {
       </header>
       
       <main>
+        <section>
+          <h3>Мини-конструктор расположения комнат</h3>
+          <p>Перетащите и растяните блоки комнат. Положение и размеры сохраняются в 0..1 и будут учтены при генерации.</p>
+          <LayoutEditor rooms={rooms} onUpdate={handleRoomUpdate} />
+        </section>
+
         <div className="bathroom-type-selector">
           <h3>Тип санузла:</h3>
           <div className="radio-group">

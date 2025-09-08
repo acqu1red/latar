@@ -8,6 +8,7 @@ export interface RoomState {
     enabled: boolean;
     file: File[];
     connections?: string[]; // Keys of rooms this room connects to
+    layout?: { x: number; y: number; width: number; height: number } | null; // normalized 0..1
 }
 
 export type BathroomType = 'combined' | 'separate';
