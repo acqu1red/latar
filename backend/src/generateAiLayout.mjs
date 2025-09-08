@@ -18,27 +18,42 @@ export const PlanLayoutSchema = z.array(RoomLayoutSchema);
 
 const getLayoutPrompt = (roomsData) => {
     const roomsJsonString = JSON.stringify(roomsData, null, 2);
+    
+    // Build connection information
+    const connectionInfo = roomsData.map(room => {
+        if (room.connections && room.connections.length > 0) {
+            const connectedNames = room.connections.map(key => 
+                roomsData.find(r => r.key === key)?.name || key
+            ).join(', ');
+            return `${room.name} соединена с: ${connectedNames}`;
+        }
+        return `${room.name} - нет указанных соединений`;
+    }).join('\n');
+    
     return `
-Ты — опытный архитектор-планировщик.
-Твоя задача — создать логичную 2D-планировку квартиры на основе данных о комнатах.
-"Прихожая" (hallway) — это входная точка квартиры. Все остальные комнаты должны быть логически с ней связаны.
+Создай простую схематичную планировку КВАРТИРЫ (не дома).
 
-Вот данные о комнатах в формате JSON:
+Данные комнат:
 ${roomsJsonString}
 
-Проанализируй эти данные и верни JSON-массив с расположением и размерами каждой комнаты на общем холсте.
-Координаты и размеры должны быть нормализованы (от 0 до 1).
-- x, y: координаты верхнего левого угла комнаты.
-- width, height: ширина и высота комнаты.
-- Прямоугольники комнат не должны пересекаться.
-- Сумма площадей комнат (width * height) должна примерно соответствовать изначальному распределению площадей по м².
+Соединения между комнатами:
+${connectionInfo}
 
-Верни только JSON-массив, без какого-либо текста или комментариев.
-Пример формата ответа:
+ТРЕБОВАНИЯ для планировки квартиры:
+- Прихожая (hallway) — входная зона квартиры
+- Используй указанные соединения для размещения комнат рядом друг с другом
+- Комнаты с соединениями должны иметь общие стены или быть очень близко
+- Все комнаты должны быть прямоугольными и НЕ пересекаться
+- Размеры пропорциональны площади в м²
+- Создай логичную квартирную планировку на основе соединений
+
+Координаты (0-1): x,y = левый верхний угол, width,height = размеры
+
+Верни только JSON-массив:
 [
-  { "key": "hallway", "x": 0.4, "y": 0.6, "width": 0.2, "height": 0.2 },
-  { "key": "kitchen", "x": 0.4, "y": 0.4, "width": 0.2, "height": 0.2 },
-  { "key": "room1", "x": 0.0, "y": 0.0, "width": 0.4, "height": 1.0 }
+  { "key": "hallway", "x": 0.3, "y": 0.4, "width": 0.4, "height": 0.2 },
+  { "key": "kitchen", "x": 0.0, "y": 0.4, "width": 0.3, "height": 0.3 },
+  { "key": "room1", "x": 0.7, "y": 0.0, "width": 0.3, "height": 0.6 }
 ]
 `;
 };
@@ -49,7 +64,7 @@ ${roomsJsonString}
  * @returns {Promise<z.infer<typeof PlanLayoutSchema>>} A promise that resolves to the layout data.
  */
 export async function generateAiLayout(analyzedRooms) {
-    const prompt = getLayoutPrompt(analyzedRooms.map(({ key, name, sqm, objects }) => ({ key, name, sqm, objectCount: objects.length })));
+    const prompt = getLayoutPrompt(analyzedRooms.map(({ key, name, sqm, objects, connections }) => ({ key, name, sqm, objectCount: objects.length, connections: connections || [] })));
     
     try {
         let response;

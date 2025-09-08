@@ -5,18 +5,18 @@ import type { RoomState, ApiResponse, BathroomType, BathroomConfig } from './lib
 import './App.css';
 
 const initialRooms: RoomState[] = [
-  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [] },
-  { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: [] },
-  { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: [] },
-  { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: [] },
-  { key: 'bathroom', name: 'Ванная комната/Санузел', sqm: 0, enabled: false, file: [] },
-  { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: [] },
+  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [], connections: [] },
+  { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: [], connections: [] },
+  { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: [], connections: [] },
+  { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: [], connections: [] },
+  { key: 'bathroom', name: 'Ванная комната/Санузел', sqm: 0, enabled: false, file: [], connections: [] },
+  { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: [], connections: [] },
 ];
 
 const initialBathroomConfig: BathroomConfig = {
   type: 'combined',
-  bathroom: { key: 'bathroom', name: 'Ванная комната', sqm: 0, enabled: false, file: [] },
-  toilet: { key: 'toilet', name: 'Санузел', sqm: 0, enabled: false, file: [] }
+  bathroom: { key: 'bathroom', name: 'Ванная комната', sqm: 0, enabled: false, file: [], connections: [] },
+  toilet: { key: 'toilet', name: 'Санузел', sqm: 0, enabled: false, file: [], connections: [] }
 };
 
 function App() {
@@ -152,6 +152,7 @@ function App() {
                 room={room}
                 onUpdate={handleRoomUpdate}
                 submitted={submitted}
+                availableRooms={rooms}
               />
             </div>
           ))}
@@ -163,12 +164,14 @@ function App() {
                 room={bathroomConfig.bathroom}
                 onUpdate={(_key, updates) => handleBathroomUpdate('bathroom', updates)}
                 submitted={submitted}
+                availableRooms={[...rooms, bathroomConfig.toilet]}
               />
               <RoomCard
                 key="toilet"
                 room={bathroomConfig.toilet}
                 onUpdate={(_key, updates) => handleBathroomUpdate('toilet', updates)}
                 submitted={submitted}
+                availableRooms={[...rooms, bathroomConfig.bathroom]}
               />
             </>
           )}

@@ -577,6 +577,53 @@ header p {
   animation: fadeIn 0.3s ease-out;
 }
 
+/* Room Connections */
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--secondary-500);
+  font-weight: 400;
+  margin-top: 0.25rem;
+}
+
+.connections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.connection-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--primary-50);
+  border: 1px solid var(--primary-200);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.connection-item:hover {
+  background: var(--primary-100);
+  border-color: var(--primary-300);
+}
+
+.connection-item input[type="checkbox"] {
+  margin: 0;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent-500);
+}
+
+.connection-item span {
+  flex: 1;
+  color: var(--primary-700);
+  font-weight: 500;
+}
+
 @keyframes fadeIn {
   0% { opacity: 0; transform: translateY(-10px); }
   100% { opacity: 1; transform: translateY(0); }

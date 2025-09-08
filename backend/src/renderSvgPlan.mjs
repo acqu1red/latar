@@ -50,16 +50,26 @@ export async function renderSvgPlan(roomsWithLayout, totalSqm) {
         const { name, sqm, objects, doors, windows } = room;
 
         let objectsSvg = '';
-        if (objects) {
-            objects.forEach(obj => {
-                const objWidth = obj.w * width;
-                const objHeight = obj.h * height;
+        if (objects && objects.length > 0) {
+            // Show only major furniture items, limit to 3-4 most important
+            const majorObjects = objects
+                .filter(obj => obj.w * obj.h > 0.02) // Only show larger objects
+                .slice(0, 4); // Limit to 4 objects max
+                
+            majorObjects.forEach(obj => {
+                const objWidth = Math.max(20, obj.w * width);
+                const objHeight = Math.max(20, obj.h * height);
                 const objX = x + obj.x * width;
                 const objY = y + obj.y * height;
-                objectsSvg += getIcon(obj.type, objX, objY, objWidth, objHeight, obj.rotation);
-                if (obj.w * obj.h > 0.01) {
-                    objectsSvg += `<text x="${objX}" y="${objY + 8}" font-size="12" font-family="${FONT_FAMILY}" text-anchor="middle" fill="#555">${obj.type}</text>`;
-                }
+                
+                // Simple rectangle with type label instead of complex icons
+                objectsSvg += `
+                    <rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" 
+                          width="${objWidth}" height="${objHeight}" 
+                          fill="#f0f0f0" stroke="#999" stroke-width="1" rx="2"/>
+                    <text x="${objX}" y="${objY + 4}" font-size="10" font-family="${FONT_FAMILY}" 
+                          text-anchor="middle" fill="#666">${obj.type}</text>
+                `;
             });
         }
         
@@ -89,9 +99,12 @@ export async function renderSvgPlan(roomsWithLayout, totalSqm) {
 
         roomsSvg += `
             <g>
-                <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#fff" stroke="#333" stroke-width="${WALL_THICKNESS}" />
-                <text x="${x + width / 2}" y="${y + height / 2}" font-size="20" font-family="${FONT_FAMILY}" text-anchor="middle" dominant-baseline="central" fill="#333">
-                    ${name} <tspan font-size="16" fill="#666">• ${sqm} м²</tspan>
+                <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#fff" stroke="#333" stroke-width="2" />
+                <text x="${x + width / 2}" y="${y + 20}" font-size="14" font-family="${FONT_FAMILY}" text-anchor="middle" fill="#333" font-weight="bold">
+                    ${name}
+                </text>
+                <text x="${x + width / 2}" y="${y + 36}" font-size="12" font-family="${FONT_FAMILY}" text-anchor="middle" fill="#666">
+                    ${sqm} м²
                 </text>
                 ${objectsSvg}
                 ${doorsSvg}

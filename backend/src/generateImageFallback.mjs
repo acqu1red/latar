@@ -13,7 +13,15 @@ const openai = new OpenAI({
  */
 export async function generateImageFallback(rooms, totalSqm) {
   const roomDescriptions = rooms.map(r => `${r.name} (${r.sqm} м²)`).join(', ');
-  const prompt = `Create a clean, modern, 2D top-down architectural floor plan for an apartment with a total area of approximately ${totalSqm} sq meters. The apartment includes the following rooms: ${roomDescriptions}. Show the layout of the rooms with furniture. Do not include any text, labels, or dimensions. The style should be minimalist and clear, with black lines on a white background.`;
+  const prompt = `Create a simple, clean 2D floor plan of an APARTMENT (not a house) with total area ${totalSqm} sq meters. Rooms: ${roomDescriptions}. 
+REQUIREMENTS:
+- Simple schematic apartment layout with rectangular rooms
+- Only basic furniture icons (bed, sofa, table, chairs, kitchen appliances)
+- No outdoor areas, no gardens, no decorative elements
+- Black lines on white background
+- Minimal, architectural blueprint style
+- Show only essential furniture, no plants or decorations
+- This is an INDOOR apartment plan, not a house with yard`;
 
   try {
     const response = await openai.images.generate({

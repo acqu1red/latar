@@ -7,6 +7,7 @@ export interface RoomState {
     sqm: number;
     enabled: boolean;
     file: File[];
+    connections?: string[]; // Keys of rooms this room connects to
 }
 
 export type BathroomType = 'combined' | 'separate';
