@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { analyzeRoomVision } from './src/analyzeRoomVision.mjs';
 import { renderSvgPlan } from './src/renderSvgPlan.mjs';
 import { generateImageFallback } from './src/generateImageFallback.mjs';
+import { generateGptVisionPlan } from './src/generateGptVisionPlan.mjs';
 import { generateAiLayout } from './src/generateAiLayout.mjs';
 
 dotenv.config();
@@ -54,7 +55,7 @@ app.get('/healthz', (req, res) => {
 
 app.post('/api/generate-plan', upload.any(), async (req, res) => {
     try {
-        const { roomsJson } = req.body;
+        const { roomsJson, useImageMode, bathroomConfig } = req.body;
         if (!roomsJson) {
             return res.status(400).json({ ok: false, error: 'roomsJson is required.' });
         }
@@ -89,15 +90,58 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
 
         const totalSqm = enabledRooms.reduce((sum, r) => sum + r.sqm, 0);
 
-        // --- Logic Branch: Image Fallback vs SVG Generation ---
-        if (allowImageFallback && process.env.USE_GPT_IMAGE === '1') {
-            const { pngDataUrl } = await generateImageFallback(enabledRooms, totalSqm);
+        // --- Logic Branch: Image Generation vs SVG Generation ---
+        if (useImageMode === 'true' || process.env.USE_GPT_IMAGE === '1') {
+            // First analyze photos to get furniture/doors data
+            let analyzedRooms;
+            try {
+                const analysisPromises = enabledRooms.map(async (room) => {
+                    const files = filesByRoomKey[room.key];
+                    if (!files) return null;
+
+                    return analyzeRoomVision({
+                        photoBuffers: files.map(f => f.buffer),
+                        key: room.key,
+                        name: room.name,
+                        sqm: room.sqm,
+                    });
+                });
+
+                analyzedRooms = (await Promise.all(analysisPromises)).filter(Boolean);
+                if (!analyzedRooms || analyzedRooms.length === 0) {
+                    throw new Error('No rooms could be analyzed.');
+                }
+            } catch (analysisError) {
+                console.error('Photo analysis failed, using basic room data:', analysisError);
+                analyzedRooms = enabledRooms.map(room => ({
+                    key: room.key,
+                    name: room.name,
+                    sqm: room.sqm,
+                    objects: [],
+                    doors: [],
+                    windows: [],
+                    connections: room.connections || []
+                }));
+            }
+
+            // Combine analysis data with layout data
+            const roomsWithAnalysis = analyzedRooms.map(room => {
+                const src = enabledRooms.find(r => r.key === room.key) || {};
+                return { 
+                    ...room, 
+                    layout: src.layout,
+                    connections: src.connections || []
+                };
+            });
+
+            // Use GPT Vision with full data (layout + analysis + connections + bathroom config)
+            const { pngDataUrl } = await generateGptVisionPlan(roomsWithAnalysis, totalSqm, bathroomConfig);
             return res.json({
                 ok: true,
                 mode: 'image',
                 pngDataUrl,
                 totalSqm,
-                rooms: enabledRooms,
+                rooms: roomsWithAnalysis,
             });
         }
 
@@ -149,10 +193,9 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
                 rooms: roomsWithLayout,
             });
         } catch (genError) {
-            console.error('Primary SVG generation failed:', genError);
-            if (allowImageFallback) {
-                console.warn('Falling back to image mode (ALLOW_IMAGE_FALLBACK not disabled)');
-                const { pngDataUrl } = await generateImageFallback(enabledRooms, totalSqm);
+            console.error('Primary SVG generation failed, falling back to image mode:', genError);
+            try {
+                const { pngDataUrl } = await generateGptVisionPlan(enabledRooms, totalSqm, bathroomConfig);
                 return res.json({
                     ok: true,
                     mode: 'image',
@@ -160,8 +203,10 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
                     totalSqm,
                     rooms: enabledRooms,
                 });
+            } catch (imageError) {
+                console.error('Image generation also failed:', imageError);
+                return res.status(500).json({ ok: false, error: 'Failed to generate both SVG and image plans' });
             }
-            return res.status(500).json({ ok: false, error: genError.message || 'Failed to generate SVG plan' });
         }
 
     } catch (error) {

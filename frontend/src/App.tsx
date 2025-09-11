@@ -27,6 +27,7 @@ function App() {
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [useImageMode, setUseImageMode] = useState(false);
 
   const handleRoomUpdate = (key: string, updates: Partial<RoomState>) => {
     setRooms(prevRooms =>
@@ -83,7 +84,8 @@ function App() {
     }
 
     setLoading(true);
-    const apiResponse = await generatePlan(allRooms);
+    // Add image mode flag and bathroom config to request
+    const apiResponse = await generatePlan(allRooms, useImageMode, bathroomConfig);
     setLoading(false);
 
     if (apiResponse.ok) {
@@ -185,6 +187,16 @@ function App() {
         </div>
 
         <div className="actions">
+          <div className="mode-selector">
+            <label>
+              <input
+                type="checkbox"
+                checked={useImageMode}
+                onChange={(e) => setUseImageMode(e.target.checked)}
+              />
+              Генерировать фотографию (нейросеть) вместо SVG
+            </label>
+          </div>
           <button 
             onClick={handleSubmit} 
             disabled={!isGenerateButtonEnabled || loading}

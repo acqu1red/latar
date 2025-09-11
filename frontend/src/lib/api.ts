@@ -29,13 +29,17 @@ export interface ApiResponse {
     error?: string;
 }
 
-export async function generatePlan(rooms: RoomState[]): Promise<ApiResponse> {
+export async function generatePlan(rooms: RoomState[], useImageMode: boolean = false, bathroomConfig?: any): Promise<ApiResponse> {
     const formData = new FormData();
 
     const enabledRooms = rooms.filter(r => r.enabled && r.sqm > 0 && r.file.length > 0);
     
     const roomsJson = enabledRooms.map(({ file, ...rest }) => rest);
     formData.append('roomsJson', JSON.stringify(roomsJson));
+    formData.append('useImageMode', useImageMode.toString());
+    if (bathroomConfig) {
+        formData.append('bathroomConfig', JSON.stringify(bathroomConfig));
+    }
 
     enabledRooms.forEach(room => {
         if (room.file) {
