@@ -20,9 +20,169 @@ export async function generateSvgFromData(rooms, totalSqm) {
             pixelX: MARGIN + layout.x * (CANVAS_WIDTH - 2 * MARGIN),
             pixelY: MARGIN + layout.y * (CANVAS_HEIGHT - 2 * MARGIN),
             pixelWidth: layout.width * (CANVAS_WIDTH - 2 * MARGIN),
-            pixelHeight: layout.height * (CANVAS_HEIGHT - 2 * MARGIN)
+            pixelHeight: layout.height * (CANVAS_HEIGHT - 2 * MARGIN),
+            doors: Array.isArray(room.doors) ? [...room.doors] : [],
+            windows: Array.isArray(room.windows) ? [...room.windows] : [],
         };
     });
+
+    // Snap edges to reduce user placement roughness and tiny gaps/overlaps
+    const SNAP = 16; // pixels
+    const MIN_SIZE = 48; // minimal room thickness to avoid collapse
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+    const snapEdges = () => {
+        // Prepare arrays of edges
+        const vEdges = []; // vertical edges: left/right
+        const hEdges = []; // horizontal edges: top/bottom
+        pixelRooms.forEach((r, idx) => {
+            vEdges.push({ idx, kind: 'left', value: r.pixelX });
+            vEdges.push({ idx, kind: 'right', value: r.pixelX + r.pixelWidth });
+            hEdges.push({ idx, kind: 'top', value: r.pixelY });
+            hEdges.push({ idx, kind: 'bottom', value: r.pixelY + r.pixelHeight });
+        });
+
+        const clusterAndApply = (edges, isVertical) => {
+            edges.sort((a, b) => a.value - b.value);
+            let group = [];
+            const applyGroup = (grp) => {
+                if (grp.length === 0) return;
+                const first = grp[0].value;
+                const last = grp[grp.length - 1].value;
+                if (last - first > SNAP) return; // too wide group, skip
+                const avg = grp.reduce((s, e) => s + e.value, 0) / grp.length;
+                grp.forEach(e => {
+                    const r = pixelRooms[e.idx];
+                    if (isVertical) {
+                        if (e.kind === 'left') {
+                            const newLeft = avg;
+                            const newWidth = Math.max(MIN_SIZE, (r.pixelX + r.pixelWidth) - newLeft);
+                            r.pixelX = newLeft;
+                            r.pixelWidth = newWidth;
+                        } else {
+                            const newRight = avg;
+                            const newWidth = Math.max(MIN_SIZE, newRight - r.pixelX);
+                            r.pixelWidth = newWidth;
+                        }
+                    } else {
+                        if (e.kind === 'top') {
+                            const newTop = avg;
+                            const newHeight = Math.max(MIN_SIZE, (r.pixelY + r.pixelHeight) - newTop);
+                            r.pixelY = newTop;
+                            r.pixelHeight = newHeight;
+                        } else {
+                            const newBottom = avg;
+                            const newHeight = Math.max(MIN_SIZE, newBottom - r.pixelY);
+                            r.pixelHeight = newHeight;
+                        }
+                    }
+                });
+            };
+
+            for (let i = 0; i < edges.length; i++) {
+                if (group.length === 0) {
+                    group.push(edges[i]);
+                } else {
+                    if (Math.abs(edges[i].value - group[0].value) <= SNAP) {
+                        group.push(edges[i]);
+                    } else {
+                        applyGroup(group);
+                        group = [edges[i]];
+                    }
+                }
+            }
+            applyGroup(group);
+        };
+
+        clusterAndApply(vEdges, true);
+        clusterAndApply(hEdges, false);
+
+        // Clamp rooms into canvas margin box
+        pixelRooms.forEach(r => {
+            r.pixelX = clamp(r.pixelX, MARGIN, CANVAS_WIDTH - MARGIN - MIN_SIZE);
+            r.pixelY = clamp(r.pixelY, MARGIN, CANVAS_HEIGHT - MARGIN - MIN_SIZE);
+            r.pixelWidth = clamp(r.pixelWidth, MIN_SIZE, CANVAS_WIDTH - MARGIN - r.pixelX);
+            r.pixelHeight = clamp(r.pixelHeight, MIN_SIZE, CANVAS_HEIGHT - MARGIN - r.pixelY);
+        });
+    };
+
+    snapEdges();
+
+    // Infer doors from user connections and geometric adjacency
+    const addDoorIfMissing = (room, side, posNorm) => {
+        const existing = (room.doors || []).some(d => d.side === side && Math.abs((d.pos ?? 0.5) - posNorm) < 0.08);
+        if (!existing) {
+            room.doors = [...(room.doors || []), { side, pos: clamp(posNorm, 0.05, 0.95) }];
+        }
+    };
+
+    const inferDoorsFromConnections = () => {
+        const DOOR_EPS = 18; // adjacency tolerance
+        pixelRooms.forEach(a => {
+            const connections = Array.isArray(a.connections) ? a.connections : [];
+            connections.forEach(key => {
+                const b = pixelRooms.find(r => r.key === key);
+                if (!b) return;
+                const aLeft = a.pixelX, aRight = a.pixelX + a.pixelWidth, aTop = a.pixelY, aBottom = a.pixelY + a.pixelHeight;
+                const bLeft = b.pixelX, bRight = b.pixelX + b.pixelWidth, bTop = b.pixelY, bBottom = b.pixelY + b.pixelHeight;
+
+                // Vertical adjacency (A right near B left)
+                if (Math.abs(aRight - bLeft) <= DOOR_EPS) {
+                    const y1 = Math.max(aTop, bTop);
+                    const y2 = Math.min(aBottom, bBottom);
+                    const overlap = y2 - y1;
+                    if (overlap > 60) {
+                        const mid = (y1 + y2) / 2;
+                        const posA = (mid - aTop) / a.pixelHeight;
+                        const posB = (mid - bTop) / b.pixelHeight;
+                        addDoorIfMissing(a, 'right', posA);
+                        addDoorIfMissing(b, 'left', posB);
+                    }
+                }
+                // Vertical adjacency (B right near A left)
+                if (Math.abs(bRight - aLeft) <= DOOR_EPS) {
+                    const y1 = Math.max(aTop, bTop);
+                    const y2 = Math.min(aBottom, bBottom);
+                    const overlap = y2 - y1;
+                    if (overlap > 60) {
+                        const mid = (y1 + y2) / 2;
+                        const posA = (mid - aTop) / a.pixelHeight;
+                        const posB = (mid - bTop) / b.pixelHeight;
+                        addDoorIfMissing(a, 'left', posA);
+                        addDoorIfMissing(b, 'right', posB);
+                    }
+                }
+                // Horizontal adjacency (A bottom near B top)
+                if (Math.abs(aBottom - bTop) <= DOOR_EPS) {
+                    const x1 = Math.max(aLeft, bLeft);
+                    const x2 = Math.min(aRight, bRight);
+                    const overlap = x2 - x1;
+                    if (overlap > 60) {
+                        const mid = (x1 + x2) / 2;
+                        const posA = (mid - aLeft) / a.pixelWidth;
+                        const posB = (mid - bLeft) / b.pixelWidth;
+                        addDoorIfMissing(a, 'bottom', posA);
+                        addDoorIfMissing(b, 'top', posB);
+                    }
+                }
+                // Horizontal adjacency (B bottom near A top)
+                if (Math.abs(bBottom - aTop) <= DOOR_EPS) {
+                    const x1 = Math.max(aLeft, bLeft);
+                    const x2 = Math.min(aRight, bRight);
+                    const overlap = x2 - x1;
+                    if (overlap > 60) {
+                        const mid = (x1 + x2) / 2;
+                        const posA = (mid - aLeft) / a.pixelWidth;
+                        const posB = (mid - bLeft) / b.pixelWidth;
+                        addDoorIfMissing(a, 'top', posA);
+                        addDoorIfMissing(b, 'bottom', posB);
+                    }
+                }
+            });
+        });
+    };
+
+    inferDoorsFromConnections();
 
     let svgContent = `<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #FFFFFF; shape-rendering: crispEdges;">
 <rect width="100%" height="100%" fill="#FFFFFF"/>`;
@@ -162,20 +322,53 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     });
 
-    // Draw furniture
+    // Draw furniture (simple 2D icons; start with sofa and bed recognition)
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, objects = [] } = room;
         
-        objects.filter(obj => obj.w * obj.h > 0.02).slice(0, 2).forEach(obj => {
+        objects.filter(obj => obj.w * obj.h > 0.02).slice(0, 3).forEach(obj => {
             const objX = pixelX + obj.x * pixelWidth;
             const objY = pixelY + obj.y * pixelHeight;
             const objWidth = Math.max(20, obj.w * pixelWidth);
             const objHeight = Math.max(20, obj.h * pixelHeight);
             
-            // Simple rectangle for furniture
-            svgContent += `<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" 
-                  width="${objWidth}" height="${objHeight}" 
-                  fill="none" stroke="#000000" stroke-width="${ICON_STROKE}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
+            const drawRect = () => {
+                svgContent += `\n<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" width="${objWidth}" height="${objHeight}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
+            };
+
+            if (obj.type === 'sofa') {
+                // Simple sofa icon: outer rect + backrest + seat cushions
+                const pad = Math.min(objWidth, objHeight) * 0.08;
+                const innerX = objX - objWidth/2 + pad;
+                const innerY = objY - objHeight/2 + pad;
+                const innerW = objWidth - pad * 2;
+                const innerH = objHeight - pad * 2;
+                const backThickness = Math.max(8, innerH * 0.18);
+                const cushionGap = Math.max(6, innerW * 0.04);
+                const cushionW = (innerW - cushionGap) / 2;
+                const cushionH = innerH - backThickness - pad * 0.5;
+                // outline
+                svgContent += `\n<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" width="${objWidth}" height="${objHeight}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+                // backrest (top side)
+                svgContent += `\n<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${backThickness}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+                // seat cushions
+                svgContent += `\n<rect x="${innerX}" y="${innerY + backThickness + cushionGap * 0.25}" width="${cushionW}" height="${cushionH}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+                svgContent += `\n<rect x="${innerX + cushionW + cushionGap}" y="${innerY + backThickness + cushionGap * 0.25}" width="${cushionW}" height="${cushionH}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+            } else if (obj.type === 'bed') {
+                // Simple bed icon: outer rect + two pillows at head side
+                const pad = Math.min(objWidth, objHeight) * 0.08;
+                const headThickness = Math.max(8, objHeight * 0.18);
+                const pillowGap = Math.max(6, objWidth * 0.04);
+                const pillowW = (objWidth - pillowGap - pad * 2) / 2;
+                const pillowH = Math.max(18, headThickness - pad);
+                // outline
+                svgContent += `\n<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" width="${objWidth}" height="${objHeight}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+                // pillows (top side)
+                svgContent += `\n<rect x="${objX - objWidth/2 + pad}" y="${objY - objHeight/2 + pad}" width="${pillowW}" height="${pillowH}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+                svgContent += `\n<rect x="${objX - objWidth/2 + pad + pillowW + pillowGap}" y="${objY - objHeight/2 + pad}" width="${pillowW}" height="${pillowH}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+            } else {
+                drawRect();
+            }
         });
     });
 
