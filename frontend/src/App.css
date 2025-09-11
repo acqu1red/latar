@@ -640,30 +640,32 @@ header p {
   width: 100%;
   max-width: 960px;
   height: 520px;
-  background: var(--primary-50);
-  border: 1px dashed var(--primary-300);
-  border-radius: 0.75rem;
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
   margin: 0 auto;
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 
 .layout-box {
   position: absolute;
   background: #fff;
   border: 2px solid var(--primary-500);
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
+  transition: box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease;
 }
 
 .layout-box-header {
-  background: var(--primary-100);
+  background: rgba(255,255,255,0.8);
   color: var(--primary-700);
-  padding: 6px 8px;
+  padding: 8px 10px;
   font-size: 12px;
   font-weight: 600;
-  border-bottom: 1px solid var(--primary-200);
+  border-bottom: 1px dashed var(--primary-200);
 }
 
 .layout-box-body {
@@ -673,14 +675,15 @@ header p {
 
 .layout-resizer {
   position: absolute;
-  right: -6px;
-  bottom: -6px;
-  width: 12px;
-  height: 12px;
+  right: -8px;
+  bottom: -8px;
+  width: 18px;
+  height: 18px;
   background: var(--accent-500);
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 3px solid #fff;
   cursor: nwse-resize;
+  transition: transform 120ms ease, background 120ms ease;
 }
 
 /* Image Previews */
@@ -705,6 +708,40 @@ header p {
   transform: scale(1.05);
   border-color: var(--red-accent-400);
   box-shadow: var(--shadow-md);
+}
+
+/* Collapsible layout section */
+.layout-collapsible {
+  margin: 1.25rem 0 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+}
+.layout-collapsible[open] .layout-collapsible-summary {
+  border-bottom: 1px solid #f1f5f9;
+}
+.layout-collapsible-summary {
+  list-style: none;
+  padding: 0.9rem 1rem;
+  font-weight: 600;
+  color: var(--primary-800);
+  cursor: pointer;
+}
+.layout-collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+.layout-collapsible-summary::after {
+  content: '▾';
+  float: right;
+  color: var(--primary-500);
+  transition: transform 160ms ease;
+}
+.layout-collapsible[open] .layout-collapsible-summary::after {
+  transform: rotate(180deg);
+}
+.layout-collapsible-content {
+  padding: 1rem;
 }
 
 /* Actions */

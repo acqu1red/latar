@@ -176,11 +176,6 @@ function App() {
       </header>
       
       <main>
-        <section>
-          <h3>Мини-конструктор расположения комнат</h3>
-          <p>Перетащите и растяните блоки комнат. Положение и размеры сохраняются в 0..1 и будут учтены при генерации.</p>
-          <LayoutEditor rooms={rooms} onUpdate={handleRoomUpdate} />
-        </section>
 
         <div className="bathroom-type-selector">
           <h3>Тип санузла:</h3>
@@ -242,6 +237,15 @@ function App() {
             </>
           )}
         </div>
+        
+        {/* Collapsible Layout Editor placed below rooms and above Generate button */}
+        <details className="layout-collapsible" open>
+          <summary className="layout-collapsible-summary">Конструктор расположения комнат</summary>
+          <div className="layout-collapsible-content">
+            <p>Перетащите и растяните блоки. Сетка-снэп 2%. Площади автоматически переводятся в примерные ширину×высоту.</p>
+            <LayoutEditor rooms={rooms} onUpdate={handleRoomUpdate} />
+          </div>
+        </details>
 
         <div className="actions">
           <button 
