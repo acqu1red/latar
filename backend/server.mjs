@@ -176,6 +176,11 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
 });
 
 // --- Server Start ---
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-});
+// Only start server if not in build mode
+if (process.env.NODE_ENV !== 'build' && !process.argv.includes('--build')) {
+    app.listen(port, () => {
+        console.log(`Server is running on http://localhost:${port}`);
+    });
+} else {
+    console.log('Build mode detected, skipping server start');
+}
