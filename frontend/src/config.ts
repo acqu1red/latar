@@ -1,1 +1,1 @@
-export const API_BASE_URL = "https://latar-production.up.railway.app";
+export const API_BASE_URL = "https://competitive-camellia-latar-a11ca532.koyeb.app";
