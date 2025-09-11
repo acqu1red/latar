@@ -7,6 +7,8 @@ import { analyzeRoomVision } from './src/analyzeRoomVision.mjs';
 import { renderSvgPlan } from './src/renderSvgPlan.mjs';
 import { generateImageFallback } from './src/generateImageFallback.mjs';
 import { generateGptVisionPlan } from './src/generateGptVisionPlan.mjs';
+import { generateSvgFromData } from './src/generateSvgFromData.mjs';
+import { styleSvgWithDalle } from './src/styleSvgWithDalle.mjs';
 import { generateAiLayout } from './src/generateAiLayout.mjs';
 
 dotenv.config();
@@ -134,12 +136,23 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
                 };
             });
 
-            // Use GPT Vision with full data (layout + analysis + connections + bathroom config)
-            const { pngDataUrl } = await generateGptVisionPlan(roomsWithAnalysis, totalSqm, bathroomConfig);
+            // Generate precise SVG from data first
+            const { svgDataUrl, pngDataUrl: svgPngDataUrl } = await generateSvgFromData(roomsWithAnalysis, totalSqm);
+            
+            // Optionally style with DALL-E for better visual quality
+            let styledPngDataUrl = svgPngDataUrl;
+            try {
+                const { pngDataUrl } = await styleSvgWithDalle(svgDataUrl, roomsWithAnalysis, totalSqm);
+                styledPngDataUrl = pngDataUrl;
+            } catch (styleError) {
+                console.warn('DALL-E styling failed, using SVG PNG:', styleError);
+            }
+
             return res.json({
                 ok: true,
                 mode: 'image',
-                pngDataUrl,
+                svgDataUrl,
+                pngDataUrl: styledPngDataUrl,
                 totalSqm,
                 rooms: roomsWithAnalysis,
             });
