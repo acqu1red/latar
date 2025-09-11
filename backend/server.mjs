@@ -130,62 +130,14 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
                 };
             });
 
-            // Ensure bathroom configuration (combined/separate) reflects user's choice
-            const applyBathroomConfig = (roomsArr, config) => {
-                if (!config || !config.type) return roomsArr;
-                const isBathName = (n = '') => /ванн|сануз|туал|bath|wc/i.test(String(n));
-                const bathRooms = roomsArr.filter(r => isBathName(r.name));
-                if (config.type === 'combined' && bathRooms.length >= 2) {
-                    // Merge all bathroom-like rooms into one bounding box
-                    const first = bathRooms[0];
-                    let minX = first.layout?.x ?? 0, minY = first.layout?.y ?? 0;
-                    let maxX = (first.layout?.x ?? 0) + (first.layout?.width ?? 0.15);
-                    let maxY = (first.layout?.y ?? 0) + (first.layout?.height ?? 0.15);
-                    let sumSqm = 0;
-                    const agg = {
-                        key: 'bath_combined',
-                        name: 'Санузел совмещенный',
-                        objects: [], doors: [], windows: [],
-                        connections: [], layout: null, sqm: 0
-                    };
-                    bathRooms.forEach(r => {
-                        const lx = r.layout?.x ?? 0, ly = r.layout?.y ?? 0;
-                        const rx = lx + (r.layout?.width ?? 0.15);
-                        const by = ly + (r.layout?.height ?? 0.15);
-                        minX = Math.min(minX, lx); minY = Math.min(minY, ly);
-                        maxX = Math.max(maxX, rx); maxY = Math.max(maxY, by);
-                        sumSqm += Number(r.sqm) || 0;
-                        agg.objects = agg.objects.concat(r.objects || []);
-                        agg.doors = agg.doors.concat(r.doors || []);
-                        agg.windows = agg.windows.concat(r.windows || []);
-                        agg.connections = agg.connections.concat(r.connections || []);
-                    });
-                    agg.layout = { x: minX, y: minY, width: Math.max(0.08, maxX - minX), height: Math.max(0.08, maxY - minY) };
-                    agg.sqm = Math.max(sumSqm, 2);
-                    const others = roomsArr.filter(r => !bathRooms.includes(r));
-                    // Remove connections referencing removed rooms and replace with combined key
-                    const bathKeys = new Set(bathRooms.map(r => r.key));
-                    agg.connections = Array.from(new Set(agg.connections.map(c => bathKeys.has(c) ? 'bath_combined' : c)));
-                    const updated = others.map(r => ({
-                        ...r,
-                        connections: Array.from(new Set((r.connections || []).map(c => bathKeys.has(c) ? 'bath_combined' : c)))
-                    }));
-                    return [...updated, agg];
-                }
-                // For 'separate' do nothing — у пользователя уже заданы отдельные помещения
-                return roomsArr;
-            };
-
-            const roomsPrepared = applyBathroomConfig(roomsWithAnalysis, bathroomConfig);
-
             // Generate precise SVG from data first
-            const { svgDataUrl, pngDataUrl: svgPngDataUrl } = await generateSvgFromData(roomsPrepared, totalSqm);
+            const { svgDataUrl, pngDataUrl: svgPngDataUrl } = await generateSvgFromData(roomsWithAnalysis, totalSqm);
             
             // Optionally style with DALL-E for better visual quality
             let styledPngDataUrl = svgPngDataUrl;
             try {
                 // Use PNG (A) as content image for style-preserving redraw
-                const { pngDataUrl } = await styleSvgWithDalle(svgPngDataUrl, roomsPrepared, totalSqm);
+                const { pngDataUrl } = await styleSvgWithDalle(svgPngDataUrl, roomsWithAnalysis, totalSqm);
                 styledPngDataUrl = pngDataUrl;
             } catch (styleError) {
                 console.warn('DALL-E styling failed, using SVG PNG:', styleError);
@@ -208,7 +160,7 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
                 svgDataUrl,
                 pngDataUrl: styledPngDataUrl,
                 totalSqm,
-                rooms: roomsPrepared,
+                rooms: roomsWithAnalysis,
             });
         }
 

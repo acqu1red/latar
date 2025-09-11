@@ -632,40 +632,49 @@ header p {
 
 /* Layout Editor */
 .layout-editor {
-  margin-top: 1.5rem;
+  margin-top: 1.25rem;
 }
 
 .layout-canvas {
   position: relative;
   width: 100%;
   max-width: 960px;
-  height: 520px;
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
+  height: 420px;
+  background: radial-gradient(ellipse at center, #ffffff 0%, #fbfbfb 100%);
+  border: 1px solid var(--primary-200);
+  border-radius: 12px;
   margin: 0 auto;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
 }
 
 .layout-box {
   position: absolute;
-  background: #fff;
-  border: 2px solid var(--primary-500);
+  background: rgba(99, 102, 241, 0.08);
+  border: 2px solid var(--accent-400);
   border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 20px rgba(99,102,241,0.12);
   display: flex;
   flex-direction: column;
-  transition: box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.layout-box:hover {
+  transform: translateZ(0) scale(1.01);
+  box-shadow: 0 10px 24px rgba(99,102,241,0.18);
 }
 
 .layout-box-header {
-  background: rgba(255,255,255,0.8);
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  background: rgba(255,255,255,0.85);
+  border: 1px solid var(--primary-200);
   color: var(--primary-700);
-  padding: 8px 10px;
+  padding: 2px 6px;
   font-size: 12px;
   font-weight: 600;
-  border-bottom: 1px dashed var(--primary-200);
+  border-radius: 8px;
 }
 
 .layout-box-body {
@@ -681,10 +690,62 @@ header p {
   height: 18px;
   background: var(--accent-500);
   border-radius: 50%;
-  border: 3px solid #fff;
+  border: 2px solid #fff;
   cursor: nwse-resize;
-  transition: transform 120ms ease, background 120ms ease;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.4);
+  transition: transform 0.12s ease;
 }
+
+.layout-resizer:hover { transform: scale(1.08); }
+
+.layout-size-hint {
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  font-size: 11px;
+  color: var(--primary-600);
+  background: rgba(255,255,255,0.85);
+  border: 1px solid var(--primary-200);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+/* Collapsible constructor */
+.constructor-wrapper { margin: 1.25rem 0 1.5rem; }
+.constructor-toggle {
+  appearance: none;
+  border: 1px solid var(--primary-300);
+  background: linear-gradient(180deg, #fff, #f8fafc);
+  color: var(--primary-700);
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.constructor-toggle.active {
+  border-color: var(--accent-400);
+  color: var(--accent-700);
+  box-shadow: 0 6px 18px rgba(99,102,241,0.18);
+}
+.constructor-toggle:hover { transform: translateY(-1px); }
+
+.constructor-panel {
+  overflow: hidden;
+  transition: grid-template-rows 260ms ease, opacity 260ms ease;
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0.01;
+}
+.constructor-wrapper.open .constructor-panel { grid-template-rows: 1fr; opacity: 1; }
+.constructor-panel-inner {
+  min-height: 0;
+  padding: 0.8rem 0.2rem 0.2rem;
+}
+.constructor-hint { color: var(--primary-600); margin: 0.25rem 0 0.75rem; }
 
 /* Image Previews */
 .preview-grid {
@@ -708,40 +769,6 @@ header p {
   transform: scale(1.05);
   border-color: var(--red-accent-400);
   box-shadow: var(--shadow-md);
-}
-
-/* Collapsible layout section */
-.layout-collapsible {
-  margin: 1.25rem 0 1.5rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-}
-.layout-collapsible[open] .layout-collapsible-summary {
-  border-bottom: 1px solid #f1f5f9;
-}
-.layout-collapsible-summary {
-  list-style: none;
-  padding: 0.9rem 1rem;
-  font-weight: 600;
-  color: var(--primary-800);
-  cursor: pointer;
-}
-.layout-collapsible-summary::-webkit-details-marker {
-  display: none;
-}
-.layout-collapsible-summary::after {
-  content: '▾';
-  float: right;
-  color: var(--primary-500);
-  transition: transform 160ms ease;
-}
-.layout-collapsible[open] .layout-collapsible-summary::after {
-  transform: rotate(180deg);
-}
-.layout-collapsible-content {
-  padding: 1rem;
 }
 
 /* Actions */

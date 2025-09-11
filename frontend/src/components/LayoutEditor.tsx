@@ -10,10 +10,9 @@ interface LayoutEditorProps {
 const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ key: string; type: 'move' | 'resize'; startX: number; startY: number; start: { x: number; y: number; w: number; h: number } } | null>(null);
-  const [dragKey, setDragKey] = useState<string | null>(null);
-  const SNAP = 0.02; // snap to 2% grid
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
+  const [snap] = useState(0.02); // 2% snapping grid
 
   const handlePointerDown = (e: React.PointerEvent, room: RoomState, type: 'move' | 'resize') => {
     const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
@@ -21,7 +20,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     const y = (e.clientY - rect.top) / rect.height;
     const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
     setDrag({ key: room.key, type, startX: x, startY: y, start: { x: layout.x, y: layout.y, w: layout.width, h: layout.height } });
-    setDragKey(room.key);
     (e.target as Element).setPointerCapture(e.pointerId);
   };
 
@@ -34,18 +32,17 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     const dx = x - drag.startX;
     const dy = y - drag.startY;
 
+    const snapTo = (v: number) => Math.round(v / snap) * snap;
     if (drag.type === 'move') {
-      const nx = Math.min(1, Math.max(0, drag.start.x + dx));
-      const ny = Math.min(1, Math.max(0, drag.start.y + dy));
-      const sx = Math.round(nx / SNAP) * SNAP;
-      const sy = Math.round(ny / SNAP) * SNAP;
-      onUpdate(drag.key, { layout: { x: sx, y: sy, width: drag.start.w, height: drag.start.h } });
+      let nx = Math.min(1, Math.max(0, drag.start.x + dx));
+      let ny = Math.min(1, Math.max(0, drag.start.y + dy));
+      nx = snapTo(nx); ny = snapTo(ny);
+      onUpdate(drag.key, { layout: { x: nx, y: ny, width: drag.start.w, height: drag.start.h } });
     } else {
-      const nw = Math.min(1, Math.max(0.05, drag.start.w + dx));
-      const nh = Math.min(1, Math.max(0.05, drag.start.h + dy));
-      const sw = Math.round(nw / SNAP) * SNAP;
-      const sh = Math.round(nh / SNAP) * SNAP;
-      onUpdate(drag.key, { layout: { x: drag.start.x, y: drag.start.y, width: sw, height: sh } });
+      let nw = Math.min(1, Math.max(0.05, drag.start.w + dx));
+      let nh = Math.min(1, Math.max(0.05, drag.start.h + dy));
+      nw = snapTo(nw); nh = snapTo(nh);
+      onUpdate(drag.key, { layout: { x: drag.start.x, y: drag.start.y, width: nw, height: nh } });
     }
   };
 
@@ -54,7 +51,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       try { (e.target as Element).releasePointerCapture(e.pointerId); } catch {}
     }
     setDrag(null);
-    setDragKey(null);
   };
 
   return (
@@ -75,10 +71,11 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             height: `${layout.height * 100}%`,
           };
           return (
-            <div key={room.key} className={`layout-box ${dragKey === room.key ? 'dragging' : ''}`} style={style}>
+            <div key={room.key} className="layout-box" style={style}>
               <div className="layout-box-header">{room.name}</div>
-              <div className="layout-box-body" onPointerDown={(e) => handlePointerDown(e, room, 'move')} />
-              <div className="layout-resizer" onPointerDown={(e) => handlePointerDown(e, room, 'resize')} />
+              <div className="layout-box-body" onPointerDown={(e: any) => handlePointerDown(e, room, 'move')} />
+              <div className="layout-resizer" onPointerDown={(e: any) => handlePointerDown(e, room, 'resize')} />
+              <div className="layout-size-hint">{Math.round(layout.width*100)}×{Math.round(layout.height*100)}</div>
             </div>
           );
         })}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import RoomCard from './components/RoomCard';
 import { generatePlan } from './lib/api';
 import type { RoomState, ApiResponse, BathroomType, BathroomConfig } from './lib/api';
@@ -27,15 +27,37 @@ function App() {
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(true);
+
+  // Total enabled area for auto sizing
+  const totalEnabledSqm = useMemo<number>(() => rooms.filter((r: RoomState) => r.enabled).reduce((s: number, r: RoomState) => s + (r.sqm || 0), 0), [rooms]);
+
+  const recomputeLayoutsByArea = (nextRooms: RoomState[]): RoomState[] => {
+    const enabled = nextRooms.filter((r: RoomState) => r.enabled && r.sqm > 0);
+    if (enabled.length === 0 || totalEnabledSqm <= 0) return nextRooms;
+    const USABLE = 0.86; // доля холста под план (по шир/высоте)
+    return nextRooms.map(r => {
+      if (!r.enabled || r.sqm <= 0) return r;
+      const share = Math.max(0, r.sqm) / Math.max(1e-6, enabled.reduce((s: number, x: RoomState) => s + x.sqm, 0));
+      const size = Math.sqrt(share) * USABLE; // нормал. ширина/высота исходя из площади
+      const layout = r.layout || { x: Math.random() * (1 - size), y: Math.random() * (1 - size), width: size, height: size };
+      return { ...r, layout: { x: layout.x, y: layout.y, width: size, height: size } };
+    });
+  };
 
   const handleRoomUpdate = (key: string, updates: Partial<RoomState>) => {
-    setRooms(prevRooms =>
-      prevRooms.map(room => (room.key === key ? { ...room, ...updates } : room))
-    );
+    setRooms((prevRooms: RoomState[]) => {
+      const next = prevRooms.map((room: RoomState) => (room.key === key ? { ...room, ...updates } : room));
+      // Если изменили площадь — пересчитать размеры автоматически
+      if (Object.prototype.hasOwnProperty.call(updates, 'sqm')) {
+        return recomputeLayoutsByArea(next);
+      }
+      return next;
+    });
   };
 
   const handleBathroomTypeChange = (type: BathroomType) => {
-    setBathroomConfig(prev => ({
+    setBathroomConfig((prev: BathroomConfig) => ({
       ...prev,
       type,
       bathroom: { ...prev.bathroom, enabled: type === 'combined' },
@@ -44,7 +66,7 @@ function App() {
   };
 
   const handleBathroomUpdate = (key: 'bathroom' | 'toilet', updates: Partial<RoomState>) => {
-    setBathroomConfig(prev => ({
+    setBathroomConfig((prev: BathroomConfig) => ({
       ...prev,
       [key]: { ...prev[key], ...updates }
     }));
@@ -186,7 +208,7 @@ function App() {
                 name="bathroomType"
                 value="combined"
                 checked={bathroomConfig.type === 'combined'}
-                onChange={(e) => handleBathroomTypeChange(e.target.value as BathroomType)}
+                onChange={(e: any) => handleBathroomTypeChange(e.target.value as BathroomType)}
               />
               Совмещенный (ванная + санузел)
             </label>
@@ -196,7 +218,7 @@ function App() {
                 name="bathroomType"
                 value="separate"
                 checked={bathroomConfig.type === 'separate'}
-                onChange={(e) => handleBathroomTypeChange(e.target.value as BathroomType)}
+                onChange={(e: any) => handleBathroomTypeChange(e.target.value as BathroomType)}
               />
               Раздельный (ванная и санузел отдельно)
             </label>
@@ -204,7 +226,7 @@ function App() {
         </div>
 
         <div className="rooms-grid">
-          {rooms.map((room, index) => (
+          {rooms.map((room: RoomState, index: number) => (
             <div
               key={room.key}
               style={{ animationDelay: `${index * 0.1}s` }}
@@ -221,14 +243,12 @@ function App() {
           {bathroomConfig.type === 'separate' && (
             <>
               <RoomCard
-                key="bathroom"
                 room={bathroomConfig.bathroom}
                 onUpdate={(_key, updates) => handleBathroomUpdate('bathroom', updates)}
                 submitted={submitted}
                 availableRooms={[...rooms, bathroomConfig.toilet]}
               />
               <RoomCard
-                key="toilet"
                 room={bathroomConfig.toilet}
                 onUpdate={(_key, updates) => handleBathroomUpdate('toilet', updates)}
                 submitted={submitted}
@@ -237,15 +257,24 @@ function App() {
             </>
           )}
         </div>
-        
-        {/* Collapsible Layout Editor placed below rooms and above Generate button */}
-        <details className="layout-collapsible" open>
-          <summary className="layout-collapsible-summary">Конструктор расположения комнат</summary>
-          <div className="layout-collapsible-content">
-            <p>Перетащите и растяните блоки. Сетка-снэп 2%. Площади автоматически переводятся в примерные ширину×высоту.</p>
-            <LayoutEditor rooms={rooms} onUpdate={handleRoomUpdate} />
+
+        {/* Collapsible Layout Editor — placed below rooms and above the Generate button */}
+        <div className={`constructor-wrapper ${editorOpen ? 'open' : 'closed'}`}>
+          <button
+            type="button"
+            className={`constructor-toggle ${editorOpen ? 'active' : ''}`}
+            onClick={() => setEditorOpen((o: boolean) => !o)}
+          >
+            {editorOpen ? 'Скрыть конструктор расположения' : 'Открыть конструктор расположения'}
+          </button>
+          <div className="constructor-panel" aria-hidden={!editorOpen}>
+            <div className="constructor-panel-inner">
+              <h3>Мини‑конструктор расположения комнат</h3>
+              <p className="constructor-hint">Перетаскивайте и меняйте размер. Размеры автоматически подстраиваются под площадь (м²), позиции — настраивайте вручную.</p>
+              <LayoutEditor rooms={rooms} onUpdate={handleRoomUpdate} />
+            </div>
           </div>
-        </details>
+        </div>
 
         <div className="actions">
           <button 

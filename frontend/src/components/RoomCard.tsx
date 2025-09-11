@@ -84,26 +84,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
                                 step="0.1"
                                 min="0"
                                 value={room.sqm}
-                                onChange={e => {
-                                    const sqm = parseFloat(e.target.value) || 0;
-                                    // авто-оценка ширины/высоты из площади: стараемся сохранять текущие пропорции,
-                                    // если их нет — берём квадратный блок
-                                    const current = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-                                    const total = Math.max(current.width * current.height, 0.04);
-                                    const scale = Math.sqrt(Math.max(sqm, 0.1) / (sqm || 1));
-                                    // Нормируем внутри 0..1, с минималкой
-                                    const MIN = 0.06;
-                                    let w = Math.max(MIN, Math.min(0.9, current.width));
-                                    let h = Math.max(MIN, Math.min(0.9, current.height));
-                                    // Поддерживаем соотношение сторон, меняя площадь приблизительно
-                                    const area = w * h;
-                                    if (area > 0) {
-                                        const factor = Math.sqrt((sqm || 1) / (1));
-                                        w = Math.max(MIN, Math.min(0.9, w * factor));
-                                        h = Math.max(MIN, Math.min(0.9, h * factor));
-                                    }
-                                    onUpdate(room.key, { sqm, layout: { ...current, width: w, height: h } });
-                                }}
+                                onChange={e => onUpdate(room.key, { sqm: parseFloat(e.target.value) || 0 })}
                                 className={`form-input ${submitted && room.sqm <= 0 ? 'error' : ''}`}
                             />
                             {submitted && room.sqm <= 0 && <p className="error-text">Укажите площадь</p>}
