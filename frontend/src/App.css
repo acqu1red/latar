@@ -624,29 +624,6 @@ header p {
   font-weight: 500;
 }
 
-/* Mode Selector */
-.mode-selector {
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: var(--primary-50);
-  border-radius: 0.5rem;
-  border: 1px solid var(--primary-200);
-}
-
-.mode-selector label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
-  color: var(--primary-700);
-  cursor: pointer;
-}
-
-.mode-selector input[type="checkbox"] {
-  width: 1.2rem;
-  height: 1.2rem;
-  accent-color: var(--accent-500);
-}
 
 @keyframes fadeIn {
   0% { opacity: 0; transform: translateY(-10px); }
