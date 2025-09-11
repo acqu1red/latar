@@ -136,10 +136,22 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
             // Optionally style with DALL-E for better visual quality
             let styledPngDataUrl = svgPngDataUrl;
             try {
-                const { pngDataUrl } = await styleSvgWithDalle(svgDataUrl, roomsWithAnalysis, totalSqm);
+                // Use PNG (A) as content image for style-preserving redraw
+                const { pngDataUrl } = await styleSvgWithDalle(svgPngDataUrl, roomsWithAnalysis, totalSqm);
                 styledPngDataUrl = pngDataUrl;
             } catch (styleError) {
                 console.warn('DALL-E styling failed, using SVG PNG:', styleError);
+            }
+
+            // Validate data URLs before sending
+            if (!svgDataUrl || !svgDataUrl.startsWith('data:image/svg+xml;base64,')) {
+                console.error('Invalid SVG data URL');
+                return res.status(500).json({ ok: false, error: 'Invalid SVG format generated' });
+            }
+            
+            if (!styledPngDataUrl || !styledPngDataUrl.startsWith('data:image/png;base64,')) {
+                console.error('Invalid PNG data URL');
+                return res.status(500).json({ ok: false, error: 'Invalid PNG format generated' });
             }
 
             return res.json({

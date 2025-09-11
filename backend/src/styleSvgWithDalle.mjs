@@ -12,50 +12,44 @@ const openai = new OpenAI({
  * @returns {Promise<{pngDataUrl: string}>} Styled floor plan image
  */
 export async function styleSvgWithDalle(svgDataUrl, rooms, totalSqm) {
-  // Extract base64 data from data URL
-  const base64Data = svgDataUrl.split(',')[1];
-  
-  const roomDescriptions = rooms.map(r => `${r.name} (${r.sqm} м²)`).join(', ');
-  
-  const prompt = `НАРИСУЙ плоский 2D-план квартиры строго по данным JSON.
-Чёрные линии на белом фоне. Толстые внешние стены, тоньше внутренние. Единая толщина для каждой группы, без теней/цвета/текстур/штриховки. Никаких текстов, цифр, размеров, стрелок, легенд, компаса, сетки. Вид строго сверху.
-Координаты — в пикселях, система координат: (0,0) — левый верхний угол, ось X вправо, Y вниз. Размер холста брать из canvas.width/height. Ничего не выравнивай и не центрируй, используй позиции из JSON как есть.
-Запреты: не добавляй объекты, которых нет в JSON; не меняй размеры; не «исправляй» пересечения; не округляй числа. При конфликте данных следуй JSON. Если чего-то не хватает — оставь пусто.
-Допустимые пиктограммы мебели/сантехники: кровать, диван, столик, ванна, унитаз, раковина, плита, кресло. Двери — проём + дуга четверть-окружности по полю swing. Окна — двойные тонкие линии.
+  // Image A: our precise SVG as PNG input
+  const imageA = svgDataUrl;
 
-Use only objects listed in JSON; if an element is absent, do not render it.
-1 JSON unit = 1 pixel on the canvas.
-Draw walls → windows → doors → fixtures → furniture; do not reorder.
-If any value is invalid or outside the canvas, skip that element instead of guessing.
-Square 1024×1024.
-
-Rooms: ${roomDescriptions}
-Total area: ${totalSqm} square meters.`;
+  const prompt = [
+    'Перерисуй входное изображение как строго минималистичный плоский 2D‑план квартиры.',
+    'Используй вход ТОЛЬКО как геометрию (точные контуры стен/проёмов/окон/иконок).',
+    'Ничего не добавляй, не удаляй и не смещай. Сохрани пропорции и позиции один в один.',
+    'Стиль: чёрные линии на белом фоне; без текста, цифр, размеров, стрелок, легенд, компаса, сетки, теней и цвета.',
+    'Толщины: внешние стены 24 px; внутренние стены 12 px; иконки/сантехника 6 px.',
+    'Двери: проём + четверть‑дуги хода. Окна: две параллельные тонкие линии в стене.',
+    'Если элемент отсутствует на входном изображении — не рисуй. Если распознать нельзя — сохрани как есть, без догадок.',
+    'Холст 1024×1024, поля по 36 px; ничего не центрируй и не масштабируй автоматически.',
+    'Строго content‑preserving redraw. Do not invent.'
+  ].join('\n');
 
   try {
     const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: prompt,
+      model: 'dall-e-3',
+      prompt,
       n: 1,
-      size: "1024x1024",
-      response_format: "b64_json",
-      quality: "standard",
-      style: "natural"
+      size: '1024x1024',
+      response_format: 'b64_json',
+      image: imageA,
+      // Some SDKs don't support multi-image directly; if unsupported, we still have A as strict guide
+      quality: 'standard',
+      style: 'natural'
     });
 
-    const b64Json = response.data[0].b64_json;
+    const b64Json = response.data[0]?.b64_json;
     if (!b64Json) {
-      throw new Error("OpenAI API did not return a base64 JSON image.");
+      throw new Error('OpenAI API did not return a base64 JSON image.');
     }
-    
-    return {
-      pngDataUrl: `data:image/png;base64,${b64Json}`,
-    };
+    return { pngDataUrl: `data:image/png;base64,${b64Json}` };
   } catch (error) {
-    console.error("Error styling SVG with DALL-E:", error);
+    console.error('Error styling SVG with DALL-E:', error);
     if (error instanceof OpenAI.APIError) {
       throw new Error(`OpenAI API Error: ${error.status} ${error.name} - ${error.message}`);
     }
-    throw new Error("Failed to style floor plan with DALL-E.");
+    throw new Error('Failed to style floor plan with DALL-E.');
   }
 }

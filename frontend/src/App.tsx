@@ -50,6 +50,64 @@ function App() {
     }));
   };
 
+  const handleDownload = () => {
+    if (!result?.pngDataUrl && !result?.svgDataUrl) {
+      console.error('No image data available for download');
+      return;
+    }
+    
+    const dataUrl = result.pngDataUrl || result.svgDataUrl;
+    if (!dataUrl) {
+      console.error('No valid data URL found');
+      return;
+    }
+    
+    const fileExtension = result.mode === 'svg' ? 'svg' : 'png';
+    const mimeType = result.mode === 'svg' ? 'image/svg+xml' : 'image/png';
+    const fileName = `plan.${fileExtension}`;
+    
+    try {
+      // Validate data URL format
+      const expectedPrefix = `data:${mimeType};base64,`;
+      if (!dataUrl.startsWith(expectedPrefix)) {
+        console.error('Invalid data URL format. Expected:', expectedPrefix, 'Got:', dataUrl.substring(0, 50));
+        return;
+      }
+      
+      // Extract base64 data and validate
+      const base64Data = dataUrl.substring(expectedPrefix.length);
+      if (!base64Data || base64Data.length === 0) {
+        console.error('Empty base64 data');
+        return;
+      }
+      
+      // Test if base64 is valid
+      try {
+        atob(base64Data.substring(0, 100)); // Test first 100 chars
+      } catch (e) {
+        console.error('Invalid base64 data:', e);
+        return;
+      }
+      
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      
+      // Add to DOM, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('Download initiated successfully for:', fileName);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to opening in new tab
+      window.open(dataUrl, '_blank');
+    }
+  };
+
   const handleSubmit = async () => {
     setSubmitted(true);
     setError(null);
@@ -207,13 +265,12 @@ function App() {
               alt="Generated Floor Plan" 
               className="result-image"
             />
-            <a 
-              href={result.svgDataUrl || result.pngDataUrl} 
-              download={`plan.${result.mode === 'svg' ? 'svg' : 'png'}`}
+            <button 
+              onClick={handleDownload}
               className="download-btn"
             >
               Скачать {result.mode === 'svg' ? 'SVG' : 'PNG'}
-            </a>
+            </button>
           </div>
         )}
       </main>
