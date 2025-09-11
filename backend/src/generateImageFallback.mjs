@@ -13,19 +13,10 @@ const openai = new OpenAI({
  */
 export async function generateImageFallback(rooms, totalSqm) {
   const roomDescriptions = rooms.map(r => `${r.name} (${r.sqm} м²)`).join(', ');
-  const prompt = `Create a MINIMALISTIC 2D apartment floor plan. 
-STRICT REQUIREMENTS:
-- APARTMENT ONLY (not house, no outdoor areas)
-- Black lines on white background
-- Rectangular rooms only
-- NO decorative elements, plants, colors, shadows
-- NO text labels inside rooms
-- NO detailed furniture - only basic rectangles for major items
-- Architectural blueprint style - clean and schematic
-- Rooms: ${roomDescriptions}
-- Total area: ${totalSqm} sq meters
+  const prompt = `Top-down 2D apartment floor plan in ultra-minimal line-art. Black lines on a white background only. Thick exterior walls, thinner interior walls. Uniform stroke weight; no shadows, no color, no textures, no hatching. Doors as gaps with quarter-circle swing arcs; windows as thin double lines in the walls. Allowed furniture icons only: simple silhouettes of a bed, sofa, coffee table, bathtub, toilet, sink, stove, armchair. No text, labels, dimensions, numbers, arrows, legends, compass, scale, or grid. No perspective—strictly top-down. Centered layout with small margins. Square image.
 
-Style: Technical drawing, blueprint, schematic floor plan`;
+Rooms: ${roomDescriptions}
+Total area: ${totalSqm} square meters.`;
 
   try {
     const response = await openai.images.generate({

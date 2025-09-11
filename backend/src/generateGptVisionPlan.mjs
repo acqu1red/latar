@@ -50,25 +50,12 @@ export async function generateGptVisionPlan(rooms, totalSqm, bathroomConfig = nu
     bathroomInfo = `\n\nBATHROOM CONFIGURATION: ${bathroomConfig.type === 'combined' ? 'Combined bathroom and toilet' : 'Separate bathroom and toilet'}`;
   }
 
-  const prompt = `Create a MINIMALISTIC 2D apartment floor plan based on these exact specifications:
+  const prompt = `Top-down 2D apartment floor plan in ultra-minimal line-art. Black lines on a white background only. Thick exterior walls, thinner interior walls. Uniform stroke weight; no shadows, no color, no textures, no hatching. Doors as gaps with quarter-circle swing arcs; windows as thin double lines in the walls. Allowed furniture icons only: simple silhouettes of a bed, sofa, coffee table, bathtub, toilet, sink, stove, armchair. No text, labels, dimensions, numbers, arrows, legends, compass, scale, or grid. No perspective—strictly top-down. Centered layout with small margins. Square image.
 
+Room layout specifications:
 ${layoutDescription}${bathroomInfo}
 
-STRICT REQUIREMENTS:
-- APARTMENT ONLY (not house, no outdoor areas)
-- Black lines on white background
-- Rectangular rooms only
-- NO decorative elements, plants, colors, shadows
-- NO text labels inside rooms
-- Show basic furniture as simple rectangles (bed, sofa, table, etc.)
-- Show doors as gaps in walls
-- Show windows as simple lines on walls
-- Architectural blueprint style - clean and schematic
-- Follow the exact positions and sizes provided above
-- Respect room connections (adjacent rooms should be positioned accordingly)
-- Total area: ${totalSqm} sq meters
-
-Style: Technical drawing, blueprint, schematic floor plan`;
+Follow the exact room positions and sizes provided above. Total area: ${totalSqm} square meters.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -93,6 +80,8 @@ Style: Technical drawing, blueprint, schematic floor plan`;
       n: 1,
       size: "1024x1024",
       response_format: "b64_json",
+      quality: "standard", // или "hd" для лучшего качества
+      style: "natural", // или "vivid"
     });
 
     const b64Json = imageResponse.data[0].b64_json;

@@ -119,7 +119,13 @@ export async function renderSvgPlan(roomsWithLayout, totalSqm) {
     }
 
     const svgContent = `
-        <svg width="${SVG_WIDTH}" height="${SVG_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #ffffff;">
+        <svg width="${SVG_WIDTH}" height="${SVG_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #ffffff; font-family: Arial, sans-serif;">
+            <defs>
+                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f0f0f0" stroke-width="1"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)"/>
             ${roomsSvg}
         </svg>
     `;
