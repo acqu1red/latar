@@ -118,11 +118,23 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
     const inferDoorsFromConnections = () => {
         const DOOR_EPS = 18; // adjacency tolerance
+        // Identify the hallway/entry room by name heuristics
+        const isHall = (n = '') => /прихож|коридор|hall|entry|тамбур/i.test(String(n));
+        const entryRoom = pixelRooms.find(r => isHall(r.name));
         pixelRooms.forEach(a => {
             const connections = Array.isArray(a.connections) ? a.connections : [];
             connections.forEach(key => {
                 const b = pixelRooms.find(r => r.key === key);
                 if (!b) return;
+                // Strictly follow user connections: only add doors for declared pairs
+                // Additional rule: единственный вход «в квартиру» — через прихожую
+                if (entryRoom) {
+                    const aIsEntry = a.key === entryRoom.key;
+                    const bIsEntry = b.key === entryRoom.key;
+                    // Если ни одна из комнат — прихожая, не создаём дверной проём «во вне».
+                    // Межкомнатные проёмы оставляем только по connections (что мы и делаем ниже).
+                    // Тут дополнительных ограничений не нужно.
+                }
                 const aLeft = a.pixelX, aRight = a.pixelX + a.pixelWidth, aTop = a.pixelY, aBottom = a.pixelY + a.pixelHeight;
                 const bLeft = b.pixelX, bRight = b.pixelX + b.pixelWidth, bTop = b.pixelY, bBottom = b.pixelY + b.pixelHeight;
 
@@ -183,6 +195,24 @@ export async function generateSvgFromData(rooms, totalSqm) {
     };
 
     inferDoorsFromConnections();
+
+    // Guarantee exactly one apartment entry via hallway: if есть прихожая, добавим наружную дверь
+    const hallway = pixelRooms.find(r => /прихож|коридор|hall|entry|тамбур/i.test(String(r.name)));
+    if (hallway) {
+        // Найти ближайшую внешнюю стену прихожей (та, что не соприкасается с другими комнатами)
+        const neighborsTouching = (x1, y1, x2, y2, excludeKey) => pixelRooms.some(r => r.key !== excludeKey && !(r.pixelX >= x2 || r.pixelX + r.pixelWidth <= x1 || r.pixelY >= y2 || r.pixelY + r.pixelHeight <= y1));
+        const leftTouch = neighborsTouching(hallway.pixelX - 1, hallway.pixelY, hallway.pixelX, hallway.pixelY + hallway.pixelHeight, hallway.key);
+        const rightTouch = neighborsTouching(hallway.pixelX + hallway.pixelWidth, hallway.pixelY, hallway.pixelX + hallway.pixelWidth + 1, hallway.pixelY + hallway.pixelHeight, hallway.key);
+        const topTouch = neighborsTouching(hallway.pixelX, hallway.pixelY - 1, hallway.pixelX + hallway.pixelWidth, hallway.pixelY, hallway.key);
+        const bottomTouch = neighborsTouching(hallway.pixelX, hallway.pixelY + hallway.pixelHeight, hallway.pixelX + hallway.pixelWidth, hallway.pixelY + hallway.pixelHeight + 1, hallway.key);
+        const centerPosX = 0.5, centerPosY = 0.5;
+        hallway.doors = hallway.doors || [];
+        // Добавляем один внешний вход по первой доступной внешней стене
+        if (!leftTouch) addDoorIfMissing(hallway, 'left', centerPosY);
+        else if (!rightTouch) addDoorIfMissing(hallway, 'right', centerPosY);
+        else if (!topTouch) addDoorIfMissing(hallway, 'top', centerPosX);
+        else if (!bottomTouch) addDoorIfMissing(hallway, 'bottom', centerPosX);
+    }
 
     let svgContent = `<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #FFFFFF; shape-rendering: crispEdges;">
 <rect width="100%" height="100%" fill="#FFFFFF"/>`;
@@ -300,7 +330,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const winX = pixelX + (typeof window.pos === 'number' ? window.pos : 0.5) * pixelWidth;
             const winY = pixelY + (typeof window.pos === 'number' ? window.pos : 0.5) * pixelHeight;
             const along = (window.side === 'top' || window.side === 'bottom');
-            const winLength = Math.max(40, (window.len || 0.2) * (along ? pixelWidth : pixelHeight));
+            const winLength = Math.max(60, (window.len || 0.25) * (along ? pixelWidth : pixelHeight));
             const gap = 6; // distance between two lines
             const thin = 4; // stroke width for each line
 
