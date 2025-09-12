@@ -720,7 +720,8 @@ header p {
 
 /* Collapsible constructor */
 .constructor-wrapper {
-  margin: 1.25rem 0 1.5rem;
+  margin: 1.25rem auto 1.5rem auto;
+  max-width: 1000px;
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--primary-200);
   border-radius: var(--radius-2xl);

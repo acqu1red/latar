@@ -59,10 +59,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!drag) return;
     const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
-    const currentX = (e.clientX - rect.left) / rect.width;
-    const currentY = (e.clientY - rect.top) / rect.height;
+    // Более точное вычисление координат с учётом субпиксельной точности
+    const currentX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const currentY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
     const dx = currentX - drag.startX;
     const dy = currentY - drag.startY;
+    // Более мягкий снап для точного позиционирования
     const snapTo = (v: number) => Math.round(v / snap) * snap;
 
     if (drag.item.type === 'window' && (drag as any).placed !== true) {
@@ -177,7 +179,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     }]);
   };
 
-  // Найти ближайшую стену для превью привязки
+  // Найти ближайшую стену для превью привязки - исправленная версия с точным позиционированием
   const findNearestWall = (winX: number, winY: number, winLen: number): WindowAttachmentPreview | null => {
     let closestWall: WindowAttachmentPreview | null = null;
     let minDistance = Infinity;
@@ -185,56 +187,86 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     for (const room of enabledRooms) {
       const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
       
-      // Проверяем все 4 стены комнаты
+      // Точные координаты стен с учётом нормализации
       const walls = [
-        { side: 'left' as const, coord: layout.x, isVertical: true },
-        { side: 'right' as const, coord: layout.x + layout.width, isVertical: true },
-        { side: 'top' as const, coord: layout.y, isVertical: false },
-        { side: 'bottom' as const, coord: layout.y + layout.height, isVertical: false }
+        { 
+          side: 'left' as const, 
+          coord: layout.x, 
+          isVertical: true,
+          start: layout.y,
+          end: layout.y + layout.height
+        },
+        { 
+          side: 'right' as const, 
+          coord: layout.x + layout.width, 
+          isVertical: true,
+          start: layout.y,
+          end: layout.y + layout.height
+        },
+        { 
+          side: 'top' as const, 
+          coord: layout.y, 
+          isVertical: false,
+          start: layout.x,
+          end: layout.x + layout.width
+        },
+        { 
+          side: 'bottom' as const, 
+          coord: layout.y + layout.height, 
+          isVertical: false,
+          start: layout.x,
+          end: layout.x + layout.width
+        }
       ];
 
       for (const wall of walls) {
         const distance = Math.abs((wall.isVertical ? winX : winY) - wall.coord);
         
-        if (distance < minDistance && distance < 0.05) { // Порог захвата
+        if (distance < minDistance && distance < 0.06) { // Увеличил порог захвата
           const alongAxis = wall.isVertical ? winY : winX;
-          const wallStart = wall.isVertical ? layout.y : layout.x;
-          const wallEnd = wall.isVertical ? layout.y + layout.height : layout.x + layout.width;
           
-          // Проверяем, что окно находится в пределах стены
-          if (alongAxis >= wallStart && alongAxis <= wallEnd) {
-            const pos = (alongAxis - wallStart) / (wallEnd - wallStart);
-            const normalizedLen = winLen / (wallEnd - wallStart);
+          // Проверяем, что окно находится в пределах стены с небольшим запасом
+          if (alongAxis >= wall.start - 0.02 && alongAxis <= wall.end + 0.02) {
+            // Точное вычисление позиции относительно стены
+            const wallLength = wall.end - wall.start;
+            const rawPos = (alongAxis - wall.start) / wallLength;
+            const pos = Math.max(0, Math.min(1, rawPos));
+            const normalizedLen = Math.max(0.05, Math.min(1, winLen / wallLength));
             
-            // Вычисляем позицию превью
+            // Корректируем позицию окна с учётом его длины, чтобы оно не выходило за границы
+            const adjustedPos = Math.max(0, Math.min(1 - normalizedLen, pos));
+            
+            // Вычисляем точную позицию превью в пикселях канвы
             let previewX, previewY, previewWidth, previewHeight;
+            const WALL_THICKNESS = 8; // px
+            
             if (wall.side === 'left') {
               previewX = layout.x;
-              previewY = layout.y + pos * layout.height;
-              previewWidth = 8;
+              previewY = layout.y + adjustedPos * layout.height;
+              previewWidth = WALL_THICKNESS;
               previewHeight = normalizedLen * layout.height;
             } else if (wall.side === 'right') {
-              previewX = layout.x + layout.width - 8;
-              previewY = layout.y + pos * layout.height;
-              previewWidth = 8;
+              previewX = layout.x + layout.width - WALL_THICKNESS;
+              previewY = layout.y + adjustedPos * layout.height;
+              previewWidth = WALL_THICKNESS;
               previewHeight = normalizedLen * layout.height;
             } else if (wall.side === 'top') {
-              previewX = layout.x + pos * layout.width;
+              previewX = layout.x + adjustedPos * layout.width;
               previewY = layout.y;
               previewWidth = normalizedLen * layout.width;
-              previewHeight = 8;
+              previewHeight = WALL_THICKNESS;
             } else { // bottom
-              previewX = layout.x + pos * layout.width;
-              previewY = layout.y + layout.height - 8;
+              previewX = layout.x + adjustedPos * layout.width;
+              previewY = layout.y + layout.height - WALL_THICKNESS;
               previewWidth = normalizedLen * layout.width;
-              previewHeight = 8;
+              previewHeight = WALL_THICKNESS;
             }
 
             closestWall = {
               roomName: String(room.name),
               side: wall.side,
-              pos: Math.max(0, Math.min(1, pos)),
-              len: Math.max(0.05, Math.min(1, normalizedLen)),
+              pos: adjustedPos,
+              len: normalizedLen,
               x: previewX,
               y: previewY,
               width: previewWidth,
@@ -296,36 +328,59 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 
   // удаление выполняется через верхнюю панель
 
-  // Prevent overlapping rooms helper
+  // Prevent overlapping rooms helper - улучшенная версия с точным позиционированием
   const resolveNoOverlap = (candidate: { x: number; y: number; width: number; height: number }, movingKey: string) => {
     const others = enabledRooms.filter(r => r.key !== movingKey && r.layout).map(r => ({ key: r.key, ...(r.layout as NonNullable<RoomState['layout']>) }));
-    // Clamp within canvas [0,1]
-    candidate.x = Math.max(0, Math.min(1 - candidate.width, candidate.x));
-    candidate.y = Math.max(0, Math.min(1 - candidate.height, candidate.y));
+    
+    // Более точное ограничение в пределах канвы
+    const MIN_MARGIN = 0.01; // 1% отступ от краёв
+    candidate.x = Math.max(MIN_MARGIN, Math.min(1 - candidate.width - MIN_MARGIN, candidate.x));
+    candidate.y = Math.max(MIN_MARGIN, Math.min(1 - candidate.height - MIN_MARGIN, candidate.y));
+    
     let iter = 0;
-    while (iter++ < 10) {
+    const TOLERANCE = 0.001; // Минимальный зазор между комнатами (можно ставить впритык)
+    
+    while (iter++ < 15) { // Больше итераций для точности
       let adjusted = false;
+      
       for (const r of others) {
         const ax1 = candidate.x, ay1 = candidate.y, ax2 = ax1 + candidate.width, ay2 = ay1 + candidate.height;
         const bx1 = r.x, by1 = r.y, bx2 = r.x + r.width, by2 = r.y + r.height;
-        const overlapX = Math.max(0, Math.min(ax2, bx2) - Math.max(ax1, bx1));
-        const overlapY = Math.max(0, Math.min(ay2, by2) - Math.max(ay1, by1));
+        
+        // Проверяем пересечение с учётом толерантности
+        const overlapX = Math.max(0, Math.min(ax2, bx2) - Math.max(ax1, bx1) - TOLERANCE);
+        const overlapY = Math.max(0, Math.min(ay2, by2) - Math.max(ay1, by1) - TOLERANCE);
+        
         if (overlapX > 0 && overlapY > 0) {
-          // push out by the minimal axis
-          if (overlapX <= overlapY) {
-            // move on X
-            if (ax1 < bx1) candidate.x = bx1 - candidate.width; else candidate.x = bx2;
-            candidate.x = Math.max(0, Math.min(1 - candidate.width, candidate.x));
+          // Выбираем направление с минимальным сдвигом
+          const pushLeftDist = Math.abs((bx1 - TOLERANCE) - ax2);
+          const pushRightDist = Math.abs(bx2 + TOLERANCE - ax1);
+          const pushUpDist = Math.abs((by1 - TOLERANCE) - ay2);
+          const pushDownDist = Math.abs(by2 + TOLERANCE - ay1);
+          
+          const minDist = Math.min(pushLeftDist, pushRightDist, pushUpDist, pushDownDist);
+          
+          if (minDist === pushLeftDist) {
+            candidate.x = bx1 - candidate.width - TOLERANCE;
+          } else if (minDist === pushRightDist) {
+            candidate.x = bx2 + TOLERANCE;
+          } else if (minDist === pushUpDist) {
+            candidate.y = by1 - candidate.height - TOLERANCE;
           } else {
-            // move on Y
-            if (ay1 < by1) candidate.y = by1 - candidate.height; else candidate.y = by2;
-            candidate.y = Math.max(0, Math.min(1 - candidate.height, candidate.y));
+            candidate.y = by2 + TOLERANCE;
           }
+          
+          // Повторно ограничиваем в пределах канвы
+          candidate.x = Math.max(MIN_MARGIN, Math.min(1 - candidate.width - MIN_MARGIN, candidate.x));
+          candidate.y = Math.max(MIN_MARGIN, Math.min(1 - candidate.height - MIN_MARGIN, candidate.y));
+          
           adjusted = true;
         }
       }
+      
       if (!adjusted) break;
     }
+    
     return candidate;
   };
 
@@ -407,27 +462,49 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                 
                 {(room.windows || []).map((win, idx) => {
                   const isVertical = win.side === 'left' || win.side === 'right';
-                  const baseStyle: React.CSSProperties = {
-                    position: 'absolute',
-                    backgroundColor: '#a3d1ff',
-                    boxShadow: '0 0 2px rgba(0,0,0,0.5)',
-                    zIndex: 6,
-                    pointerEvents: 'auto',
-                    borderRadius: '2px',
-                    cursor: 'grab'
-                  };
+                  const WALL_THICKNESS = 8; // px - точная толщина стены
+                  
+                  // Более точное позиционирование окон с учётом layout комнаты
                   const posStyle: React.CSSProperties = ((): React.CSSProperties => {
                     if (win.side === 'top') {
-                      return { top: 0, left: `${win.pos * 100}%`, width: `${win.len * 100}%`, height: '8px' };
+                      return { 
+                        position: 'absolute',
+                        top: -WALL_THICKNESS / 2, 
+                        left: `${win.pos * 100}%`, 
+                        width: `${win.len * 100}%`, 
+                        height: `${WALL_THICKNESS}px`,
+                        transform: 'translateX(0)' // Убираем центрирование по X
+                      };
                     } else if (win.side === 'bottom') {
-                      return { bottom: 0, left: `${win.pos * 100}%`, width: `${win.len * 100}%`, height: '8px' };
+                      return { 
+                        position: 'absolute',
+                        bottom: -WALL_THICKNESS / 2, 
+                        left: `${win.pos * 100}%`, 
+                        width: `${win.len * 100}%`, 
+                        height: `${WALL_THICKNESS}px`,
+                        transform: 'translateX(0)'
+                      };
                     } else if (win.side === 'left') {
-                      return { left: 0, top: `${win.pos * 100}%`, width: '8px', height: `${win.len * 100}%` };
+                      return { 
+                        position: 'absolute',
+                        left: -WALL_THICKNESS / 2, 
+                        top: `${win.pos * 100}%`, 
+                        width: `${WALL_THICKNESS}px`, 
+                        height: `${win.len * 100}%`,
+                        transform: 'translateY(0)' // Убираем центрирование по Y
+                      };
                     } else { // right
-                      return { right: 0, top: `${win.pos * 100}%`, width: '8px', height: `${win.len * 100}%` };
+                      return { 
+                        position: 'absolute',
+                        right: -WALL_THICKNESS / 2, 
+                        top: `${win.pos * 100}%`, 
+                        width: `${WALL_THICKNESS}px`, 
+                        height: `${win.len * 100}%`,
+                        transform: 'translateY(0)'
+                      };
                     }
                   })();
-                  const winStyle: React.CSSProperties = { ...baseStyle, ...posStyle };
+                  
                   const resizerStyle: React.CSSProperties = isVertical
                     ? { position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14 }
                     : { position: 'absolute', right: -6, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14 };
@@ -436,7 +513,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                     <div 
                       key={idx} 
                       className={`placed-window ${isSelected ? 'selected' : ''}`} 
-                      style={winStyle}
+                      style={posStyle}
                       onPointerDown={(e: React.PointerEvent) => handlePlacedWindowPointerDown(e, room, idx)}
                       onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
