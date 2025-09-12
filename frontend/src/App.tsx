@@ -5,12 +5,11 @@ import type { RoomState, ApiResponse, BathroomType, BathroomConfig } from './lib
 import './App.css';
 import LayoutEditor from './components/LayoutEditor';
 
-const initialRooms: RoomState[] = [
-  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [], connections: [], layout: null, description: 'Входная зона квартиры' },
+const initialRooms: RoomState[] = [  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [], connections: [], layout: null, description: 'Входная зона квартиры' },
   { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Жилая комната (спальня, гостиная)' },
   { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Дополнительная жилая комната' },
   { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Кухонная зона с техникой' },
-  { key: 'bathroom', name: 'Ванная комната/Санузел', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Санитарная зона (ванна, туалет)' },
+  { key: 'bathroom', name: 'Уборная', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Санитарная зона (ванна, туалет)' },
   { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Открытая или закрытая терраса' },
 ];
 
@@ -142,7 +141,7 @@ function App() {
       // Заменяем обычную ванную на совмещенную
       const bathroomIndex = allRooms.findIndex(r => r.key === 'bathroom');
       if (bathroomIndex !== -1 && bathroomConfig.bathroom.enabled) {
-        allRooms[bathroomIndex] = { ...bathroomConfig.bathroom, key: 'bathroom', name: 'Ванная комната/Санузел' };
+        allRooms[bathroomIndex] = { ...bathroomConfig.bathroom, key: 'bathroom', name: 'Уборная' };
       }
     } else {
       // Убираем обычную ванную и добавляем раздельные
@@ -183,7 +182,7 @@ function App() {
     if (bathroomConfig.type === 'combined') {
       const bathroomIndex = allRooms.findIndex(r => r.key === 'bathroom');
       if (bathroomIndex !== -1 && bathroomConfig.bathroom.enabled) {
-        allRooms[bathroomIndex] = { ...bathroomConfig.bathroom, key: 'bathroom', name: 'Ванная комната/Санузел' };
+        allRooms[bathroomIndex] = { ...bathroomConfig.bathroom, key: 'bathroom', name: 'Уборная' };
       }
     } else {
       const filteredRooms = allRooms.filter(r => r.key !== 'bathroom');

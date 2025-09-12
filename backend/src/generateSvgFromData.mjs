@@ -225,20 +225,17 @@ export async function generateSvgFromData(rooms, totalSqm) {
 <rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" 
       fill="none" stroke="#000000" stroke-width="${EXTERIOR_WALL_THICKNESS}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
         
-        // Labels: room name and area (sqm) - сокращённые названия и умное позиционирование
-        const shortName = getShortRoomName(name);
+        // Labels: room name and area (sqm) - размещаем в верхней части комнаты
+        const labelName = String(name || '').trim();
         const labelSqm = Number.isFinite(Number(sqm)) ? `${Number(sqm).toFixed(1)} м²` : '';
-        const fontSize = Math.max(16, Math.min(32, Math.min(pixelWidth, pixelHeight) * 0.08));
-        
-        // Позиционируем текст в верхней части комнаты, чтобы не накладывался на мебель
+        const fontSize = Math.max(16, Math.min(32, Math.min(pixelWidth, pixelHeight) * 0.08)); // уменьшили размер шрифта
         const labelX = pixelX + pixelWidth / 2;
-        const labelY = pixelY + fontSize + 8; // отступ от верхней стены
-        
+        const labelY = pixelY + fontSize + 8; // размещаем в верхней части комнаты
         svgContent += `
-<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="600" fill="#000000">${escapeXml(shortName)}</text>`;
+<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="600" fill="#000000">${escapeXml(labelName)}</text>`;
         if (labelSqm) {
             svgContent += `
-<text x="${labelX}" y="${labelY + fontSize * 1.2}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.75)}" fill="#666666">${escapeXml(labelSqm)}</text>`;
+<text x="${labelX}" y="${labelY + fontSize + 4}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.75)}" fill="#666666">${escapeXml(labelSqm)}</text>`;
         }
     });
 
@@ -380,24 +377,26 @@ export async function generateSvgFromData(rooms, totalSqm) {
         console.log(`After filtering (area > 0.005): ${filteredObjects.length} objects`);
         
         filteredObjects.forEach(obj => {
-            // Ограничиваем размеры иконок и добавляем отступы от стен
-            const MAX_ICON_SIZE = Math.min(pixelWidth, pixelHeight) * 0.3; // максимум 30% от комнаты
-            const MIN_ICON_SIZE = 24; // минимальный размер
-            const WALL_PADDING = 16; // отступ от стен
+            // Ограничиваем размеры объектов и добавляем отступы от стен
+            const MARGIN_FROM_WALL = 12; // минимум 12px от стены
+            const MAX_OBJECT_SIZE = 0.4; // максимум 40% от размера комнаты
+            const MIN_OBJECT_SIZE = 24; // минимум 24px
             
-            const iconWidth = Math.min(MAX_ICON_SIZE, Math.max(MIN_ICON_SIZE, obj.w * pixelWidth * 0.6));
-            const iconHeight = Math.min(MAX_ICON_SIZE, Math.max(MIN_ICON_SIZE, obj.h * pixelHeight * 0.6));
+            // Нормализуем размеры объектов
+            const normalizedW = Math.min(MAX_OBJECT_SIZE, Math.max(0.08, obj.w * 0.6)); // уменьшаем в 1.5 раза
+            const normalizedH = Math.min(MAX_OBJECT_SIZE, Math.max(0.08, obj.h * 0.6));
             
-            // Ограничиваем позицию с учётом отступов
-            const minX = pixelX + WALL_PADDING + iconWidth/2;
-            const maxX = pixelX + pixelWidth - WALL_PADDING - iconWidth/2;
-            const minY = pixelY + WALL_PADDING + iconHeight/2;
-            const maxY = pixelY + pixelHeight - WALL_PADDING - iconHeight/2;
+            const objWidth = Math.max(MIN_OBJECT_SIZE, normalizedW * pixelWidth);
+            const objHeight = Math.max(MIN_OBJECT_SIZE, normalizedH * pixelHeight);
             
-            const objX = Math.min(maxX, Math.max(minX, pixelX + obj.x * pixelWidth));
-            const objY = Math.min(maxY, Math.max(minY, pixelY + obj.y * pixelHeight));
-            const objWidth = iconWidth;
-            const objHeight = iconHeight;
+            // Ограничиваем позицию объекта, чтобы он не выходил за рамки комнаты
+            const minX = pixelX + MARGIN_FROM_WALL + objWidth/2;
+            const maxX = pixelX + pixelWidth - MARGIN_FROM_WALL - objWidth/2;
+            const minY = pixelY + MARGIN_FROM_WALL + objHeight/2;
+            const maxY = pixelY + pixelHeight - MARGIN_FROM_WALL - objHeight/2;
+            
+            const objX = Math.max(minX, Math.min(maxX, pixelX + obj.x * pixelWidth));
+            const objY = Math.max(minY, Math.min(maxY, pixelY + obj.y * pixelHeight));
             
             const drawRect = () => {
                 svgContent += `\n<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" width="${objWidth}" height="${objHeight}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
@@ -539,23 +538,4 @@ function escapeXml(unsafe) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
-}
-
-function getShortRoomName(name) {
-    const nameStr = String(name || '').trim();
-    
-    // Сокращения для длинных названий
-    const shortcuts = {
-        'Ванная комната/Санузел': 'В/С',
-        'Ванная комната': 'Ванная',
-        'Балкон/Лоджия': 'Балкон',
-        'Прихожая': 'Прихожая',
-        'Комната 1': 'К1',
-        'Комната 2': 'К2', 
-        'Комната 3': 'К3',
-        'Кухня': 'Кухня',
-        'Санузел': 'С'
-    };
-    
-    return shortcuts[nameStr] || nameStr;
 }

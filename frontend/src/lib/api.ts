@@ -10,7 +10,7 @@ export interface RoomState {
     connections?: string[]; // Keys of rooms this room connects to
     layout?: { x: number; y: number; width: number; height: number } | null; // normalized 0..1
     entrySide?: 'left' | 'right' | 'top' | 'bottom' | null; // external entry for hallway
-    description?: string; // помощь пользователю понять назначение комнаты
+    description?: string; // Room description for UI
 }
 
 export type BathroomType = 'combined' | 'separate';
