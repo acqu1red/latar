@@ -28,13 +28,66 @@ export async function generateSvgFromData(rooms, totalSqm) {
         };
     });
 
-    // Snap edges to reduce user placement roughness and tiny gaps/overlaps
+    // Snap edges and resolve overlaps to place rooms adjacent with shared walls
     const SNAP = 16; // pixels
     const MIN_SIZE = 48; // minimal room thickness to avoid collapse
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-    const snapEdges = () => {
-        // Prepare arrays of edges
+    const resolveOverlapsAndSnap = () => {
+        // First, detect and resolve overlaps by moving overlapping rooms to be adjacent
+        const detectOverlap = (a, b) => {
+            const aLeft = a.pixelX, aRight = a.pixelX + a.pixelWidth;
+            const aTop = a.pixelY, aBottom = a.pixelY + a.pixelHeight;
+            const bLeft = b.pixelX, bRight = b.pixelX + b.pixelWidth;
+            const bTop = b.pixelY, bBottom = b.pixelY + b.pixelHeight;
+            
+            const overlapX = Math.max(0, Math.min(aRight, bRight) - Math.max(aLeft, bLeft));
+            const overlapY = Math.max(0, Math.min(aBottom, bBottom) - Math.max(aTop, bTop));
+            
+            return overlapX > 0 && overlapY > 0 ? { overlapX, overlapY } : null;
+        };
+
+        // Resolve overlaps by moving rooms to be adjacent
+        for (let i = 0; i < pixelRooms.length; i++) {
+            for (let j = i + 1; j < pixelRooms.length; j++) {
+                const a = pixelRooms[i];
+                const b = pixelRooms[j];
+                const overlap = detectOverlap(a, b);
+                
+                if (overlap) {
+                    console.log(`Resolving overlap between ${a.key} and ${b.key}`);
+                    
+                    // Determine best direction to separate based on overlap area
+                    if (overlap.overlapX >= overlap.overlapY) {
+                        // Separate horizontally
+                        const aCenterX = a.pixelX + a.pixelWidth / 2;
+                        const bCenterX = b.pixelX + b.pixelWidth / 2;
+                        
+                        if (aCenterX < bCenterX) {
+                            // A is left, B is right - move B to right of A
+                            b.pixelX = a.pixelX + a.pixelWidth;
+                        } else {
+                            // B is left, A is right - move A to right of B
+                            a.pixelX = b.pixelX + b.pixelWidth;
+                        }
+                    } else {
+                        // Separate vertically
+                        const aCenterY = a.pixelY + a.pixelHeight / 2;
+                        const bCenterY = b.pixelY + b.pixelHeight / 2;
+                        
+                        if (aCenterY < bCenterY) {
+                            // A is top, B is bottom - move B below A
+                            b.pixelY = a.pixelY + a.pixelHeight;
+                        } else {
+                            // B is top, A is bottom - move A below B
+                            a.pixelY = b.pixelY + b.pixelHeight;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Then apply edge snapping for precise alignment
         const vEdges = []; // vertical edges: left/right
         const hEdges = []; // horizontal edges: top/bottom
         pixelRooms.forEach((r, idx) => {
@@ -108,7 +161,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     };
 
-    snapEdges();
+    resolveOverlapsAndSnap();
 
     // Infer doors from user connections and geometric adjacency
     const addDoorIfMissing = (room, side, posNorm) => {
