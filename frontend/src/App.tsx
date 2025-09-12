@@ -368,7 +368,7 @@ function App() {
               onClick={handleDownload}
               className="download-btn"
             >
-              Скачать {result.mode === 'svg' ? 'SVG' : 'PNG'}
+              Скачать SVG
             </button>
           </div>
         )}

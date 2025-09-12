@@ -512,7 +512,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     });
 
-    // Draw windows: прорезаем стену и рисуем полосы окна
+    // Draw windows: check for adjacency to correctly place on shared walls
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [] } = room;
 
@@ -524,26 +524,52 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const cutWidth = EXTERIOR_WALL_THICKNESS + 2;
             const stripe = 4;
 
+            // Проверяем, является ли стена смежной, чтобы нарисовать окно как проем, а не на внешней стене
+            const ADJ_TOLERANCE = 1;
+            let isSharedWall = false;
+            pixelRooms.forEach(other => {
+                if (other.key === room.key) return;
+                if (window.side === 'top' && Math.abs((other.pixelY + other.pixelHeight) - room.pixelY) < ADJ_TOLERANCE) isSharedWall = true;
+                if (window.side === 'bottom' && Math.abs(other.pixelY - (room.pixelY + room.pixelHeight)) < ADJ_TOLERANCE) isSharedWall = true;
+                if (window.side === 'left' && Math.abs((other.pixelX + other.pixelWidth) - room.pixelX) < ADJ_TOLERANCE) isSharedWall = true;
+                if (window.side === 'right' && Math.abs(other.pixelX - (room.pixelX + room.pixelWidth)) < ADJ_TOLERANCE) isSharedWall = true;
+            });
+            
+            // Если стена общая, используем толщину внутренней стены, иначе — внешней
+            const effectiveWallThickness = isSharedWall ? INTERIOR_WALL_THICKNESS : EXTERIOR_WALL_THICKNESS;
+
             if (window.side === 'top') {
                 const mid = winX; const y = pixelY;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y}" x2="${mid + winLength/2}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y - 1}" x2="${mid + winLength/2}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y + 1}" x2="${mid + winLength/2}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${mid - winLength/2}" y1="${y}" x2="${mid + winLength/2}" y2="${y}" stroke="#FFFFFF" stroke-width="${effectiveWallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${mid - winLength/2}" y1="${y - 1}" x2="${mid + winLength/2}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${mid - winLength/2}" y1="${y + 1}" x2="${mid + winLength/2}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'bottom') {
                 const mid = winX; const y = pixelY + pixelHeight;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y}" x2="${mid + winLength/2}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y - 1}" x2="${mid + winLength/2}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y + 1}" x2="${mid + winLength/2}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${mid - winLength/2}" y1="${y}" x2="${mid + winLength/2}" y2="${y}" stroke="#FFFFFF" stroke-width="${effectiveWallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${mid - winLength/2}" y1="${y - 1}" x2="${mid + winLength/2}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${mid - winLength/2}" y1="${y + 1}" x2="${mid + winLength/2}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'left') {
                 const mid = winY; const x = pixelX;
-                svgContent += `\n<line x1="${x}" y1="${mid - winLength/2}" x2="${x}" y2="${mid + winLength/2}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x - 1}" y1="${mid - winLength/2}" x2="${x - 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x + 1}" y1="${mid - winLength/2}" x2="${x + 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${x}" y1="${mid - winLength/2}" x2="${x}" y2="${mid + winLength/2}" stroke="#FFFFFF" stroke-width="${effectiveWallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${x - 1}" y1="${mid - winLength/2}" x2="${x - 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${x + 1}" y1="${mid - winLength/2}" x2="${x + 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'right') {
                 const mid = winY; const x = pixelX + pixelWidth;
-                svgContent += `\n<line x1="${x}" y1="${mid - winLength/2}" x2="${x}" y2="${mid + winLength/2}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x - 1}" y1="${mid - winLength/2}" x2="${x - 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x + 1}" y1="${mid - winLength/2}" x2="${x + 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${x}" y1="${mid - winLength/2}" x2="${x}" y2="${mid + winLength/2}" stroke="#FFFFFF" stroke-width="${effectiveWallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${x - 1}" y1="${mid - winLength/2}" x2="${x - 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `
+<line x1="${x + 1}" y1="${mid - winLength/2}" x2="${x + 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             }
         });
     });
