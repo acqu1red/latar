@@ -65,10 +65,11 @@ function App() {
     // Простое подтягивание соседей с соединениями: сдвигаем ближе друг к другу по оси X или Y
     const map = new Map<string, RoomState>(computed.map(r => [r.key, r]));
     computed.forEach(r => {
-      const layout = r.layout!;
+      if (!r.enabled || !r.layout) return;
+      const aL = r.layout;
       (r.connections || []).forEach(k => {
         const b = map.get(k); if (!b || !b.enabled || !b.layout) return;
-        const aL = layout, bL = b.layout;
+        const bL = b.layout;
         const dx = (aL.x + aL.width) - bL.x;
         const dy = (aL.y + aL.height) - bL.y;
         // если далеко по X, приблизим по X вплотную
