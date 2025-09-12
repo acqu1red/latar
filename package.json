@@ -4,7 +4,7 @@
   "description": "Apartment plan generator",
   "main": "backend/server.mjs",
   "scripts": {
-    "start": "cd backend && npm start",
+    "start": "cd backend && node server.mjs",
     "build": "cd backend && npm install",
     "dev": "cd backend && npm run dev"
   },
