@@ -16,6 +16,16 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
         onUpdate(room.key, { file: files });
     };
 
+    const handleRemoveFile = (indexToRemove: number) => {
+        if (!room.file) return;
+        const nextFiles = room.file.filter((_, idx) => idx !== indexToRemove);
+        onUpdate(room.key, { file: nextFiles });
+    };
+
+    const handleClearFiles = () => {
+        onUpdate(room.key, { file: [] });
+    };
+
     useEffect(() => {
         if (room.file && room.file.length > 0) {
             const filePromises = room.file.map(f => {
@@ -106,6 +116,11 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
                                     📸 Выбрать фото
                                 </label>
                             </div>
+                            {room.file && room.file.length > 0 && (
+                                <button type="button" className="clear-files-btn" onClick={handleClearFiles}>
+                                    Очистить все
+                                </button>
+                            )}
                             {submitted && room.file.length === 0 && <p className="error-text">Загрузите фото</p>}
                         </div>
                     </div>
@@ -138,12 +153,22 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
                     {previewUrls.length > 0 && (
                         <div className="preview-grid">
                             {previewUrls.map((url: string, index: number) => (
-                                <img 
-                                    key={index} 
-                                    src={url} 
-                                    alt={`Preview ${index + 1}`} 
-                                    className="preview-image"
-                                />
+                                <div key={index} className="preview-item">
+                                    <img 
+                                        src={url} 
+                                        alt={`Preview ${index + 1}`} 
+                                        className="preview-image"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="preview-remove"
+                                        onClick={() => handleRemoveFile(index)}
+                                        aria-label="Удалить фото"
+                                        title="Удалить фото"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
                             ))}
                         </div>
                     )}
