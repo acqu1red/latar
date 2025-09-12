@@ -1183,3 +1183,44 @@ header p {
   opacity: 1;
   transform: translate(-50%, 0);
 }
+
+/* Панель подтверждения прикрепления окна */
+.attach-window-bar {
+  margin: 0.75rem auto 0;
+  max-width: 960px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255,255,255,0.95);
+  border: 1px solid var(--primary-200);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  box-shadow: var(--shadow-md);
+}
+.attach-window-text {
+  color: var(--primary-800);
+  font-weight: 600;
+}
+.attach-window-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.attach-btn {
+  background: var(--success-500);
+  color: #fff;
+  border: 1px solid var(--success-600);
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cancel-btn {
+  background: #fff;
+  color: var(--primary-700);
+  border: 1px solid var(--primary-300);
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
