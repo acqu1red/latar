@@ -39,13 +39,19 @@ function App() {
 
     // Грубая сеточная авто-раскладка без пересечений: раскладываем по строкам, затем подтягиваем по соединениям
     const total = enabled.reduce((s: number, x: RoomState) => s + x.sqm, 0);
+    // Опорная площадь (масштаб): 100–200 м², чтобы 10–20 м² не растягивались на весь экран
+    const BASE_MIN = 100;
+    const BASE_MAX = 200;
+    const referenceTotal = Math.max(BASE_MIN, Math.min(BASE_MAX, total || BASE_MIN));
     let cursorX = 0.07, cursorY = 0.07, rowH = 0;
     const GAP = 0.02;
 
     const computed = nextRooms.map(r => {
       if (!r.enabled || r.sqm <= 0) return r;
-      const share = r.sqm / Math.max(1e-6, total);
-      let w = Math.sqrt(share) * USABLE;
+      const MIN_DIM = 0.08; // минимальная видимая величина
+      const MAX_DIM = 0.45; // чтобы одна комната не занимала почти весь холст
+      let edge = Math.sqrt(Math.max(0, r.sqm) / referenceTotal) * USABLE;
+      let w = Math.max(MIN_DIM, Math.min(MAX_DIM, edge));
       let h = w;
       // Предположительная ориентация: длинная сторона вдоль предполагаемого направления соединений
       const degree = (r.rotation ?? 0);
