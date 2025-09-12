@@ -35,29 +35,32 @@ function App() {
   const recomputeLayoutsByArea = (nextRooms: RoomState[]): RoomState[] => {
     const enabled = nextRooms.filter((r: RoomState) => r.enabled && r.sqm > 0);
     if (enabled.length === 0 || totalEnabledSqm <= 0) return nextRooms;
-    const USABLE = 0.86; // доля холста под план (по шир/высоте)
+    
+    // Размеры канвы в пикселях
+    const CANVAS_WIDTH = 960;
+    const CANVAS_HEIGHT = 420;
+    const USABLE_WIDTH = CANVAS_WIDTH * 0.86;
 
-    // Грубая сеточная авто-раскладка без пересечений: раскладываем по строкам, затем подтягиваем по соединениям
+    // Грубая сеточная авто-раскладка без пересечений
     const total = enabled.reduce((s: number, x: RoomState) => s + x.sqm, 0);
-    // Опорная площадь (масштаб): 100–200 м², чтобы 10–20 м² не растягивались на весь экран
     const BASE_MIN = 100;
     const BASE_MAX = 200;
     const referenceTotal = Math.max(BASE_MIN, Math.min(BASE_MAX, total || BASE_MIN));
-    let cursorX = 0.07, cursorY = 0.07, rowH = 0;
-    const GAP = 0.02;
+    let cursorX = 20, cursorY = 20, rowH = 0;
+    const GAP = 10;
 
     const computed = nextRooms.map(r => {
       if (!r.enabled || r.sqm <= 0) return r;
-      const MIN_DIM = 0.08; // минимальная видимая величина
-      const MAX_DIM = 0.45; // чтобы одна комната не занимала почти весь холст
-      let edge = Math.sqrt(Math.max(0, r.sqm) / referenceTotal) * USABLE;
+      const MIN_DIM = 50; // минимальная видимая величина в пикселях
+      const MAX_DIM = 400; // максимальная величина в пикселях
+      let edge = Math.sqrt(Math.max(0, r.sqm) / referenceTotal) * USABLE_WIDTH;
       let w = Math.max(MIN_DIM, Math.min(MAX_DIM, edge));
       let h = w;
-      // Предположительная ориентация: длинная сторона вдоль предполагаемого направления соединений
+      // Предположительная ориентация
       const degree = (r.rotation ?? 0);
       if (degree === 90) [w, h] = [h, w];
-      if (cursorX + w > 0.93) { cursorX = 0.07; cursorY += rowH + GAP; rowH = 0; }
-      const layout = { x: cursorX, y: cursorY, width: Math.min(0.9, w), height: Math.min(0.9, h) };
+      if (cursorX + w > CANVAS_WIDTH - 20) { cursorX = 20; cursorY += rowH + GAP; rowH = 0; }
+      const layout = { x: cursorX, y: cursorY, width: Math.min(CANVAS_WIDTH - 40, w), height: Math.min(CANVAS_HEIGHT - 40, h) };
       cursorX += layout.width + GAP; rowH = Math.max(rowH, layout.height);
       return { ...r, layout };
     });
@@ -74,11 +77,11 @@ function App() {
         const dy = (aL.y + aL.height) - bL.y;
         // если далеко по X, приблизим по X вплотную
         if (Math.abs(dx) > Math.abs(dy)) {
-          if (aL.x < bL.x) bL.x = Math.min(0.93 - bL.width, aL.x + aL.width + GAP);
-          else aL.x = Math.min(0.93 - aL.width, bL.x + bL.width + GAP);
+          if (aL.x < bL.x) bL.x = Math.min(CANVAS_WIDTH - bL.width - 20, aL.x + aL.width + GAP);
+          else aL.x = Math.min(CANVAS_WIDTH - aL.width - 20, bL.x + bL.width + GAP);
         } else {
-          if (aL.y < bL.y) bL.y = Math.min(0.93 - bL.height, aL.y + aL.height + GAP);
-          else aL.y = Math.min(0.93 - aL.height, bL.y + bL.height + GAP);
+          if (aL.y < bL.y) bL.y = Math.min(CANVAS_HEIGHT - bL.height - 20, aL.y + aL.height + GAP);
+          else aL.y = Math.min(CANVAS_HEIGHT - aL.height - 20, bL.y + bL.height + GAP);
         }
       });
     });
@@ -94,9 +97,11 @@ function App() {
         const overlapY = Math.max(0, Math.min(ay2, by2) - Math.max(ay1, by1));
         if (overlapX > 0 && overlapY > 0) {
           if (overlapX >= overlapY) {
-            if (ay1 < by1) b.layout.y = Math.min(0.93 - b.layout.height, ay2 + GAP); else a.layout.y = Math.min(0.93 - a.layout.height, by2 + GAP);
+            if (ay1 < by1) b.layout.y = Math.min(CANVAS_HEIGHT - b.layout.height - 20, ay2 + GAP); 
+            else a.layout.y = Math.min(CANVAS_HEIGHT - a.layout.height - 20, by2 + GAP);
           } else {
-            if (ax1 < bx1) b.layout.x = Math.min(0.93 - b.layout.width, ax2 + GAP); else a.layout.x = Math.min(0.93 - a.layout.width, bx2 + GAP);
+            if (ax1 < bx1) b.layout.x = Math.min(CANVAS_WIDTH - b.layout.width - 20, ax2 + GAP); 
+            else a.layout.x = Math.min(CANVAS_WIDTH - a.layout.width - 20, bx2 + GAP);
           }
         }
       }

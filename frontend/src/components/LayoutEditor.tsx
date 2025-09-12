@@ -27,7 +27,7 @@ type WindowAttachmentPreview = {
   height: number;
 };
 
-// Простая канва для расстановки комнат. Координаты нормализованы 0..1
+// Простая канва для расстановки комнат. Координаты в пикселях
 const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ key: string | number; item: any; type: 'move' | 'resize'; startX: number; startY: number; start: any } | null>(null);
@@ -38,18 +38,18 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
   const hallway = useMemo(() => rooms.find(r => /прихож|коридор|hall|entry|тамбур/i.test(String(r.name))), [rooms]);
-  const [snap] = useState(0.02); // 2% snapping grid
+  const [snap] = useState(8); // 8px snapping grid
 
   const handlePointerDown = (e: React.PointerEvent, item: RoomState | FloatingWindow, type: 'move' | 'resize') => {
     const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
     const isWindow = 'len' in item;
 
     if (isWindow) {
       setDrag({ key: item.id, item, type, startX: x, startY: y, start: { x: item.x, y: item.y, len: item.len, rot: item.rotation } });
     } else {
-      const layout = item.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      const layout = item.layout || { x: 20, y: 20, width: 200, height: 200 };
       setDrag({ key: item.key, item, type, startX: x, startY: y, start: { x: layout.x, y: layout.y, w: layout.width, h: layout.height } });
     }
 
@@ -59,12 +59,10 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!drag) return;
     const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
-    // Более точное вычисление координат с учётом субпиксельной точности
-    const currentX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const currentY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    const currentX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const currentY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
     const dx = currentX - drag.startX;
     const dy = currentY - drag.startY;
-    // Более мягкий снап для точного позиционирования
     const snapTo = (v: number) => Math.round(v / snap) * snap;
 
     if (drag.item.type === 'window' && (drag as any).placed !== true) {
@@ -83,7 +81,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         const preview = findNearestWall(nx, ny, drag.start.len);
         setAttachmentPreview(preview);
       } else { // resize
-        const newLen = Math.max(0.05, snapTo(drag.start.len + (drag.start.rot === 90 ? dy : dx)));
+        const newLen = Math.max(20, snapTo(drag.start.len + (drag.start.rot === 90 ? dy : dx)));
         setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
           w.id === (drag.key as number) ? { ...w, len: newLen } : w
         ));
@@ -122,19 +120,20 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         }
       }
     } else { // room
+      const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
       if (drag.type === 'move') {
         // propose move
-        let nx = Math.min(1, Math.max(0, drag.start.x + dx));
-        let ny = Math.min(1, Math.max(0, drag.start.y + dy));
+        let nx = Math.min(rect.width - drag.start.w, Math.max(0, drag.start.x + dx));
+        let ny = Math.min(rect.height - drag.start.h, Math.max(0, drag.start.y + dy));
         // prevent overlap with other enabled rooms (allow touching)
-        const candidate = resolveNoOverlap({ x: nx, y: ny, width: drag.start.w, height: drag.start.h }, drag.key as string);
+        const candidate = resolveNoOverlap({ x: nx, y: ny, width: drag.start.w, height: drag.start.h }, drag.key as string, rect.width, rect.height);
         nx = snapTo(candidate.x); ny = snapTo(candidate.y);
         onUpdate(drag.key as string, { layout: { x: nx, y: ny, width: candidate.width, height: candidate.height } });
       } else {
-        let nw = Math.min(1, Math.max(0.05, drag.start.w + dx));
-        let nh = Math.min(1, Math.max(0.05, drag.start.h + dy));
+        let nw = Math.min(rect.width - drag.start.x, Math.max(50, drag.start.w + dx));
+        let nh = Math.min(rect.height - drag.start.y, Math.max(50, drag.start.h + dy));
         // prevent overlap during resize
-        const candidate = resolveNoOverlap({ x: drag.start.x, y: drag.start.y, width: nw, height: nh }, drag.key as string);
+        const candidate = resolveNoOverlap({ x: drag.start.x, y: drag.start.y, width: nw, height: nh }, drag.key as string, rect.width, rect.height);
         nw = snapTo(candidate.width); nh = snapTo(candidate.height);
         onUpdate(drag.key as string, { layout: { x: candidate.x, y: candidate.y, width: nw, height: nh } });
       }
@@ -170,24 +169,24 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     const newId = Date.now();
     setFloatingWindows((prev: FloatingWindow[]) => [...prev, { 
       id: newId, 
-      x: 0.5, 
-      y: 0.2, 
-      len: 0.15, 
+      x: 200, 
+      y: 100, 
+      len: 80, 
       rotation: 0, 
       type: 'window',
       isHovered: false
     }]);
   };
 
-  // Найти ближайшую стену для превью привязки - исправленная версия с точным позиционированием
+  // Найти ближайшую стену для превью привязки - версия с пикселями
   const findNearestWall = (winX: number, winY: number, winLen: number): WindowAttachmentPreview | null => {
     let closestWall: WindowAttachmentPreview | null = null;
     let minDistance = Infinity;
 
     for (const room of enabledRooms) {
-      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      const layout = room.layout || { x: 20, y: 20, width: 200, height: 200 };
       
-      // Точные координаты стен с учётом нормализации
+      // Координаты стен в пикселях
       const walls = [
         { 
           side: 'left' as const, 
@@ -222,21 +221,21 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       for (const wall of walls) {
         const distance = Math.abs((wall.isVertical ? winX : winY) - wall.coord);
         
-        if (distance < minDistance && distance < 0.06) { // Увеличил порог захвата
+        if (distance < minDistance && distance < 20) { // 20px порог захвата
           const alongAxis = wall.isVertical ? winY : winX;
           
           // Проверяем, что окно находится в пределах стены с небольшим запасом
-          if (alongAxis >= wall.start - 0.02 && alongAxis <= wall.end + 0.02) {
-            // Точное вычисление позиции относительно стены
+          if (alongAxis >= wall.start - 10 && alongAxis <= wall.end + 10) {
+            // Вычисление позиции относительно стены
             const wallLength = wall.end - wall.start;
             const rawPos = (alongAxis - wall.start) / wallLength;
             const pos = Math.max(0, Math.min(1, rawPos));
-            const normalizedLen = Math.max(0.05, Math.min(1, winLen / wallLength));
+            const normalizedLen = Math.max(0.1, Math.min(1, winLen / wallLength));
             
-            // Корректируем позицию окна с учётом его длины, чтобы оно не выходило за границы
+            // Корректируем позицию окна с учётом его длины
             const adjustedPos = Math.max(0, Math.min(1 - normalizedLen, pos));
             
-            // Вычисляем точную позицию превью в пикселях канвы
+            // Вычисляем позицию превью в пикселях
             let previewX, previewY, previewWidth, previewHeight;
             const WALL_THICKNESS = 8; // px
             
@@ -328,19 +327,19 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 
   // удаление выполняется через верхнюю панель
 
-  // Prevent overlapping rooms helper - улучшенная версия с точным позиционированием
-  const resolveNoOverlap = (candidate: { x: number; y: number; width: number; height: number }, movingKey: string) => {
+  // Prevent overlapping rooms helper - версия с пикселями
+  const resolveNoOverlap = (candidate: { x: number; y: number; width: number; height: number }, movingKey: string, canvasWidth: number, canvasHeight: number) => {
     const others = enabledRooms.filter(r => r.key !== movingKey && r.layout).map(r => ({ key: r.key, ...(r.layout as NonNullable<RoomState['layout']>) }));
     
-    // Более точное ограничение в пределах канвы
-    const MIN_MARGIN = 0.01; // 1% отступ от краёв
-    candidate.x = Math.max(MIN_MARGIN, Math.min(1 - candidate.width - MIN_MARGIN, candidate.x));
-    candidate.y = Math.max(MIN_MARGIN, Math.min(1 - candidate.height - MIN_MARGIN, candidate.y));
+    // Ограничение в пределах канвы
+    const MIN_MARGIN = 10; // 10px отступ от краёв
+    candidate.x = Math.max(MIN_MARGIN, Math.min(canvasWidth - candidate.width - MIN_MARGIN, candidate.x));
+    candidate.y = Math.max(MIN_MARGIN, Math.min(canvasHeight - candidate.height - MIN_MARGIN, candidate.y));
     
     let iter = 0;
-    const TOLERANCE = 0.001; // Минимальный зазор между комнатами (можно ставить впритык)
+    const TOLERANCE = 2; // 2px минимальный зазор между комнатами
     
-    while (iter++ < 15) { // Больше итераций для точности
+    while (iter++ < 15) {
       let adjusted = false;
       
       for (const r of others) {
@@ -371,8 +370,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
           }
           
           // Повторно ограничиваем в пределах канвы
-          candidate.x = Math.max(MIN_MARGIN, Math.min(1 - candidate.width - MIN_MARGIN, candidate.x));
-          candidate.y = Math.max(MIN_MARGIN, Math.min(1 - candidate.height - MIN_MARGIN, candidate.y));
+          candidate.x = Math.max(MIN_MARGIN, Math.min(canvasWidth - candidate.width - MIN_MARGIN, candidate.x));
+          candidate.y = Math.max(MIN_MARGIN, Math.min(canvasHeight - candidate.height - MIN_MARGIN, candidate.y));
           
           adjusted = true;
         }
@@ -445,12 +444,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         }}
       >
         {enabledRooms.map((room: RoomState) => {
-          const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+          const layout = room.layout || { x: 20, y: 20, width: 200, height: 200 };
           const style: React.CSSProperties = {
-            left: `${layout.x * 100}%`,
-            top: `${layout.y * 100}%`,
-            width: `${layout.width * 100}%`,
-            height: `${layout.height * 100}%`,
+            left: `${layout.x}px`,
+            top: `${layout.y}px`,
+            width: `${layout.width}px`,
+            height: `${layout.height}px`,
           };
           return (
             <div key={room.key} className="layout-box" style={style}>
@@ -495,7 +494,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                       };
                     } else { // right
                       return { 
-                        position: 'absolute',
+                    position: 'absolute',
                         right: -WALL_THICKNESS / 2, 
                         top: `${win.pos * 100}%`, 
                         width: `${WALL_THICKNESS}px`, 
@@ -557,8 +556,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             className="window-attachment-preview"
             style={{
               position: 'absolute',
-              left: `${attachmentPreview.x * 100}%`,
-              top: `${attachmentPreview.y * 100}%`,
+              left: `${attachmentPreview.x}px`,
+              top: `${attachmentPreview.y}px`,
               width: `${attachmentPreview.width}px`,
               height: `${attachmentPreview.height}px`,
               pointerEvents: 'none'
@@ -572,10 +571,10 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
           const isVertical = win.rotation === 90;
           const style: React.CSSProperties = {
             position: 'absolute',
-            left: `${win.x * 100}%`,
-            top: `${win.y * 100}%`,
-            width: isVertical ? `${thickness}px` : `${win.len * 100}%`,
-            height: isVertical ? `${win.len * 100}%` : `${thickness}px`,
+            left: `${win.x}px`,
+            top: `${win.y}px`,
+            width: isVertical ? `${thickness}px` : `${win.len}px`,
+            height: isVertical ? `${win.len}px` : `${thickness}px`,
             transform: `translate(-50%, -50%)`,
           };
           

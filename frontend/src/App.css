@@ -222,7 +222,8 @@ header p {
   padding: var(--space-xl);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-xl);
-  margin-bottom: var(--space-xl);
+  margin: 0 auto var(--space-xl) auto;
+  max-width: 800px;
   transition: all var(--transition-normal);
   animation: fadeInUp 0.8s ease-out 0.2s both;
 }
@@ -240,7 +241,7 @@ header p {
   text-align: center;
   border-bottom: 2px solid var(--red-accent-200);
   padding-bottom: var(--space-sm);
-  display: inline-block;
+  display: block;
   width: 100%;
 }
 
@@ -733,7 +734,7 @@ header p {
 .constructor-toggle {
   appearance: none;
   width: 100%;
-  text-align: left;
+  text-align: center;
   border: none;
   background: transparent;
   color: var(--primary-800);
@@ -742,9 +743,10 @@ header p {
   font-size: 1.5rem;
   font-weight: 700;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   cursor: pointer;
+  position: relative;
 }
 
 .constructor-toggle::after {
@@ -752,6 +754,8 @@ header p {
   font-size: 1rem;
   color: var(--primary-500);
   transition: transform var(--transition-normal);
+  position: absolute;
+  right: 0;
 }
 
 .constructor-toggle.active::after {
