@@ -49,8 +49,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   
   const [floatingWindows, setFloatingWindows] = useState<FloatingWindow[]>([]);
   const [selectedWindow, setSelectedWindow] = useState<{ roomKey: string; index: number } | null>(null);
-  const [selectedFloatingWindow, setSelectedFloatingWindow] = useState<number | null>(null);
-  const [editingWindow, setEditingWindow] = useState<{ roomKey: string; index: number } | null>(null);
   const [pendingAttachment, setPendingAttachment] = useState<{
     windowId: number;
     attachment: WindowAttachment;
@@ -220,51 +218,51 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     const dy = currentY - drag.startY;
 
     if ('length' in drag.item) {
-        // Перетаскивание плавающего окна
-        const newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.item.length, drag.start.x + dx));
-        const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.item.length, drag.start.y + dy));
+      // Перетаскивание плавающего окна
+      const newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.item.length, drag.start.x + dx));
+      const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.item.length, drag.start.y + dy));
+      
+      if (drag.type === 'resize') {
+        const newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + (drag.item.rotation === 0 ? dx : dy)));
         
-        if (drag.type === 'resize') {
-          const newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + (drag.item.rotation === 0 ? dx : dy)));
-          
-          setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-            w.id === drag.item.id 
-              ? { ...w, x: newX, y: newY, length: newLength }
-              : w
-          ));
-        } else {
-          setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-            w.id === drag.item.id 
-              ? { ...w, x: newX, y: newY }
-              : w
-          ));
-        }
-
-        // Проверяем возможность привязки к стене
-        const updatedWindow = { ...drag.item, x: newX, y: newY, length: drag.type === 'resize' ? Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + (drag.item.rotation === 0 ? dx : dy))) : drag.item.length };
-        const attachment = findNearestWall(updatedWindow);
-        
-        if (attachment) {
-          setPendingAttachment({ windowId: drag.item.id, attachment });
-        } else {
-          setPendingAttachment(null);
-        }
+        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+          w.id === drag.item.id 
+            ? { ...w, x: newX, y: newY, length: newLength }
+            : w
+        ));
       } else {
-        // Перетаскивание комнаты
-        const newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
-        const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
-        
-        if (drag.type === 'resize') {
-          const newWidth = Math.max(100, Math.min(CANVAS_WIDTH - newX, drag.start.width + dx));
-          const newHeight = Math.max(100, Math.min(CANVAS_HEIGHT - newY, drag.start.height + dy));
-          
-          const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
-          onUpdate(drag.item.key, { layout: normalized });
-        } else {
-          const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
-          onUpdate(drag.item.key, { layout: normalized });
-        }
+        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+          w.id === drag.item.id 
+            ? { ...w, x: newX, y: newY }
+            : w
+        ));
       }
+
+      // Проверяем возможность привязки к стене
+      const updatedWindow = { ...drag.item, x: newX, y: newY, length: drag.type === 'resize' ? Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + (drag.item.rotation === 0 ? dx : dy))) : drag.item.length };
+      const attachment = findNearestWall(updatedWindow);
+      
+      if (attachment) {
+        setPendingAttachment({ windowId: drag.item.id, attachment });
+      } else {
+        setPendingAttachment(null);
+      }
+    } else {
+      // Перетаскивание комнаты
+      const newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
+      const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
+      
+      if (drag.type === 'resize') {
+        const newWidth = Math.max(100, Math.min(CANVAS_WIDTH - newX, drag.start.width + dx));
+        const newHeight = Math.max(100, Math.min(CANVAS_HEIGHT - newY, drag.start.height + dy));
+        
+        const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
+        onUpdate(drag.item.key, { layout: normalized });
+      } else {
+        const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
+        onUpdate(drag.item.key, { layout: normalized });
+      }
+    }
   };
 
   // Обработка окончания перетаскивания
@@ -346,55 +344,43 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     setSelectedWindow(null);
   };
 
+  // Изменение размера помещения
+  const resizeRoom = (roomKey: string, deltaWidth: number, deltaHeight: number) => {
+    const room = rooms.find(r => r.key === roomKey);
+    if (!room || !room.layout) return;
+
+    const currentPixels = toPixels(room.layout);
+    const newWidth = Math.max(100, Math.min(CANVAS_WIDTH - currentPixels.x, currentPixels.width + deltaWidth));
+    const newHeight = Math.max(100, Math.min(CANVAS_HEIGHT - currentPixels.y, currentPixels.height + deltaHeight));
+    
+    const normalized = toNormalized({ 
+      x: currentPixels.x, 
+      y: currentPixels.y, 
+      width: newWidth, 
+      height: newHeight 
+    });
+    
+    onUpdate(roomKey, { layout: normalized });
+  };
+
+  // Изменение размера плавающего окна
+  const resizeFloatingWindow = (windowId: number, deltaLength: number) => {
+    setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+      w.id === windowId 
+        ? { ...w, length: Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, w.length + deltaLength)) }
+        : w
+    ));
+  };
+
   // Обработка клика по установленному окну
   const handlePlacedWindowClick = (roomKey: string, index: number) => {
     if (selectedWindow?.roomKey === roomKey && selectedWindow?.index === index) {
       setSelectedWindow(null);
-      setEditingWindow(null);
     } else {
       setSelectedWindow({ roomKey, index });
-      setEditingWindow(null);
     }
   };
 
-  // Обработка клика по плавающему окну
-  const handleFloatingWindowClick = (windowId: number) => {
-    if (selectedFloatingWindow === windowId) {
-      setSelectedFloatingWindow(null);
-    } else {
-      setSelectedFloatingWindow(windowId);
-    }
-    setSelectedWindow(null);
-    setEditingWindow(null);
-  };
-
-  // Начать редактирование окна
-  const startEditingWindow = (roomKey: string, index: number) => {
-    setEditingWindow({ roomKey, index });
-    setSelectedWindow(null);
-  };
-
-  // Изменить размер привязанного окна
-  const updatePlacedWindowSize = (roomKey: string, index: number, newLength: number) => {
-    const room = rooms.find(r => r.key === roomKey);
-    if (!room || !room.windows) return;
-
-    const updatedWindows = room.windows.map((window, i) => 
-      i === index ? { ...window, len: Math.max(0.05, Math.min(1, newLength)) } : window
-    );
-    
-    onUpdate(roomKey, { windows: updatedWindows });
-    setEditingWindow(null);
-  };
-
-  // Изменить размер плавающего окна
-  const updateFloatingWindowSize = (windowId: number, newLength: number) => {
-    setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-      w.id === windowId 
-        ? { ...w, length: Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, newLength)) }
-        : w
-    ));
-  };
 
   return (
     <div className="layout-editor">
@@ -421,33 +407,62 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         >
           🗑️ Удалить все окна
         </button>
-        
-        <button 
-          className="edit-window-btn"
-          onClick={() => {
-            if (selectedWindow) {
-              startEditingWindow(selectedWindow.roomKey, selectedWindow.index);
-            }
-          }}
-          disabled={!selectedWindow}
-        >
-          ✏️ Изменить окно
-        </button>
-        
-        <button 
-          className="edit-floating-window-btn"
-          onClick={() => {
-            if (selectedFloatingWindow) {
-              const window = floatingWindows.find((w: FloatingWindow) => w.id === selectedFloatingWindow);
-              if (window) {
-                updateFloatingWindowSize(selectedFloatingWindow, window.length + 20);
-              }
-            }
-          }}
-          disabled={!selectedFloatingWindow}
-        >
-          📏 Увеличить плавающее окно
-        </button>
+
+        {/* Кнопки изменения размера помещений */}
+        {enabledRooms.map((room) => (
+          <div key={`resize-${room.key}`} className="room-resize-controls">
+            <span className="room-name-small">{room.name}:</span>
+            <button 
+              className="resize-btn"
+              onClick={() => resizeRoom(room.key, 20, 0)}
+              title="Увеличить ширину"
+            >
+              ↔️ +20
+            </button>
+            <button 
+              className="resize-btn"
+              onClick={() => resizeRoom(room.key, -20, 0)}
+              title="Уменьшить ширину"
+            >
+              ↔️ -20
+            </button>
+            <button 
+              className="resize-btn"
+              onClick={() => resizeRoom(room.key, 0, 20)}
+              title="Увеличить высоту"
+            >
+              ↕️ +20
+            </button>
+            <button 
+              className="resize-btn"
+              onClick={() => resizeRoom(room.key, 0, -20)}
+              title="Уменьшить высоту"
+            >
+              ↕️ -20
+            </button>
+          </div>
+        ))}
+
+        {/* Кнопки изменения размера плавающих окон */}
+        {floatingWindows.map((window: FloatingWindow) => (
+          <div key={`resize-window-${window.id}`} className="window-resize-controls">
+            <span className="window-name-small">Окно {window.id}:</span>
+            <button 
+              className="resize-btn"
+              onClick={() => resizeFloatingWindow(window.id, 20)}
+              title="Увеличить размер"
+            >
+              📏 +20
+            </button>
+            <button 
+              className="resize-btn"
+              onClick={() => resizeFloatingWindow(window.id, -20)}
+              title="Уменьшить размер"
+            >
+              📏 -20
+            </button>
+          </div>
+        ))}
       </div>
 
       {/* Панель подтверждения привязки */}
@@ -460,35 +475,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                 ✅ Прикрепить
               </button>
               <button className="cancel-btn" onClick={cancelAttachment}>
-                ❌ Отмена
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Панель редактирования окна */}
-      {editingWindow && (
-        <div className="edit-window-panel">
-          <div className="edit-window-content">
-            <p>Изменить размер окна</p>
-            <div className="edit-window-controls">
-              <input
-                type="range"
-                min="0.05"
-                max="1"
-                step="0.05"
-                defaultValue={(() => {
-                  const room = rooms.find(r => r.key === editingWindow.roomKey);
-                  return room?.windows?.[editingWindow.index]?.len || 0.2;
-                })()}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  const newLength = parseFloat(e.target.value);
-                  updatePlacedWindowSize(editingWindow.roomKey, editingWindow.index, newLength);
-                }}
-                className="window-size-slider"
-              />
-              <button className="cancel-btn" onClick={() => setEditingWindow(null)}>
                 ❌ Отмена
               </button>
             </div>
@@ -579,7 +565,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         {floatingWindows.map((window: FloatingWindow) => (
           <div
             key={window.id}
-            className={`floating-window ${window.isDragging ? 'dragging' : ''} ${window.isResizing ? 'resizing' : ''} ${selectedFloatingWindow === window.id ? 'selected' : ''}`}
+            className={`floating-window ${window.isDragging ? 'dragging' : ''} ${window.isResizing ? 'resizing' : ''}`}
             style={{
               position: 'absolute',
               left: window.x,
@@ -595,10 +581,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
               zIndex: 20
             }}
             onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, window, 'move')}
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              handleFloatingWindowClick(window.id);
-            }}
           >
             <div className="window-resize-handle" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, window, 'resize')} />
             <div className="window-label">🪟</div>
