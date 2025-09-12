@@ -222,8 +222,7 @@ header p {
   padding: var(--space-xl);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-xl);
-  margin: 0 auto var(--space-xl) auto;
-  max-width: 800px;
+  margin-bottom: var(--space-xl);
   transition: all var(--transition-normal);
   animation: fadeInUp 0.8s ease-out 0.2s both;
 }
@@ -241,7 +240,7 @@ header p {
   text-align: center;
   border-bottom: 2px solid var(--red-accent-200);
   padding-bottom: var(--space-sm);
-  display: block;
+  display: inline-block;
   width: 100%;
 }
 
@@ -721,8 +720,7 @@ header p {
 
 /* Collapsible constructor */
 .constructor-wrapper {
-  margin: 1.25rem auto 1.5rem auto;
-  max-width: 1000px;
+  margin: 1.25rem 0 1.5rem;
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--primary-200);
   border-radius: var(--radius-2xl);
@@ -734,7 +732,7 @@ header p {
 .constructor-toggle {
   appearance: none;
   width: 100%;
-  text-align: center;
+  text-align: left;
   border: none;
   background: transparent;
   color: var(--primary-800);
@@ -743,10 +741,9 @@ header p {
   font-size: 1.5rem;
   font-weight: 700;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  position: relative;
 }
 
 .constructor-toggle::after {
@@ -754,8 +751,6 @@ header p {
   font-size: 1rem;
   color: var(--primary-500);
   transition: transform var(--transition-normal);
-  position: absolute;
-  right: 0;
 }
 
 .constructor-toggle.active::after {
@@ -1154,13 +1149,21 @@ header p {
   border-radius: 8px;
   z-index: 100;
   cursor: grab;
-  transition: all var(--transition-normal);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+  will-change: transform, opacity;
 }
 
 .floating-window:active {
   cursor: grabbing;
+}
+
+.floating-window.dragging {
+  transition: none;
+  transform: translate(-50%, -50%) scale(1.05);
+  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.5);
+  border-color: rgba(255, 255, 255, 1);
 }
 
 .floating-window.hovered {

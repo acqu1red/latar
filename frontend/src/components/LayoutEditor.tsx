@@ -31,6 +31,7 @@ type WindowAttachmentPreview = {
 const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ key: string | number; item: any; type: 'move' | 'resize'; startX: number; startY: number; start: any } | null>(null);
+  const [draggingWindowId, setDraggingWindowId] = useState<number | null>(null);
   const [floatingWindows, setFloatingWindows] = useState<FloatingWindow[]>([]);
   const [selectedPlacedWindow, setSelectedPlacedWindow] = useState<{ roomKey: string; index: number } | null>(null);
   const [attachmentPreview, setAttachmentPreview] = useState<WindowAttachmentPreview | null>(null);
@@ -48,6 +49,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 
     if (isWindow) {
       setDrag({ key: item.id, item, type, startX: x, startY: y, start: { x: item.x, y: item.y, len: item.len, rot: item.rotation } });
+      setDraggingWindowId(item.id);
     } else {
       const layout = item.layout || { x: 20, y: 20, width: 200, height: 200 };
       setDrag({ key: item.key, item, type, startX: x, startY: y, start: { x: layout.x, y: layout.y, w: layout.width, h: layout.height } });
@@ -72,19 +74,29 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         nx = snapTo(nx);
         ny = snapTo(ny);
         
-        // Обновляем позицию окна
-        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-          w.id === (drag.key as number) ? { ...w, x: nx, y: ny } : w
-        ));
+        // Обновляем позицию окна напрямую в DOM для мгновенного отклика
+        const windowElement = document.querySelector(`[data-window-id="${drag.key}"]`) as HTMLElement;
+        if (windowElement) {
+          windowElement.style.left = `${nx}px`;
+          windowElement.style.top = `${ny}px`;
+        }
         
         // Обновляем превью привязки
         const preview = findNearestWall(nx, ny, drag.start.len);
         setAttachmentPreview(preview);
       } else { // resize
         const newLen = Math.max(20, snapTo(drag.start.len + (drag.start.rot === 90 ? dy : dx)));
-        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-          w.id === (drag.key as number) ? { ...w, len: newLen } : w
-        ));
+        
+        // Обновляем размер окна напрямую в DOM
+        const windowElement = document.querySelector(`[data-window-id="${drag.key}"]`) as HTMLElement;
+        if (windowElement) {
+          const isVertical = drag.start.rot === 90;
+          if (isVertical) {
+            windowElement.style.height = `${newLen}px`;
+          } else {
+            windowElement.style.width = `${newLen}px`;
+          }
+        }
         
         // Обновляем превью с новой длиной
         const window = floatingWindows.find((w: FloatingWindow) => w.id === (drag.key as number));
@@ -143,8 +155,35 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   const handlePointerUp = (e: React.PointerEvent) => {
     if (drag) {
       try { (e.target as Element).releasePointerCapture(e.pointerId); } catch {}
+      
+      // Сохраняем изменения в состоянии для плавающих окон
+      if (drag.item.type === 'window' && (drag as any).placed !== true) {
+        const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
+        const currentX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+        const currentY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+        const dx = currentX - drag.startX;
+        const dy = currentY - drag.startY;
+        const snapTo = (v: number) => Math.round(v / snap) * snap;
+        
+        if (drag.type === 'move') {
+          let nx = drag.start.x + dx;
+          let ny = drag.start.y + dy;
+          nx = snapTo(nx);
+          ny = snapTo(ny);
+          
+          setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+            w.id === (drag.key as number) ? { ...w, x: nx, y: ny } : w
+          ));
+        } else { // resize
+          const newLen = Math.max(20, snapTo(drag.start.len + (drag.start.rot === 90 ? dy : dx)));
+          setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+            w.id === (drag.key as number) ? { ...w, len: newLen } : w
+          ));
+        }
+      }
     }
     setDrag(null);
+    setDraggingWindowId(null);
   };
 
   const handleEntryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -576,14 +615,18 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             width: isVertical ? `${thickness}px` : `${win.len}px`,
             height: isVertical ? `${win.len}px` : `${thickness}px`,
             transform: `translate(-50%, -50%)`,
+            // Скрываем плавающее окно когда показывается превью привязки
+            opacity: attachmentPreview ? 0.3 : 1,
+            pointerEvents: attachmentPreview ? 'none' : 'auto',
           };
           
           const canAttach = attachmentPreview !== null;
           
           return (
             <div 
-              key={win.id} 
-              className={`floating-window ${canAttach ? 'can-attach' : ''} ${hoveredWindow === win.id ? 'hovered' : ''}`}
+              key={win.id}
+              data-window-id={win.id}
+              className={`floating-window ${canAttach ? 'can-attach' : ''} ${hoveredWindow === win.id ? 'hovered' : ''} ${draggingWindowId === win.id ? 'dragging' : ''}`}
               style={style} 
               onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, win, 'move')}
               onMouseEnter={() => setHoveredWindow(win.id)}
