@@ -9,7 +9,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const CANVAS_HEIGHT = 2048;
     const MARGIN = 36;
     // Единая толщина стен для внешних и внутренних стен
-    const WALL_THICKNESS = 18;
+    const WALL_THICKNESS = 28;
     const ICON_STROKE = 4;
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
@@ -35,7 +35,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
     const SMALL_SNAP = 6; // пикселей
     const lightSnapEdges = () => {
-        // Снэпим только если края близки друг к другу
+        // Снэпим только если края близки друг к другу. ВАЖНО: сдвигаем комнаты целиком, НЕ меняем их размеры.
         const edgesV = [];
         const edgesH = [];
         pixelRooms.forEach((r, idx) => {
@@ -54,35 +54,24 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         const ra = pixelRooms[a.idx];
                         const rb = pixelRooms[b.idx];
                         if (vertical) {
-                            if (a.kind === 'left') {
-                                const newWidth = (ra.pixelX + ra.pixelWidth) - avg;
-                                if (newWidth >= MIN_SIZE) ra.pixelX = avg, ra.pixelWidth = newWidth;
-                            } else {
-                                const newWidth = avg - ra.pixelX;
-                                if (newWidth >= MIN_SIZE) ra.pixelWidth = newWidth;
-                            }
-                            if (b.kind === 'left') {
-                                const newWidth = (rb.pixelX + rb.pixelWidth) - avg;
-                                if (newWidth >= MIN_SIZE) rb.pixelX = avg, rb.pixelWidth = newWidth;
-                            } else {
-                                const newWidth = avg - rb.pixelX;
-                                if (newWidth >= MIN_SIZE) rb.pixelWidth = newWidth;
-                            }
+                            // Сдвигаем комнаты так, чтобы соответствующая грань стала = avg, ширину не меняем
+                            const shiftA = (a.kind === 'left')
+                                ? avg - ra.pixelX
+                                : avg - (ra.pixelX + ra.pixelWidth);
+                            const shiftB = (b.kind === 'left')
+                                ? avg - rb.pixelX
+                                : avg - (rb.pixelX + rb.pixelWidth);
+                            ra.pixelX += shiftA;
+                            rb.pixelX += shiftB;
                         } else {
-                            if (a.kind === 'top') {
-                                const newHeight = (ra.pixelY + ra.pixelHeight) - avg;
-                                if (newHeight >= MIN_SIZE) ra.pixelY = avg, ra.pixelHeight = newHeight;
-                            } else {
-                                const newHeight = avg - ra.pixelY;
-                                if (newHeight >= MIN_SIZE) ra.pixelHeight = newHeight;
-                            }
-                            if (b.kind === 'top') {
-                                const newHeight = (rb.pixelY + rb.pixelHeight) - avg;
-                                if (newHeight >= MIN_SIZE) rb.pixelY = avg, rb.pixelHeight = newHeight;
-                            } else {
-                                const newHeight = avg - rb.pixelY;
-                                if (newHeight >= MIN_SIZE) rb.pixelHeight = newHeight;
-                            }
+                            const shiftA = (a.kind === 'top')
+                                ? avg - ra.pixelY
+                                : avg - (ra.pixelY + ra.pixelHeight);
+                            const shiftB = (b.kind === 'top')
+                                ? avg - rb.pixelY
+                                : avg - (rb.pixelY + rb.pixelHeight);
+                            ra.pixelY += shiftA;
+                            rb.pixelY += shiftB;
                         }
                     }
                 }
@@ -94,8 +83,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         pixelRooms.forEach(r => {
             r.pixelX = clamp(r.pixelX, MARGIN, CANVAS_WIDTH - MARGIN - MIN_SIZE);
             r.pixelY = clamp(r.pixelY, MARGIN, CANVAS_HEIGHT - MARGIN - MIN_SIZE);
-            r.pixelWidth = clamp(r.pixelWidth, MIN_SIZE, CANVAS_WIDTH - MARGIN - r.pixelX);
-            r.pixelHeight = clamp(r.pixelHeight, MIN_SIZE, CANVAS_HEIGHT - MARGIN - r.pixelY);
+            // размеры не трогаем — соответствуют конструктору
         });
     };
 
@@ -331,47 +319,63 @@ export async function generateSvgFromData(rooms, totalSqm) {
         }
     });
 
-    // Draw doors (gap + quarter-circle swing)
+    // Draw doors (детализация: косяки, петля, ровная дуга)
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, doors = [] } = room;
 
         doors.forEach(door => {
             const doorCenterX = pixelX + door.pos * pixelWidth;
             const doorCenterY = pixelY + door.pos * pixelHeight;
-            const doorSpan = Math.min(120, Math.max(72, Math.min(pixelWidth, pixelHeight) * 0.25));
+            const doorSpan = Math.min(130, Math.max(80, Math.min(pixelWidth, pixelHeight) * 0.28));
             const arcRadius = doorSpan;
             const gapStroke = WALL_THICKNESS + 2; // разрез по толщине стены
+            const jambStroke = Math.max(2, Math.floor(WALL_THICKNESS * 0.25));
+            const jambColor = '#1E1E1E';
+            const hingeRadius = Math.max(3, Math.floor(arcRadius * 0.08));
 
             if (door.side === 'top') {
                 // gap
                 svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
+                // jambs
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + WALL_THICKNESS/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + WALL_THICKNESS/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
                 // arc (hinge at left)
                 const hx = doorCenterX - doorSpan / 2;
                 const hy = pixelY;
                 const ex = hx + arcRadius;
                 const ey = hy + arcRadius;
                 svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 1 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
             } else if (door.side === 'bottom') {
                 svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight - WALL_THICKNESS/2}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY + pixelHeight - WALL_THICKNESS/2}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
                 const hx = doorCenterX - doorSpan / 2;
                 const hy = pixelY + pixelHeight;
                 const ex = hx + arcRadius;
                 const ey = hy - arcRadius;
                 svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 0 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
             } else if (door.side === 'left') {
-                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + WALL_THICKNESS/2}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + WALL_THICKNESS/2}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
                 const hx = pixelX;
                 const hy = doorCenterY - doorSpan / 2;
                 const ex = hx + arcRadius;
                 const ey = hy + arcRadius;
                 svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 1 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
             } else if (door.side === 'right') {
                 svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth - WALL_THICKNESS/2}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth - WALL_THICKNESS/2}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
                 const hx = pixelX + pixelWidth;
                 const hy = doorCenterY - doorSpan / 2;
                 const ex = hx - arcRadius;
                 const ey = hy + arcRadius;
                 svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 0 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
             }
         });
     });
