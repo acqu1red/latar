@@ -10,7 +10,7 @@ const openai = new OpenAI({
 const RoomObjectType = z.enum([
   "bed", "sofa", "chair", "table", "wardrobe",
   "stove", "fridge", "sink", "toilet",
-  "bathtub", "shower", "washing_machine", "door", "window"
+  "bathtub", "shower", "washing_machine", "kitchen_block", "door", "window"
 ]);
 
 const RoomObjectSchema = z.object({
@@ -81,13 +81,14 @@ const getPrompt = (name, sqm) => {
 ВАЖНО: Это для схематичного плана квартиры, не детального дизайна!
 
 Используй только основные типы:
-[bed, sofa, chair, table, wardrobe, stove, fridge, sink, toilet, bathtub, shower, washing_machine]
+[bed, sofa, chair, table, wardrobe, stove, fridge, sink, toilet, bathtub, shower, washing_machine, kitchen_block]
 
 ПРАВИЛА:
 - Включай только ОСНОВНУЮ мебель (кровать, диван, стол, стулья, кухонная техника)
 - НЕ добавляй декоративные элементы, растения, мелкие предметы
 - Координаты x,y — центр объекта (0-1), w,h — размер объекта (0-1)
-- Максимум 2-4 основных предмета на комнату
+- Максимум 2-5 основных предметов на комнату
+- Если вдоль одной стены виден непрерывный кухонный модуль (столешница) с варочной поверхностью/плитой и раковиной — верни один объект типа kitchen_block с суммарными x,y,w,h (по контуру модуля). Если модуль разрозненный — верни отдельно stove и sink.
 - ОТДЕЛЬНО выдели двери и окна (массивы doors и windows). Двери: { side, pos, len? }. Окна: { side, pos, len }.
 - Если дверь не видна, предположи, что кадр сделан из дверного проёма той стены; добавь дверь с pos по центру.
 

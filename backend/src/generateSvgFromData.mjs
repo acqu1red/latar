@@ -368,18 +368,21 @@ export async function generateSvgFromData(rooms, totalSqm) {
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, objects = [] } = room;
         
-        objects.filter(obj => obj.w * obj.h > 0.02).slice(0, 3).forEach(obj => {
+        objects.filter(obj => (obj.w * obj.h) > 0.005).slice(0, 6).forEach(obj => {
             const objX = pixelX + obj.x * pixelWidth;
             const objY = pixelY + obj.y * pixelHeight;
-            const objWidth = Math.max(20, obj.w * pixelWidth);
-            const objHeight = Math.max(20, obj.h * pixelHeight);
+            const objWidth = Math.max(18, obj.w * pixelWidth);
+            const objHeight = Math.max(18, obj.h * pixelHeight);
             
             const drawRect = () => {
                 svgContent += `\n<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" width="${objWidth}" height="${objHeight}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
             };
 
+            const drawRoundedRect = (x, y, w, h, r) => {
+                svgContent += `\n<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" ry="${r}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+            };
+
             if (obj.type === 'sofa') {
-                // Simple sofa icon: outer rect + backrest + seat cushions
                 const pad = Math.min(objWidth, objHeight) * 0.08;
                 const innerX = objX - objWidth/2 + pad;
                 const innerY = objY - objHeight/2 + pad;
@@ -389,25 +392,81 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const cushionGap = Math.max(6, innerW * 0.04);
                 const cushionW = (innerW - cushionGap) / 2;
                 const cushionH = innerH - backThickness - pad * 0.5;
-                // outline
                 svgContent += `\n<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" width="${objWidth}" height="${objHeight}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
-                // backrest (top side)
                 svgContent += `\n<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${backThickness}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
-                // seat cushions
                 svgContent += `\n<rect x="${innerX}" y="${innerY + backThickness + cushionGap * 0.25}" width="${cushionW}" height="${cushionH}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
                 svgContent += `\n<rect x="${innerX + cushionW + cushionGap}" y="${innerY + backThickness + cushionGap * 0.25}" width="${cushionW}" height="${cushionH}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
             } else if (obj.type === 'bed') {
-                // Simple bed icon: outer rect + two pillows at head side
                 const pad = Math.min(objWidth, objHeight) * 0.08;
                 const headThickness = Math.max(8, objHeight * 0.18);
                 const pillowGap = Math.max(6, objWidth * 0.04);
                 const pillowW = (objWidth - pillowGap - pad * 2) / 2;
                 const pillowH = Math.max(18, headThickness - pad);
-                // outline
                 svgContent += `\n<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" width="${objWidth}" height="${objHeight}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
-                // pillows (top side)
                 svgContent += `\n<rect x="${objX - objWidth/2 + pad}" y="${objY - objHeight/2 + pad}" width="${pillowW}" height="${pillowH}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
                 svgContent += `\n<rect x="${objX - objWidth/2 + pad + pillowW + pillowGap}" y="${objY - objHeight/2 + pad}" width="${pillowW}" height="${pillowH}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+            } else if (obj.type === 'chair') {
+                // Chair: seat + backrest
+                const seatW = objWidth * 0.6;
+                const seatH = objHeight * 0.6;
+                drawRoundedRect(objX - seatW/2, objY - seatH/2, seatW, seatH, Math.min(seatW, seatH)*0.2);
+                const backH = Math.max(10, objHeight * 0.25);
+                svgContent += `\n<rect x="${objX - seatW/2}" y="${objY - seatH/2 - backH}" width="${seatW}" height="${backH}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+            } else if (obj.type === 'table') {
+                // Table: rounded rectangle
+                drawRoundedRect(objX - objWidth/2, objY - objHeight/2, objWidth, objHeight, Math.min(objWidth, objHeight)*0.15);
+            } else if (obj.type === 'wardrobe') {
+                // Wardrobe: two-door cabinet
+                drawRect();
+                const midX = objX;
+                svgContent += `\n<line x1="${midX}" y1="${objY - objHeight/2}" x2="${midX}" y2="${objY + objHeight/2}" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+                svgContent += `\n<circle cx="${midX - objWidth*0.2}" cy="${objY}" r="${ICON_STROKE}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+                svgContent += `\n<circle cx="${midX + objWidth*0.2}" cy="${objY}" r="${ICON_STROKE}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+            } else if (obj.type === 'kitchen_block') {
+                // Kitchen block: long rectangle with sink + stove marks
+                drawRect();
+                // Sink: small rounded rect on left
+                const sinkW = objWidth * 0.22; const sinkH = objHeight * 0.45;
+                drawRoundedRect(objX - objWidth/2 + objWidth*0.08, objY - sinkH/2, sinkW, sinkH, Math.min(sinkW, sinkH)*0.2);
+                // Stove: four burners on right
+                const baseX = objX + objWidth*0.15; const baseY = objY; const r = Math.min(objWidth, objHeight) * 0.08;
+                const dx = objWidth*0.18; const dy = objHeight*0.18;
+                svgContent += `\n<circle cx="${baseX}" cy="${baseY}" r="${r}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+                svgContent += `\n<circle cx="${baseX + dx}" cy="${baseY}" r="${r}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+                svgContent += `\n<circle cx="${baseX}" cy="${baseY + dy}" r="${r}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+                svgContent += `\n<circle cx="${baseX + dx}" cy="${baseY + dy}" r="${r}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+            } else if (obj.type === 'toilet') {
+                // Toilet: bowl + tank
+                drawRoundedRect(objX - objWidth*0.25, objY - objHeight*0.15, objWidth*0.5, objHeight*0.3, Math.min(objWidth, objHeight)*0.15);
+                svgContent += `\n<rect x="${objX - objWidth*0.2}" y="${objY - objHeight*0.45}" width="${objWidth*0.4}" height="${objHeight*0.2}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE}"/>`;
+            } else if (obj.type === 'bathtub') {
+                // Bathtub: rounded outer + inner
+                drawRoundedRect(objX - objWidth/2, objY - objHeight/2, objWidth, objHeight, Math.min(objWidth, objHeight)*0.35);
+                drawRoundedRect(objX - objWidth*0.45, objY - objHeight*0.35, objWidth*0.9, objHeight*0.7, Math.min(objWidth, objHeight)*0.3);
+            } else if (obj.type === 'shower') {
+                // Shower: square with drain
+                drawRect();
+                svgContent += `\n<circle cx="${objX}" cy="${objY}" r="${Math.min(objWidth, objHeight)*0.08}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+            } else if (obj.type === 'sink') {
+                // Sink standalone: small rounded rect
+                drawRoundedRect(objX - objWidth/2, objY - objHeight/2, objWidth, objHeight, Math.min(objWidth, objHeight)*0.25);
+            } else if (obj.type === 'stove') {
+                // Stove standalone: four burners
+                drawRect();
+                const r = Math.min(objWidth, objHeight) * 0.18;
+                const ox = objX - objWidth*0.25; const oy = objY - objHeight*0.2; const dx = objWidth*0.33; const dy = objHeight*0.33;
+                svgContent += `\n<circle cx="${ox}" cy="${oy}" r="${r}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+                svgContent += `\n<circle cx="${ox + dx}" cy="${oy}" r="${r}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+                svgContent += `\n<circle cx="${ox}" cy="${oy + dy}" r="${r}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+                svgContent += `\n<circle cx="${ox + dx}" cy="${oy + dy}" r="${r}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+            } else if (obj.type === 'fridge') {
+                // Fridge: rounded rect with divider
+                drawRoundedRect(objX - objWidth/2, objY - objHeight/2, objWidth, objHeight, Math.min(objWidth, objHeight)*0.18);
+                svgContent += `\n<line x1="${objX}" y1="${objY - objHeight/2}" x2="${objX}" y2="${objY + objHeight/2}" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
+            } else if (obj.type === 'washing_machine') {
+                // Washer: square with drum circle
+                drawRect();
+                svgContent += `\n<circle cx="${objX}" cy="${objY}" r="${Math.min(objWidth, objHeight)*0.25}" fill="none" stroke="#000000" stroke-width="${ICON_STROKE/2}"/>`;
             } else {
                 drawRect();
             }
