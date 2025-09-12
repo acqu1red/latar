@@ -4,10 +4,13 @@
 declare module 'react' {
   export type FC<P = {}> = (props: P) => any;
   export function useState<T = any>(initial?: T): any;
+  export function useEffect(effect: () => void | (() => void), deps?: any[]): void;
   export function useMemo<T = any>(factory: () => T, deps: any[]): T;
   export function useRef<T = any>(initial?: T): any;
   export type CSSProperties = any;
   export type PointerEvent = any;
+  export type ChangeEvent<T = Element> = any;
+  export const StrictMode: any;
 }
 
 declare module 'react/jsx-runtime' {

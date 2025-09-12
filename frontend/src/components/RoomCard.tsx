@@ -12,7 +12,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files ? Array.from(e.target.files) : [];
+        const files = e.target.files ? Array.from(e.target.files) as File[] : [];
         onUpdate(room.key, { file: files });
     };
 
@@ -65,7 +65,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
                             type="checkbox" 
                             className="toggle-switch-input"
                             checked={room.enabled} 
-                            onChange={e => onUpdate(room.key, { enabled: e.target.checked })} 
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpdate(room.key, { enabled: e.target.checked })} 
                         />
                         <span className="toggle-switch-slider"></span>
                     </label>
@@ -84,7 +84,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
                                 step="0.1"
                                 min="0"
                                 value={room.sqm}
-                                onChange={e => onUpdate(room.key, { sqm: parseFloat(e.target.value) || 0 })}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpdate(room.key, { sqm: parseFloat(e.target.value) || 0 })}
                                 className={`form-input ${submitted && room.sqm <= 0 ? 'error' : ''}`}
                             />
                             {submitted && room.sqm <= 0 && <p className="error-text">Укажите площадь</p>}
@@ -137,7 +137,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
                     </div>
                     {previewUrls.length > 0 && (
                         <div className="preview-grid">
-                            {previewUrls.map((url, index) => (
+                            {previewUrls.map((url: string, index: number) => (
                                 <img 
                                     key={index} 
                                     src={url} 
