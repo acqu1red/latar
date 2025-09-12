@@ -711,41 +711,67 @@ header p {
 }
 
 /* Collapsible constructor */
-.constructor-wrapper { margin: 1.25rem 0 1.5rem; }
+.constructor-wrapper {
+  margin: 1.25rem 0 1.5rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--primary-200);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(10px);
+  animation: fadeInUp 0.6s ease-out 0.4s both;
+}
 .constructor-toggle {
   appearance: none;
-  border: 1px solid var(--primary-300);
-  background: linear-gradient(180deg, #fff, #f8fafc);
-  color: var(--primary-700);
-  padding: 0.65rem 1rem;
-  border-radius: 12px;
-  font-weight: 600;
-  display: inline-flex;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--primary-800);
+  padding: 0;
+  margin: 0 0 var(--space-md) 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  transition: box-shadow 160ms ease, transform 160ms ease;
+  cursor: pointer;
 }
-.constructor-toggle.active {
-  border-color: var(--accent-400);
-  color: var(--accent-700);
-  box-shadow: 0 6px 18px rgba(99,102,241,0.18);
+
+.constructor-toggle::after {
+  content: '▼';
+  font-size: 1rem;
+  color: var(--primary-500);
+  transition: transform var(--transition-normal);
 }
-.constructor-toggle:hover { transform: translateY(-1px); }
+
+.constructor-toggle.active::after {
+  transform: rotate(180deg);
+}
 
 .constructor-panel {
   overflow: hidden;
-  transition: grid-template-rows 260ms ease, opacity 260ms ease;
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0.01;
+  transition: max-height var(--transition-slow), opacity var(--transition-normal);
+  max-height: 0;
+  opacity: 0;
 }
-.constructor-wrapper.open .constructor-panel { grid-template-rows: 1fr; opacity: 1; }
+
+.constructor-wrapper.open .constructor-panel {
+  max-height: 1000px; /* Large enough to fit content */
+  opacity: 1;
+  transition: max-height var(--transition-slow), opacity var(--transition-slow) 150ms;
+}
+
 .constructor-panel-inner {
-  min-height: 0;
-  padding: 0.8rem 0.2rem 0.2rem;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--primary-200);
 }
-.constructor-hint { color: var(--primary-600); margin: 0.25rem 0 0.75rem; }
+.constructor-hint {
+  color: var(--primary-600);
+  margin: 0.25rem 0 0.75rem;
+  font-size: 1rem;
+  line-height: 1.6;
+}
 
 /* Image Previews */
 .preview-grid {
