@@ -1,0 +1,14 @@
+{
+  "name": "latar",
+  "version": "1.0.0",
+  "description": "Apartment plan generator",
+  "main": "backend/server.mjs",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "build": "cd backend && npm install",
+    "dev": "cd backend && npm run dev"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
