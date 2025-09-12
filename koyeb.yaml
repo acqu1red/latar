@@ -1,0 +1,19 @@
+services:
+  - name: latar-backend
+    source:
+      repository: https://github.com/acqu1red/latar
+      subdirectory: backend
+    ports:
+      - port: 3001
+        targetPort: 3001
+        protocol: http
+    env:
+      - name: NODE_ENV
+        value: production
+      - name: CORS_ORIGIN
+        value: https://acqu1red.github.io/latar/
+    healthcheck:
+      path: /health
+      port: 3001
+      initialDelaySeconds: 30
+      periodSeconds: 10
