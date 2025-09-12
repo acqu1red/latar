@@ -6,12 +6,12 @@ import './App.css';
 import LayoutEditor from './components/LayoutEditor';
 
 const initialRooms: RoomState[] = [
-  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [], connections: [], layout: null },
-  { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: [], connections: [], layout: null },
-  { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: [], connections: [], layout: null },
-  { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: [], connections: [], layout: null },
-  { key: 'bathroom', name: 'Ванная комната/Санузел', sqm: 0, enabled: false, file: [], connections: [], layout: null },
-  { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: [], connections: [], layout: null },
+  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [], connections: [], layout: null, description: 'Входная зона квартиры' },
+  { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Жилая комната (спальня, гостиная)' },
+  { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Дополнительная жилая комната' },
+  { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Кухонная зона с техникой' },
+  { key: 'bathroom', name: 'Ванная комната/Санузел', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Санитарная зона (ванна, туалет)' },
+  { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: [], connections: [], layout: null, description: 'Открытая или закрытая терраса' },
 ];
 
 const initialBathroomConfig: BathroomConfig = {

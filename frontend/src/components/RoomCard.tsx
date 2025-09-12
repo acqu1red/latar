@@ -67,7 +67,10 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
     return (
         <div className={`room-card ${room.enabled ? 'enabled' : 'disabled'} ${showError ? 'error' : ''}`}>
             <div className="room-card-header">
-                <h3>{room.name}</h3>
+                <div>
+                    <h3>{room.name}</h3>
+                    {room.description && <p className="room-description">{room.description}</p>}
+                </div>
                 {room.key !== 'hallway' && (
                     <label className="toggle-switch">
                         <span className="toggle-switch-label">Включить</span>
