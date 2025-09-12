@@ -213,37 +213,45 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 
   const handleConfirmAttach = () => {
     if (!pendingAttach) return;
+    // Найдём плавающее окно по ID, чтобы взять его ТЕКУЩИЕ координаты
+    const floatingWin = floatingWindows.find((w: FloatingWindow) => w.id === pendingAttach.winId);
+    if (!floatingWin) return;
+    
+    // Пересчитаем кандидата привязки на основе ТЕКУЩИХ координат окна
+    const currentCandidate = findAttachmentCandidate({ x: floatingWin.x, y: floatingWin.y, len: floatingWin.len, rot: floatingWin.rotation });
+    if (!currentCandidate) return;
+    
     const findRoom = (key: string) => rooms.find(r => r.key === key) as RoomState | undefined;
-    if (pendingAttach.type === 'single') {
-      const r = findRoom(pendingAttach.primary.key);
+    if (currentCandidate.type === 'single') {
+      const r = findRoom(currentCandidate.primary.key);
       if (!r) return;
       const newWindow: NonNullable<RoomState['windows']>[number] = {
-        side: pendingAttach.primary.side,
-        pos: Math.max(0, Math.min(1, pendingAttach.primary.pos)),
-        len: Math.max(0.05, Math.min(1, pendingAttach.primary.len))
+        side: currentCandidate.primary.side,
+        pos: Math.max(0, Math.min(1, currentCandidate.primary.pos)),
+        len: Math.max(0.05, Math.min(1, currentCandidate.primary.len))
       };
       onUpdate(r.key, { windows: [ ...(r.windows ?? []), newWindow ] });
-    } else if (pendingAttach.type === 'between') {
-      const a = findRoom(pendingAttach.primary.key);
-      const b = findRoom(pendingAttach.secondary!.key);
+    } else if (currentCandidate.type === 'between') {
+      const a = findRoom(currentCandidate.primary.key);
+      const b = findRoom(currentCandidate.secondary!.key);
       if (a) {
         const newA: NonNullable<RoomState['windows']>[number] = {
-          side: pendingAttach.primary.side,
-          pos: Math.max(0, Math.min(1, pendingAttach.primary.pos)),
-          len: Math.max(0.05, Math.min(1, pendingAttach.primary.len))
+          side: currentCandidate.primary.side,
+          pos: Math.max(0, Math.min(1, currentCandidate.primary.pos)),
+          len: Math.max(0.05, Math.min(1, currentCandidate.primary.len))
         };
         onUpdate(a.key, { windows: [ ...(a.windows ?? []), newA ] });
       }
       if (b) {
         const newB: NonNullable<RoomState['windows']>[number] = {
-          side: pendingAttach.secondary!.side,
-          pos: Math.max(0, Math.min(1, pendingAttach.secondary!.pos)),
-          len: Math.max(0.05, Math.min(1, pendingAttach.primary.len))
+          side: currentCandidate.secondary!.side,
+          pos: Math.max(0, Math.min(1, currentCandidate.secondary!.pos)),
+          len: Math.max(0.05, Math.min(1, currentCandidate.primary.len))
         };
         onUpdate(b.key, { windows: [ ...(b.windows ?? []), newB ] });
       }
     }
-    setFloatingWindows((ws: FloatingWindow[]) => ws.filter((w: FloatingWindow) => w.id !== (pendingAttach?.winId as number)));
+    setFloatingWindows((ws: FloatingWindow[]) => ws.filter((w: FloatingWindow) => w.id !== pendingAttach.winId));
     setPendingAttach(null);
   };
 
@@ -356,7 +364,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onClick={(e: React.MouseEvent) => { if (e.target === canvasRef.current) { setDrag(null); /* не сбрасываем selectedPlacedWindow */ } }}
+        onClick={(e: React.MouseEvent) => { 
+          if (e.target === canvasRef.current) { 
+            setDrag(null); 
+            // НЕ сбрасываем selectedPlacedWindow - оставляем выделение активным
+          } 
+        }}
       >
         {enabledRooms.map((room: RoomState) => {
           const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
