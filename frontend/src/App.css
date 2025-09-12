@@ -1091,110 +1091,223 @@ header p {
   background-color: #fff;
 }
 
-.add-element-btn {
+.add-element-btn, .delete-selected-window-btn, .delete-all-windows-btn {
   padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: 1px solid var(--accent-500);
-  background-color: var(--accent-100);
-  color: var(--accent-700);
-  cursor: pointer;
+  border-radius: 8px;
   font-weight: 600;
-  transition: all var(--transition-fast);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  border: none;
+  font-size: 0.9rem;
+}
+
+.add-element-btn {
+  background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
+  color: white;
+  box-shadow: var(--shadow-sm);
 }
 .add-element-btn:hover {
-  background-color: var(--accent-200);
-  border-color: var(--accent-600);
+  background: linear-gradient(135deg, var(--accent-600), var(--accent-700));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
+.delete-selected-window-btn {
+  background: linear-gradient(135deg, var(--warning-500), var(--warning-600));
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+.delete-selected-window-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--warning-600), var(--warning-700));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.delete-selected-window-btn:disabled {
+  background: var(--neutral-300);
+  color: var(--neutral-500);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.delete-all-windows-btn {
+  background: linear-gradient(135deg, var(--error-500), var(--error-600));
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+.delete-all-windows-btn:hover {
+  background: linear-gradient(135deg, var(--error-600), var(--error-700));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Плавающие окна - новый дизайн */
 .floating-window {
   position: absolute;
-  background-color: rgba(100, 180, 255, 0.7);
-  border: 2px solid #007bff;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
   z-index: 100;
-  cursor: move;
-  border-radius: 2px;
+  cursor: grab;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
 }
 
-.floating-window .layout-resizer {
-  right: -6px;
-  bottom: -6px;
-  width: 14px;
-  height: 14px;
+.floating-window:active {
+  cursor: grabbing;
 }
-.floating-window .layout-rotate {
+
+.floating-window.hovered {
+  transform: translate(-50%, -50%) scale(1.05);
+  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.4);
+  border-color: rgba(255, 255, 255, 1);
+}
+
+.floating-window.can-attach {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(22, 163, 74, 0.9));
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3); }
+  50% { box-shadow: 0 12px 35px rgba(34, 197, 94, 0.5); }
+}
+
+.floating-window-resizer {
   position: absolute;
-  top: -24px;
+  right: -8px;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.floating-window-resizer:hover {
+  transform: scale(1.2);
+  background: linear-gradient(135deg, var(--accent-600), var(--accent-700));
+}
+
+.floating-window-rotate {
+  position: absolute;
+  top: -32px;
   left: 50%;
   transform: translateX(-50%);
-  background: white;
-  border: 1px solid #ccc;
+  background: linear-gradient(135deg, white, var(--neutral-100));
+  border: 2px solid var(--neutral-300);
   border-radius: 50%;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  opacity: 0.8;
-  z-index: 101;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--primary-700);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-fast);
+  opacity: 0;
 }
-.floating-window:hover .layout-rotate {
+
+.floating-window:hover .floating-window-rotate {
   opacity: 1;
 }
 
+.floating-window-rotate:hover {
+  transform: translateX(-50%) scale(1.1) rotate(90deg);
+  background: linear-gradient(135deg, var(--accent-100), var(--accent-200));
+  border-color: var(--accent-400);
+}
 
+.attach-hint {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  animation: fadeInUp 0.3s ease-out 0.5s forwards;
+  pointer-events: none;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Превью привязки окна */
+.window-attachment-preview {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.6), rgba(22, 163, 74, 0.6));
+  border: 2px dashed rgba(34, 197, 94, 0.8);
+  border-radius: 4px;
+  z-index: 99;
+  animation: preview-pulse 1.5s infinite;
+}
+
+@keyframes preview-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.9; }
+}
+
+/* Установленные окна */
 .placed-window {
-  background-color: #a3d1ff;
-  box-shadow: 0 0 2px rgba(0,0,0,0.5);
-  z-index: 5;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.8));
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  z-index: 6;
   pointer-events: auto;
-  transform-origin: 0 0;
-}
-
-.window-delete-btn {
-  display: none;
-}
-
-.placed-window:hover .window-delete-btn { display: none; }
-
-/* Панель подтверждения прикрепления окна */
-.attach-window-bar {
-  margin: 0.75rem auto 0;
-  max-width: 960px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  background: rgba(255,255,255,0.95);
-  border: 1px solid var(--primary-200);
-  border-radius: 10px;
-  padding: 0.6rem 0.9rem;
-  box-shadow: var(--shadow-md);
-}
-.attach-window-text {
-  color: var(--primary-800);
-  font-weight: 600;
-}
-.attach-window-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-.attach-btn {
-  background: var(--success-500);
-  color: #fff;
-  border: 1px solid var(--success-600);
-  border-radius: 8px;
-  padding: 0.4rem 0.8rem;
-  font-weight: 700;
   cursor: pointer;
+  transition: all var(--transition-fast);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
-.cancel-btn {
-  background: #fff;
-  color: var(--primary-700);
-  border: 1px solid var(--primary-300);
-  border-radius: 8px;
-  padding: 0.4rem 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
+
+.placed-window:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  border-color: rgba(255, 255, 255, 1);
+}
+
+.placed-window.selected {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.8), rgba(202, 138, 4, 0.8));
+  border-color: rgba(234, 179, 8, 1);
+  box-shadow: 0 4px 16px rgba(234, 179, 8, 0.4);
+  animation: selected-glow 2s infinite;
+}
+
+@keyframes selected-glow {
+  0%, 100% { box-shadow: 0 4px 16px rgba(234, 179, 8, 0.4); }
+  50% { box-shadow: 0 6px 20px rgba(234, 179, 8, 0.6); }
+}
+
+.placed-window-resizer {
+  position: absolute;
+  background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
+  border: 1px solid white;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  transition: all var(--transition-fast);
+  opacity: 0;
+}
+
+.placed-window:hover .placed-window-resizer {
+  opacity: 1;
+}
+
+.placed-window-resizer:hover {
+  transform: scale(1.2);
+  background: linear-gradient(135deg, var(--accent-600), var(--accent-700));
 }
