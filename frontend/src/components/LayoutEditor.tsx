@@ -46,9 +46,33 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 
     if (drag.item.type === 'window' && (drag as any).placed !== true) {
       if (drag.type === 'move') {
-        const nx = snapTo(drag.start.x + dx);
-        const ny = snapTo(drag.start.y + dy);
-        setFloatingWindows((ws: FloatingWindow[]) => ws.map((w: FloatingWindow) => w.id === drag.key ? { ...w, x: nx, y: ny } : w));
+        let nx = drag.start.x + dx;
+        let ny = drag.start.y + dy;
+        // магнит к ближайшей стене комнаты при перетаскивании
+        const MAG = 0.02; // дистанция срабатывания магнита
+        let best: { x?: number; y?: number; rot?: 0 | 90 } | null = null;
+        for (const room of enabledRooms) {
+          const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+          const distLeft = Math.abs(nx - layout.x);
+          const distRight = Math.abs(nx - (layout.x + layout.width));
+          const distTop = Math.abs(ny - layout.y);
+          const distBottom = Math.abs(ny - (layout.y + layout.height));
+          const min = Math.min(distLeft, distRight, distTop, distBottom);
+          if (min <= MAG) {
+            if (min === distLeft) best = { x: layout.x, rot: 90 };
+            else if (min === distRight) best = { x: layout.x + layout.width, rot: 90 };
+            else if (min === distTop) best = { y: layout.y, rot: 0 };
+            else best = { y: layout.y + layout.height, rot: 0 };
+            break;
+          }
+        }
+        if (best) {
+          if (typeof best.x === 'number') nx = best.x;
+          if (typeof best.y === 'number') ny = best.y;
+        }
+        nx = snapTo(nx);
+        ny = snapTo(ny);
+        setFloatingWindows((ws: FloatingWindow[]) => ws.map((w: FloatingWindow) => w.id === drag.key ? { ...w, x: nx, y: ny, rotation: (best?.rot ?? w.rotation) } : w));
       } else { // resize
         const newLen = Math.max(0.05, snapTo(drag.start.len + (drag.start.rot === 90 ? dy : dx)));
         setFloatingWindows((ws: FloatingWindow[]) => ws.map((w: FloatingWindow) => w.id === drag.key ? { ...w, len: newLen } : w));
@@ -60,13 +84,24 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
       const side = drag.item.side as 'left' | 'right' | 'top' | 'bottom';
       // compute new pos in 0..1 along the wall axis
-      let newPos = 0;
-      if (side === 'left' || side === 'right') newPos = Math.max(0, Math.min(1, drag.start.pos + dy / (layout.height || 1)));
-      else newPos = Math.max(0, Math.min(1, drag.start.pos + dx / (layout.width || 1)));
-      const updated = [ ...(room.windows ?? []) ];
-      if (updated[idx]) {
-        updated[idx] = { ...updated[idx], pos: snapTo(newPos) } as NonNullable<RoomState['windows']>[number];
-        onUpdate(room.key, { windows: updated });
+      if (drag.type === 'move') {
+        let newPos = 0;
+        if (side === 'left' || side === 'right') newPos = Math.max(0, Math.min(1, drag.start.pos + dy / (layout.height || 1)));
+        else newPos = Math.max(0, Math.min(1, drag.start.pos + dx / (layout.width || 1)));
+        const updated = [ ...(room.windows ?? []) ];
+        if (updated[idx]) {
+          updated[idx] = { ...updated[idx], pos: snapTo(newPos) } as NonNullable<RoomState['windows']>[number];
+          onUpdate(room.key, { windows: updated });
+        }
+      } else if (drag.type === 'resize') {
+        let newLen = drag.start.len as number;
+        if (side === 'left' || side === 'right') newLen = Math.max(0.05, Math.min(1 - drag.start.pos, drag.start.len + dy / (layout.height || 1)));
+        else newLen = Math.max(0.05, Math.min(1 - drag.start.pos, drag.start.len + dx / (layout.width || 1)));
+        const updated = [ ...(room.windows ?? []) ];
+        if (updated[idx]) {
+          updated[idx] = { ...updated[idx], len: snapTo(newLen) } as NonNullable<RoomState['windows']>[number];
+          onUpdate(room.key, { windows: updated });
+        }
       }
     } else { // room
       if (drag.type === 'move') {
@@ -162,7 +197,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       type: 'move',
       startX: x,
       startY: y,
-      start: { pos: w.pos }
+      start: { pos: w.pos, len: w.len }
     } as any);
     (e.target as Element).setPointerCapture(e.pointerId);
   };
@@ -230,7 +265,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onClick={(e: React.MouseEvent) => { if (e.target === canvasRef.current) { setDrag(null); setSelectedPlacedWindow(null); } }}
+        onClick={(e: React.MouseEvent) => { if (e.target === canvasRef.current) { setDrag(null); /* сохраняем выбор окна до повторного клика по нему */ } }}
       >
         {enabledRooms.map((room: RoomState) => {
           const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
@@ -250,27 +285,62 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                 
                 {(room.windows || []).map((win, idx) => {
                   const isVertical = win.side === 'left' || win.side === 'right';
-                  const translateX = win.side === 'left' ? 0 : win.side === 'right' ? 100 : win.pos * 100;
-                  const translateY = win.side === 'top' ? 0 : win.side === 'bottom' ? 100 : win.pos * 100;
-                  const winStyle: React.CSSProperties = {
+                  const baseStyle: React.CSSProperties = {
                     position: 'absolute',
                     backgroundColor: '#a3d1ff',
                     boxShadow: '0 0 2px rgba(0,0,0,0.5)',
                     zIndex: 6,
                     pointerEvents: 'auto',
-                    transformOrigin: '0 0',
-                    transform: `translate(${translateX}%, ${translateY}%) rotate(${isVertical ? 90 : 0}deg)`,
-                    width: isVertical ? '8px' : `${win.len * 100}%`,
-                    height: isVertical ? `${win.len * 100}%` : '8px',
                     borderRadius: '2px',
                     cursor: 'grab'
                   };
+                  const posStyle: React.CSSProperties = ((): React.CSSProperties => {
+                    if (win.side === 'top') {
+                      return { top: 0, left: `${win.pos * 100}%`, width: `${win.len * 100}%`, height: '8px' };
+                    } else if (win.side === 'bottom') {
+                      return { bottom: 0, left: `${win.pos * 100}%`, width: `${win.len * 100}%`, height: '8px' };
+                    } else if (win.side === 'left') {
+                      return { left: 0, top: `${win.pos * 100}%`, width: '8px', height: `${win.len * 100}%` };
+                    } else { // right
+                      return { right: 0, top: `${win.pos * 100}%`, width: '8px', height: `${win.len * 100}%` };
+                    }
+                  })();
+                  const winStyle: React.CSSProperties = { ...baseStyle, ...posStyle };
                   const showDelete = selectedPlacedWindow && selectedPlacedWindow.roomKey === room.key && selectedPlacedWindow.index === idx;
+                  const resizerStyle: React.CSSProperties = isVertical
+                    ? { position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14 }
+                    : { position: 'absolute', right: -6, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14 };
                   return (
                     <div key={idx} className="placed-window" style={winStyle}
                       onPointerDown={(e: React.PointerEvent) => handlePlacedWindowPointerDown(e, room, idx)}
-                      onClick={(e: React.MouseEvent) => { e.stopPropagation(); setSelectedPlacedWindow({ roomKey: room.key, index: idx }); }}
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        if (selectedPlacedWindow && selectedPlacedWindow.roomKey === room.key && selectedPlacedWindow.index === idx) {
+                          setSelectedPlacedWindow(null);
+                        } else {
+                          setSelectedPlacedWindow({ roomKey: room.key, index: idx });
+                        }
+                      }}
                     >
+                      <div
+                        className="placed-window-resizer"
+                        style={resizerStyle}
+                        onPointerDown={(e: React.PointerEvent) => {
+                          e.stopPropagation();
+                          const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
+                          const x = (e.clientX - rect.left) / rect.width;
+                          const y = (e.clientY - rect.top) / rect.height;
+                          setDrag({
+                            key: `${room.key}__w${idx}`,
+                            item: { type: 'window', placed: true, room, index: idx, side: win.side },
+                            type: 'resize',
+                            startX: x,
+                            startY: y,
+                            start: { pos: win.pos, len: win.len }
+                          } as any);
+                          (e.target as Element).setPointerCapture((e as any).pointerId);
+                        }}
+                      />
                       {showDelete && (
                         <button
                           type="button"

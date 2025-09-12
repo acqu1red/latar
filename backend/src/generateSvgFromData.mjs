@@ -8,8 +8,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const CANVAS_WIDTH = 2048;
     const CANVAS_HEIGHT = 2048;
     const MARGIN = 36;
-    const EXTERIOR_WALL_THICKNESS = 24;
-    const INTERIOR_WALL_THICKNESS = 12;
+    // Единая толщина стен для внешних и внутренних стен
+    const WALL_THICKNESS = 18;
     const ICON_STROKE = 4;
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
@@ -30,131 +30,67 @@ export async function generateSvgFromData(rooms, totalSqm) {
         };
     });
 
-    // Snap edges and resolve overlaps to place rooms adjacent with shared walls
-    const SNAP = 16; // pixels
-    const MIN_SIZE = 48; // minimal room thickness to avoid collapse
+    // Лёгкая нормализация: подправить только небольшие огрехи (не меняем размеры существенно)
+    const MIN_SIZE = 48; // минимальный размер
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
-    const resolveOverlapsAndSnap = () => {
-        // First, detect and resolve overlaps by moving overlapping rooms to be adjacent
-        const detectOverlap = (a, b) => {
-            const aLeft = a.pixelX, aRight = a.pixelX + a.pixelWidth;
-            const aTop = a.pixelY, aBottom = a.pixelY + a.pixelHeight;
-            const bLeft = b.pixelX, bRight = b.pixelX + b.pixelWidth;
-            const bTop = b.pixelY, bBottom = b.pixelY + b.pixelHeight;
-            
-            const overlapX = Math.max(0, Math.min(aRight, bRight) - Math.max(aLeft, bLeft));
-            const overlapY = Math.max(0, Math.min(aBottom, bBottom) - Math.max(aTop, bTop));
-            
-            return overlapX > 0 && overlapY > 0 ? { overlapX, overlapY } : null;
-        };
-
-        // Resolve overlaps by moving rooms to be adjacent
-        for (let i = 0; i < pixelRooms.length; i++) {
-            for (let j = i + 1; j < pixelRooms.length; j++) {
-                const a = pixelRooms[i];
-                const b = pixelRooms[j];
-                const overlap = detectOverlap(a, b);
-                
-                if (overlap) {
-                    console.log(`Resolving overlap between ${a.key} and ${b.key}`);
-                    
-                    // Determine best direction to separate based on overlap area
-                    if (overlap.overlapX >= overlap.overlapY) {
-                        // Separate horizontally
-                        const aCenterX = a.pixelX + a.pixelWidth / 2;
-                        const bCenterX = b.pixelX + b.pixelWidth / 2;
-                        
-                        if (aCenterX < bCenterX) {
-                            // A is left, B is right - move B to right of A
-                            b.pixelX = a.pixelX + a.pixelWidth;
-                        } else {
-                            // B is left, A is right - move A to right of B
-                            a.pixelX = b.pixelX + b.pixelWidth;
-                        }
-                    } else {
-                        // Separate vertically
-                        const aCenterY = a.pixelY + a.pixelHeight / 2;
-                        const bCenterY = b.pixelY + b.pixelHeight / 2;
-                        
-                        if (aCenterY < bCenterY) {
-                            // A is top, B is bottom - move B below A
-                            b.pixelY = a.pixelY + a.pixelHeight;
-                        } else {
-                            // B is top, A is bottom - move A below B
-                            a.pixelY = b.pixelY + b.pixelHeight;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Then apply edge snapping for precise alignment
-        const vEdges = []; // vertical edges: left/right
-        const hEdges = []; // horizontal edges: top/bottom
+    const SMALL_SNAP = 6; // пикселей
+    const lightSnapEdges = () => {
+        // Снэпим только если края близки друг к другу
+        const edgesV = [];
+        const edgesH = [];
         pixelRooms.forEach((r, idx) => {
-            vEdges.push({ idx, kind: 'left', value: r.pixelX });
-            vEdges.push({ idx, kind: 'right', value: r.pixelX + r.pixelWidth });
-            hEdges.push({ idx, kind: 'top', value: r.pixelY });
-            hEdges.push({ idx, kind: 'bottom', value: r.pixelY + r.pixelHeight });
+            edgesV.push({ idx, kind: 'left', value: r.pixelX });
+            edgesV.push({ idx, kind: 'right', value: r.pixelX + r.pixelWidth });
+            edgesH.push({ idx, kind: 'top', value: r.pixelY });
+            edgesH.push({ idx, kind: 'bottom', value: r.pixelY + r.pixelHeight });
         });
-
-        const clusterAndApply = (edges, isVertical) => {
-            edges.sort((a, b) => a.value - b.value);
-            let group = [];
-            const applyGroup = (grp) => {
-                if (grp.length === 0) return;
-                const first = grp[0].value;
-                const last = grp[grp.length - 1].value;
-                if (last - first > SNAP) return; // too wide group, skip
-                const avg = grp.reduce((s, e) => s + e.value, 0) / grp.length;
-                grp.forEach(e => {
-                    const r = pixelRooms[e.idx];
-                    if (isVertical) {
-                        if (e.kind === 'left') {
-                            const newLeft = avg;
-                            const newWidth = Math.max(MIN_SIZE, (r.pixelX + r.pixelWidth) - newLeft);
-                            r.pixelX = newLeft;
-                            r.pixelWidth = newWidth;
-                        } else {
-                            const newRight = avg;
-                            const newWidth = Math.max(MIN_SIZE, newRight - r.pixelX);
-                            r.pixelWidth = newWidth;
-                        }
-                    } else {
-                        if (e.kind === 'top') {
-                            const newTop = avg;
-                            const newHeight = Math.max(MIN_SIZE, (r.pixelY + r.pixelHeight) - newTop);
-                            r.pixelY = newTop;
-                            r.pixelHeight = newHeight;
-                        } else {
-                            const newBottom = avg;
-                            const newHeight = Math.max(MIN_SIZE, newBottom - r.pixelY);
-                            r.pixelHeight = newHeight;
-                        }
-                    }
-                });
-            };
-
+        const apply = (edges, vertical) => {
             for (let i = 0; i < edges.length; i++) {
-                if (group.length === 0) {
-                    group.push(edges[i]);
-                } else {
-                    if (Math.abs(edges[i].value - group[0].value) <= SNAP) {
-                        group.push(edges[i]);
-                    } else {
-                        applyGroup(group);
-                        group = [edges[i]];
+                for (let j = i + 1; j < edges.length; j++) {
+                    const a = edges[i];
+                    const b = edges[j];
+                    if (Math.abs(a.value - b.value) <= SMALL_SNAP) {
+                        const avg = (a.value + b.value) / 2;
+                        const ra = pixelRooms[a.idx];
+                        const rb = pixelRooms[b.idx];
+                        if (vertical) {
+                            if (a.kind === 'left') {
+                                const newWidth = (ra.pixelX + ra.pixelWidth) - avg;
+                                if (newWidth >= MIN_SIZE) ra.pixelX = avg, ra.pixelWidth = newWidth;
+                            } else {
+                                const newWidth = avg - ra.pixelX;
+                                if (newWidth >= MIN_SIZE) ra.pixelWidth = newWidth;
+                            }
+                            if (b.kind === 'left') {
+                                const newWidth = (rb.pixelX + rb.pixelWidth) - avg;
+                                if (newWidth >= MIN_SIZE) rb.pixelX = avg, rb.pixelWidth = newWidth;
+                            } else {
+                                const newWidth = avg - rb.pixelX;
+                                if (newWidth >= MIN_SIZE) rb.pixelWidth = newWidth;
+                            }
+                        } else {
+                            if (a.kind === 'top') {
+                                const newHeight = (ra.pixelY + ra.pixelHeight) - avg;
+                                if (newHeight >= MIN_SIZE) ra.pixelY = avg, ra.pixelHeight = newHeight;
+                            } else {
+                                const newHeight = avg - ra.pixelY;
+                                if (newHeight >= MIN_SIZE) ra.pixelHeight = newHeight;
+                            }
+                            if (b.kind === 'top') {
+                                const newHeight = (rb.pixelY + rb.pixelHeight) - avg;
+                                if (newHeight >= MIN_SIZE) rb.pixelY = avg, rb.pixelHeight = newHeight;
+                            } else {
+                                const newHeight = avg - rb.pixelY;
+                                if (newHeight >= MIN_SIZE) rb.pixelHeight = newHeight;
+                            }
+                        }
                     }
                 }
             }
-            applyGroup(group);
         };
-
-        clusterAndApply(vEdges, true);
-        clusterAndApply(hEdges, false);
-
-        // Clamp rooms into canvas margin box
+        apply(edgesV, true);
+        apply(edgesH, false);
+        // Кламп в область
         pixelRooms.forEach(r => {
             r.pixelX = clamp(r.pixelX, MARGIN, CANVAS_WIDTH - MARGIN - MIN_SIZE);
             r.pixelY = clamp(r.pixelY, MARGIN, CANVAS_HEIGHT - MARGIN - MIN_SIZE);
@@ -163,57 +99,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     };
 
-    resolveOverlapsAndSnap();
-
-    // Дополнительно подтягиваем комнаты с явными соединениями вплотную (без зазоров)
-    const alignConnectedRooms = () => {
-        const MIN_OVERLAP_FOR_DOOR = 60; // px
-        const tryAlignPair = (a, b) => {
-            const aLeft = a.pixelX, aRight = a.pixelX + a.pixelWidth, aTop = a.pixelY, aBottom = a.pixelY + a.pixelHeight;
-            const bLeft = b.pixelX, bRight = b.pixelX + b.pixelWidth, bTop = b.pixelY, bBottom = b.pixelY + b.pixelHeight;
-            const overlapY = Math.min(aBottom, bBottom) - Math.max(aTop, bTop);
-            const overlapX = Math.min(aRight, bRight) - Math.max(aLeft, bLeft);
-
-            // Если достаточно перекрываются по вертикали — выравниваем по X
-            if (overlapY > MIN_OVERLAP_FOR_DOOR) {
-                // Выбираем сторону с минимальным сдвигом
-                const shiftRight = Math.abs(bLeft - aRight);
-                const shiftLeft = Math.abs(aLeft - bRight);
-                if (shiftRight <= shiftLeft) {
-                    b.pixelX = aRight; // B справа от A
-                } else {
-                    a.pixelX = bRight; // A справа от B
-                }
-                return true;
-            }
-
-            // Если достаточно перекрываются по горизонтали — выравниваем по Y
-            if (overlapX > MIN_OVERLAP_FOR_DOOR) {
-                const shiftBottom = Math.abs(bTop - aBottom);
-                const shiftTop = Math.abs(aTop - bBottom);
-                if (shiftBottom <= shiftTop) {
-                    b.pixelY = aBottom; // B ниже A
-                } else {
-                    a.pixelY = bBottom; // A ниже B
-                }
-                return true;
-            }
-            return false;
-        };
-
-        pixelRooms.forEach(a => {
-            const connections = Array.isArray(a.connections) ? a.connections : [];
-            connections.forEach(key => {
-                const b = pixelRooms.find(r => r.key === key);
-                if (!b) return;
-                tryAlignPair(a, b);
-            });
-        });
-        // После выравнивания ещё раз жёстко доснэпаем края для идеального совпадения
-        resolveOverlapsAndSnap();
-    };
-
-    alignConnectedRooms();
+    lightSnapEdges();
 
     // Infer doors from user connections and geometric adjacency
     const addDoorIfMissing = (room, side, posNorm) => {
@@ -394,78 +280,56 @@ export async function generateSvgFromData(rooms, totalSqm) {
 </defs>
 <rect width="100%" height="100%" fill="#ECECEC"/>`;
 
-    // Draw rooms (exterior walls)
+    // Рисуем полы комнат (без стен)
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm } = room;
-        
-        // Room rectangle (exterior walls)
-        svgContent += `
-<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" 
-      fill="#FFFFFF" stroke="url(#wallHatch)" stroke-width="${EXTERIOR_WALL_THICKNESS}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-        
-        // Labels: room name and area (sqm) — строго по центру
+        svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="#FFFFFF" stroke="none"/>`;
+        // Подписи
         const labelName = String(name || '').trim();
         const labelSqm = Number.isFinite(Number(sqm)) ? `${Number(sqm).toFixed(1)} м²` : '';
         const fontSize = Math.max(18, Math.min(48, Math.min(pixelWidth, pixelHeight) * 0.14));
         const labelX = pixelX + pixelWidth / 2;
         const labelY = pixelY + pixelHeight / 2 - fontSize * 0.2;
-        svgContent += `
-<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="#1D1D1D">${escapeXml(labelName)}</text>`;
+        svgContent += `\n<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="#1D1D1D">${escapeXml(labelName)}</text>`;
         if (labelSqm) {
-            svgContent += `
-<text x="${labelX}" y="${labelY + fontSize * 0.95}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.7)}" fill="#2F2F2F">${escapeXml(labelSqm)}</text>`;
+            svgContent += `\n<text x="${labelX}" y="${labelY + fontSize * 0.95}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.7)}" fill="#2F2F2F">${escapeXml(labelSqm)}</text>`;
         }
     });
 
-    // Trim shared walls down to interior thickness
+    // Построим единый слой стен по уникальным рёбрам
     const EPS = 1;
-    const TRIM_WIDTH = EXTERIOR_WALL_THICKNESS - INTERIOR_WALL_THICKNESS;
-    for (let i = 0; i < pixelRooms.length; i++) {
-        for (let j = i + 1; j < pixelRooms.length; j++) {
-            const a = pixelRooms[i];
-            const b = pixelRooms[j];
-            const aLeft = a.pixelX;
-            const aRight = a.pixelX + a.pixelWidth;
-            const aTop = a.pixelY;
-            const aBottom = a.pixelY + a.pixelHeight;
-            const bLeft = b.pixelX;
-            const bRight = b.pixelX + b.pixelWidth;
-            const bTop = b.pixelY;
-            const bBottom = b.pixelY + b.pixelHeight;
-
-            // Vertical adjacency
-            if (Math.abs(aRight - bLeft) <= EPS) {
-                const y1 = Math.max(aTop, bTop);
-                const y2 = Math.min(aBottom, bBottom);
-                if (y2 - y1 > 0) {
-                    svgContent += `\n<line x1="${aRight}" y1="${y1}" x2="${aRight}" y2="${y2}" stroke="#FFFFFF" stroke-width="${TRIM_WIDTH}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
-                }
-            }
-            if (Math.abs(bRight - aLeft) <= EPS) {
-                const y1 = Math.max(aTop, bTop);
-                const y2 = Math.min(aBottom, bBottom);
-                if (y2 - y1 > 0) {
-                    svgContent += `\n<line x1="${aLeft}" y1="${y1}" x2="${aLeft}" y2="${y2}" stroke="#FFFFFF" stroke-width="${TRIM_WIDTH}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
-                }
-            }
-
-            // Horizontal adjacency
-            if (Math.abs(aBottom - bTop) <= EPS) {
-                const x1 = Math.max(aLeft, bLeft);
-                const x2 = Math.min(aRight, bRight);
-                if (x2 - x1 > 0) {
-                    svgContent += `\n<line x1="${x1}" y1="${aBottom}" x2="${x2}" y2="${aBottom}" stroke="#FFFFFF" stroke-width="${TRIM_WIDTH}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
-                }
-            }
-            if (Math.abs(bBottom - aTop) <= EPS) {
-                const x1 = Math.max(aLeft, bLeft);
-                const x2 = Math.min(aRight, bRight);
-                if (x2 - x1 > 0) {
-                    svgContent += `\n<line x1="${x1}" y1="${aTop}" x2="${x2}" y2="${aTop}" stroke="#FFFFFF" stroke-width="${TRIM_WIDTH}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
+    const edges = [];
+    const addEdge = (orientation, fixCoord, start, end) => {
+        if (end - start <= 0) return;
+        // Попробуем слить с существующим ребром (совпадают ориентация и фиксированная координата)
+        for (const e of edges) {
+            if (e.o === orientation && Math.abs(e.c - fixCoord) <= EPS) {
+                // Перекрытие диапазонов
+                if (!(end <= e.s || start >= e.e)) {
+                    e.s = Math.min(e.s, start);
+                    e.e = Math.max(e.e, end);
+                    return;
                 }
             }
         }
-    }
+        edges.push({ o: orientation, c: fixCoord, s: start, e: end });
+    };
+    pixelRooms.forEach(r => {
+        const x1 = r.pixelX, x2 = r.pixelX + r.pixelWidth;
+        const y1 = r.pixelY, y2 = r.pixelY + r.pixelHeight;
+        addEdge('v', x1, y1, y2); // left
+        addEdge('v', x2, y1, y2); // right
+        addEdge('h', y1, x1, x2); // top
+        addEdge('h', y2, x1, x2); // bottom
+    });
+    // Рисуем стены
+    edges.forEach(e => {
+        if (e.o === 'v') {
+            svgContent += `\n<line x1="${e.c}" y1="${e.s}" x2="${e.c}" y2="${e.e}" stroke="url(#wallHatch)" stroke-width="${WALL_THICKNESS}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+        } else {
+            svgContent += `\n<line x1="${e.s}" y1="${e.c}" x2="${e.e}" y2="${e.c}" stroke="url(#wallHatch)" stroke-width="${WALL_THICKNESS}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+        }
+    });
 
     // Draw doors (gap + quarter-circle swing)
     pixelRooms.forEach(room => {
@@ -476,7 +340,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const doorCenterY = pixelY + door.pos * pixelHeight;
             const doorSpan = Math.min(120, Math.max(72, Math.min(pixelWidth, pixelHeight) * 0.25));
             const arcRadius = doorSpan;
-            const gapStroke = EXTERIOR_WALL_THICKNESS + 2; // больший разрез, чтобы гарантированно срезать стену
+            const gapStroke = WALL_THICKNESS + 2; // разрез по толщине стены
 
             if (door.side === 'top') {
                 // gap
@@ -521,7 +385,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const winY = pixelY + (typeof window.pos === 'number' ? window.pos : 0.5) * pixelHeight;
             const along = (window.side === 'top' || window.side === 'bottom');
             const winLength = Math.max(50, (window.len || 0.22) * (along ? pixelWidth : pixelHeight));
-            const cutWidth = EXTERIOR_WALL_THICKNESS + 2;
+            const cutWidth = WALL_THICKNESS + 2;
             const stripe = 4;
 
             if (window.side === 'top') {

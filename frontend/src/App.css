@@ -1166,7 +1166,7 @@ header p {
   font-weight: 700;
   box-shadow: var(--shadow-sm);
   opacity: 0;
-  pointer-events: none;
+  pointer-events: auto; /* кнопка должна оставаться кликабельной после клика */
   transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
@@ -1175,5 +1175,11 @@ header p {
 .placed-window:active .window-delete-btn {
   opacity: 1;
   pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
+/* Виден, когда окно выбрано программно */
+.placed-window .window-delete-btn.visible {
+  opacity: 1;
   transform: translate(-50%, 0);
 }
