@@ -141,13 +141,16 @@ function App() {
     if (bathroomConfig.type === 'combined') {
       // Заменяем обычную ванную на совмещенную
       const bathroomIndex = allRooms.findIndex(r => r.key === 'bathroom');
-      if (bathroomIndex !== -1) {
+      if (bathroomIndex !== -1 && bathroomConfig.bathroom.enabled) {
         allRooms[bathroomIndex] = { ...bathroomConfig.bathroom, key: 'bathroom', name: 'Ванная комната/Санузел' };
       }
     } else {
       // Убираем обычную ванную и добавляем раздельные
       const filteredRooms = allRooms.filter(r => r.key !== 'bathroom');
-      allRooms.splice(0, allRooms.length, ...filteredRooms, bathroomConfig.bathroom, bathroomConfig.toilet);
+      const additionalRooms = [];
+      if (bathroomConfig.bathroom.enabled) additionalRooms.push(bathroomConfig.bathroom);
+      if (bathroomConfig.toilet.enabled) additionalRooms.push(bathroomConfig.toilet);
+      allRooms.splice(0, allRooms.length, ...filteredRooms, ...additionalRooms);
     }
 
     const enabledRooms = allRooms.filter(r => r.enabled);
@@ -179,12 +182,15 @@ function App() {
     
     if (bathroomConfig.type === 'combined') {
       const bathroomIndex = allRooms.findIndex(r => r.key === 'bathroom');
-      if (bathroomIndex !== -1) {
+      if (bathroomIndex !== -1 && bathroomConfig.bathroom.enabled) {
         allRooms[bathroomIndex] = { ...bathroomConfig.bathroom, key: 'bathroom', name: 'Ванная комната/Санузел' };
       }
     } else {
       const filteredRooms = allRooms.filter(r => r.key !== 'bathroom');
-      allRooms.splice(0, allRooms.length, ...filteredRooms, bathroomConfig.bathroom, bathroomConfig.toilet);
+      const additionalRooms = [];
+      if (bathroomConfig.bathroom.enabled) additionalRooms.push(bathroomConfig.bathroom);
+      if (bathroomConfig.toilet.enabled) additionalRooms.push(bathroomConfig.toilet);
+      allRooms.splice(0, allRooms.length, ...filteredRooms, ...additionalRooms);
     }
     
     return allRooms.some(r => r.enabled && r.sqm > 0 && r.file.length > 0);
