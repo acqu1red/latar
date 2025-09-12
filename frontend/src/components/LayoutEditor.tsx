@@ -172,66 +172,43 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 
   // Поиск кандидата привязки окна к стене комнаты или общей стене двух комнат
   const findAttachmentCandidate = (win: { x: number; y: number; len: number; rot: 0 | 90 }): Omit<PendingAttach, 'winId'> | null => {
-    const MAG = 0.02;
-    let chosen: Omit<PendingAttach, 'winId'> | null = null;
-    // 1) Найти ближайшую стену комнаты
+    // Строим список всех стен всех включённых комнат и выбираем ближайшую по дистанции
+    type Wall = { room: RoomState; side: 'left' | 'right' | 'top' | 'bottom'; coord: number; from: number; to: number; isVertical: boolean };
+    const walls: Wall[] = [];
     for (const room of enabledRooms) {
-      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      const sides: Array<'left' | 'right' | 'top' | 'bottom'> = ['left', 'right', 'top', 'bottom'];
-      for (const side of sides) {
-        const isVertical = side === 'left' || side === 'right';
-        const wallCoord = isVertical ? (side === 'left' ? layout.x : layout.x + layout.width) : (side === 'top' ? layout.y : layout.y + layout.height);
-        const dist = Math.abs((isVertical ? win.x : win.y) - wallCoord);
-        if (dist <= MAG) {
-          // позиция вдоль стены
-          const alongLen = isVertical ? layout.height : layout.width;
-          const pos = Math.max(0, Math.min(1, ((isVertical ? win.y : win.x) - (isVertical ? layout.y : layout.x)) / (alongLen || 1)));
-          const lenNorm = Math.max(0.05, Math.min(1, win.len / (alongLen || 1)));
-          chosen = {
-            type: 'single',
-            primary: { key: room.key, name: String(room.name), side, pos, len: lenNorm }
-          };
-          // 2) Проверим общую стену со вторым помещением
-          const neighbor = enabledRooms.find(r => r.key !== room.key && r.layout && (
-            (side === 'left' && Math.abs((r.layout!.x + r.layout!.width) - layout.x) <= MAG) ||
-            (side === 'right' && Math.abs(r.layout!.x - (layout.x + layout.width)) <= MAG) ||
-            (side === 'top' && Math.abs((r.layout!.y + r.layout!.height) - layout.y) <= MAG) ||
-            (side === 'bottom' && Math.abs(r.layout!.y - (layout.y + layout.height)) <= MAG)
-          ));
-          if (neighbor && neighbor.layout) {
-            const nb = neighbor.layout;
-            if (side === 'left' || side === 'right') {
-              // вертикальная общая
-              const overlap = Math.max(0, Math.min(layout.y + layout.height, nb.y + nb.height) - Math.max(layout.y, nb.y));
-              if (overlap > 0.05) {
-                // pos для соседа
-                const posB = Math.max(0, Math.min(1, (win.y - nb.y) / (nb.height || 1)));
-                const sideB = side === 'left' ? 'right' : 'left';
-                chosen = {
-                  type: 'between',
-                  primary: { key: room.key, name: String(room.name), side, pos, len: Math.max(0.05, Math.min(1, win.len / (layout.height || 1))) },
-                  secondary: { key: neighbor.key, name: String(neighbor.name), side: sideB, pos: posB }
-                };
-              }
-            } else {
-              // горизонтальная общая
-              const overlap = Math.max(0, Math.min(layout.x + layout.width, nb.x + nb.width) - Math.max(layout.x, nb.x));
-              if (overlap > 0.05) {
-                const posB = Math.max(0, Math.min(1, (win.x - nb.x) / (nb.width || 1)));
-                const sideB = side === 'top' ? 'bottom' : 'top';
-                chosen = {
-                  type: 'between',
-                  primary: { key: room.key, name: String(room.name), side, pos, len: Math.max(0.05, Math.min(1, win.len / (layout.width || 1))) },
-                  secondary: { key: neighbor.key, name: String(neighbor.name), side: sideB, pos: posB }
-                };
-              }
-            }
-          }
-          return chosen;
-        }
-      }
+      const l = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      walls.push({ room, side: 'left', coord: l.x, from: l.y, to: l.y + l.height, isVertical: true });
+      walls.push({ room, side: 'right', coord: l.x + l.width, from: l.y, to: l.y + l.height, isVertical: true });
+      walls.push({ room, side: 'top', coord: l.y, from: l.x, to: l.x + l.width, isVertical: false });
+      walls.push({ room, side: 'bottom', coord: l.y + l.height, from: l.x, to: l.x + l.width, isVertical: false });
     }
-    return null;
+    let best: null | { wall: Wall; dist: number } = null;
+    for (const w of walls) {
+      const dist = Math.abs((w.isVertical ? win.x : win.y) - w.coord);
+      if (best === null || dist < best.dist) best = { wall: w, dist };
+    }
+    if (!best) return null;
+    const MAG = 0.04; // чуть шире, чтобы комфортно ловить
+    if (best.dist > MAG) return null;
+    const wall = best.wall;
+    const alongLen = wall.isVertical ? (wall.to - wall.from) : (wall.to - wall.from);
+    const pos = Math.max(0, Math.min(1, ((wall.isVertical ? win.y : win.x) - wall.from) / (alongLen || 1)));
+    const lenNorm = Math.max(0.05, Math.min(1, win.len / (alongLen || 1)));
+    // Проверим соседнюю комнату, разделяющую эту стену
+    const neighbor = enabledRooms.find(r => r.key !== wall.room.key && r.layout && (
+      (wall.isVertical && Math.abs((wall.side === 'left' ? (r.layout!.x + r.layout!.width) : r.layout!.x) - wall.coord) <= 0.001 && !(r.layout!.y >= wall.to || r.layout!.y + r.layout!.height <= wall.from)) ||
+      (!wall.isVertical && Math.abs((wall.side === 'top' ? (r.layout!.y + r.layout!.height) : r.layout!.y) - wall.coord) <= 0.001 && !(r.layout!.x >= wall.to || r.layout!.x + r.layout!.width <= wall.from))
+    ));
+    if (neighbor && neighbor.layout) {
+      // между двумя
+      const sideB = wall.side === 'left' ? 'right' : wall.side === 'right' ? 'left' : wall.side === 'top' ? 'bottom' : 'top';
+      const nb = neighbor.layout;
+      const posB = wall.isVertical
+        ? Math.max(0, Math.min(1, (win.y - nb.y) / (nb.height || 1)))
+        : Math.max(0, Math.min(1, (win.x - nb.x) / (nb.width || 1)));
+      return { type: 'between', primary: { key: wall.room.key, name: String(wall.room.name), side: wall.side, pos, len: lenNorm }, secondary: { key: neighbor.key, name: String(neighbor.name), side: sideB as any, pos: posB } };
+    }
+    return { type: 'single', primary: { key: wall.room.key, name: String(wall.room.name), side: wall.side, pos, len: lenNorm } };
   };
 
   const handleConfirmAttach = () => {

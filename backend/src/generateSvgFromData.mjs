@@ -30,64 +30,60 @@ export async function generateSvgFromData(rooms, totalSqm) {
         };
     });
 
-    // Лёгкая нормализация: подправить только небольшие огрехи (не меняем размеры существенно)
-    const MIN_SIZE = 48; // минимальный размер
+    // Полное соответствие размерам конструктора: ширину/высоту не меняем. Разрешён только лёгкий сдвиг позиций для подгонки стыков.
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    const SMALL_SNAP = 6; // пикселей
-    const lightSnapEdges = () => {
-        // Снэпим только если края близки друг к другу. ВАЖНО: сдвигаем комнаты целиком, НЕ меняем их размеры.
-        const edgesV = [];
-        const edgesH = [];
+    const MIN_SIZE = 48; // минимальный размер для клампа
+    const SMALL_SNAP = 6; // px — мягкий снэп только позиций
+    const softSnapPositions = () => {
+        const vEdges = [];
+        const hEdges = [];
         pixelRooms.forEach((r, idx) => {
-            edgesV.push({ idx, kind: 'left', value: r.pixelX });
-            edgesV.push({ idx, kind: 'right', value: r.pixelX + r.pixelWidth });
-            edgesH.push({ idx, kind: 'top', value: r.pixelY });
-            edgesH.push({ idx, kind: 'bottom', value: r.pixelY + r.pixelHeight });
+            vEdges.push({ idx, kind: 'left', value: r.pixelX });
+            vEdges.push({ idx, kind: 'right', value: r.pixelX + r.pixelWidth });
+            hEdges.push({ idx, kind: 'top', value: r.pixelY });
+            hEdges.push({ idx, kind: 'bottom', value: r.pixelY + r.pixelHeight });
         });
-        const apply = (edges, vertical) => {
-            for (let i = 0; i < edges.length; i++) {
-                for (let j = i + 1; j < edges.length; j++) {
-                    const a = edges[i];
-                    const b = edges[j];
-                    if (Math.abs(a.value - b.value) <= SMALL_SNAP) {
-                        const avg = (a.value + b.value) / 2;
-                        const ra = pixelRooms[a.idx];
-                        const rb = pixelRooms[b.idx];
-                        if (vertical) {
-                            // Сдвигаем комнаты так, чтобы соответствующая грань стала = avg, ширину не меняем
-                            const shiftA = (a.kind === 'left')
-                                ? avg - ra.pixelX
-                                : avg - (ra.pixelX + ra.pixelWidth);
-                            const shiftB = (b.kind === 'left')
-                                ? avg - rb.pixelX
-                                : avg - (rb.pixelX + rb.pixelWidth);
-                            ra.pixelX += shiftA;
-                            rb.pixelX += shiftB;
-                        } else {
-                            const shiftA = (a.kind === 'top')
-                                ? avg - ra.pixelY
-                                : avg - (ra.pixelY + ra.pixelHeight);
-                            const shiftB = (b.kind === 'top')
-                                ? avg - rb.pixelY
-                                : avg - (rb.pixelY + rb.pixelHeight);
-                            ra.pixelY += shiftA;
-                            rb.pixelY += shiftB;
-                        }
+
+        const clusterAndShift = (edges, isVertical) => {
+            edges.sort((a, b) => a.value - b.value);
+            let group = [];
+            const applyGroup = (grp) => {
+                if (grp.length <= 1) return;
+                const first = grp[0].value;
+                const last = grp[grp.length - 1].value;
+                if (last - first > SMALL_SNAP) return;
+                const avg = grp.reduce((s, e) => s + e.value, 0) / grp.length;
+                grp.forEach(e => {
+                    const r = pixelRooms[e.idx];
+                    if (isVertical) {
+                        const shift = (e.kind === 'left') ? (avg - r.pixelX) : (avg - (r.pixelX + r.pixelWidth));
+                        r.pixelX += shift;
+                    } else {
+                        const shift = (e.kind === 'top') ? (avg - r.pixelY) : (avg - (r.pixelY + r.pixelHeight));
+                        r.pixelY += shift;
                     }
-                }
+                });
+            };
+
+            for (let i = 0; i < edges.length; i++) {
+                if (group.length === 0) group.push(edges[i]);
+                else if (Math.abs(edges[i].value - group[0].value) <= SMALL_SNAP) group.push(edges[i]);
+                else { applyGroup(group); group = [edges[i]]; }
             }
+            applyGroup(group);
         };
-        apply(edgesV, true);
-        apply(edgesH, false);
-        // Кламп в область
+
+        clusterAndShift(vEdges, true);
+        clusterAndShift(hEdges, false);
+
+        // Клампим положения в рабочую область. Ширину/высоту не трогаем
         pixelRooms.forEach(r => {
-            r.pixelX = clamp(r.pixelX, MARGIN, CANVAS_WIDTH - MARGIN - MIN_SIZE);
-            r.pixelY = clamp(r.pixelY, MARGIN, CANVAS_HEIGHT - MARGIN - MIN_SIZE);
-            // размеры не трогаем — соответствуют конструктору
+            r.pixelX = clamp(r.pixelX, MARGIN, CANVAS_WIDTH - MARGIN - r.pixelWidth);
+            r.pixelY = clamp(r.pixelY, MARGIN, CANVAS_HEIGHT - MARGIN - r.pixelHeight);
         });
     };
 
-    lightSnapEdges();
+    softSnapPositions();
 
     // Infer doors from user connections and geometric adjacency
     const addDoorIfMissing = (room, side, posNorm) => {
