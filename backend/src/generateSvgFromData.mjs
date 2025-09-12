@@ -242,11 +242,51 @@ export async function generateSvgFromData(rooms, totalSqm) {
     // Guarantee exactly one apartment entry via hallway: внешний вход только в прихожей
     const hallway = pixelRooms.find(r => /прихож|коридор|hall|entry|тамбур/i.test(String(r.name)));
     if (hallway) {
-        const touchesNeighbor = (x1, y1, x2, y2, excludeKey) => pixelRooms.some(r => r.key !== excludeKey && !(r.pixelX >= x2 || r.pixelX + r.pixelWidth <= x1 || r.pixelY >= y2 || r.pixelY + r.pixelHeight <= y1));
-        const leftIsExternal = !touchesNeighbor(hallway.pixelX - 1, hallway.pixelY, hallway.pixelX, hallway.pixelY + hallway.pixelHeight, hallway.key);
-        const rightIsExternal = !touchesNeighbor(hallway.pixelX + hallway.pixelWidth, hallway.pixelY, hallway.pixelX + hallway.pixelWidth + 1, hallway.pixelY + hallway.pixelHeight, hallway.key);
-        const topIsExternal = !touchesNeighbor(hallway.pixelX, hallway.pixelY - 1, hallway.pixelX + hallway.pixelWidth, hallway.pixelY, hallway.key);
-        const bottomIsExternal = !touchesNeighbor(hallway.pixelX, hallway.pixelY + hallway.pixelHeight, hallway.pixelX + hallway.pixelWidth, hallway.pixelY + hallway.pixelHeight + 1, hallway.key);
+        // Функция для проверки прилегания к другому помещению в определенном сегменте стены
+        const touchesNeighborInSegment = (x1, y1, x2, y2, excludeKey) => pixelRooms.some(r => r.key !== excludeKey && !(r.pixelX >= x2 || r.pixelX + r.pixelWidth <= x1 || r.pixelY >= y2 || r.pixelY + r.pixelHeight <= y1));
+        
+        // Функция для поиска свободных сегментов стены (где нет прилеганий)
+        const findFreeSegments = (side) => {
+            const segments = [];
+            const segmentCount = 8; // Разбиваем стену на 8 сегментов для более точного определения
+            
+            for (let i = 0; i < segmentCount; i++) {
+                const start = i / segmentCount;
+                const end = (i + 1) / segmentCount;
+                
+                let isFree = false;
+                if (side === 'left') {
+                    const x1 = hallway.pixelX - 1;
+                    const x2 = hallway.pixelX;
+                    const y1 = hallway.pixelY + start * hallway.pixelHeight;
+                    const y2 = hallway.pixelY + end * hallway.pixelHeight;
+                    isFree = !touchesNeighborInSegment(x1, y1, x2, y2, hallway.key);
+                } else if (side === 'right') {
+                    const x1 = hallway.pixelX + hallway.pixelWidth;
+                    const x2 = hallway.pixelX + hallway.pixelWidth + 1;
+                    const y1 = hallway.pixelY + start * hallway.pixelHeight;
+                    const y2 = hallway.pixelY + end * hallway.pixelHeight;
+                    isFree = !touchesNeighborInSegment(x1, y1, x2, y2, hallway.key);
+                } else if (side === 'top') {
+                    const x1 = hallway.pixelX + start * hallway.pixelWidth;
+                    const x2 = hallway.pixelX + end * hallway.pixelWidth;
+                    const y1 = hallway.pixelY - 1;
+                    const y2 = hallway.pixelY;
+                    isFree = !touchesNeighborInSegment(x1, y1, x2, y2, hallway.key);
+                } else if (side === 'bottom') {
+                    const x1 = hallway.pixelX + start * hallway.pixelWidth;
+                    const x2 = hallway.pixelX + end * hallway.pixelWidth;
+                    const y1 = hallway.pixelY + hallway.pixelHeight;
+                    const y2 = hallway.pixelY + hallway.pixelHeight + 1;
+                    isFree = !touchesNeighborInSegment(x1, y1, x2, y2, hallway.key);
+                }
+                
+                if (isFree) {
+                    segments.push({ start, end, center: (start + end) / 2 });
+                }
+            }
+            return segments;
+        };
 
         // remove any external doors on other rooms just in case
         pixelRooms.forEach(r => {
@@ -254,15 +294,41 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
 
         hallway.doors = hallway.doors || [];
-        const addCenterDoor = (side) => addDoorIfMissing(hallway, side, 0.5);
+        const addDoorInFreeSegment = (side) => {
+            const freeSegments = findFreeSegments(side);
+            if (freeSegments.length > 0) {
+                // Выбираем центральный сегмент для размещения двери
+                const middleSegment = freeSegments[Math.floor(freeSegments.length / 2)];
+                addDoorIfMissing(hallway, side, middleSegment.center);
+            }
+        };
 
         if (hallway.entrySide) {
-            addCenterDoor(hallway.entrySide);
+            // Если пользователь выбрал конкретную сторону, проверяем есть ли свободные сегменты
+            const freeSegments = findFreeSegments(hallway.entrySide);
+            if (freeSegments.length > 0) {
+                addDoorInFreeSegment(hallway.entrySide);
+            } else {
+                // Если выбранная сторона полностью занята, ищем любую свободную сторону
+                const sides = ['left', 'right', 'top', 'bottom'];
+                for (const side of sides) {
+                    const freeSegments = findFreeSegments(side);
+                    if (freeSegments.length > 0) {
+                        addDoorInFreeSegment(side);
+                        break;
+                    }
+                }
+            }
         } else {
-            if (leftIsExternal) addCenterDoor('left');
-            else if (rightIsExternal) addCenterDoor('right');
-            else if (topIsExternal) addCenterDoor('top');
-            else if (bottomIsExternal) addCenterDoor('bottom');
+            // Автоматический выбор стороны с учетом свободных сегментов
+            const sides = ['left', 'right', 'top', 'bottom'];
+            for (const side of sides) {
+                const freeSegments = findFreeSegments(side);
+                if (freeSegments.length > 0) {
+                    addDoorInFreeSegment(side);
+                    break;
+                }
+            }
         }
     }
 
