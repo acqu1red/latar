@@ -61,6 +61,13 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     }
   };
 
+  const handleRotate = (room: RoomState) => {
+    const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+    const rotated: RoomState['rotation'] = (room.rotation === 90 ? 0 : 90);
+    // Поворот на 90°: меняем width/height местами, сохраняем левый верхний угол
+    onUpdate(room.key, { rotation: rotated, layout: { x: layout.x, y: layout.y, width: layout.height, height: layout.width } });
+  };
+
   return (
     <div className="layout-editor">
       {hallway && (
@@ -89,6 +96,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             top: `${layout.y * 100}%`,
             width: `${layout.width * 100}%`,
             height: `${layout.height * 100}%`,
+            transform: room.rotation === 90 ? 'rotate(0deg)' : 'none'
           };
           return (
             <div key={room.key} className="layout-box" style={style}>
@@ -96,6 +104,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
               <div className="layout-box-body" onPointerDown={(e: any) => handlePointerDown(e, room, 'move')} />
               <div className="layout-resizer" onPointerDown={(e: any) => handlePointerDown(e, room, 'resize')} />
               <div className="layout-size-hint">{Math.round(layout.width*100)}×{Math.round(layout.height*100)}</div>
+              <button type="button" className="layout-rotate" onClick={() => handleRotate(room)} title="Повернуть на 90°">⟳</button>
             </div>
           );
         })}

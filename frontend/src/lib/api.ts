@@ -10,6 +10,7 @@ export interface RoomState {
     connections?: string[]; // Keys of rooms this room connects to
     layout?: { x: number; y: number; width: number; height: number } | null; // normalized 0..1
     entrySide?: 'left' | 'right' | 'top' | 'bottom' | null; // external entry for hallway
+    rotation?: 0 | 90 | null; // визуальный поворот комнаты в конструкторе
     description?: string; // Room description for UI
 }
 
