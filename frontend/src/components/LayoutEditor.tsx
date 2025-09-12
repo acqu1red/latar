@@ -6,664 +6,550 @@ interface LayoutEditorProps {
   onUpdate: (key: string, updates: Partial<RoomState>) => void;
 }
 
+// Константы для пиксельной системы
+const CANVAS_WIDTH = 1200;
+const CANVAS_HEIGHT = 800;
+const GRID_SIZE = 20;
+const WINDOW_MIN_LENGTH = 60;
+const WINDOW_MAX_LENGTH = 200;
+const SNAP_DISTANCE = 15;
+
 type FloatingWindow = { 
   id: number; 
   x: number; 
   y: number; 
-  len: number; 
+  length: number; 
   rotation: 0 | 90; 
   type: 'window';
-  isHovered: boolean;
+  isDragging?: boolean;
+  isResizing?: boolean;
 };
 
-type WindowAttachmentPreview = {
-  roomName: string;
+type WindowAttachment = {
+  roomKey: string;
   side: 'left' | 'right' | 'top' | 'bottom';
-  pos: number;
-  len: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  position: number; // позиция на стене (0-1)
+  length: number; // длина на стене (0-1)
+  pixelX: number; // точные пиксельные координаты
+  pixelY: number;
+  pixelLength: number;
 };
 
-// Простая канва для расстановки комнат. Координаты в пикселях
+// Простая канва для расстановки комнат в пикселях
 const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
-  const [drag, setDrag] = useState<{ key: string | number; item: any; type: 'move' | 'resize'; startX: number; startY: number; start: any } | null>(null);
-  const [draggingWindowId, setDraggingWindowId] = useState<number | null>(null);
+  const [drag, setDrag] = useState<{
+    key: string | number;
+    item: any;
+    type: 'move' | 'resize';
+    startX: number;
+    startY: number;
+    start: any;
+  } | null>(null);
+  
   const [floatingWindows, setFloatingWindows] = useState<FloatingWindow[]>([]);
-  const [selectedPlacedWindow, setSelectedPlacedWindow] = useState<{ roomKey: string; index: number } | null>(null);
-  const [attachmentPreview, setAttachmentPreview] = useState<WindowAttachmentPreview | null>(null);
-  const [hoveredWindow, setHoveredWindow] = useState<number | null>(null);
+  const [selectedWindow, setSelectedWindow] = useState<{ roomKey: string; index: number } | null>(null);
+  const [pendingAttachment, setPendingAttachment] = useState<{
+    windowId: number;
+    attachment: WindowAttachment;
+  } | null>(null);
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
-  const hallway = useMemo(() => rooms.find(r => /прихож|коридор|hall|entry|тамбур/i.test(String(r.name))), [rooms]);
-  const [snap] = useState(8); // 8px snapping grid
 
-  const handlePointerDown = (e: React.PointerEvent, item: RoomState | FloatingWindow, type: 'move' | 'resize') => {
-    const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const isWindow = 'len' in item;
+  // Конвертация из нормализованных координат в пиксели
+  const toPixels = (normalized: { x: number; y: number; width: number; height: number }) => ({
+    x: Math.round(normalized.x * CANVAS_WIDTH),
+    y: Math.round(normalized.y * CANVAS_HEIGHT),
+    width: Math.round(normalized.width * CANVAS_WIDTH),
+    height: Math.round(normalized.height * CANVAS_HEIGHT)
+  });
 
-    if (isWindow) {
-      setDrag({ key: item.id, item, type, startX: x, startY: y, start: { x: item.x, y: item.y, len: item.len, rot: item.rotation } });
-      setDraggingWindowId(item.id);
-    } else {
-      const layout = item.layout || { x: 20, y: 20, width: 200, height: 200 };
-      setDrag({ key: item.key, item, type, startX: x, startY: y, start: { x: layout.x, y: layout.y, w: layout.width, h: layout.height } });
-    }
+  // Конвертация из пикселей в нормализованные координаты
+  const toNormalized = (pixels: { x: number; y: number; width: number; height: number }) => ({
+    x: pixels.x / CANVAS_WIDTH,
+    y: pixels.y / CANVAS_HEIGHT,
+    width: pixels.width / CANVAS_WIDTH,
+    height: pixels.height / CANVAS_HEIGHT
+  });
 
-    (e.target as Element).setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!drag) return;
-    const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
-    const currentX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
-    const currentY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
-    const dx = currentX - drag.startX;
-    const dy = currentY - drag.startY;
-    const snapTo = (v: number) => Math.round(v / snap) * snap;
-
-    if (drag.item.type === 'window' && (drag as any).placed !== true) {
-      if (drag.type === 'move') {
-        let nx = drag.start.x + dx;
-        let ny = drag.start.y + dy;
-        nx = snapTo(nx);
-        ny = snapTo(ny);
-        
-        // Обновляем позицию окна напрямую в DOM для мгновенного отклика
-        const windowElement = document.querySelector(`[data-window-id="${drag.key}"]`) as HTMLElement;
-        if (windowElement) {
-          windowElement.style.left = `${nx}px`;
-          windowElement.style.top = `${ny}px`;
-        }
-        
-        // Обновляем превью привязки
-        const preview = findNearestWall(nx, ny, drag.start.len);
-        setAttachmentPreview(preview);
-      } else { // resize
-        const newLen = Math.max(20, snapTo(drag.start.len + (drag.start.rot === 90 ? dy : dx)));
-        
-        // Обновляем размер окна напрямую в DOM
-        const windowElement = document.querySelector(`[data-window-id="${drag.key}"]`) as HTMLElement;
-        if (windowElement) {
-          const isVertical = drag.start.rot === 90;
-          if (isVertical) {
-            windowElement.style.height = `${newLen}px`;
-          } else {
-            windowElement.style.width = `${newLen}px`;
-          }
-        }
-        
-        // Обновляем превью с новой длиной
-        const window = floatingWindows.find((w: FloatingWindow) => w.id === (drag.key as number));
-        if (window) {
-          const preview = findNearestWall(window.x, window.y, newLen);
-          setAttachmentPreview(preview);
-        }
-      }
-    } else if (drag.item.type === 'window' && (drag as any).placed === true) {
-      // Drag already placed window along its wall inside room
-      const room = drag.item.room as RoomState;
-      const idx = (drag.item.index as number);
-      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      const side = drag.item.side as 'left' | 'right' | 'top' | 'bottom';
-      // compute new pos in 0..1 along the wall axis
-      if (drag.type === 'move') {
-        let newPos = 0;
-        if (side === 'left' || side === 'right') newPos = Math.max(0, Math.min(1, drag.start.pos + dy / (layout.height || 1)));
-        else newPos = Math.max(0, Math.min(1, drag.start.pos + dx / (layout.width || 1)));
-        const updated = [ ...(room.windows ?? []) ];
-        if (updated[idx]) {
-          updated[idx] = { ...updated[idx], pos: snapTo(newPos) } as NonNullable<RoomState['windows']>[number];
-          onUpdate(room.key, { windows: updated });
-        }
-      } else if (drag.type === 'resize') {
-        let newLen = drag.start.len as number;
-        if (side === 'left' || side === 'right') newLen = Math.max(0.05, Math.min(1 - drag.start.pos, drag.start.len + dy / (layout.height || 1)));
-        else newLen = Math.max(0.05, Math.min(1 - drag.start.pos, drag.start.len + dx / (layout.width || 1)));
-        const updated = [ ...(room.windows ?? []) ];
-        if (updated[idx]) {
-          updated[idx] = { ...updated[idx], len: snapTo(newLen) } as NonNullable<RoomState['windows']>[number];
-          onUpdate(room.key, { windows: updated });
-        }
-      }
-    } else { // room
-      const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
-      if (drag.type === 'move') {
-        // propose move
-        let nx = Math.min(rect.width - drag.start.w, Math.max(0, drag.start.x + dx));
-        let ny = Math.min(rect.height - drag.start.h, Math.max(0, drag.start.y + dy));
-        // prevent overlap with other enabled rooms (allow touching)
-        const candidate = resolveNoOverlap({ x: nx, y: ny, width: drag.start.w, height: drag.start.h }, drag.key as string, rect.width, rect.height);
-        nx = snapTo(candidate.x); ny = snapTo(candidate.y);
-        onUpdate(drag.key as string, { layout: { x: nx, y: ny, width: candidate.width, height: candidate.height } });
-      } else {
-        let nw = Math.min(rect.width - drag.start.x, Math.max(50, drag.start.w + dx));
-        let nh = Math.min(rect.height - drag.start.y, Math.max(50, drag.start.h + dy));
-        // prevent overlap during resize
-        const candidate = resolveNoOverlap({ x: drag.start.x, y: drag.start.y, width: nw, height: nh }, drag.key as string, rect.width, rect.height);
-        nw = snapTo(candidate.width); nh = snapTo(candidate.height);
-        onUpdate(drag.key as string, { layout: { x: candidate.x, y: candidate.y, width: nw, height: nh } });
-      }
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (drag) {
-      try { (e.target as Element).releasePointerCapture(e.pointerId); } catch {}
-      
-      // Сохраняем изменения в состоянии для плавающих окон
-      if (drag.item.type === 'window' && (drag as any).placed !== true) {
-        const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
-        const currentX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
-        const currentY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
-        const dx = currentX - drag.startX;
-        const dy = currentY - drag.startY;
-        const snapTo = (v: number) => Math.round(v / snap) * snap;
-        
-        if (drag.type === 'move') {
-          let nx = drag.start.x + dx;
-          let ny = drag.start.y + dy;
-          nx = snapTo(nx);
-          ny = snapTo(ny);
-          
-          setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-            w.id === (drag.key as number) ? { ...w, x: nx, y: ny } : w
-          ));
-        } else { // resize
-          const newLen = Math.max(20, snapTo(drag.start.len + (drag.start.rot === 90 ? dy : dx)));
-          setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-            w.id === (drag.key as number) ? { ...w, len: newLen } : w
-          ));
-        }
-      }
-    }
-    setDrag(null);
-    setDraggingWindowId(null);
-  };
-
-  const handleEntryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value as RoomState['entrySide'];
-    if (hallway) {
-      onUpdate(hallway.key, { entrySide: value });
-    }
-  };
-
-  const handleRotate = (item: RoomState | FloatingWindow) => {
-    if ('len' in item) { // FloatingWindow
-      setFloatingWindows((ws: FloatingWindow[]) => ws.map((w: FloatingWindow) => w.id === item.id ? { ...w, rotation: w.rotation === 90 ? 0 : 90 } : w));
-    } else { // RoomState
-      const layout = item.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      const rotated: RoomState['rotation'] = (item.rotation === 90 ? 0 : 90);
-      onUpdate(item.key, { rotation: rotated, layout: { x: layout.x, y: layout.y, width: layout.height, height: layout.width } });
-    }
-  };
-
-  // Добавить новое плавающее окно
-  const handleAddNewWindow = () => {
-    const newId = Date.now();
-    setFloatingWindows((prev: FloatingWindow[]) => [...prev, { 
-      id: newId, 
-      x: 200, 
-      y: 100, 
-      len: 80, 
-      rotation: 0, 
-      type: 'window',
-      isHovered: false
-    }]);
-  };
-
-  // Найти ближайшую стену для превью привязки - версия с пикселями
-  const findNearestWall = (winX: number, winY: number, winLen: number): WindowAttachmentPreview | null => {
-    let closestWall: WindowAttachmentPreview | null = null;
+  // Поиск ближайшей стены для привязки окна
+  const findNearestWall = (window: FloatingWindow): WindowAttachment | null => {
+    let bestAttachment: WindowAttachment | null = null;
     let minDistance = Infinity;
 
     for (const room of enabledRooms) {
-      const layout = room.layout || { x: 20, y: 20, width: 200, height: 200 };
+      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      const roomPixels = toPixels(layout);
       
-      // Координаты стен в пикселях
+      // Проверяем все 4 стены комнаты
       const walls = [
-        { 
-          side: 'left' as const, 
-          coord: layout.x, 
-          isVertical: true,
-          start: layout.y,
-          end: layout.y + layout.height
-        },
-        { 
-          side: 'right' as const, 
-          coord: layout.x + layout.width, 
-          isVertical: true,
-          start: layout.y,
-          end: layout.y + layout.height
-        },
-        { 
-          side: 'top' as const, 
-          coord: layout.y, 
-          isVertical: false,
-          start: layout.x,
-          end: layout.x + layout.width
-        },
-        { 
-          side: 'bottom' as const, 
-          coord: layout.y + layout.height, 
-          isVertical: false,
-          start: layout.x,
-          end: layout.x + layout.width
-        }
+        { side: 'left' as const, x: roomPixels.x, y: roomPixels.y, width: 0, height: roomPixels.height },
+        { side: 'right' as const, x: roomPixels.x + roomPixels.width, y: roomPixels.y, width: 0, height: roomPixels.height },
+        { side: 'top' as const, x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: 0 },
+        { side: 'bottom' as const, x: roomPixels.x, y: roomPixels.y + roomPixels.height, width: roomPixels.width, height: 0 }
       ];
 
       for (const wall of walls) {
-        const distance = Math.abs((wall.isVertical ? winX : winY) - wall.coord);
+        const distance = calculateDistanceToWall(window, wall);
         
-        if (distance < minDistance && distance < 20) { // 20px порог захвата
-          const alongAxis = wall.isVertical ? winY : winX;
+        if (distance < minDistance && distance <= SNAP_DISTANCE) {
+          minDistance = distance;
           
-          // Проверяем, что окно находится в пределах стены с небольшим запасом
-          if (alongAxis >= wall.start - 10 && alongAxis <= wall.end + 10) {
-            // Вычисление позиции относительно стены
-            const wallLength = wall.end - wall.start;
-            const rawPos = (alongAxis - wall.start) / wallLength;
-            const pos = Math.max(0, Math.min(1, rawPos));
-            const normalizedLen = Math.max(0.1, Math.min(1, winLen / wallLength));
-            
-            // Корректируем позицию окна с учётом его длины
-            const adjustedPos = Math.max(0, Math.min(1 - normalizedLen, pos));
-            
-            // Вычисляем позицию превью в пикселях
-            let previewX, previewY, previewWidth, previewHeight;
-            const WALL_THICKNESS = 8; // px
-            
-            if (wall.side === 'left') {
-              previewX = layout.x;
-              previewY = layout.y + adjustedPos * layout.height;
-              previewWidth = WALL_THICKNESS;
-              previewHeight = normalizedLen * layout.height;
-            } else if (wall.side === 'right') {
-              previewX = layout.x + layout.width - WALL_THICKNESS;
-              previewY = layout.y + adjustedPos * layout.height;
-              previewWidth = WALL_THICKNESS;
-              previewHeight = normalizedLen * layout.height;
-            } else if (wall.side === 'top') {
-              previewX = layout.x + adjustedPos * layout.width;
-              previewY = layout.y;
-              previewWidth = normalizedLen * layout.width;
-              previewHeight = WALL_THICKNESS;
-            } else { // bottom
-              previewX = layout.x + adjustedPos * layout.width;
-              previewY = layout.y + layout.height - WALL_THICKNESS;
-              previewWidth = normalizedLen * layout.width;
-              previewHeight = WALL_THICKNESS;
-            }
-
-            closestWall = {
-              roomName: String(room.name),
-              side: wall.side,
-              pos: adjustedPos,
-              len: normalizedLen,
-              x: previewX,
-              y: previewY,
-              width: previewWidth,
-              height: previewHeight
-            };
-            minDistance = distance;
+          // Вычисляем позицию на стене
+          let position: number;
+          let pixelX: number, pixelY: number, pixelLength: number;
+          
+          if (wall.side === 'left' || wall.side === 'right') {
+            // Вертикальная стена
+            const wallLength = wall.height;
+            const relativeY = window.y - wall.y;
+            position = Math.max(0, Math.min(1, relativeY / wallLength));
+            pixelX = wall.x;
+            pixelY = wall.y + relativeY;
+            pixelLength = Math.min(window.length, wallLength * 0.8);
+          } else {
+            // Горизонтальная стена
+            const wallLength = wall.width;
+            const relativeX = window.x - wall.x;
+            position = Math.max(0, Math.min(1, relativeX / wallLength));
+            pixelX = wall.x + relativeX;
+            pixelY = wall.y;
+            pixelLength = Math.min(window.length, wallLength * 0.8);
           }
+
+          bestAttachment = {
+            roomKey: room.key,
+            side: wall.side,
+            position,
+            length: pixelLength / (wall.side === 'left' || wall.side === 'right' ? wall.height : wall.width),
+            pixelX,
+            pixelY,
+            pixelLength
+          };
         }
       }
     }
 
-    return closestWall;
+    return bestAttachment;
   };
 
-  // Прикрепить окно к стене
-  const attachWindowToWall = (windowId: number) => {
-    const window = floatingWindows.find((w: FloatingWindow) => w.id === windowId);
-    if (!window || !attachmentPreview) return;
-
-    // Найдём комнату для привязки
-    const targetRoom = enabledRooms.find(room => String(room.name) === attachmentPreview.roomName);
-    if (!targetRoom) return;
-
-    // Создаём новое окно
-    const newWindow: NonNullable<RoomState['windows']>[number] = {
-      side: attachmentPreview.side,
-      pos: attachmentPreview.pos,
-      len: attachmentPreview.len
-    };
-
-    // Обновляем комнату
-    onUpdate(targetRoom.key, { 
-      windows: [...(targetRoom.windows ?? []), newWindow] 
-    });
-
-    // Удаляем плавающее окно
-    setFloatingWindows((prev: FloatingWindow[]) => prev.filter((w: FloatingWindow) => w.id !== windowId));
-    setAttachmentPreview(null);
+  // Вычисление расстояния от окна до стены
+  const calculateDistanceToWall = (window: FloatingWindow, wall: any): number => {
+    if (wall.side === 'left' || wall.side === 'right') {
+      // Вертикальная стена
+      const wallX = wall.x;
+      const wallY1 = wall.y;
+      const wallY2 = wall.y + wall.height;
+      
+      if (window.y < wallY1) {
+        return Math.sqrt((window.x - wallX) ** 2 + (window.y - wallY1) ** 2);
+      } else if (window.y > wallY2) {
+        return Math.sqrt((window.x - wallX) ** 2 + (window.y - wallY2) ** 2);
+      } else {
+        return Math.abs(window.x - wallX);
+      }
+    } else {
+      // Горизонтальная стена
+      const wallY = wall.y;
+      const wallX1 = wall.x;
+      const wallX2 = wall.x + wall.width;
+      
+      if (window.x < wallX1) {
+        return Math.sqrt((window.x - wallX1) ** 2 + (window.y - wallY) ** 2);
+      } else if (window.x > wallX2) {
+        return Math.sqrt((window.x - wallX2) ** 2 + (window.y - wallY) ** 2);
+      } else {
+        return Math.abs(window.y - wallY);
+      }
+    }
   };
 
-  const handlePlacedWindowPointerDown = (e: React.PointerEvent, room: RoomState, index: number) => {
-    e.stopPropagation();
-    setSelectedPlacedWindow({ roomKey: room.key, index });
-    const w = (room.windows ?? [])[index];
-    if (!w) return;
-    const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    setDrag({
-      key: `${room.key}__w${index}`,
-      item: { type: 'window', placed: true, room, index, side: w.side },
-      type: 'move',
-      startX: x,
-      startY: y,
-      start: { pos: w.pos, len: w.len }
-    } as any);
+  // Обработка начала перетаскивания
+  const handlePointerDown = (e: React.PointerEvent, item: RoomState | FloatingWindow, type: 'move' | 'resize') => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const isWindow = 'length' in item;
+
+    if (isWindow) {
+      setDrag({
+        key: item.id,
+        item,
+        type,
+        startX: x,
+        startY: y,
+        start: { x: item.x, y: item.y, length: item.length, rotation: item.rotation }
+      });
+      
+      // Обновляем состояние окна
+      setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+        w.id === item.id 
+          ? { ...w, isDragging: type === 'move', isResizing: type === 'resize' }
+          : w
+      ));
+    } else {
+      const layout = item.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      const roomPixels = toPixels(layout);
+      setDrag({
+        key: item.key,
+        item,
+        type,
+        startX: x,
+        startY: y,
+        start: { x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: roomPixels.height }
+      });
+    }
+
     (e.target as Element).setPointerCapture(e.pointerId);
   };
 
-  // удаление выполняется через верхнюю панель
+  // Обработка движения мыши
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!drag) return;
+    
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
 
-  // Prevent overlapping rooms helper - версия с пикселями
-  const resolveNoOverlap = (candidate: { x: number; y: number; width: number; height: number }, movingKey: string, canvasWidth: number, canvasHeight: number) => {
-    const others = enabledRooms.filter(r => r.key !== movingKey && r.layout).map(r => ({ key: r.key, ...(r.layout as NonNullable<RoomState['layout']>) }));
-    
-    // Ограничение в пределах канвы
-    const MIN_MARGIN = 10; // 10px отступ от краёв
-    candidate.x = Math.max(MIN_MARGIN, Math.min(canvasWidth - candidate.width - MIN_MARGIN, candidate.x));
-    candidate.y = Math.max(MIN_MARGIN, Math.min(canvasHeight - candidate.height - MIN_MARGIN, candidate.y));
-    
-    let iter = 0;
-    const TOLERANCE = 2; // 2px минимальный зазор между комнатами
-    
-    while (iter++ < 15) {
-      let adjusted = false;
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    const dx = currentX - drag.startX;
+    const dy = currentY - drag.startY;
+
+    if ('length' in drag.item) {
+      // Перетаскивание плавающего окна
+      const newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.item.length, drag.start.x + dx));
+      const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.item.length, drag.start.y + dy));
       
-      for (const r of others) {
-        const ax1 = candidate.x, ay1 = candidate.y, ax2 = ax1 + candidate.width, ay2 = ay1 + candidate.height;
-        const bx1 = r.x, by1 = r.y, bx2 = r.x + r.width, by2 = r.y + r.height;
+      if (drag.type === 'resize') {
+        const newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + (drag.item.rotation === 0 ? dx : dy)));
         
-        // Проверяем пересечение с учётом толерантности
-        const overlapX = Math.max(0, Math.min(ax2, bx2) - Math.max(ax1, bx1) - TOLERANCE);
-        const overlapY = Math.max(0, Math.min(ay2, by2) - Math.max(ay1, by1) - TOLERANCE);
-        
-        if (overlapX > 0 && overlapY > 0) {
-          // Выбираем направление с минимальным сдвигом
-          const pushLeftDist = Math.abs((bx1 - TOLERANCE) - ax2);
-          const pushRightDist = Math.abs(bx2 + TOLERANCE - ax1);
-          const pushUpDist = Math.abs((by1 - TOLERANCE) - ay2);
-          const pushDownDist = Math.abs(by2 + TOLERANCE - ay1);
-          
-          const minDist = Math.min(pushLeftDist, pushRightDist, pushUpDist, pushDownDist);
-          
-          if (minDist === pushLeftDist) {
-            candidate.x = bx1 - candidate.width - TOLERANCE;
-          } else if (minDist === pushRightDist) {
-            candidate.x = bx2 + TOLERANCE;
-          } else if (minDist === pushUpDist) {
-            candidate.y = by1 - candidate.height - TOLERANCE;
-          } else {
-            candidate.y = by2 + TOLERANCE;
-          }
-          
-          // Повторно ограничиваем в пределах канвы
-          candidate.x = Math.max(MIN_MARGIN, Math.min(canvasWidth - candidate.width - MIN_MARGIN, candidate.x));
-          candidate.y = Math.max(MIN_MARGIN, Math.min(canvasHeight - candidate.height - MIN_MARGIN, candidate.y));
-          
-          adjusted = true;
-        }
+        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+          w.id === drag.item.id 
+            ? { ...w, x: newX, y: newY, length: newLength }
+            : w
+        ));
+      } else {
+        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+          w.id === drag.item.id 
+            ? { ...w, x: newX, y: newY }
+            : w
+        ));
       }
+
+      // Проверяем возможность привязки к стене
+      const updatedWindow = { ...drag.item, x: newX, y: newY, length: drag.type === 'resize' ? Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + (drag.item.rotation === 0 ? dx : dy))) : drag.item.length };
+      const attachment = findNearestWall(updatedWindow);
       
-      if (!adjusted) break;
+      if (attachment) {
+        setPendingAttachment({ windowId: drag.item.id, attachment });
+      } else {
+        setPendingAttachment(null);
+      }
+    } else {
+      // Перетаскивание комнаты
+      const newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
+      const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
+      
+      if (drag.type === 'resize') {
+        const newWidth = Math.max(100, Math.min(CANVAS_WIDTH - newX, drag.start.width + dx));
+        const newHeight = Math.max(100, Math.min(CANVAS_HEIGHT - newY, drag.start.height + dy));
+        
+        const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
+        onUpdate(drag.item.key, { layout: normalized });
+      } else {
+        const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
+        onUpdate(drag.item.key, { layout: normalized });
+      }
     }
-    
-    return candidate;
+  };
+
+  // Обработка окончания перетаскивания
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!drag) return;
+
+    if ('length' in drag.item) {
+      // Сбрасываем состояние перетаскивания окна
+      setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+        w.id === drag.item.id 
+          ? { ...w, isDragging: false, isResizing: false }
+          : w
+      ));
+    }
+
+    setDrag(null);
+    (e.target as Element).releasePointerCapture(e.pointerId);
+  };
+
+  // Добавление нового окна
+  const addWindow = () => {
+    const newWindow: FloatingWindow = {
+      id: Date.now(),
+      x: CANVAS_WIDTH / 2 - 50,
+      y: CANVAS_HEIGHT / 2 - 50,
+      length: 100,
+      rotation: 0,
+      type: 'window'
+    };
+    setFloatingWindows((prev: FloatingWindow[]) => [...prev, newWindow]);
+  };
+
+  // Подтверждение привязки окна
+  const confirmAttachment = () => {
+    if (!pendingAttachment) return;
+
+    const room = rooms.find(r => r.key === pendingAttachment.attachment.roomKey);
+    if (!room) return;
+
+    const newWindow = {
+      side: pendingAttachment.attachment.side,
+      pos: pendingAttachment.attachment.position,
+      len: pendingAttachment.attachment.length
+    };
+
+    onUpdate(room.key, {
+      windows: [...(room.windows || []), newWindow]
+    });
+
+    // Удаляем плавающее окно
+    setFloatingWindows((prev: FloatingWindow[]) => prev.filter((w: FloatingWindow) => w.id !== pendingAttachment.windowId));
+    setPendingAttachment(null);
+  };
+
+  // Отмена привязки окна
+  const cancelAttachment = () => {
+    setPendingAttachment(null);
+  };
+
+  // Удаление выбранного окна
+  const deleteSelectedWindow = () => {
+    if (!selectedWindow) return;
+
+    const room = rooms.find(r => r.key === selectedWindow.roomKey);
+    if (!room || !room.windows) return;
+
+    const updatedWindows = room.windows.filter((_, index) => index !== selectedWindow.index);
+    onUpdate(room.key, { windows: updatedWindows });
+    setSelectedWindow(null);
+  };
+
+  // Удаление всех окон
+  const deleteAllWindows = () => {
+    for (const room of rooms) {
+      if (room.windows && room.windows.length > 0) {
+        onUpdate(room.key, { windows: [] });
+      }
+    }
+    setSelectedWindow(null);
+  };
+
+  // Обработка клика по установленному окну
+  const handlePlacedWindowClick = (roomKey: string, index: number) => {
+    if (selectedWindow?.roomKey === roomKey && selectedWindow?.index === index) {
+      setSelectedWindow(null);
+    } else {
+      setSelectedWindow({ roomKey, index });
+    }
   };
 
   return (
     <div className="layout-editor">
-      {hallway && (
-        <div className="layout-controls">
-          <div className="entry-side-control">
-            <label>Внешний вход:</label>
-            <select value={hallway.entrySide || ''} onChange={handleEntryChange}>
-              <option value="">Авто</option>
-              <option value="left">Слева</option>
-              <option value="right">Справа</option>
-              <option value="top">Сверху</option>
-              <option value="bottom">Снизу</option>
-            </select>
+      {/* Панель управления */}
+      <div className="editor-controls">
+        <button 
+          className="add-window-btn"
+          onClick={addWindow}
+        >
+          🪟 Добавить окно
+        </button>
+        
+        <button 
+          className="delete-selected-window-btn"
+          onClick={deleteSelectedWindow}
+          disabled={!selectedWindow}
+        >
+          🗑️ Удалить выбранное окно
+        </button>
+        
+        <button 
+          className="delete-all-windows-btn"
+          onClick={deleteAllWindows}
+        >
+          🗑️ Удалить все окна
+        </button>
+      </div>
+
+      {/* Панель подтверждения привязки */}
+      {pendingAttachment && (
+        <div className="attachment-panel">
+          <div className="attachment-content">
+            <p>Прикрепить окно к стене помещения?</p>
+            <div className="attachment-buttons">
+              <button className="confirm-btn" onClick={confirmAttachment}>
+                ✅ Прикрепить
+              </button>
+              <button className="cancel-btn" onClick={cancelAttachment}>
+                ❌ Отмена
+              </button>
+            </div>
           </div>
-          <button type="button" className="add-element-btn" onClick={handleAddNewWindow}>Добавить окно</button>
-          <button
-            type="button"
-            className="delete-selected-window-btn"
-            onClick={() => {
-              if (!selectedPlacedWindow) return;
-              const room = rooms.find(r => r.key === selectedPlacedWindow.roomKey) as RoomState | undefined;
-              if (!room) return;
-              const next = [ ...(room.windows ?? []) ];
-              next.splice(selectedPlacedWindow.index, 1);
-              onUpdate(room.key, { windows: next });
-              setSelectedPlacedWindow(null);
-            }}
-            disabled={!selectedPlacedWindow}
-            title="Удалить выделенное окно"
-          >
-            Удалить выделенное окно
-          </button>
-          <button
-            type="button"
-            className="delete-all-windows-btn"
-            onClick={() => {
-              // удалить все окна во всех помещениях и сбросить плавающие
-              rooms.forEach((r: RoomState) => { if (r.windows && r.windows.length) onUpdate(r.key, { windows: [] }); });
-              setFloatingWindows([]);
-              setSelectedPlacedWindow(null);
-            }}
-            title="Удалить все окна"
-          >
-            Удалить все окна
-          </button>
         </div>
       )}
+
+      {/* Холст */}
       <div
         ref={canvasRef}
         className="layout-canvas"
+        style={{
+          width: CANVAS_WIDTH,
+          height: CANVAS_HEIGHT,
+          position: 'relative',
+          background: `
+            linear-gradient(to right, #f0f0f0 0px, #f0f0f0 ${GRID_SIZE - 1}px, transparent ${GRID_SIZE - 1}px, transparent ${GRID_SIZE}px),
+            linear-gradient(to bottom, #f0f0f0 0px, #f0f0f0 ${GRID_SIZE - 1}px, transparent ${GRID_SIZE - 1}px, transparent ${GRID_SIZE}px)
+          `,
+          backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
+          border: '2px solid #ddd',
+          borderRadius: '8px',
+          overflow: 'hidden'
+        }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onClick={(e: React.MouseEvent) => { 
-          if (e.target === canvasRef.current) { 
-            setDrag(null); 
-            // НЕ сбрасываем selectedPlacedWindow - оставляем выделение активным
-          } 
+        onClick={(e: React.MouseEvent) => {
+          if (e.target === canvasRef.current) {
+            setDrag(null);
+            setSelectedWindow(null);
+          }
         }}
       >
-        {enabledRooms.map((room: RoomState) => {
-          const layout = room.layout || { x: 20, y: 20, width: 200, height: 200 };
-          const style: React.CSSProperties = {
-            left: `${layout.x}px`,
-            top: `${layout.y}px`,
-            width: `${layout.width}px`,
-            height: `${layout.height}px`,
-          };
+        {/* Комнаты */}
+        {enabledRooms.map((room) => {
+          const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+          const roomPixels = toPixels(layout);
+          
           return (
-            <div key={room.key} className="layout-box" style={style}>
-                <div className="layout-box-header">{room.name}</div>
-                <div className="layout-box-body" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'move')} />
-                <div className="layout-resizer" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize')} />
-                <div className="layout-size-hint">{Math.round(layout.width*100)}×{Math.round(layout.height*100)}</div>
-                <button type="button" className="layout-rotate" onClick={() => handleRotate(room)} title="Повернуть на 90°">⟳</button>
-                
-                {(room.windows || []).map((win, idx) => {
-                  const isVertical = win.side === 'left' || win.side === 'right';
-                  const WALL_THICKNESS = 8; // px - точная толщина стены
-                  
-                  // Более точное позиционирование окон с учётом layout комнаты
-                  const posStyle: React.CSSProperties = ((): React.CSSProperties => {
-                    if (win.side === 'top') {
-                      return { 
-                        position: 'absolute',
-                        top: -WALL_THICKNESS / 2, 
-                        left: `${win.pos * 100}%`, 
-                        width: `${win.len * 100}%`, 
-                        height: `${WALL_THICKNESS}px`,
-                        transform: 'translateX(0)' // Убираем центрирование по X
-                      };
-                    } else if (win.side === 'bottom') {
-                      return { 
-                        position: 'absolute',
-                        bottom: -WALL_THICKNESS / 2, 
-                        left: `${win.pos * 100}%`, 
-                        width: `${win.len * 100}%`, 
-                        height: `${WALL_THICKNESS}px`,
-                        transform: 'translateX(0)'
-                      };
-                    } else if (win.side === 'left') {
-                      return { 
-                        position: 'absolute',
-                        left: -WALL_THICKNESS / 2, 
-                        top: `${win.pos * 100}%`, 
-                        width: `${WALL_THICKNESS}px`, 
-                        height: `${win.len * 100}%`,
-                        transform: 'translateY(0)' // Убираем центрирование по Y
-                      };
-                    } else { // right
-                      return { 
+            <div
+              key={room.key}
+              className="room"
+              style={{
+                position: 'absolute',
+                left: roomPixels.x,
+                top: roomPixels.y,
+                width: roomPixels.width,
+                height: roomPixels.height,
+                backgroundColor: '#e8f4fd',
+                border: '2px solid #4a90e2',
+                borderRadius: '6px',
+                cursor: 'move',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+              onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'move')}
+            >
+              <div className="room-header">
+                <span className="room-name">{room.name}</span>
+                <div className="room-resize-handle" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize')} />
+              </div>
+              
+              {/* Установленные окна */}
+              {room.windows?.map((window, index) => (
+                <div
+                  key={index}
+                  className={`placed-window ${selectedWindow?.roomKey === room.key && selectedWindow?.index === index ? 'selected' : ''}`}
+                  style={{
                     position: 'absolute',
-                        right: -WALL_THICKNESS / 2, 
-                        top: `${win.pos * 100}%`, 
-                        width: `${WALL_THICKNESS}px`, 
-                        height: `${win.len * 100}%`,
-                        transform: 'translateY(0)'
-                      };
-                    }
-                  })();
-                  
-                  const resizerStyle: React.CSSProperties = isVertical
-                    ? { position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14 }
-                    : { position: 'absolute', right: -6, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14 };
-                  const isSelected = selectedPlacedWindow && selectedPlacedWindow.roomKey === room.key && selectedPlacedWindow.index === idx;
-                  return (
-                    <div 
-                      key={idx} 
-                      className={`placed-window ${isSelected ? 'selected' : ''}`} 
-                      style={posStyle}
-                      onPointerDown={(e: React.PointerEvent) => handlePlacedWindowPointerDown(e, room, idx)}
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        if (isSelected) {
-                          setSelectedPlacedWindow(null);
-                        } else {
-                          setSelectedPlacedWindow({ roomKey: room.key, index: idx });
-                        }
-                      }}
-                    >
-                      <div
-                        className="placed-window-resizer"
-                        style={resizerStyle}
-                        onPointerDown={(e: React.PointerEvent) => {
-                          e.stopPropagation();
-                          const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
-                          const x = (e.clientX - rect.left) / rect.width;
-                          const y = (e.clientY - rect.top) / rect.height;
-                          setDrag({
-                            key: `${room.key}__w${idx}`,
-                            item: { type: 'window', placed: true, room, index: idx, side: win.side },
-                            type: 'resize',
-                            startX: x,
-                            startY: y,
-                            start: { pos: win.pos, len: win.len }
-                          } as any);
-                          (e.target as Element).setPointerCapture((e as any).pointerId);
-                        }}
-                      />
-                      {/* Кнопка удаления внутри окна удалена. Удаление управляется из верхней панели. */}
-                    </div>
-                  );
-                })}
+                    ...getWindowStyle(window, roomPixels),
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    transform: selectedWindow?.roomKey === room.key && selectedWindow?.index === index ? 'scale(1.1)' : 'scale(1)',
+                    zIndex: selectedWindow?.roomKey === room.key && selectedWindow?.index === index ? 10 : 1
+                  }}
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    handlePlacedWindowClick(room.key, index);
+                  }}
+                />
+              ))}
             </div>
           );
         })}
-
-        {/* Превью привязки окна */}
-        {attachmentPreview && (
-          <div 
-            className="window-attachment-preview"
-            style={{
-              position: 'absolute',
-              left: `${attachmentPreview.x}px`,
-              top: `${attachmentPreview.y}px`,
-              width: `${attachmentPreview.width}px`,
-              height: `${attachmentPreview.height}px`,
-              pointerEvents: 'none'
-            }}
-          />
-        )}
 
         {/* Плавающие окна */}
-        {floatingWindows.map((win: FloatingWindow) => {
-          const thickness = 12; // px
-          const isVertical = win.rotation === 90;
-          const style: React.CSSProperties = {
-            position: 'absolute',
-            left: `${win.x}px`,
-            top: `${win.y}px`,
-            width: isVertical ? `${thickness}px` : `${win.len}px`,
-            height: isVertical ? `${win.len}px` : `${thickness}px`,
-            transform: `translate(-50%, -50%)`,
-            // Скрываем плавающее окно когда показывается превью привязки
-            opacity: attachmentPreview ? 0.3 : 1,
-            pointerEvents: attachmentPreview ? 'none' : 'auto',
-          };
-          
-          const canAttach = attachmentPreview !== null;
-          
-          return (
-            <div 
-              key={win.id}
-              data-window-id={win.id}
-              className={`floating-window ${canAttach ? 'can-attach' : ''} ${hoveredWindow === win.id ? 'hovered' : ''} ${draggingWindowId === win.id ? 'dragging' : ''}`}
-              style={style} 
-              onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, win, 'move')}
-              onMouseEnter={() => setHoveredWindow(win.id)}
-              onMouseLeave={() => setHoveredWindow(null)}
-              onDoubleClick={() => canAttach && attachWindowToWall(win.id)}
-            >
-              <div 
-                className="floating-window-resizer" 
-                onPointerDown={(e: React.PointerEvent) => { 
-                  e.stopPropagation(); 
-                  handlePointerDown(e, win, 'resize'); 
-                }} 
-              />
-              <button 
-                type="button" 
-                className="floating-window-rotate" 
-                onClick={(e: React.MouseEvent) => { 
-                  e.stopPropagation(); 
-                  handleRotate(win); 
-                }} 
-                title="Повернуть на 90°"
-              >
-                ⟳
-              </button>
-              {canAttach && (
-                <div className="attach-hint">
-                  Дважды кликните для привязки к {attachmentPreview.roomName}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {floatingWindows.map((window: FloatingWindow) => (
+          <div
+            key={window.id}
+            className={`floating-window ${window.isDragging ? 'dragging' : ''} ${window.isResizing ? 'resizing' : ''}`}
+            style={{
+              position: 'absolute',
+              left: window.x,
+              top: window.y,
+              width: window.rotation === 0 ? window.length : 20,
+              height: window.rotation === 0 ? 20 : window.length,
+              backgroundColor: pendingAttachment ? '#ffeb3b' : '#4caf50',
+              border: '2px solid #2e7d32',
+              borderRadius: '4px',
+              cursor: 'move',
+              transition: window.isDragging || window.isResizing ? 'none' : 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              zIndex: 20
+            }}
+            onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, window, 'move')}
+          >
+            <div className="window-resize-handle" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, window, 'resize')} />
+            <div className="window-label">🪟</div>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
+// Получение стилей для установленного окна
+const getWindowStyle = (window: any, _roomPixels: any) => {
+  const wallThickness = 8;
+  
+  switch (window.side) {
+    case 'left':
+      return {
+        left: -wallThickness / 2,
+        top: `${window.pos * 100}%`,
+        width: wallThickness,
+        height: `${window.len * 100}%`,
+        backgroundColor: '#81c784',
+        border: '1px solid #4caf50'
+      };
+    case 'right':
+      return {
+        right: -wallThickness / 2,
+        top: `${window.pos * 100}%`,
+        width: wallThickness,
+        height: `${window.len * 100}%`,
+        backgroundColor: '#81c784',
+        border: '1px solid #4caf50'
+      };
+    case 'top':
+      return {
+        top: -wallThickness / 2,
+        left: `${window.pos * 100}%`,
+        width: `${window.len * 100}%`,
+        height: wallThickness,
+        backgroundColor: '#81c784',
+        border: '1px solid #4caf50'
+      };
+    case 'bottom':
+      return {
+        bottom: -wallThickness / 2,
+        left: `${window.pos * 100}%`,
+        width: `${window.len * 100}%`,
+        height: wallThickness,
+        backgroundColor: '#81c784',
+        border: '1px solid #4caf50'
+      };
+    default:
+      return {};
+  }
+};
+
 export default LayoutEditor;
-
-
