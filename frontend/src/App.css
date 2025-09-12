@@ -135,6 +135,17 @@
 }
 
 html {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+html {
   scroll-behavior: smooth;
 }
 
@@ -184,6 +195,8 @@ body::before {
   z-index: 1;
   width: 100%;
   box-sizing: border-box;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 /* Header */
@@ -227,11 +240,13 @@ header p {
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-xl);
   margin: 0 auto var(--space-xl) auto;
-  max-width: calc(100% - 2rem);
   width: 100%;
   box-sizing: border-box;
   transition: all var(--transition-normal);
   animation: fadeInUp 0.8s ease-out 0.2s both;
+  position: relative;
+  left: 0;
+  right: 0;
 }
 
 .bathroom-type-selector:hover {
@@ -728,7 +743,6 @@ header p {
 /* Collapsible constructor */
 .constructor-wrapper {
   margin: 1.25rem auto 1.5rem auto;
-  max-width: calc(100% - 2rem);
   width: 100%;
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.7);
@@ -738,6 +752,9 @@ header p {
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(10px);
   animation: fadeInUp 0.6s ease-out 0.4s both;
+  position: relative;
+  left: 0;
+  right: 0;
 }
 .constructor-toggle {
   appearance: none;
@@ -987,6 +1004,20 @@ header p {
 @media (max-width: 768px) {
   .container {
     padding: var(--space-md);
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .bathroom-type-selector {
+    margin: 0 0 var(--space-xl) 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .constructor-wrapper {
+    margin: 1.25rem 0 1.5rem 0;
+    width: 100%;
+    max-width: 100%;
   }
 
   .rooms-grid {
@@ -1016,8 +1047,23 @@ header p {
 }
 
 @media (max-width: 480px) {
+  .container {
+    padding: var(--space-sm);
+    margin: 0;
+  }
+
   .bathroom-type-selector {
     padding: var(--space-lg);
+    margin: 0 0 var(--space-lg) 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .constructor-wrapper {
+    margin: 1rem 0;
+    width: 100%;
+    max-width: 100%;
+    padding: var(--space-md);
   }
 
   .room-card {
