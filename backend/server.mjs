@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 
 import { analyzeRoomVision } from './src/analyzeRoomVision.mjs';
 import { generateSvgFromData } from './src/generateSvgFromData.mjs';
-import { styleSvgWithDalle } from './src/styleSvgWithDalle.mjs';
+// DALL·E стилизация отключена — работаем только с точным SVG
 
 dotenv.config();
 
@@ -169,18 +169,8 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
         layout: r.layout ? 'present' : 'missing'
       })));
 
-      // Generate precise SVG from data first
+      // Генерируем точный SVG и производную PNG без стилизации DALL·E
       const { svgDataUrl, pngDataUrl: svgPngDataUrl } = await generateSvgFromData(roomsWithAnalysis, totalSqm);
-      
-      // Optionally style with DALL-E for better visual quality
-      let styledPngDataUrl = svgPngDataUrl;
-      try {
-        // Use PNG (A) as content image for style-preserving redraw
-        const { pngDataUrl } = await styleSvgWithDalle(svgPngDataUrl, roomsWithAnalysis, totalSqm);
-        styledPngDataUrl = pngDataUrl;
-      } catch (styleError) {
-        console.warn('DALL-E styling failed, using SVG PNG:', styleError);
-      }
 
       // Validate data URLs before sending
       if (!svgDataUrl || !svgDataUrl.startsWith('data:image/svg+xml;base64,')) {
@@ -188,16 +178,11 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
         return res.status(500).json({ ok: false, error: 'Invalid SVG format generated' });
       }
       
-      if (!styledPngDataUrl || !styledPngDataUrl.startsWith('data:image/png;base64,')) {
-        console.error('Invalid PNG data URL');
-        return res.status(500).json({ ok: false, error: 'Invalid PNG format generated' });
-      }
-
       return res.json({
         ok: true,
-        mode: 'image',
+        mode: 'svg',
         svgDataUrl,
-        pngDataUrl: styledPngDataUrl,
+        pngDataUrl: svgPngDataUrl,
         totalSqm,
         rooms: roomsWithAnalysis,
       });

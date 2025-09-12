@@ -138,14 +138,14 @@ function App() {
       return;
     }
     
-    const dataUrl = result.pngDataUrl || result.svgDataUrl;
+    const dataUrl = result.svgDataUrl || result.pngDataUrl;
     if (!dataUrl) {
       console.error('No valid data URL found');
       return;
     }
     
-    const fileExtension = result.mode === 'svg' ? 'svg' : 'png';
-    const mimeType = result.mode === 'svg' ? 'image/svg+xml' : 'image/png';
+    const fileExtension = 'svg';
+    const mimeType = 'image/svg+xml';
     const fileName = `plan.${fileExtension}`;
     
     try {

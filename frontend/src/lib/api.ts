@@ -11,6 +11,7 @@ export interface RoomState {
     layout?: { x: number; y: number; width: number; height: number } | null; // normalized 0..1
     entrySide?: 'left' | 'right' | 'top' | 'bottom' | null; // external entry for hallway
     rotation?: 0 | 90 | null; // визуальный поворот комнаты в конструкторе
+    windows?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]; // окна для svg
     description?: string; // Room description for UI
 }
 

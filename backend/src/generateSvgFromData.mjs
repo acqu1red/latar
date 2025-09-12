@@ -381,8 +381,18 @@ export async function generateSvgFromData(rooms, totalSqm) {
         }
     }
 
-    let svgContent = `<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #FFFFFF; shape-rendering: crispEdges;">
-<rect width="100%" height="100%" fill="#FFFFFF"/>`;
+    let svgContent = `<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #ECECEC; shape-rendering: crispEdges;">
+<defs>
+  <pattern id="wallHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="12" height="12" fill="#2F2F2F"/>
+    <rect y="6" width="12" height="6" fill="#3C3C3C"/>
+  </pattern>
+  <pattern id="windowStripe" width="6" height="6" patternUnits="userSpaceOnUse">
+    <rect width="6" height="6" fill="#FFFFFF"/>
+    <rect x="0" y="2" width="6" height="2" fill="#CFCFCF"/>
+  </pattern>
+</defs>
+<rect width="100%" height="100%" fill="#ECECEC"/>`;
 
     // Draw rooms (exterior walls)
     pixelRooms.forEach(room => {
@@ -391,19 +401,19 @@ export async function generateSvgFromData(rooms, totalSqm) {
         // Room rectangle (exterior walls)
         svgContent += `
 <rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" 
-      fill="none" stroke="#000000" stroke-width="${EXTERIOR_WALL_THICKNESS}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
+      fill="#FFFFFF" stroke="url(#wallHatch)" stroke-width="${EXTERIOR_WALL_THICKNESS}" stroke-linecap="square" stroke-linejoin="miter"/>`;
         
-        // Labels: room name and area (sqm) - размещаем в верхней части комнаты
+        // Labels: room name and area (sqm) — строго по центру
         const labelName = String(name || '').trim();
         const labelSqm = Number.isFinite(Number(sqm)) ? `${Number(sqm).toFixed(1)} м²` : '';
-        const fontSize = Math.max(16, Math.min(32, Math.min(pixelWidth, pixelHeight) * 0.08)); // уменьшили размер шрифта
+        const fontSize = Math.max(18, Math.min(48, Math.min(pixelWidth, pixelHeight) * 0.14));
         const labelX = pixelX + pixelWidth / 2;
-        const labelY = pixelY + fontSize + 8; // размещаем в верхней части комнаты
+        const labelY = pixelY + pixelHeight / 2 - fontSize * 0.2;
         svgContent += `
-<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="600" fill="#000000">${escapeXml(labelName)}</text>`;
+<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="#1D1D1D">${escapeXml(labelName)}</text>`;
         if (labelSqm) {
             svgContent += `
-<text x="${labelX}" y="${labelY + fontSize + 4}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.75)}" fill="#666666">${escapeXml(labelSqm)}</text>`;
+<text x="${labelX}" y="${labelY + fontSize * 0.95}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.7)}" fill="#2F2F2F">${escapeXml(labelSqm)}</text>`;
         }
     });
 
@@ -502,7 +512,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     });
 
-    // Draw windows (double thin lines)
+    // Draw windows: прорезаем стену и рисуем полосы окна
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [] } = room;
 
@@ -510,24 +520,30 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const winX = pixelX + (typeof window.pos === 'number' ? window.pos : 0.5) * pixelWidth;
             const winY = pixelY + (typeof window.pos === 'number' ? window.pos : 0.5) * pixelHeight;
             const along = (window.side === 'top' || window.side === 'bottom');
-            const winLength = Math.max(40, (window.len || 0.2) * (along ? pixelWidth : pixelHeight));
-            const gap = 6; // distance between two lines
-            const thin = 4; // stroke width for each line
+            const winLength = Math.max(50, (window.len || 0.22) * (along ? pixelWidth : pixelHeight));
+            const cutWidth = EXTERIOR_WALL_THICKNESS + 2;
+            const stripe = 4;
 
             if (window.side === 'top') {
-                svgContent += `\n<line x1="${winX - winLength/2}" y1="${pixelY - gap/2}" x2="${winX + winLength/2}" y2="${pixelY - gap/2}" stroke="#000000" stroke-width="${thin}" stroke-linecap="butt"/>`;
-                svgContent += `\n<line x1="${winX - winLength/2}" y1="${pixelY + gap/2}" x2="${winX + winLength/2}" y2="${pixelY + gap/2}" stroke="#000000" stroke-width="${thin}" stroke-linecap="butt"/>`;
+                const mid = winX; const y = pixelY;
+                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y}" x2="${mid + winLength/2}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y - 1}" x2="${mid + winLength/2}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y + 1}" x2="${mid + winLength/2}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'bottom') {
-                const y = pixelY + pixelHeight;
-                svgContent += `\n<line x1="${winX - winLength/2}" y1="${y - gap/2}" x2="${winX + winLength/2}" y2="${y - gap/2}" stroke="#000000" stroke-width="${thin}" stroke-linecap="butt"/>`;
-                svgContent += `\n<line x1="${winX - winLength/2}" y1="${y + gap/2}" x2="${winX + winLength/2}" y2="${y + gap/2}" stroke="#000000" stroke-width="${thin}" stroke-linecap="butt"/>`;
+                const mid = winX; const y = pixelY + pixelHeight;
+                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y}" x2="${mid + winLength/2}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y - 1}" x2="${mid + winLength/2}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y + 1}" x2="${mid + winLength/2}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'left') {
-                svgContent += `\n<line x1="${pixelX - gap/2}" y1="${winY - winLength/2}" x2="${pixelX - gap/2}" y2="${winY + winLength/2}" stroke="#000000" stroke-width="${thin}" stroke-linecap="butt"/>`;
-                svgContent += `\n<line x1="${pixelX + gap/2}" y1="${winY - winLength/2}" x2="${pixelX + gap/2}" y2="${winY + winLength/2}" stroke="#000000" stroke-width="${thin}" stroke-linecap="butt"/>`;
+                const mid = winY; const x = pixelX;
+                svgContent += `\n<line x1="${x}" y1="${mid - winLength/2}" x2="${x}" y2="${mid + winLength/2}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x - 1}" y1="${mid - winLength/2}" x2="${x - 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x + 1}" y1="${mid - winLength/2}" x2="${x + 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'right') {
-                const x = pixelX + pixelWidth;
-                svgContent += `\n<line x1="${x - gap/2}" y1="${winY - winLength/2}" x2="${x - gap/2}" y2="${winY + winLength/2}" stroke="#000000" stroke-width="${thin}" stroke-linecap="butt"/>`;
-                svgContent += `\n<line x1="${x + gap/2}" y1="${winY - winLength/2}" x2="${x + gap/2}" y2="${winY + winLength/2}" stroke="#000000" stroke-width="${thin}" stroke-linecap="butt"/>`;
+                const mid = winY; const x = pixelX + pixelWidth;
+                svgContent += `\n<line x1="${x}" y1="${mid - winLength/2}" x2="${x}" y2="${mid + winLength/2}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x - 1}" y1="${mid - winLength/2}" x2="${x - 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x + 1}" y1="${mid - winLength/2}" x2="${x + 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             }
         });
     });

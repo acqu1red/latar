@@ -10,6 +10,7 @@ interface LayoutEditorProps {
 const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ key: string; type: 'move' | 'resize'; startX: number; startY: number; start: { x: number; y: number; w: number; h: number } } | null>(null);
+  const [winEditor, setWinEditor] = useState<{ open: boolean; key: string | null; side: 'left'|'right'|'top'|'bottom' | null; pos: number; len: number }>({ open: false, key: null, side: null, pos: 0.5, len: 0.2 });
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
   const hallway = useMemo(() => rooms.find(r => /прихож|коридор|hall|entry|тамбур/i.test(String(r.name))), [rooms]);
@@ -68,6 +69,19 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     onUpdate(room.key, { rotation: rotated, layout: { x: layout.x, y: layout.y, width: layout.height, height: layout.width } });
   };
 
+  const openWindowEditor = (roomKey: string, side: 'left'|'right'|'top'|'bottom') => {
+    setWinEditor({ open: true, key: roomKey, side, pos: 0.5, len: 0.22 });
+  };
+
+  const applyWindow = () => {
+    if (!winEditor.open || !winEditor.key || !winEditor.side) { setWinEditor((s: any) => ({ ...s, open: false })); return; }
+    const target = rooms.find(r => r.key === winEditor.key);
+    if (!target) { setWinEditor((s: any) => ({ ...s, open: false })); return; }
+    const next = [...(target.windows || []) , { side: winEditor.side, pos: Math.max(0.05, Math.min(0.95, winEditor.pos)), len: Math.max(0.05, Math.min(0.8, winEditor.len)) }];
+    onUpdate(target.key, { windows: next });
+    setWinEditor((s: any) => ({ ...s, open: false }));
+  };
+
   return (
     <div className="layout-editor">
       {hallway && (
@@ -105,9 +119,31 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
               <div className="layout-resizer" onPointerDown={(e: any) => handlePointerDown(e, room, 'resize')} />
               <div className="layout-size-hint">{Math.round(layout.width*100)}×{Math.round(layout.height*100)}</div>
               <button type="button" className="layout-rotate" onClick={() => handleRotate(room)} title="Повернуть на 90°">⟳</button>
+              {/* Кнопки добавления окна по сторонам */}
+              <button className="add-window-btn top" onClick={() => openWindowEditor(room.key, 'top')}>Добавить окна</button>
+              <button className="add-window-btn bottom" onClick={() => openWindowEditor(room.key, 'bottom')}>Добавить окна</button>
+              <button className="add-window-btn left" onClick={() => openWindowEditor(room.key, 'left')}>Добавить окна</button>
+              <button className="add-window-btn right" onClick={() => openWindowEditor(room.key, 'right')}>Добавить окна</button>
             </div>
           );
         })}
+        {winEditor.open && (
+          <div className="window-editor-modal">
+            <div className="window-editor-card">
+              <div className="window-editor-title">Добавить окно — стена: {winEditor.side}</div>
+              <label>Позиция (0..1)
+                <input type="range" min={0} max={1} step={0.01} value={winEditor.pos} onChange={(e: any) => setWinEditor((s: any) => ({ ...s, pos: Number(e.target.value) }))} />
+              </label>
+              <label>Длина (0.05..0.8)
+                <input type="range" min={0.05} max={0.8} step={0.01} value={winEditor.len} onChange={(e: any) => setWinEditor((s: any) => ({ ...s, len: Number(e.target.value) }))} />
+              </label>
+              <div className="window-editor-actions">
+                <button onClick={() => setWinEditor((s: any) => ({ ...s, open: false }))}>Отмена</button>
+                <button onClick={applyWindow}>Готово</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
