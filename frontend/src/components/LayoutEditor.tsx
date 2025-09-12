@@ -12,6 +12,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   const [drag, setDrag] = useState<{ key: string; type: 'move' | 'resize'; startX: number; startY: number; start: { x: number; y: number; w: number; h: number } } | null>(null);
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
+  const hallway = useMemo(() => rooms.find(r => /прихож|коридор|hall|entry|тамбур/i.test(String(r.name))), [rooms]);
   const [snap] = useState(0.02); // 2% snapping grid
 
   const handlePointerDown = (e: React.PointerEvent, room: RoomState, type: 'move' | 'resize') => {
@@ -53,8 +54,27 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     setDrag(null);
   };
 
+  const handleEntryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value as RoomState['entrySide'];
+    if (hallway) {
+      onUpdate(hallway.key, { entrySide: value });
+    }
+  };
+
   return (
     <div className="layout-editor">
+      {hallway && (
+        <div className="entry-side-control" style={{ marginBottom: '0.75rem' }}>
+          <label style={{ fontWeight: 600, marginRight: '0.5rem' }}>Внешний вход (сторона прихожей):</label>
+          <select value={hallway.entrySide || ''} onChange={handleEntryChange}>
+            <option value="">Авто</option>
+            <option value="left">Слева</option>
+            <option value="right">Справа</option>
+            <option value="top">Сверху</option>
+            <option value="bottom">Снизу</option>
+          </select>
+        </div>
+      )}
       <div
         ref={canvasRef}
         className="layout-canvas"

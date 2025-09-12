@@ -24,6 +24,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             // Игнорируем дверные данные из AI; генерируем строго по connections + внешний вход
             doors: [],
             windows: Array.isArray(room.windows) ? [...room.windows] : [],
+            entrySide: room.entrySide || null,
         };
     });
 
@@ -201,10 +202,15 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
         hallway.doors = hallway.doors || [];
         const addCenterDoor = (side) => addDoorIfMissing(hallway, side, 0.5);
-        if (leftIsExternal) addCenterDoor('left');
-        else if (rightIsExternal) addCenterDoor('right');
-        else if (topIsExternal) addCenterDoor('top');
-        else if (bottomIsExternal) addCenterDoor('bottom');
+
+        if (hallway.entrySide) {
+            addCenterDoor(hallway.entrySide);
+        } else {
+            if (leftIsExternal) addCenterDoor('left');
+            else if (rightIsExternal) addCenterDoor('right');
+            else if (topIsExternal) addCenterDoor('top');
+            else if (bottomIsExternal) addCenterDoor('bottom');
+        }
     }
 
     let svgContent = `<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #FFFFFF; shape-rendering: crispEdges;">
@@ -212,12 +218,25 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
     // Draw rooms (exterior walls)
     pixelRooms.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, name } = room;
+        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm } = room;
         
         // Room rectangle (exterior walls)
         svgContent += `
 <rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" 
       fill="none" stroke="#000000" stroke-width="${EXTERIOR_WALL_THICKNESS}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
+        
+        // Labels: room name and area (sqm)
+        const labelName = String(name || '').trim();
+        const labelSqm = Number.isFinite(Number(sqm)) ? `${Number(sqm).toFixed(1)} м²` : '';
+        const fontSize = Math.max(20, Math.min(48, Math.min(pixelWidth, pixelHeight) * 0.12));
+        const labelX = pixelX + pixelWidth / 2;
+        const labelY = pixelY + pixelHeight / 2;
+        svgContent += `
+<text x="${labelX}" y="${labelY - fontSize*0.2}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" fill="#000000">${escapeXml(labelName)}</text>`;
+        if (labelSqm) {
+            svgContent += `
+<text x="${labelX}" y="${labelY + fontSize*0.9}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.85)}" fill="#000000">${escapeXml(labelSqm)}</text>`;
+        }
     });
 
     // Trim shared walls down to interior thickness
@@ -427,4 +446,13 @@ export async function generateSvgFromData(rooms, totalSqm) {
         console.error('Error converting SVG to PNG:', error);
         throw new Error(`Failed to convert SVG to PNG: ${error.message}`);
     }
+}
+
+function escapeXml(unsafe) {
+    return String(unsafe)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
 }
