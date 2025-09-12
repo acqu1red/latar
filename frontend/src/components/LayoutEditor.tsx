@@ -268,12 +268,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     (e.target as Element).setPointerCapture(e.pointerId);
   };
 
-  const handleDeletePlacedWindow = (room: RoomState, index: number) => {
-    const next = [ ...(room.windows ?? []) ];
-    next.splice(index, 1);
-    onUpdate(room.key, { windows: next });
-    setSelectedPlacedWindow(null);
-  };
+  // удаление выполняется через верхнюю панель
 
   // Prevent overlapping rooms helper
   const resolveNoOverlap = (candidate: { x: number; y: number; width: number; height: number }, movingKey: string) => {
@@ -323,6 +318,36 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             </select>
           </div>
           <button type="button" className="add-element-btn" onClick={handleAddNewWindow}>Добавить окно</button>
+          <button
+            type="button"
+            className="delete-selected-window-btn"
+            onClick={() => {
+              if (!selectedPlacedWindow) return;
+              const room = rooms.find(r => r.key === selectedPlacedWindow.roomKey) as RoomState | undefined;
+              if (!room) return;
+              const next = [ ...(room.windows ?? []) ];
+              next.splice(selectedPlacedWindow.index, 1);
+              onUpdate(room.key, { windows: next });
+              setSelectedPlacedWindow(null);
+            }}
+            disabled={!selectedPlacedWindow}
+            title="Удалить выделенное окно"
+          >
+            Удалить выделенное окно
+          </button>
+          <button
+            type="button"
+            className="delete-all-windows-btn"
+            onClick={() => {
+              // удалить все окна во всех помещениях и сбросить плавающие
+              rooms.forEach((r: RoomState) => { if (r.windows && r.windows.length) onUpdate(r.key, { windows: [] }); });
+              setFloatingWindows([]);
+              setSelectedPlacedWindow(null);
+            }}
+            title="Удалить все окна"
+          >
+            Удалить все окна
+          </button>
         </div>
       )}
       <div
@@ -372,7 +397,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                     }
                   })();
                   const winStyle: React.CSSProperties = { ...baseStyle, ...posStyle };
-                  const showDelete = selectedPlacedWindow && selectedPlacedWindow.roomKey === room.key && selectedPlacedWindow.index === idx;
                   const resizerStyle: React.CSSProperties = isVertical
                     ? { position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)', width: 14, height: 14 }
                     : { position: 'absolute', right: -6, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14 };
@@ -407,16 +431,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                           (e.target as Element).setPointerCapture((e as any).pointerId);
                         }}
                       />
-                      {showDelete && (
-                        <button
-                          type="button"
-                          className="window-delete-btn"
-                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleDeletePlacedWindow(room, idx); }}
-                          title="Удалить окно"
-                        >
-                          Удалить окно
-                        </button>
-                      )}
+                      {/* Кнопка удаления внутри окна удалена. Удаление управляется из верхней панели. */}
                     </div>
                   );
                 })}

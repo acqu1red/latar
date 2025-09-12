@@ -1153,36 +1153,10 @@ header p {
 }
 
 .window-delete-btn {
-  position: absolute;
-  top: -34px;
-  left: 50%;
-  transform: translate(-50%, -8px);
-  background: #fff;
-  color: #e11d48;
-  border: 1px solid #fecaca;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  box-shadow: var(--shadow-sm);
-  opacity: 0;
-  pointer-events: auto; /* кнопка должна оставаться кликабельной после клика */
-  transition: opacity var(--transition-normal), transform var(--transition-normal);
+  display: none;
 }
 
-.placed-window:hover .window-delete-btn,
-.placed-window:focus-within .window-delete-btn,
-.placed-window:active .window-delete-btn {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translate(-50%, 0);
-}
-
-/* Виден, когда окно выбрано программно */
-.placed-window .window-delete-btn.visible {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
+.placed-window:hover .window-delete-btn { display: none; }
 
 /* Панель подтверждения прикрепления окна */
 .attach-window-bar {
