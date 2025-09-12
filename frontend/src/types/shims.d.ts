@@ -9,6 +9,7 @@ declare module 'react' {
   export function useRef<T = any>(initial?: T): any;
   export type CSSProperties = any;
   export type PointerEvent = any;
+  export type MouseEvent = any;
   export type ChangeEvent<T = Element> = any;
   export const StrictMode: any;
 }

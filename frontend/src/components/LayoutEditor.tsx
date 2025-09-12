@@ -1,5 +1,4 @@
 import React, { useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { RoomState } from '../lib/api';
 
 interface LayoutEditorProps {
@@ -19,7 +18,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   const hallway = useMemo(() => rooms.find(r => /прихож|коридор|hall|entry|тамбур/i.test(String(r.name))), [rooms]);
   const [snap] = useState(0.02); // 2% snapping grid
 
-  const handlePointerDown = (e: ReactPointerEvent, item: RoomState | FloatingWindow, type: 'move' | 'resize') => {
+  const handlePointerDown = (e: React.PointerEvent, item: RoomState | FloatingWindow, type: 'move' | 'resize') => {
     const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
@@ -35,7 +34,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     (e.target as Element).setPointerCapture(e.pointerId);
   };
 
-  const handlePointerMove = (e: ReactPointerEvent) => {
+  const handlePointerMove = (e: React.PointerEvent) => {
     if (!drag) return;
     const rect = (canvasRef.current as HTMLDivElement).getBoundingClientRect();
     const currentX = (e.clientX - rect.left) / rect.width;
@@ -68,7 +67,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     }
   };
 
-  const handlePointerUp = (e: ReactPointerEvent) => {
+  const handlePointerUp = (e: React.PointerEvent) => {
     if (drag) {
       try { (e.target as Element).releasePointerCapture(e.pointerId); } catch {}
       if (drag.item.type === 'window') {
@@ -151,7 +150,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onClick={(e: any) => { if (e.target === canvasRef.current) setDrag(null); }}
+        onClick={(e: React.MouseEvent) => { if (e.target === canvasRef.current) setDrag(null); }}
       >
         {enabledRooms.map((room: RoomState) => {
           const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
@@ -164,8 +163,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
           return (
             <div key={room.key} className="layout-box" style={style}>
                 <div className="layout-box-header">{room.name}</div>
-                <div className="layout-box-body" onPointerDown={(e: ReactPointerEvent) => handlePointerDown(e, room, 'move')} />
-                <div className="layout-resizer" onPointerDown={(e: ReactPointerEvent) => handlePointerDown(e, room, 'resize')} />
+                <div className="layout-box-body" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'move')} />
+                <div className="layout-resizer" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize')} />
                 <div className="layout-size-hint">{Math.round(layout.width*100)}×{Math.round(layout.height*100)}</div>
                 <button type="button" className="layout-rotate" onClick={() => handleRotate(room)} title="Повернуть на 90°">⟳</button>
                 
@@ -200,7 +199,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
           return (
             <div key={win.id} className="floating-window" style={style} onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, win, 'move')}>
               <div className="layout-resizer" onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); handlePointerDown(e, win, 'resize'); }} />
-              <button type="button" className="layout-rotate" onClick={(e: any) => { e.stopPropagation(); handleRotate(win); }} title="Повернуть на 90°">⟳</button>
+              <button type="button" className="layout-rotate" onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleRotate(win); }} title="Повернуть на 90°">⟳</button>
             </div>
           );
         })}
