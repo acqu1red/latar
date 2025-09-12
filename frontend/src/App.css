@@ -1214,14 +1214,12 @@ header p {
 .editor-controls {
   display: flex;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
   padding: 16px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  max-height: 200px;
-  overflow-y: auto;
 }
 
 .add-window-btn, .delete-selected-window-btn, .delete-all-windows-btn {
@@ -1275,52 +1273,6 @@ header p {
 .delete-all-windows-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(244, 67, 54, 0.4);
-}
-
-.room-resize-controls, .window-resize-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  margin: 4px 0;
-}
-
-.room-name-small, .window-name-small {
-  font-size: 12px;
-  font-weight: 600;
-  color: #666;
-  min-width: 60px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.resize-btn {
-  padding: 6px 10px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 11px;
-  transition: all 0.2s ease;
-  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-  color: white;
-  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
-  min-width: 50px;
-}
-
-.resize-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-}
-
-.resize-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
 }
 
 .attachment-panel {
@@ -1441,33 +1393,100 @@ header p {
 }
 
 .room-resize-handle {
-  width: 24px;
-  height: 24px;
+  position: absolute;
   background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-  border-radius: 50%;
-  cursor: se-resize;
-  opacity: 0.8;
+  opacity: 0;
   transition: all 0.3s ease;
-  position: relative;
   box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  z-index: 10;
+}
+
+.room:hover .room-resize-handle {
+  opacity: 0.8;
 }
 
 .room-resize-handle:hover {
-  opacity: 1;
+  opacity: 1 !important;
   transform: scale(1.2);
   box-shadow: 0 4px 12px rgba(33, 150, 243, 0.5);
 }
 
-.room-resize-handle::after {
-  content: '';
-  position: absolute;
-  bottom: 5px;
-  right: 5px;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 8px solid white;
+/* Угловые ручки */
+.room-resize-handle.se {
+  width: 12px;
+  height: 12px;
+  bottom: -6px;
+  right: -6px;
+  cursor: se-resize;
+  border-radius: 50%;
+}
+
+.room-resize-handle.nw {
+  width: 12px;
+  height: 12px;
+  top: -6px;
+  left: -6px;
+  cursor: nw-resize;
+  border-radius: 50%;
+}
+
+.room-resize-handle.ne {
+  width: 12px;
+  height: 12px;
+  top: -6px;
+  right: -6px;
+  cursor: ne-resize;
+  border-radius: 50%;
+}
+
+.room-resize-handle.sw {
+  width: 12px;
+  height: 12px;
+  bottom: -6px;
+  left: -6px;
+  cursor: sw-resize;
+  border-radius: 50%;
+}
+
+/* Боковые ручки */
+.room-resize-handle.n {
+  width: 20px;
+  height: 6px;
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: n-resize;
+  border-radius: 3px;
+}
+
+.room-resize-handle.s {
+  width: 20px;
+  height: 6px;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: s-resize;
+  border-radius: 3px;
+}
+
+.room-resize-handle.e {
+  width: 6px;
+  height: 20px;
+  right: -3px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: e-resize;
+  border-radius: 3px;
+}
+
+.room-resize-handle.w {
+  width: 6px;
+  height: 20px;
+  left: -3px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: w-resize;
+  border-radius: 3px;
 }
 
 .floating-window {

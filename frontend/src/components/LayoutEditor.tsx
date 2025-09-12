@@ -45,6 +45,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     startX: number;
     startY: number;
     start: any;
+    resizeHandle?: string;
   } | null>(null);
   
   const [floatingWindows, setFloatingWindows] = useState<FloatingWindow[]>([]);
@@ -165,7 +166,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   };
 
   // Обработка начала перетаскивания
-  const handlePointerDown = (e: React.PointerEvent, item: RoomState | FloatingWindow, type: 'move' | 'resize') => {
+  const handlePointerDown = (e: React.PointerEvent, item: RoomState | FloatingWindow, type: 'move' | 'resize', resizeHandle?: string) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
 
@@ -198,11 +199,30 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         type,
         startX: x,
         startY: y,
-        start: { x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: roomPixels.height }
+        start: { x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: roomPixels.height },
+        resizeHandle
       });
     }
 
     (e.target as Element).setPointerCapture(e.pointerId);
+  };
+
+  // Проверка пересечения комнат
+  const checkRoomCollision = (roomKey: string, x: number, y: number, width: number, height: number): boolean => {
+    for (const room of enabledRooms) {
+      if (room.key === roomKey) continue;
+      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      const roomPixels = toPixels(layout);
+      
+      // Проверяем пересечение прямоугольников
+      if (x < roomPixels.x + roomPixels.width && 
+          x + width > roomPixels.x && 
+          y < roomPixels.y + roomPixels.height && 
+          y + height > roomPixels.y) {
+        return true;
+      }
+    }
+    return false;
   };
 
   // Обработка движения мыши
@@ -253,14 +273,60 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
       
       if (drag.type === 'resize') {
-        const newWidth = Math.max(100, Math.min(CANVAS_WIDTH - newX, drag.start.width + dx));
-        const newHeight = Math.max(100, Math.min(CANVAS_HEIGHT - newY, drag.start.height + dy));
+        let newX = drag.start.x;
+        let newY = drag.start.y;
+        let newWidth = drag.start.width;
+        let newHeight = drag.start.height;
         
-        const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
-        onUpdate(drag.item.key, { layout: normalized });
+        // Изменяем размер в зависимости от ручки
+        switch (drag.resizeHandle) {
+          case 'se': // Юго-восток
+            newWidth = Math.max(100, Math.min(CANVAS_WIDTH - newX, drag.start.width + dx));
+            newHeight = Math.max(100, Math.min(CANVAS_HEIGHT - newY, drag.start.height + dy));
+            break;
+          case 'sw': // Юго-запад
+            newX = Math.max(0, Math.min(drag.start.x + drag.start.width - 100, drag.start.x + dx));
+            newWidth = drag.start.width - (newX - drag.start.x);
+            newHeight = Math.max(100, Math.min(CANVAS_HEIGHT - newY, drag.start.height + dy));
+            break;
+          case 'ne': // Северо-восток
+            newWidth = Math.max(100, Math.min(CANVAS_WIDTH - newX, drag.start.width + dx));
+            newY = Math.max(0, Math.min(drag.start.y + drag.start.height - 100, drag.start.y + dy));
+            newHeight = drag.start.height - (newY - drag.start.y);
+            break;
+          case 'nw': // Северо-запад
+            newX = Math.max(0, Math.min(drag.start.x + drag.start.width - 100, drag.start.x + dx));
+            newWidth = drag.start.width - (newX - drag.start.x);
+            newY = Math.max(0, Math.min(drag.start.y + drag.start.height - 100, drag.start.y + dy));
+            newHeight = drag.start.height - (newY - drag.start.y);
+            break;
+          case 'n': // Север
+            newY = Math.max(0, Math.min(drag.start.y + drag.start.height - 100, drag.start.y + dy));
+            newHeight = drag.start.height - (newY - drag.start.y);
+            break;
+          case 's': // Юг
+            newHeight = Math.max(100, Math.min(CANVAS_HEIGHT - newY, drag.start.height + dy));
+            break;
+          case 'e': // Восток
+            newWidth = Math.max(100, Math.min(CANVAS_WIDTH - newX, drag.start.width + dx));
+            break;
+          case 'w': // Запад
+            newX = Math.max(0, Math.min(drag.start.x + drag.start.width - 100, drag.start.x + dx));
+            newWidth = drag.start.width - (newX - drag.start.x);
+            break;
+        }
+        
+        // Проверяем коллизии только при изменении размера
+        if (!checkRoomCollision(drag.item.key, newX, newY, newWidth, newHeight)) {
+          const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
+          onUpdate(drag.item.key, { layout: normalized });
+        }
       } else {
-        const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
-        onUpdate(drag.item.key, { layout: normalized });
+        // Проверяем коллизии при перемещении
+        if (!checkRoomCollision(drag.item.key, newX, newY, drag.start.width, drag.start.height)) {
+          const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
+          onUpdate(drag.item.key, { layout: normalized });
+        }
       }
     }
   };
@@ -344,34 +410,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     setSelectedWindow(null);
   };
 
-  // Изменение размера помещения
-  const resizeRoom = (roomKey: string, deltaWidth: number, deltaHeight: number) => {
-    const room = rooms.find(r => r.key === roomKey);
-    if (!room || !room.layout) return;
-
-    const currentPixels = toPixels(room.layout);
-    const newWidth = Math.max(100, Math.min(CANVAS_WIDTH - currentPixels.x, currentPixels.width + deltaWidth));
-    const newHeight = Math.max(100, Math.min(CANVAS_HEIGHT - currentPixels.y, currentPixels.height + deltaHeight));
-    
-    const normalized = toNormalized({ 
-      x: currentPixels.x, 
-      y: currentPixels.y, 
-      width: newWidth, 
-      height: newHeight 
-    });
-    
-    onUpdate(roomKey, { layout: normalized });
-  };
-
-  // Изменение размера плавающего окна
-  const resizeFloatingWindow = (windowId: number, deltaLength: number) => {
-    setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-      w.id === windowId 
-        ? { ...w, length: Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, w.length + deltaLength)) }
-        : w
-    ));
-  };
-
   // Обработка клика по установленному окну
   const handlePlacedWindowClick = (roomKey: string, index: number) => {
     if (selectedWindow?.roomKey === roomKey && selectedWindow?.index === index) {
@@ -380,7 +418,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       setSelectedWindow({ roomKey, index });
     }
   };
-
 
   return (
     <div className="layout-editor">
@@ -407,62 +444,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         >
           🗑️ Удалить все окна
         </button>
-
-        {/* Кнопки изменения размера помещений */}
-        {enabledRooms.map((room) => (
-          <div key={`resize-${room.key}`} className="room-resize-controls">
-            <span className="room-name-small">{room.name}:</span>
-            <button 
-              className="resize-btn"
-              onClick={() => resizeRoom(room.key, 20, 0)}
-              title="Увеличить ширину"
-            >
-              ↔️ +20
-            </button>
-            <button 
-              className="resize-btn"
-              onClick={() => resizeRoom(room.key, -20, 0)}
-              title="Уменьшить ширину"
-            >
-              ↔️ -20
-            </button>
-            <button 
-              className="resize-btn"
-              onClick={() => resizeRoom(room.key, 0, 20)}
-              title="Увеличить высоту"
-            >
-              ↕️ +20
-            </button>
-            <button 
-              className="resize-btn"
-              onClick={() => resizeRoom(room.key, 0, -20)}
-              title="Уменьшить высоту"
-            >
-              ↕️ -20
-            </button>
-          </div>
-        ))}
-
-        {/* Кнопки изменения размера плавающих окон */}
-        {floatingWindows.map((window: FloatingWindow) => (
-          <div key={`resize-window-${window.id}`} className="window-resize-controls">
-            <span className="window-name-small">Окно {window.id}:</span>
-            <button 
-              className="resize-btn"
-              onClick={() => resizeFloatingWindow(window.id, 20)}
-              title="Увеличить размер"
-            >
-              📏 +20
-            </button>
-            <button 
-              className="resize-btn"
-              onClick={() => resizeFloatingWindow(window.id, -20)}
-              title="Уменьшить размер"
-            >
-              📏 -20
-            </button>
-          </div>
-        ))}
       </div>
 
       {/* Панель подтверждения привязки */}
@@ -535,8 +516,17 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             >
               <div className="room-header">
                 <span className="room-name">{room.name}</span>
-                <div className="room-resize-handle" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize')} />
               </div>
+              
+              {/* Ручки для изменения размера */}
+              <div className="room-resize-handle se" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'se')} />
+              <div className="room-resize-handle nw" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'nw')} />
+              <div className="room-resize-handle ne" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'ne')} />
+              <div className="room-resize-handle sw" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'sw')} />
+              <div className="room-resize-handle n" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'n')} />
+              <div className="room-resize-handle s" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 's')} />
+              <div className="room-resize-handle e" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'e')} />
+              <div className="room-resize-handle w" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'w')} />
               
               {/* Установленные окна */}
               {room.windows?.map((window, index) => (
@@ -567,7 +557,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             key={window.id}
             className={`floating-window ${window.isDragging ? 'dragging' : ''} ${window.isResizing ? 'resizing' : ''}`}
             style={{
-              position: 'absolute',
+            position: 'absolute',
               left: window.x,
               top: window.y,
               width: window.rotation === 0 ? window.length : 20,
@@ -584,7 +574,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
           >
             <div className="window-resize-handle" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, window, 'resize')} />
             <div className="window-label">🪟</div>
-          </div>
+            </div>
         ))}
       </div>
     </div>
