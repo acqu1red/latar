@@ -6,8 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch server.mjs",
-    "start": "node server.mjs",
-    "build": "NODE_ENV=build node server.mjs --build"
+    "start": "node server.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",
