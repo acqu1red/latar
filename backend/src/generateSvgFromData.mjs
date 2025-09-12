@@ -368,7 +368,15 @@ export async function generateSvgFromData(rooms, totalSqm) {
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, objects = [] } = room;
         
-        objects.filter(obj => (obj.w * obj.h) > 0.005).slice(0, 6).forEach(obj => {
+        console.log(`Drawing objects for room ${room.key} (${room.name}):`, objects.length, 'objects total');
+        if (objects.length > 0) {
+            console.log('Object details:', objects.map(o => ({ type: o.type, x: o.x, y: o.y, w: o.w, h: o.h, area: o.w * o.h })));
+        }
+        
+        const filteredObjects = objects.filter(obj => (obj.w * obj.h) > 0.005).slice(0, 6);
+        console.log(`After filtering (area > 0.005): ${filteredObjects.length} objects`);
+        
+        filteredObjects.forEach(obj => {
             const objX = pixelX + obj.x * pixelWidth;
             const objY = pixelY + obj.y * pixelHeight;
             const objWidth = Math.max(18, obj.w * pixelWidth);
