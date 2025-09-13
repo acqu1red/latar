@@ -72,7 +72,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     const width = Math.sqrt(areaInPixels / aspectRatio);
     const height = areaInPixels / width;
     
-    console.log(`Площадь: ${sqm} кв.м, Соотношение: ${aspectRatio.toFixed(2)}, Размеры: ${Math.round(width)}x${Math.round(height)} пикселей`);
     
     return {
       width: Math.round(width),
@@ -308,7 +307,21 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       ));
     } else {
       const layout = item.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      const roomPixels = toPixels(layout);
+      
+      // Получаем размеры с учетом площади
+      let roomPixels;
+      if (item.sqm && item.sqm > 0) {
+        const dimensions = getRoomPixelDimensions(item);
+        roomPixels = {
+          x: Math.round(layout.x * CANVAS_WIDTH),
+          y: Math.round(layout.y * CANVAS_HEIGHT),
+          width: dimensions.width,
+          height: dimensions.height
+        };
+      } else {
+        roomPixels = toPixels(layout);
+      }
+      
       setDrag({
         key: item.key,
         item,
@@ -528,8 +541,18 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         }
       } else {
         // Перемещение комнаты
-        let newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
-        let newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
+        // Получаем текущие размеры помещения с учетом площади
+        let currentWidth = drag.start.width;
+        let currentHeight = drag.start.height;
+        
+        if (drag.item.sqm && drag.item.sqm > 0) {
+          const currentDimensions = getRoomPixelDimensions(drag.item);
+          currentWidth = currentDimensions.width;
+          currentHeight = currentDimensions.height;
+        }
+        
+        let newX = Math.max(0, Math.min(CANVAS_WIDTH - currentWidth, drag.start.x + dx));
+        let newY = Math.max(0, Math.min(CANVAS_HEIGHT - currentHeight, drag.start.y + dy));
         
         // Магнитное притяжение стен
         let isSnapping = false;
@@ -584,7 +607,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         newY = smartAlign(newY);
         
         // Применяем изменения без проверки коллизий
-        const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
+        const normalized = toNormalized({ x: newX, y: newY, width: currentWidth, height: currentHeight });
         onUpdate(drag.item.key, { layout: normalized });
       }
     }
