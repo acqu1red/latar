@@ -72,17 +72,32 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     const width = Math.sqrt(areaInPixels / aspectRatio);
     const height = areaInPixels / width;
     
+    console.log(`Площадь: ${sqm} кв.м, Соотношение: ${aspectRatio.toFixed(2)}, Размеры: ${Math.round(width)}x${Math.round(height)} пикселей`);
+    
     return {
       width: Math.round(width),
       height: Math.round(height)
     };
   };
 
+  // Функция для получения размеров помещения с учетом площади
+  const getRoomPixelDimensions = (room: RoomState): { width: number; height: number } => {
+    if (!room.sqm || room.sqm <= 0) {
+      // Если площадь не указана, используем обычные размеры
+      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      return toPixels(layout);
+    }
+    
+    // Если площадь указана, рассчитываем размеры на основе площади
+    const aspectRatio = getRoomAspectRatio(room);
+    return calculateRoomDimensions(room.sqm, aspectRatio);
+  };
+
   // Функция для получения текущего соотношения сторон помещения
   const getRoomAspectRatio = (room: RoomState): number => {
     const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-    const roomPixels = toPixels(layout);
-    return roomPixels.width / roomPixels.height;
+    // Используем нормализованные размеры для расчета соотношения
+    return layout.width / layout.height;
   };
 
   // Функция для обновления размеров помещения с сохранением площади
@@ -91,10 +106,11 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       return { width: newWidth, height: newHeight };
     }
     
-    const areaInPixels = room.sqm * 100;
+    // Рассчитываем новое соотношение сторон
     const aspectRatio = newWidth / newHeight;
     
     // Рассчитываем новые размеры с сохранением площади
+    const areaInPixels = room.sqm * 100;
     const width = Math.sqrt(areaInPixels / aspectRatio);
     const height = areaInPixels / width;
     
@@ -107,12 +123,38 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   // Функция для определения всех пересечений с конкретным помещением
   const getRoomOverlaps = (targetRoom: RoomState): RoomState[] => {
     const targetLayout = targetRoom.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-    const targetPixels = toPixels(targetLayout);
+    
+    // Получаем размеры целевого помещения с учетом площади
+    let targetPixels;
+    if (targetRoom.sqm && targetRoom.sqm > 0) {
+      const dimensions = getRoomPixelDimensions(targetRoom);
+      targetPixels = {
+        x: Math.round(targetLayout.x * CANVAS_WIDTH),
+        y: Math.round(targetLayout.y * CANVAS_HEIGHT),
+        width: dimensions.width,
+        height: dimensions.height
+      };
+    } else {
+      targetPixels = toPixels(targetLayout);
+    }
     
     return enabledRooms.filter(room => {
       if (room.key === targetRoom.key) return false;
       const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      const roomPixels = toPixels(layout);
+      
+      // Получаем размеры помещения с учетом площади
+      let roomPixels;
+      if (room.sqm && room.sqm > 0) {
+        const dimensions = getRoomPixelDimensions(room);
+        roomPixels = {
+          x: Math.round(layout.x * CANVAS_WIDTH),
+          y: Math.round(layout.y * CANVAS_HEIGHT),
+          width: dimensions.width,
+          height: dimensions.height
+        };
+      } else {
+        roomPixels = toPixels(layout);
+      }
       
       // Проверяем пересечение прямоугольников
       return targetPixels.x < roomPixels.x + roomPixels.width && 
@@ -467,18 +509,23 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         newHeight = smartAlign(newHeight);
         
         // Если у помещения задана площадь, пересчитываем размеры с сохранением площади
-        let finalWidth = newWidth;
-        let finalHeight = newHeight;
-        
         if (drag.item.sqm && drag.item.sqm > 0) {
           const updatedDimensions = updateRoomDimensions(drag.item, newWidth, newHeight);
-          finalWidth = updatedDimensions.width;
-          finalHeight = updatedDimensions.height;
+          
+          // Конвертируем новые размеры в нормализованные координаты
+          const normalized = toNormalized({ 
+            x: newX, 
+            y: newY, 
+            width: updatedDimensions.width, 
+            height: updatedDimensions.height 
+          });
+          
+          onUpdate(drag.item.key, { layout: normalized });
+        } else {
+          // Обычное изменение размера без ограничений по площади
+          const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
+          onUpdate(drag.item.key, { layout: normalized });
         }
-        
-        // Применяем изменения без проверки коллизий
-        const normalized = toNormalized({ x: newX, y: newY, width: finalWidth, height: finalHeight });
-        onUpdate(drag.item.key, { layout: normalized });
       } else {
         // Перемещение комнаты
         let newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
@@ -715,8 +762,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
           // Рассчитываем размеры с учетом площади, если указана
           let roomPixels;
           if (room.sqm && room.sqm > 0) {
-            const aspectRatio = getRoomAspectRatio(room);
-            const dimensions = calculateRoomDimensions(room.sqm, aspectRatio);
+            const dimensions = getRoomPixelDimensions(room);
             roomPixels = {
               x: Math.round(layout.x * CANVAS_WIDTH),
               y: Math.round(layout.y * CANVAS_HEIGHT),
