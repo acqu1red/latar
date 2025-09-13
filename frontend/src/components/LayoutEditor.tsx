@@ -217,23 +217,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     (e.target as Element).setPointerCapture(e.pointerId);
   };
 
-  // Проверка пересечения комнат
-  const checkRoomCollision = (roomKey: string, x: number, y: number, width: number, height: number): boolean => {
-    for (const room of enabledRooms) {
-      if (room.key === roomKey) continue;
-      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      const roomPixels = toPixels(layout);
-      
-      // Проверяем пересечение прямоугольников
-      if (x < roomPixels.x + roomPixels.width && 
-          x + width > roomPixels.x && 
-          y < roomPixels.y + roomPixels.height && 
-          y + height > roomPixels.y) {
-        return true;
-      }
-    }
-    return false;
-  };
 
   // Умное выравнивание
   const smartAlign = (value: number, snapDistance: number = 20): number => {
@@ -355,20 +338,52 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             break;
         }
         
-        // Умное выравнивание размеров с другими комнатами
+        // Магнитное притяжение стен при изменении размера
+        let isSnapping = false;
+        const snapDistance = 20;
+        
         for (const room of enabledRooms) {
           if (room.key === drag.item.key) continue;
           const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
           const roomPixels = toPixels(layout);
           
-          // Выравнивание ширины
-          if (Math.abs(newWidth - roomPixels.width) < 20) {
-            newWidth = roomPixels.width;
+          // Проверяем выравнивание стен при изменении размера
+          const alignments = [
+            // Левая стена к левой стене
+            { type: 'left-to-left', distance: Math.abs(newX - roomPixels.x), snapX: roomPixels.x, snapY: newY },
+            // Левая стена к правой стене
+            { type: 'left-to-right', distance: Math.abs(newX - (roomPixels.x + roomPixels.width)), snapX: roomPixels.x + roomPixels.width, snapY: newY },
+            // Правая стена к левой стене
+            { type: 'right-to-left', distance: Math.abs((newX + newWidth) - roomPixels.x), snapX: roomPixels.x - newWidth, snapY: newY },
+            // Правая стена к правой стене
+            { type: 'right-to-right', distance: Math.abs((newX + newWidth) - (roomPixels.x + roomPixels.width)), snapX: roomPixels.x + roomPixels.width - newWidth, snapY: newY },
+            // Верхняя стена к верхней стене
+            { type: 'top-to-top', distance: Math.abs(newY - roomPixels.y), snapX: newX, snapY: roomPixels.y },
+            // Верхняя стена к нижней стене
+            { type: 'top-to-bottom', distance: Math.abs(newY - (roomPixels.y + roomPixels.height)), snapX: newX, snapY: roomPixels.y + roomPixels.height },
+            // Нижняя стена к верхней стене
+            { type: 'bottom-to-top', distance: Math.abs((newY + newHeight) - roomPixels.y), snapX: newX, snapY: roomPixels.y - newHeight },
+            // Нижняя стена к нижней стене
+            { type: 'bottom-to-bottom', distance: Math.abs((newY + newHeight) - (roomPixels.y + roomPixels.height)), snapX: newX, snapY: roomPixels.y + roomPixels.height - newHeight }
+          ];
+          
+          // Находим ближайшее выравнивание
+          const closestAlignment = alignments.reduce((closest, current) => 
+            current.distance < closest.distance ? current : closest
+          );
+          
+          if (closestAlignment.distance < snapDistance) {
+            newX = closestAlignment.snapX;
+            newY = closestAlignment.snapY;
+            isSnapping = true;
           }
-          // Выравнивание высоты
-          if (Math.abs(newHeight - roomPixels.height) < 20) {
-            newHeight = roomPixels.height;
-          }
+        }
+        
+        // Обновляем состояние выравнивания
+        if (isSnapping) {
+          setSnappingRoom(drag.item.key);
+        } else {
+          setSnappingRoom(null);
         }
         
         // Применяем умное выравнивание
@@ -377,50 +392,52 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         newWidth = smartAlign(newWidth);
         newHeight = smartAlign(newHeight);
         
-        // Проверяем коллизии только при изменении размера
-        if (!checkRoomCollision(drag.item.key, newX, newY, newWidth, newHeight)) {
-          const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
-          onUpdate(drag.item.key, { layout: normalized });
-        }
+        // Применяем изменения без проверки коллизий
+        const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
+        onUpdate(drag.item.key, { layout: normalized });
       } else {
         // Перемещение комнаты
         let newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
         let newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
         
-        // Умное выравнивание с другими комнатами (оптимизировано)
+        // Магнитное притяжение стен
         let isSnapping = false;
-        const snapDistance = 15;
+        const snapDistance = 20;
         
         for (const room of enabledRooms) {
           if (room.key === drag.item.key) continue;
           const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
           const roomPixels = toPixels(layout);
           
-          // Быстрая проверка на близость
-          const distanceX = Math.abs(newX - roomPixels.x);
-          const distanceY = Math.abs(newY - roomPixels.y);
+          // Проверяем все возможные выравнивания стен
+          const alignments = [
+            // Левая стена к левой стене
+            { type: 'left-to-left', distance: Math.abs(newX - roomPixels.x), snapX: roomPixels.x, snapY: newY },
+            // Левая стена к правой стене
+            { type: 'left-to-right', distance: Math.abs(newX - (roomPixels.x + roomPixels.width)), snapX: roomPixels.x + roomPixels.width, snapY: newY },
+            // Правая стена к левой стене
+            { type: 'right-to-left', distance: Math.abs((newX + drag.start.width) - roomPixels.x), snapX: roomPixels.x - drag.start.width, snapY: newY },
+            // Правая стена к правой стене
+            { type: 'right-to-right', distance: Math.abs((newX + drag.start.width) - (roomPixels.x + roomPixels.width)), snapX: roomPixels.x + roomPixels.width - drag.start.width, snapY: newY },
+            // Верхняя стена к верхней стене
+            { type: 'top-to-top', distance: Math.abs(newY - roomPixels.y), snapX: newX, snapY: roomPixels.y },
+            // Верхняя стена к нижней стене
+            { type: 'top-to-bottom', distance: Math.abs(newY - (roomPixels.y + roomPixels.height)), snapX: newX, snapY: roomPixels.y + roomPixels.height },
+            // Нижняя стена к верхней стене
+            { type: 'bottom-to-top', distance: Math.abs((newY + drag.start.height) - roomPixels.y), snapX: newX, snapY: roomPixels.y - drag.start.height },
+            // Нижняя стена к нижней стене
+            { type: 'bottom-to-bottom', distance: Math.abs((newY + drag.start.height) - (roomPixels.y + roomPixels.height)), snapX: newX, snapY: roomPixels.y + roomPixels.height - drag.start.height }
+          ];
           
-          if (distanceX < snapDistance || distanceY < snapDistance) {
-            // Выравнивание по левому краю
-            if (distanceX < snapDistance) {
-              newX = roomPixels.x;
-              isSnapping = true;
-            }
-            // Выравнивание по правому краю
-            if (Math.abs((newX + drag.start.width) - (roomPixels.x + roomPixels.width)) < snapDistance) {
-              newX = roomPixels.x + roomPixels.width - drag.start.width;
-              isSnapping = true;
-            }
-            // Выравнивание по верхнему краю
-            if (distanceY < snapDistance) {
-              newY = roomPixels.y;
-              isSnapping = true;
-            }
-            // Выравнивание по нижнему краю
-            if (Math.abs((newY + drag.start.height) - (roomPixels.y + roomPixels.height)) < snapDistance) {
-              newY = roomPixels.y + roomPixels.height - drag.start.height;
-              isSnapping = true;
-            }
+          // Находим ближайшее выравнивание
+          const closestAlignment = alignments.reduce((closest, current) => 
+            current.distance < closest.distance ? current : closest
+          );
+          
+          if (closestAlignment.distance < snapDistance) {
+            newX = closestAlignment.snapX;
+            newY = closestAlignment.snapY;
+            isSnapping = true;
           }
         }
         
@@ -435,11 +452,9 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         newX = smartAlign(newX);
         newY = smartAlign(newY);
         
-        // Проверяем коллизии при перемещении
-        if (!checkRoomCollision(drag.item.key, newX, newY, drag.start.width, drag.start.height)) {
-          const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
-          onUpdate(drag.item.key, { layout: normalized });
-        }
+        // Применяем изменения без проверки коллизий
+        const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
+        onUpdate(drag.item.key, { layout: normalized });
       }
     }
   };
