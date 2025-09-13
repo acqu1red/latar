@@ -80,14 +80,32 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
 
     console.log('Received rooms:', rooms.map(r => ({ key: r.key, name: r.name, enabled: r.enabled, sqm: r.sqm })));
 
-    const enabledRooms = rooms.filter(r => r.enabled && r.sqm > 0);
+    // Process bathroom configuration first
+    let allRooms = [...rooms];
+    if (bathroomConfig) {
+      const parsedBathroomConfig = JSON.parse(bathroomConfig);
+      if (parsedBathroomConfig.type === 'combined') {
+        const bathroomIndex = allRooms.findIndex(r => r.key === 'bathroom');
+        if (bathroomIndex !== -1 && parsedBathroomConfig.bathroom.enabled) {
+          allRooms[bathroomIndex] = { ...parsedBathroomConfig.bathroom, key: 'bathroom', name: 'Уборная' };
+        }
+      } else {
+        const filteredRooms = allRooms.filter(r => r.key !== 'bathroom');
+        const additionalRooms = [];
+        if (parsedBathroomConfig.bathroom.enabled) additionalRooms.push(parsedBathroomConfig.bathroom);
+        if (parsedBathroomConfig.toilet.enabled) additionalRooms.push(parsedBathroomConfig.toilet);
+        allRooms.splice(0, allRooms.length, ...filteredRooms, ...additionalRooms);
+      }
+    }
+
+    const enabledRooms = allRooms.filter(r => r.enabled && r.sqm > 0);
     console.log('Enabled rooms:', enabledRooms.map(r => ({ key: r.key, name: r.name, sqm: r.sqm })));
     
     if (enabledRooms.length === 0) {
       return res.status(400).json({ ok: false, error: 'No enabled rooms with sqm > 0.' });
     }
 
-    // Check if all enabled rooms have a corresponding file
+    // Process photo files (optional)
     const filesByRoomKey = req.files.reduce((acc, file) => {
       const key = file.fieldname.replace('photo_', '');
       if (!acc[key]) {
@@ -98,12 +116,6 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
     }, {});
 
     console.log('Files by room key:', Object.keys(filesByRoomKey));
-
-    const missingFiles = enabledRooms.filter(r => !filesByRoomKey[r.key] || filesByRoomKey[r.key].length === 0);
-    if (missingFiles.length > 0) {
-      const missingKeys = missingFiles.map(r => r.key).join(', ');
-      return res.status(400).json({ ok: false, error: `Missing photo files for: ${missingKeys}` });
-    }
 
     const totalSqm = enabledRooms.reduce((sum, r) => sum + r.sqm, 0);
 
