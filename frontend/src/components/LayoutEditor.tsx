@@ -191,8 +191,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         type,
         startX: x,
         startY: y,
-        start: { x: item.x, y: item.y, length: item.length, rotation: item.rotation },
-        resizeHandle
+        start: { x: item.x, y: item.y, length: item.length, rotation: item.rotation }
       });
       
       // Обновляем состояние окна
@@ -281,22 +280,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       let newLength = drag.start.length;
       
       if (drag.type === 'resize') {
-        // Растягивание окна в зависимости от ручки
-        if (drag.resizeHandle === 'left') {
-          // Растягивание влево - уменьшаем длину и сдвигаем позицию
-          const lengthChange = -dx;
-          newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + lengthChange));
-          newX = drag.start.x + (drag.start.length - newLength);
-        } else if (drag.resizeHandle === 'right') {
-          // Растягивание вправо - увеличиваем длину
+        // Растягивание окна
+        if (drag.item.rotation === 0) {
+          // Горизонтальное окно - растягиваем по X
           newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + dx));
-        } else if (drag.resizeHandle === 'top') {
-          // Растягивание вверх - уменьшаем длину и сдвигаем позицию
-          const lengthChange = -dy;
-          newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + lengthChange));
-          newY = drag.start.y + (drag.start.length - newLength);
-        } else if (drag.resizeHandle === 'bottom') {
-          // Растягивание вниз - увеличиваем длину
+        } else {
+          // Вертикальное окно - растягиваем по Y
           newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + dy));
         }
       } else {
@@ -704,7 +693,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
               e.stopPropagation();
               rotateFloatingWindow(window.id);
             }}
-            title="Перетаскивать: перемещение, двойной клик: поворот"
+            title="Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание"
           >
             
             {/* Ручки растягивания длины */}
@@ -715,14 +704,14 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                   className="floating-window-resize-handle floating-window-resize-left"
                   onPointerDown={(e: React.PointerEvent) => {
                     e.stopPropagation();
-                    handlePointerDown(e, window, 'resize', 'left');
+                    handlePointerDown(e, window, 'resize');
                   }}
                 />
                 <div 
                   className="floating-window-resize-handle floating-window-resize-right"
                   onPointerDown={(e: React.PointerEvent) => {
                     e.stopPropagation();
-                    handlePointerDown(e, window, 'resize', 'right');
+                    handlePointerDown(e, window, 'resize');
                   }}
                 />
               </>
@@ -733,14 +722,14 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                   className="floating-window-resize-handle floating-window-resize-top"
                   onPointerDown={(e: React.PointerEvent) => {
                     e.stopPropagation();
-                    handlePointerDown(e, window, 'resize', 'top');
+                    handlePointerDown(e, window, 'resize');
                   }}
                 />
                 <div 
                   className="floating-window-resize-handle floating-window-resize-bottom"
                   onPointerDown={(e: React.PointerEvent) => {
                     e.stopPropagation();
-                    handlePointerDown(e, window, 'resize', 'bottom');
+                    handlePointerDown(e, window, 'resize');
                   }}
                 />
               </>
