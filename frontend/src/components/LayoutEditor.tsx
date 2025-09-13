@@ -55,6 +55,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     attachment: WindowAttachment;
   } | null>(null);
   const [snappingRoom, setSnappingRoom] = useState<string | null>(null);
+  const [windowRotation, setWindowRotation] = useState<{ [key: string]: number }>({});
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
 
@@ -239,6 +240,41 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     
     return value;
   };
+
+  // Поворот окна на 90 градусов
+  const rotateWindow = (roomKey: string, windowIndex: number) => {
+    const room = rooms.find(r => r.key === roomKey);
+    if (!room || !room.windows) return;
+
+    const window = room.windows[windowIndex];
+    if (!window) return;
+
+    const windowId = `${roomKey}-${windowIndex}`;
+    const currentRotation = windowRotation[windowId] || 0;
+    const newRotation = (currentRotation + 90) % 360;
+
+    setWindowRotation((prev: { [key: string]: number }) => ({
+      ...prev,
+      [windowId]: newRotation
+    }));
+
+    // Обновляем сторону окна в зависимости от поворота
+    const sideMap: { [key: string]: 'left' | 'right' | 'top' | 'bottom' } = {
+      'top': 'right',
+      'right': 'bottom', 
+      'bottom': 'left',
+      'left': 'top'
+    };
+
+    const newSide = sideMap[window.side] || window.side;
+    
+    const updatedWindows = room.windows.map((w, index) => 
+      index === windowIndex ? { ...w, side: newSide } : w
+    );
+
+    onUpdate(roomKey, { windows: updatedWindows });
+  };
+
 
   // Обработка движения мыши
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -623,7 +659,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                   className={`placed-window ${selectedWindow?.roomKey === room.key && selectedWindow?.index === index ? 'selected' : ''}`}
                   style={{
                     position: 'absolute',
-                    ...getWindowStyle(window, roomPixels),
+                    ...getWindowStyle(window, roomPixels, room.key, index, windowRotation),
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     transform: selectedWindow?.roomKey === room.key && selectedWindow?.index === index ? 'scale(1.1)' : 'scale(1)',
@@ -633,7 +669,56 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                     e.stopPropagation();
                     handlePlacedWindowClick(room.key, index);
                   }}
-                />
+                >
+                  {/* Кнопка поворота */}
+                  <div 
+                    className="window-rotate-btn"
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      rotateWindow(room.key, index);
+                    }}
+                    title="Повернуть на 90°"
+                  >
+                    ↻
+                  </div>
+                  
+                  {/* Ручки растягивания */}
+                  {window.side === 'top' || window.side === 'bottom' ? (
+                    <>
+                      <div 
+                        className="window-resize-handle window-resize-left"
+                        onPointerDown={(e: React.PointerEvent) => {
+                          e.stopPropagation();
+                          // Логика растягивания слева
+                        }}
+                      />
+                      <div 
+                        className="window-resize-handle window-resize-right"
+                        onPointerDown={(e: React.PointerEvent) => {
+                          e.stopPropagation();
+                          // Логика растягивания справа
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <div 
+                        className="window-resize-handle window-resize-top"
+                        onPointerDown={(e: React.PointerEvent) => {
+                          e.stopPropagation();
+                          // Логика растягивания сверху
+                        }}
+                      />
+                      <div 
+                        className="window-resize-handle window-resize-bottom"
+                        onPointerDown={(e: React.PointerEvent) => {
+                          e.stopPropagation();
+                          // Логика растягивания снизу
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
               ))}
             </div>
           );
@@ -670,12 +755,16 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 };
 
 // Получение стилей для установленного окна
-const getWindowStyle = (window: any, _roomPixels: any) => {
+const getWindowStyle = (window: any, _roomPixels: any, roomKey?: string, windowIndex?: number, windowRotation?: { [key: string]: number }) => {
   const wallThickness = 8;
+  const windowId = roomKey && windowIndex !== undefined ? `${roomKey}-${windowIndex}` : '';
+  const rotation = windowRotation && windowId ? (windowRotation[windowId] || 0) : 0;
+  
+  let style: any = {};
   
   switch (window.side) {
     case 'left':
-      return {
+      style = {
         left: -wallThickness / 2,
         top: `${window.pos * 100}%`,
         width: wallThickness,
@@ -683,8 +772,9 @@ const getWindowStyle = (window: any, _roomPixels: any) => {
         backgroundColor: '#81c784',
         border: '1px solid #4caf50'
       };
+      break;
     case 'right':
-      return {
+      style = {
         right: -wallThickness / 2,
         top: `${window.pos * 100}%`,
         width: wallThickness,
@@ -692,8 +782,9 @@ const getWindowStyle = (window: any, _roomPixels: any) => {
         backgroundColor: '#81c784',
         border: '1px solid #4caf50'
       };
+      break;
     case 'top':
-      return {
+      style = {
         top: -wallThickness / 2,
         left: `${window.pos * 100}%`,
         width: `${window.len * 100}%`,
@@ -701,8 +792,9 @@ const getWindowStyle = (window: any, _roomPixels: any) => {
         backgroundColor: '#81c784',
         border: '1px solid #4caf50'
       };
+      break;
     case 'bottom':
-      return {
+      style = {
         bottom: -wallThickness / 2,
         left: `${window.pos * 100}%`,
         width: `${window.len * 100}%`,
@@ -710,9 +802,18 @@ const getWindowStyle = (window: any, _roomPixels: any) => {
         backgroundColor: '#81c784',
         border: '1px solid #4caf50'
       };
+      break;
     default:
       return {};
   }
+
+  // Применяем поворот
+  if (rotation !== 0) {
+    style.transform = `rotate(${rotation}deg)`;
+    style.transformOrigin = 'center';
+  }
+
+  return style;
 };
 
 export default LayoutEditor;

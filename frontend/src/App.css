@@ -1437,6 +1437,98 @@ header p {
   }
 }
 
+/* Элементы управления окнами */
+.window-rotate-btn {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  width: 20px;
+  height: 20px;
+  background: #ff9800;
+  border: 2px solid #f57c00;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  z-index: 15;
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.placed-window:hover .window-rotate-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.window-rotate-btn:hover {
+  background: #f57c00;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.4);
+}
+
+/* Ручки растягивания окон */
+.window-resize-handle {
+  position: absolute;
+  background: #4caf50;
+  border: 1px solid #2e7d32;
+  border-radius: 2px;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.placed-window:hover .window-resize-handle {
+  opacity: 1;
+}
+
+.window-resize-handle:hover {
+  background: #66bb6a;
+  transform: scale(1.2);
+}
+
+/* Горизонтальные ручки для вертикальных окон */
+.window-resize-left {
+  top: 50%;
+  left: -8px;
+  width: 6px;
+  height: 20px;
+  transform: translateY(-50%);
+  cursor: w-resize;
+}
+
+.window-resize-right {
+  top: 50%;
+  right: -8px;
+  width: 6px;
+  height: 20px;
+  transform: translateY(-50%);
+  cursor: e-resize;
+}
+
+/* Вертикальные ручки для горизонтальных окон */
+.window-resize-top {
+  left: 50%;
+  top: -8px;
+  width: 20px;
+  height: 6px;
+  transform: translateX(-50%);
+  cursor: n-resize;
+}
+
+.window-resize-bottom {
+  left: 50%;
+  bottom: -8px;
+  width: 20px;
+  height: 6px;
+  transform: translateX(-50%);
+  cursor: s-resize;
+}
+
 .room-resize-handle:hover {
   opacity: 1 !important;
   transform: scale(1.2);
