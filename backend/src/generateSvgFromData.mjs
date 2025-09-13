@@ -21,50 +21,17 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
-    // Функция для расчета размеров помещения на основе площади
-    const calculateRoomDimensions = (sqm, aspectRatio = 1) => {
-        if (!sqm || sqm <= 0) return { width: 100, height: 100 };
-        
-        // Рассчитываем размеры на основе площади (квадратные метры)
-        // 1 кв.м = 100 пикселей в конструкторе
-        const areaInPixels = sqm * 100;
-        
-        // Рассчитываем длину и ширину с учетом соотношения сторон
-        const width = Math.sqrt(areaInPixels / aspectRatio);
-        const height = areaInPixels / width;
-        
-        return {
-            width: Math.round(width),
-            height: Math.round(height)
-        };
-    };
-
     // Convert normalized coordinates (0-1) to pixel coordinates
-    // Строго используем размеры из конструктора с учетом площади
+    // Строго используем размеры из конструктора
     const pixelRooms = rooms.map(room => {
         const layout = room.layout || { x: 0, y: 0, width: 0.2, height: 0.2 };
-        
-        // Рассчитываем размеры с учетом площади, если указана
-        let pixelWidth, pixelHeight;
-        if (room.sqm && room.sqm > 0) {
-            // Получаем соотношение сторон из layout
-            const aspectRatio = (layout.width * CONSTRUCTOR_WIDTH) / (layout.height * CONSTRUCTOR_HEIGHT);
-            const dimensions = calculateRoomDimensions(room.sqm, aspectRatio);
-            pixelWidth = dimensions.width * SVG_SCALE;
-            pixelHeight = dimensions.height * SVG_SCALE;
-        } else {
-            // Обычное масштабирование
-            pixelWidth = layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE;
-            pixelHeight = layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE;
-        }
-        
         return {
             ...room,
             // Прямое масштабирование из конструктора в SVG
             pixelX: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
             pixelY: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
-            pixelWidth,
-            pixelHeight,
+            pixelWidth: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
+            pixelHeight: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE,
             // Игнорируем дверные данные из AI; генерируем строго по connections + внешний вход
             doors: [],
             windows: Array.isArray(room.windows) ? [...room.windows] : [],
@@ -319,6 +286,11 @@ export async function generateSvgFromData(rooms, totalSqm) {
     <rect width="6" height="6" fill="#FFFFFF"/>
     <rect x="0" y="2" width="6" height="2" fill="#CFCFCF"/>
   </pattern>
+  <linearGradient id="doorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" style="stop-color:#D7CCC8;stop-opacity:1" />
+    <stop offset="50%" style="stop-color:#BCAAA4;stop-opacity:1" />
+    <stop offset="100%" style="stop-color:#A1887F;stop-opacity:1" />
+  </linearGradient>
 </defs>
 <rect width="100%" height="100%" fill="#ECECEC"/>`;
 
@@ -380,6 +352,78 @@ export async function generateSvgFromData(rooms, totalSqm) {
             svgContent += `\n<text x="${iconX}" y="${iconY}" font-family="Arial, sans-serif" font-size="16" fill="#1976d2">🔗</text>`;
         }
     });
+
+    // Рисуем двери (если есть данные о дверях)
+    if (rooms.some(room => room.doors && room.doors.length > 0)) {
+        rooms.forEach(room => {
+            if (!room.doors || room.doors.length === 0) return;
+            
+            const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+            const roomPixels = {
+                x: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
+                y: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
+                width: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
+                height: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE
+            };
+
+            room.doors.forEach(door => {
+                const doorWidth = 8 * SVG_SCALE;
+                const doorLength = Math.max(60, door.len * (door.side === 'left' || door.side === 'right' ? roomPixels.height : roomPixels.width));
+                
+                let doorX, doorY, doorRotation = 0;
+                
+                switch (door.side) {
+                    case 'left':
+                        doorX = roomPixels.x - doorWidth / 2;
+                        doorY = roomPixels.y + door.pos * roomPixels.height;
+                        doorRotation = 90;
+                        break;
+                    case 'right':
+                        doorX = roomPixels.x + roomPixels.width - doorWidth / 2;
+                        doorY = roomPixels.y + door.pos * roomPixels.height;
+                        doorRotation = 90;
+                        break;
+                    case 'top':
+                        doorX = roomPixels.x + door.pos * roomPixels.width;
+                        doorY = roomPixels.y - doorWidth / 2;
+                        doorRotation = 0;
+                        break;
+                    case 'bottom':
+                        doorX = roomPixels.x + door.pos * roomPixels.width;
+                        doorY = roomPixels.y + roomPixels.height - doorWidth / 2;
+                        doorRotation = 0;
+                        break;
+                }
+
+                // Создаем реалистичную дверь с объемом
+                const doorGroup = `
+                    <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})">
+                        <!-- Тень двери -->
+                        <rect x="2" y="2" width="${doorLength}" height="${doorWidth}" 
+                              fill="#8D6E63" opacity="0.3" rx="2"/>
+                        
+                        <!-- Основная дверь -->
+                        <rect x="0" y="0" width="${doorLength}" height="${doorWidth}" 
+                              fill="url(#doorGradient)" stroke="#5D4037" stroke-width="1" rx="2"/>
+                        
+                        <!-- Ручка двери -->
+                        <circle cx="${doorLength - 12}" cy="${doorWidth / 2}" r="3" 
+                                fill="#FFD700" stroke="#B8860B" stroke-width="0.5"/>
+                        
+                        <!-- Панели двери -->
+                        <rect x="8" y="2" width="${doorLength - 16}" height="2" fill="#8D6E63" opacity="0.6"/>
+                        <rect x="8" y="${doorWidth - 4}" width="${doorLength - 16}" height="2" fill="#8D6E63" opacity="0.6"/>
+                        
+                        <!-- Центральная панель -->
+                        <rect x="${doorLength / 2 - 8}" y="4" width="16" height="${doorWidth - 8}" 
+                              fill="#8D6E63" opacity="0.4" rx="1"/>
+                    </g>
+                `;
+                
+                svgContent += doorGroup;
+            });
+        });
+    }
 
     // Построим единый слой стен по уникальным рёбрам
     const EPS = 1;

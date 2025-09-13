@@ -6,18 +6,18 @@ import './App.css';
 import LayoutEditor from './components/LayoutEditor';
 
 const initialRooms: RoomState[] = [
-  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [], connections: [], layout: null, rotation: 0, description: 'Входная зона квартиры' },
-  { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: [], connections: [], layout: null, rotation: 0, description: 'Жилая комната (спальня, гостиная)' },
-  { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: [], connections: [], layout: null, rotation: 0, description: 'Дополнительная жилая комната' },
-  { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: [], connections: [], layout: null, rotation: 0, description: 'Кухонная зона с техникой' },
-  { key: 'bathroom', name: 'Уборная', sqm: 0, enabled: false, file: [], connections: [], layout: null, rotation: 0, description: 'Санитарная зона (ванна, туалет)' },
-  { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: [], connections: [], layout: null, rotation: 0, description: 'Открытая или закрытая терраса' },
+  { key: 'hallway', name: 'Прихожая', sqm: 0, enabled: true, file: [], layout: null, rotation: 0, description: 'Входная зона квартиры' },
+  { key: 'room1', name: 'Комната 1', sqm: 0, enabled: false, file: [], layout: null, rotation: 0, description: 'Жилая комната (спальня, гостиная)' },
+  { key: 'room2', name: 'Комната 2', sqm: 0, enabled: false, file: [], layout: null, rotation: 0, description: 'Дополнительная жилая комната' },
+  { key: 'kitchen', name: 'Кухня', sqm: 0, enabled: false, file: [], layout: null, rotation: 0, description: 'Кухонная зона с техникой' },
+  { key: 'bathroom', name: 'Уборная', sqm: 0, enabled: false, file: [], layout: null, rotation: 0, description: 'Санитарная зона (ванна, туалет)' },
+  { key: 'balcony', name: 'Балкон/Лоджия', sqm: 0, enabled: false, file: [], layout: null, rotation: 0, description: 'Открытая или закрытая терраса' },
 ];
 
 const initialBathroomConfig: BathroomConfig = {
   type: 'combined',
-  bathroom: { key: 'bathroom', name: 'Ванная комната', sqm: 0, enabled: false, file: [], connections: [] },
-  toilet: { key: 'toilet', name: 'Санузел', sqm: 0, enabled: false, file: [], connections: [] }
+  bathroom: { key: 'bathroom', name: 'Ванная комната', sqm: 0, enabled: false, file: [] },
+  toilet: { key: 'toilet', name: 'Санузел', sqm: 0, enabled: false, file: [] }
 };
 
 function App() {
@@ -70,27 +70,6 @@ function App() {
       return { ...r, layout };
     });
 
-    // Простое подтягивание соседей с соединениями: сдвигаем ближе друг к другу по оси X или Y
-    const map = new Map<string, RoomState>(computed.map(r => [r.key, r]));
-    computed.forEach(r => {
-      if (!r.enabled || !r.layout) return;
-      const aL = r.layout;
-      (r.connections || []).forEach(k => {
-        const b = map.get(k); if (!b || !b.enabled || !b.layout) return;
-        const bL = b.layout;
-        const dx = (aL.x + aL.width) - bL.x;
-        const dy = (aL.y + aL.height) - bL.y;
-        const gapNorm = GAP / CANVAS_WIDTH;
-        // если далеко по X, приблизим по X вплотную
-        if (Math.abs(dx) > Math.abs(dy)) {
-          if (aL.x < bL.x) bL.x = Math.min(1 - bL.width - gapNorm, aL.x + aL.width + gapNorm);
-          else aL.x = Math.min(1 - aL.width - gapNorm, bL.x + bL.width + gapNorm);
-        } else {
-          if (aL.y < bL.y) bL.y = Math.min(1 - bL.height - gapNorm, aL.y + aL.height + gapNorm);
-          else aL.y = Math.min(1 - aL.height - gapNorm, bL.y + bL.height + gapNorm);
-        }
-      });
-    });
 
     // Финальное устранение перекрытий: раздвижка
     for (let i = 0; i < computed.length; i++) {
@@ -120,8 +99,8 @@ function App() {
   const handleRoomUpdate = (key: string, updates: Partial<RoomState>) => {
     setRooms((prevRooms: RoomState[]) => {
       const next = prevRooms.map((room: RoomState) => (room.key === key ? { ...room, ...updates } : room));
-      // Если изменили площадь или соединения — пересчитать авто‑раскладку
-      if (Object.prototype.hasOwnProperty.call(updates, 'sqm') || Object.prototype.hasOwnProperty.call(updates, 'connections')) {
+      // Если изменили площадь — пересчитать авто‑раскладку
+      if (Object.prototype.hasOwnProperty.call(updates, 'sqm')) {
         return recomputeLayoutsByArea(next);
       }
       return next;
@@ -313,7 +292,6 @@ function App() {
                 room={room}
                 onUpdate={handleRoomUpdate}
                 submitted={submitted}
-                availableRooms={rooms}
               />
             </div>
           ))}
@@ -324,13 +302,11 @@ function App() {
                 room={bathroomConfig.bathroom}
                 onUpdate={(_key, updates) => handleBathroomUpdate('bathroom', updates)}
                 submitted={submitted}
-                availableRooms={[...rooms, bathroomConfig.toilet]}
               />
               <RoomCard
                 room={bathroomConfig.toilet}
                 onUpdate={(_key, updates) => handleBathroomUpdate('toilet', updates)}
                 submitted={submitted}
-                availableRooms={[...rooms, bathroomConfig.bathroom]}
               />
             </>
           )}

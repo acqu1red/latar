@@ -101,33 +101,17 @@ function generateFallbackLayout(rooms) {
 const getLayoutPrompt = (roomsData) => {
     const roomsJsonString = JSON.stringify(roomsData, null, 2);
     
-    // Build connection information
-    const connectionInfo = roomsData.map(room => {
-        if (room.connections && room.connections.length > 0) {
-            const connectedNames = room.connections.map(key => 
-                roomsData.find(r => r.key === key)?.name || key
-            ).join(', ');
-            return `${room.name} соединена с: ${connectedNames}`;
-        }
-        return `${room.name} - нет указанных соединений`;
-    }).join('\n');
-    
     return `
 Создай простую схематичную планировку КВАРТИРЫ (не дома).
 
 Данные комнат:
 ${roomsJsonString}
 
-Соединения между комнатами:
-${connectionInfo}
-
 ТРЕБОВАНИЯ для планировки квартиры:
 - Прихожая (hallway) — входная зона квартиры
-- Используй указанные соединения для размещения комнат рядом друг с другом
-- Комнаты с соединениями должны иметь общие стены или быть очень близко
 - Все комнаты должны быть прямоугольными и НЕ пересекаться
 - Размеры пропорциональны площади в м²
-- Создай логичную квартирную планировку на основе соединений
+- Создай логичную квартирную планировку
 
 Координаты (0-1): x,y = левый верхний угол, width,height = размеры
 

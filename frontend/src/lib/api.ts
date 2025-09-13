@@ -7,7 +7,6 @@ export interface RoomState {
     sqm: number;
     enabled: boolean;
     file: File[];
-    connections?: string[]; // Keys of rooms this room connects to
     layout?: { x: number; y: number; width: number; height: number } | null; // coordinates in pixels
     entrySide?: 'left' | 'right' | 'top' | 'bottom' | null; // external entry for hallway
     rotation?: 0 | 90 | null; // визуальный поворот комнаты в конструкторе

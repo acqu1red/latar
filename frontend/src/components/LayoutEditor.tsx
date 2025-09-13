@@ -26,6 +26,23 @@ type FloatingWindow = {
   isRotating?: boolean;
 };
 
+type Door = {
+  id: number;
+  x: number;
+  y: number;
+  length: number;
+  rotation: 0 | 90;
+  type: 'entrance' | 'interior';
+  isDragging?: boolean;
+  isResizing?: boolean;
+  attachedTo?: {
+    room1Key: string;
+    room2Key?: string;
+    side: 'left' | 'right' | 'top' | 'bottom';
+    position: number;
+  };
+};
+
 type WindowAttachment = {
   roomKey: string;
   side: 'left' | 'right' | 'top' | 'bottom';
@@ -56,111 +73,25 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     attachment: WindowAttachment;
   } | null>(null);
   const [snappingRoom, setSnappingRoom] = useState<string | null>(null);
-  const [roomRotations, setRoomRotations] = useState<Record<string, number>>({});
+  
+  // Состояние для дверей
+  const [doors, setDoors] = useState<Door[]>([]);
+  const [selectedDoor, setSelectedDoor] = useState<number | null>(null);
+  const [doorCreationMode, setDoorCreationMode] = useState<'none' | 'entrance' | 'interior'>('none');
+  const [hasEntranceDoor, setHasEntranceDoor] = useState<boolean>(false);
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
 
-  // Функция для расчета размеров помещения на основе площади
-  const calculateRoomDimensions = (sqm: number, aspectRatio: number = 1): { width: number; height: number } => {
-    if (!sqm || sqm <= 0) return { width: 100, height: 100 };
-    
-    // Рассчитываем размеры на основе площади (квадратные метры)
-    // 1 кв.м = 100 пикселей в конструкторе
-    const areaInPixels = sqm * 100;
-    
-    // Рассчитываем длину и ширину с учетом соотношения сторон
-    const width = Math.sqrt(areaInPixels / aspectRatio);
-    const height = areaInPixels / width;
-    
-    
-    return {
-      width: Math.round(width),
-      height: Math.round(height)
-    };
-  };
-
-  // Функция для получения размеров помещения с учетом площади
-  const getRoomPixelDimensions = (room: RoomState): { width: number; height: number } => {
-    if (!room.sqm || room.sqm <= 0) {
-      // Если площадь не указана, используем обычные размеры
-      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      return toPixels(layout);
-    }
-    
-    // Если площадь указана, рассчитываем размеры на основе площади
-    const aspectRatio = getRoomAspectRatio(room);
-    const dimensions = calculateRoomDimensions(room.sqm, aspectRatio);
-    console.log(`Размеры для ${room.name} (${room.sqm} кв.м): ${dimensions.width}x${dimensions.height} пикселей`);
-    return dimensions;
-  };
-
-  // Функция для получения текущего соотношения сторон помещения
-  const getRoomAspectRatio = (room: RoomState): number => {
-    const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-    // Используем нормализованные размеры для расчета соотношения
-    const aspectRatio = layout.width / layout.height;
-    console.log(`Текущее соотношение сторон для ${room.name}: ${aspectRatio.toFixed(2)}`);
-    return aspectRatio;
-  };
-
-  // Функция для обновления размеров помещения с сохранением площади
-  const updateRoomDimensions = (room: RoomState, newWidth: number, newHeight: number): { width: number; height: number } => {
-    if (!room.sqm || room.sqm <= 0) {
-      return { width: newWidth, height: newHeight };
-    }
-    
-    // Рассчитываем новое соотношение сторон
-    const aspectRatio = newWidth / newHeight;
-    console.log(`Соотношение сторон: ${aspectRatio.toFixed(2)}`);
-    
-    // Рассчитываем новые размеры с сохранением площади
-    const areaInPixels = room.sqm * 100;
-    const width = Math.sqrt(areaInPixels / aspectRatio);
-    const height = areaInPixels / width;
-    
-    console.log(`Площадь в пикселях: ${areaInPixels}, Новые размеры: ${Math.round(width)}x${Math.round(height)}`);
-    
-    return {
-      width: Math.round(width),
-      height: Math.round(height)
-    };
-  };
 
   // Функция для определения всех пересечений с конкретным помещением
   const getRoomOverlaps = (targetRoom: RoomState): RoomState[] => {
     const targetLayout = targetRoom.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-    
-    // Получаем размеры целевого помещения с учетом площади
-    let targetPixels;
-    if (targetRoom.sqm && targetRoom.sqm > 0) {
-      const dimensions = getRoomPixelDimensions(targetRoom);
-      targetPixels = {
-        x: Math.round(targetLayout.x * CANVAS_WIDTH),
-        y: Math.round(targetLayout.y * CANVAS_HEIGHT),
-        width: dimensions.width,
-        height: dimensions.height
-      };
-    } else {
-      targetPixels = toPixels(targetLayout);
-    }
+    const targetPixels = toPixels(targetLayout);
     
     return enabledRooms.filter(room => {
       if (room.key === targetRoom.key) return false;
       const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      
-      // Получаем размеры помещения с учетом площади
-      let roomPixels;
-      if (room.sqm && room.sqm > 0) {
-        const dimensions = getRoomPixelDimensions(room);
-        roomPixels = {
-          x: Math.round(layout.x * CANVAS_WIDTH),
-          y: Math.round(layout.y * CANVAS_HEIGHT),
-          width: dimensions.width,
-          height: dimensions.height
-        };
-      } else {
-        roomPixels = toPixels(layout);
-      }
+      const roomPixels = toPixels(layout);
       
       // Проверяем пересечение прямоугольников
       return targetPixels.x < roomPixels.x + roomPixels.width && 
@@ -186,6 +117,104 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     width: pixels.width / CANVAS_WIDTH,
     height: pixels.height / CANVAS_HEIGHT
   });
+
+  // Функции для работы с дверями
+  const addDoor = (type: 'entrance' | 'interior') => {
+    const newDoor: Door = {
+      id: Date.now(),
+      x: CANVAS_WIDTH / 2 - 50,
+      y: CANVAS_HEIGHT / 2 - 50,
+      length: 80,
+      rotation: 0,
+      type,
+      isDragging: false,
+      isResizing: false
+    };
+    
+    setDoors((prev: Door[]) => [...prev, newDoor]);
+    setDoorCreationMode('none');
+    
+    if (type === 'entrance') {
+      setHasEntranceDoor(true);
+    }
+  };
+
+  const deleteDoor = (doorId: number) => {
+    setDoors((prev: Door[]) => {
+      const door = prev.find((d: Door) => d.id === doorId);
+      if (door?.type === 'entrance') {
+        setHasEntranceDoor(false);
+      }
+      return prev.filter((d: Door) => d.id !== doorId);
+    });
+    setSelectedDoor(null);
+  };
+
+  const detachDoor = (doorId: number) => {
+    setDoors((prev: Door[]) => prev.map((door: Door) => 
+      door.id === doorId 
+        ? { ...door, attachedTo: undefined }
+        : door
+    ));
+  };
+
+  // Функция для поиска ближайшей стены для прикрепления двери
+  const findNearestWallForDoor = (door: Door): { room1Key: string; room2Key?: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number } | null => {
+    let bestAttachment: { room1Key: string; room2Key?: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number } | null = null;
+    let minDistance = Infinity;
+
+    for (const room of enabledRooms) {
+      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      const roomPixels = toPixels(layout);
+      
+      // Проверяем стены в зависимости от поворота двери
+      let walls;
+      if (door.rotation === 0) {
+        // Горизонтальная дверь - может привязываться к верхним и нижним стенам
+        walls = [
+          { side: 'top' as const, x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: 0 },
+          { side: 'bottom' as const, x: roomPixels.x, y: roomPixels.y + roomPixels.height, width: roomPixels.width, height: 0 }
+        ];
+      } else {
+        // Вертикальная дверь - может привязываться к левым и правым стенам
+        walls = [
+          { side: 'left' as const, x: roomPixels.x, y: roomPixels.y, width: 0, height: roomPixels.height },
+          { side: 'right' as const, x: roomPixels.x + roomPixels.width, y: roomPixels.y, width: 0, height: roomPixels.height }
+        ];
+      }
+
+      for (const wall of walls) {
+        const distance = calculateDistanceToWall({ x: door.x, y: door.y, length: door.length, rotation: door.rotation } as FloatingWindow, wall);
+        
+        if (distance < minDistance && distance <= SNAP_DISTANCE) {
+          minDistance = distance;
+          
+          // Вычисляем позицию на стене
+          let position: number;
+          
+          if (wall.side === 'left' || wall.side === 'right') {
+            // Вертикальная стена
+            const wallLength = wall.height;
+            const relativeY = door.y - wall.y;
+            position = Math.max(0, Math.min(1, relativeY / wallLength));
+          } else {
+            // Горизонтальная стена
+            const wallLength = wall.width;
+            const relativeX = door.x - wall.x;
+            position = Math.max(0, Math.min(1, relativeX / wallLength));
+          }
+
+          bestAttachment = {
+            room1Key: room.key,
+            side: wall.side,
+            position
+          };
+        }
+      }
+    }
+
+    return bestAttachment;
+  };
 
   // Поиск ближайшей стены для привязки окна
   const findNearestWall = (window: FloatingWindow): WindowAttachment | null => {
@@ -288,13 +317,14 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
   };
 
   // Обработка начала перетаскивания
-  const handlePointerDown = (e: React.PointerEvent, item: RoomState | FloatingWindow, type: 'move' | 'resize', resizeHandle?: string) => {
+  const handlePointerDown = (e: React.PointerEvent, item: RoomState | FloatingWindow | Door, type: 'move' | 'resize', resizeHandle?: string) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
 
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const isWindow = 'length' in item;
+    const isWindow = 'length' in item && 'type' in item && item.type === 'window';
+    const isDoor = 'length' in item && 'type' in item && (item.type === 'entrance' || item.type === 'interior');
 
     if (isWindow) {
       setDrag({
@@ -312,23 +342,26 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
           ? { ...w, isDragging: type === 'move', isResizing: type === 'resize' }
           : w
       ));
-    } else {
+    } else if (isDoor) {
+      setDrag({
+        key: item.id,
+        item,
+        type,
+        startX: x,
+        startY: y,
+        start: { x: item.x, y: item.y, length: item.length, rotation: item.rotation }
+      });
+      
+      // Обновляем состояние двери
+      setDoors((prev: Door[]) => prev.map((d: Door) => 
+        d.id === item.id 
+          ? { ...d, isDragging: type === 'move', isResizing: type === 'resize' }
+          : d
+      ));
+    } else if ('layout' in item && 'key' in item) {
+      // Это комната
       const layout = item.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      
-      // Получаем размеры с учетом площади
-      let roomPixels;
-      if (item.sqm && item.sqm > 0) {
-        const dimensions = getRoomPixelDimensions(item);
-        roomPixels = {
-          x: Math.round(layout.x * CANVAS_WIDTH),
-          y: Math.round(layout.y * CANVAS_HEIGHT),
-          width: dimensions.width,
-          height: dimensions.height
-        };
-      } else {
-        roomPixels = toPixels(layout);
-      }
-      
+      const roomPixels = toPixels(layout);
       setDrag({
         key: item.key,
         item,
@@ -345,14 +378,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 
 
   // Проверка наложения помещений (может быть полезна для будущих функций)
-
-  // Поворот помещения на 90 градусов
-  const rotateRoom = (roomKey: string) => {
-    setRoomRotations((prev: Record<string, number>) => ({
-      ...prev,
-      [roomKey]: (prev[roomKey] || 0) + 90
-    }));
-  };
 
   // Умное выравнивание
   const smartAlign = (value: number, snapDistance: number = 20): number => {
@@ -393,40 +418,69 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     const dy = currentY - drag.startY;
 
     if ('length' in drag.item) {
-      // Перетаскивание плавающего окна
+      // Перетаскивание плавающего окна или двери
       let newX = drag.start.x;
       let newY = drag.start.y;
       let newLength = drag.start.length;
       
       if (drag.type === 'resize') {
-        // Растягивание окна
+        // Растягивание окна или двери
         if (drag.item.rotation === 0) {
-          // Горизонтальное окно - растягиваем по X
+          // Горизонтальное - растягиваем по X
           newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + dx));
         } else {
-          // Вертикальное окно - растягиваем по Y
+          // Вертикальное - растягиваем по Y
           newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + dy));
         }
       } else {
-        // Перемещение окна
+        // Перемещение окна или двери
         newX = Math.max(0, Math.min(CANVAS_WIDTH - (drag.item.rotation === 0 ? newLength : 8), drag.start.x + dx));
         newY = Math.max(0, Math.min(CANVAS_HEIGHT - (drag.item.rotation === 0 ? 8 : newLength), drag.start.y + dy));
       }
       
-      setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-        w.id === drag.item.id 
-          ? { ...w, x: newX, y: newY, length: newLength }
-          : w
-      ));
+      // Обновляем состояние в зависимости от типа элемента
+      if ('type' in drag.item && drag.item.type === 'window') {
+        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+          w.id === drag.item.id 
+            ? { ...w, x: newX, y: newY, length: newLength }
+            : w
+        ));
 
-      // Проверяем возможность привязки к стене
-      const updatedWindow = { ...drag.item, x: newX, y: newY, length: newLength };
-      const attachment = findNearestWall(updatedWindow);
-      
-      if (attachment) {
-        setPendingAttachment({ windowId: drag.item.id, attachment });
-      } else {
-        setPendingAttachment(null);
+        // Проверяем возможность привязки окна к стене
+        const updatedWindow = { ...drag.item, x: newX, y: newY, length: newLength };
+        const attachment = findNearestWall(updatedWindow);
+        
+        if (attachment) {
+          setPendingAttachment({ windowId: drag.item.id, attachment });
+        } else {
+          setPendingAttachment(null);
+        }
+      } else if ('type' in drag.item && (drag.item.type === 'entrance' || drag.item.type === 'interior')) {
+        setDoors((prev: Door[]) => prev.map((d: Door) => 
+          d.id === drag.item.id 
+            ? { ...d, x: newX, y: newY, length: newLength }
+            : d
+        ));
+
+        // Проверяем возможность привязки двери к стене
+        const updatedDoor = { ...drag.item, x: newX, y: newY, length: newLength };
+        const attachment = findNearestWallForDoor(updatedDoor);
+        
+        if (attachment) {
+          // Автоматически прикрепляем дверь к стене
+          setDoors((prev: Door[]) => prev.map((d: Door) => 
+            d.id === drag.item.id 
+              ? { ...d, attachedTo: attachment }
+              : d
+          ));
+        } else {
+          // Открепляем дверь от стены
+          setDoors((prev: Door[]) => prev.map((d: Door) => 
+            d.id === drag.item.id 
+              ? { ...d, attachedTo: undefined }
+              : d
+          ));
+        }
       }
     } else {
       // Перетаскивание комнаты
@@ -528,43 +582,13 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         newWidth = smartAlign(newWidth);
         newHeight = smartAlign(newHeight);
         
-        // Если у помещения задана площадь, пересчитываем размеры с сохранением площади
-        if (drag.item.sqm && drag.item.sqm > 0) {
-          console.log(`Изменение размера помещения с площадью ${drag.item.sqm} кв.м`);
-          console.log(`Новые размеры: ${newWidth}x${newHeight} пикселей`);
-          
-          const updatedDimensions = updateRoomDimensions(drag.item, newWidth, newHeight);
-          console.log(`Пересчитанные размеры: ${updatedDimensions.width}x${updatedDimensions.height} пикселей`);
-          
-          // Конвертируем новые размеры в нормализованные координаты
-          const normalized = toNormalized({ 
-            x: newX, 
-            y: newY, 
-            width: updatedDimensions.width, 
-            height: updatedDimensions.height 
-          });
-          
-          console.log(`Нормализованные координаты:`, normalized);
-          onUpdate(drag.item.key, { layout: normalized });
-        } else {
-          // Обычное изменение размера без ограничений по площади
-          const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
-          onUpdate(drag.item.key, { layout: normalized });
-        }
+        // Применяем изменения без проверки коллизий
+        const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
+        onUpdate(drag.item.key, { layout: normalized });
       } else {
         // Перемещение комнаты
-        // Получаем текущие размеры помещения с учетом площади
-        let currentWidth = drag.start.width;
-        let currentHeight = drag.start.height;
-        
-        if (drag.item.sqm && drag.item.sqm > 0) {
-          const currentDimensions = getRoomPixelDimensions(drag.item);
-          currentWidth = currentDimensions.width;
-          currentHeight = currentDimensions.height;
-        }
-        
-        let newX = Math.max(0, Math.min(CANVAS_WIDTH - currentWidth, drag.start.x + dx));
-        let newY = Math.max(0, Math.min(CANVAS_HEIGHT - currentHeight, drag.start.y + dy));
+        let newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
+        let newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
         
         // Магнитное притяжение стен
         let isSnapping = false;
@@ -619,7 +643,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         newY = smartAlign(newY);
         
         // Применяем изменения без проверки коллизий
-        const normalized = toNormalized({ x: newX, y: newY, width: currentWidth, height: currentHeight });
+        const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
         onUpdate(drag.item.key, { layout: normalized });
       }
     }
@@ -630,12 +654,21 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     if (!drag) return;
 
     if ('length' in drag.item) {
-      // Сбрасываем состояние перетаскивания окна
-      setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-        w.id === drag.item.id 
-          ? { ...w, isDragging: false, isResizing: false, isRotating: false }
-          : w
-      ));
+      if ('type' in drag.item && drag.item.type === 'window') {
+        // Сбрасываем состояние перетаскивания окна
+        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+          w.id === drag.item.id 
+            ? { ...w, isDragging: false, isResizing: false, isRotating: false }
+            : w
+        ));
+      } else if ('type' in drag.item && (drag.item.type === 'entrance' || drag.item.type === 'interior')) {
+        // Сбрасываем состояние перетаскивания двери
+        setDoors((prev: Door[]) => prev.map((d: Door) => 
+          d.id === drag.item.id 
+            ? { ...d, isDragging: false, isResizing: false }
+            : d
+        ));
+      }
     }
 
     // Сбрасываем состояние выравнивания
@@ -743,6 +776,35 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         >
           🗑️ Удалить все окна
         </button>
+
+        {/* Кнопки управления дверями */}
+        <div className="door-controls">
+          <button 
+            className="add-door-btn"
+            onClick={() => setDoorCreationMode(doorCreationMode === 'none' ? 'menu' : 'none')}
+          >
+            🚪 Добавить дверь
+          </button>
+          
+          {doorCreationMode === 'menu' && (
+            <div className="door-menu">
+              {!hasEntranceDoor && (
+                <button 
+                  className="add-entrance-door-btn"
+                  onClick={() => addDoor('entrance')}
+                >
+                  🏠 Входная дверь
+                </button>
+              )}
+              <button 
+                className="add-interior-door-btn"
+                onClick={() => addDoor('interior')}
+              >
+                🚪 Межкомнотная дверь
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Панель подтверждения привязки */}
@@ -792,22 +854,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         {/* Комнаты */}
         {enabledRooms.map((room) => {
           const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-          const rotation = roomRotations[room.key] || 0;
-          
-          // Рассчитываем размеры с учетом площади, если указана
-          let roomPixels;
-          if (room.sqm && room.sqm > 0) {
-            const dimensions = getRoomPixelDimensions(room);
-            roomPixels = {
-              x: Math.round(layout.x * CANVAS_WIDTH),
-              y: Math.round(layout.y * CANVAS_HEIGHT),
-              width: dimensions.width,
-              height: dimensions.height
-            };
-          } else {
-            roomPixels = toPixels(layout);
-          }
-          
+          const roomPixels = toPixels(layout);
           const overlappingRooms = getRoomOverlaps(room);
           const hasOverlaps = overlappingRooms.length > 0;
           
@@ -829,24 +876,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                 boxShadow: hasOverlaps 
                   ? '0 0 0 2px #1976d2, 0 4px 16px rgba(25, 118, 210, 0.4), inset 0 0 0 1px rgba(25, 118, 210, 0.3)'
                   : '0 2px 8px rgba(0,0,0,0.1)',
-                zIndex: hasOverlaps ? 20 : 10,
-                transform: `rotate(${rotation}deg)`,
-                transformOrigin: 'center'
+                zIndex: hasOverlaps ? 20 : 10
               }}
               onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'move')}
             >
               <div className="room-header">
                 <span className="room-name">{room.name}</span>
-                <button 
-                  className="room-rotate-btn"
-                  onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    rotateRoom(room.key);
-                  }}
-                  title="Повернуть на 90°"
-                >
-                  ↻
-                </button>
               </div>
               
               {/* Ручки для изменения размера */}
@@ -951,6 +986,104 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             <div className="window-label">🪟</div>
             </div>
         ))}
+
+        {/* Двери */}
+        {doors.map((door: Door) => (
+          <div
+            key={door.id}
+            className={`door ${door.isDragging ? 'dragging' : ''} ${door.isResizing ? 'resizing' : ''} ${door.attachedTo ? 'attached' : ''} ${selectedDoor === door.id ? 'selected' : ''}`}
+            style={{
+              position: 'absolute',
+              left: door.x,
+              top: door.y,
+              width: door.rotation === 0 ? door.length : 8,
+              height: door.rotation === 0 ? 8 : door.length,
+              backgroundColor: door.type === 'entrance' ? '#ff9800' : '#9c27b0',
+              border: door.attachedTo ? '3px solid #4caf50' : '2px solid #673ab7',
+              borderRadius: '4px',
+              cursor: 'move',
+              transition: door.isDragging || door.isResizing ? 'none' : 'all 0.3s ease',
+              boxShadow: door.attachedTo 
+                ? '0 0 0 2px #4caf50, 0 4px 16px rgba(76, 175, 80, 0.4)'
+                : '0 4px 12px rgba(0,0,0,0.2)',
+              zIndex: 25
+            }}
+            onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, door, 'move')}
+            onDoubleClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              setSelectedDoor(selectedDoor === door.id ? null : door.id);
+            }}
+            title={`${door.type === 'entrance' ? 'Входная' : 'Межкомнотная'} дверь. Перетаскивать: перемещение, двойной клик: управление, ручки: растягивание`}
+          >
+            {/* Ручки растягивания длины */}
+            {door.rotation === 0 ? (
+              // Горизонтальная дверь - ручки слева и справа
+              <>
+                <div 
+                  className="door-resize-handle door-resize-left"
+                  onPointerDown={(e: React.PointerEvent) => {
+                    e.stopPropagation();
+                    handlePointerDown(e, door, 'resize');
+                  }}
+                />
+                <div 
+                  className="door-resize-handle door-resize-right"
+                  onPointerDown={(e: React.PointerEvent) => {
+                    e.stopPropagation();
+                    handlePointerDown(e, door, 'resize');
+                  }}
+                />
+              </>
+            ) : (
+              // Вертикальная дверь - ручки сверху и снизу
+              <>
+                <div 
+                  className="door-resize-handle door-resize-top"
+                  onPointerDown={(e: React.PointerEvent) => {
+                    e.stopPropagation();
+                    handlePointerDown(e, door, 'resize');
+                  }}
+                />
+                <div 
+                  className="door-resize-handle door-resize-bottom"
+                  onPointerDown={(e: React.PointerEvent) => {
+                    e.stopPropagation();
+                    handlePointerDown(e, door, 'resize');
+                  }}
+                />
+              </>
+            )}
+            
+            <div className="door-label">
+              {door.type === 'entrance' ? '🏠' : '🚪'}
+            </div>
+          </div>
+        ))}
+
+        {/* Панель управления выбранной дверью */}
+        {selectedDoor && (
+          <div className="door-control-panel">
+            <div className="door-control-content">
+              <p>Управление дверью</p>
+              <div className="door-control-buttons">
+                <button 
+                  className="delete-door-btn"
+                  onClick={() => deleteDoor(selectedDoor)}
+                >
+                  🗑️ Удалить
+                </button>
+                {doors.find((d: Door) => d.id === selectedDoor)?.attachedTo && (
+                  <button 
+                    className="detach-door-btn"
+                    onClick={() => detachDoor(selectedDoor)}
+                  >
+                    🔗 Открепить
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import type { RoomState } from '../lib/api';
 
 interface RoomCardProps {
-    room: RoomState;
-    onUpdate: (key: string, updates: Partial<RoomState>) => void;
-    submitted: boolean;
-    availableRooms?: RoomState[];
+  room: RoomState;
+  onUpdate: (key: string, updates: Partial<RoomState>) => void;
+  submitted: boolean;
 }
 
-const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availableRooms = [] }) => {
+const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted }) => {
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,20 +46,6 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
         }
     }, [room.file]);
 
-    const handleConnectionToggle = (targetRoomKey: string) => {
-        const connections = room.connections || [];
-        const isConnected = connections.includes(targetRoomKey);
-        
-        if (isConnected) {
-            onUpdate(room.key, { 
-                connections: connections.filter(key => key !== targetRoomKey) 
-            });
-        } else {
-            onUpdate(room.key, { 
-                connections: [...connections, targetRoomKey] 
-            });
-        }
-    };
     
     const showError = submitted && room.enabled && (room.sqm <= 0 || room.file.length === 0);
 
@@ -128,31 +113,6 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
                         </div>
                     </div>
                     
-                    {/* Room Connections */}
-                    <div className="form-group">
-                        <label className="form-label">
-                            Соединения с другими комнатами
-                            <span className="form-hint">Укажите, с какими комнатами эта комната соединена (общие стены/двери)</span>
-                        </label>
-                        <div className="connections-grid">
-                            {availableRooms
-                                .filter(r => r.key !== room.key && r.enabled)
-                                .map(targetRoom => {
-                                    const isConnected = (room.connections || []).includes(targetRoom.key);
-                                    return (
-                                        <label key={targetRoom.key} className="connection-item">
-                                            <input
-                                                type="checkbox"
-                                                checked={isConnected}
-                                                onChange={() => handleConnectionToggle(targetRoom.key)}
-                                            />
-                                            <span>{targetRoom.name}</span>
-                                        </label>
-                                    );
-                                })
-                            }
-                        </div>
-                    </div>
                     {previewUrls.length > 0 && (
                         <div className="preview-grid">
                             {previewUrls.map((url: string, index: number) => (
