@@ -56,6 +56,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     attachment: WindowAttachment;
   } | null>(null);
   const [snappingRoom, setSnappingRoom] = useState<string | null>(null);
+  const [roomRotations, setRoomRotations] = useState<Record<string, number>>({});
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
 
@@ -86,6 +87,32 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     width: Math.round(normalized.width * CANVAS_WIDTH),
     height: Math.round(normalized.height * CANVAS_HEIGHT)
   });
+
+  // Конвертация площади в пиксели с учетом длины и ширины
+  const calculateRoomDimensions = (sqm: number, length: number, width: number) => {
+    // Рассчитываем масштаб на основе площади
+    const areaInPixels = sqm * 100; // 1 кв.м = 100 пикселей (можно настроить)
+    
+    // Рассчитываем коэффициент масштабирования
+    const scale = Math.sqrt(areaInPixels / (length * width));
+    
+    return {
+      width: Math.round(length * scale),
+      height: Math.round(width * scale)
+    };
+  };
+
+  // Конвертация пикселей в нормализованные координаты с учетом площади
+  const toNormalizedWithArea = (pixels: { x: number; y: number; width: number; height: number }, sqm: number, length: number, width: number) => {
+    const dimensions = calculateRoomDimensions(sqm, length, width);
+    
+    return {
+      x: pixels.x / CANVAS_WIDTH,
+      y: pixels.y / CANVAS_HEIGHT,
+      width: dimensions.width / CANVAS_WIDTH,
+      height: dimensions.height / CANVAS_HEIGHT
+    };
+  };
 
   // Конвертация из пикселей в нормализованные координаты
   const toNormalized = (pixels: { x: number; y: number; width: number; height: number }) => ({
@@ -205,18 +232,19 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     const isWindow = 'length' in item;
 
     if (isWindow) {
+      const window = item as FloatingWindow;
       setDrag({
-        key: item.id,
-        item,
+        key: window.id,
+        item: window,
         type,
         startX: x,
         startY: y,
-        start: { x: item.x, y: item.y, length: item.length, rotation: item.rotation }
+        start: { x: window.x, y: window.y, length: window.length, rotation: window.rotation }
       });
       
       // Обновляем состояние окна
       setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-        w.id === item.id 
+        w.id === window.id 
           ? { ...w, isDragging: type === 'move', isResizing: type === 'resize' }
           : w
       ));
@@ -262,6 +290,14 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         return { ...w, rotation: newRotation, isRotating: true };
       }
       return w;
+    }));
+  };
+
+  // Поворот помещения на 90 градусов
+  const rotateRoom = (roomKey: string) => {
+    setRoomRotations((prev: Record<string, number>) => ({
+      ...prev,
+      [roomKey]: (prev[roomKey] || 0) + 90
     }));
   };
 
@@ -414,8 +450,23 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         newWidth = smartAlign(newWidth);
         newHeight = smartAlign(newHeight);
         
-        // Применяем изменения без проверки коллизий
-        const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
+        // Применяем изменения с учетом площади, если указаны длина и ширина
+        let normalized;
+        if (drag.item.sqm && drag.item.length && drag.item.width) {
+          // Сохраняем пропорции на основе площади
+          const scale = Math.sqrt((newWidth * newHeight) / (drag.item.length * drag.item.width));
+          const scaledLength = drag.item.length * scale;
+          const scaledWidth = drag.item.width * scale;
+          
+          normalized = toNormalizedWithArea(
+            { x: newX, y: newY, width: scaledLength, height: scaledWidth },
+            drag.item.sqm,
+            drag.item.length,
+            drag.item.width
+          );
+        } else {
+          normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
+        }
         onUpdate(drag.item.key, { layout: normalized });
       } else {
         // Перемещение комнаты
@@ -474,8 +525,20 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         newX = smartAlign(newX);
         newY = smartAlign(newY);
         
-        // Применяем изменения без проверки коллизий
-        const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
+        // Применяем изменения с учетом площади, если указаны длина и ширина
+        let normalized;
+        if (drag.item.sqm && drag.item.length && drag.item.width) {
+          // При перемещении сохраняем размеры на основе площади
+          const dimensions = calculateRoomDimensions(drag.item.sqm, drag.item.length, drag.item.width);
+          normalized = toNormalizedWithArea(
+            { x: newX, y: newY, width: dimensions.width, height: dimensions.height },
+            drag.item.sqm,
+            drag.item.length,
+            drag.item.width
+          );
+        } else {
+          normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
+        }
         onUpdate(drag.item.key, { layout: normalized });
       }
     }
@@ -648,7 +711,22 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         {/* Комнаты */}
         {enabledRooms.map((room) => {
           const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-          const roomPixels = toPixels(layout);
+          const rotation = roomRotations[room.key] || 0;
+          
+          // Рассчитываем размеры с учетом площади, если указаны длина и ширина
+          let roomPixels;
+          if (room.length && room.width && room.sqm) {
+            const dimensions = calculateRoomDimensions(room.sqm, room.length, room.width);
+            roomPixels = {
+              x: Math.round(layout.x * CANVAS_WIDTH),
+              y: Math.round(layout.y * CANVAS_HEIGHT),
+              width: dimensions.width,
+              height: dimensions.height
+            };
+          } else {
+            roomPixels = toPixels(layout);
+          }
+          
           const overlappingRooms = getRoomOverlaps(room);
           const hasOverlaps = overlappingRooms.length > 0;
           
@@ -670,12 +748,24 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                 boxShadow: hasOverlaps 
                   ? '0 0 0 2px #1976d2, 0 4px 16px rgba(25, 118, 210, 0.4), inset 0 0 0 1px rgba(25, 118, 210, 0.3)'
                   : '0 2px 8px rgba(0,0,0,0.1)',
-                zIndex: hasOverlaps ? 20 : 10
+                zIndex: hasOverlaps ? 20 : 10,
+                transform: `rotate(${rotation}deg)`,
+                transformOrigin: 'center'
               }}
               onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'move')}
             >
               <div className="room-header">
                 <span className="room-name">{room.name}</span>
+                <button 
+                  className="room-rotate-btn"
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    rotateRoom(room.key);
+                  }}
+                  title="Повернуть на 90°"
+                >
+                  ↻
+                </button>
               </div>
               
               {/* Ручки для изменения размера */}

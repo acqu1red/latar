@@ -308,7 +308,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
     // Рисуем полы комнат (без стен) с учетом наложений
     pixelRooms.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm } = room;
+        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm, length, width } = room;
         const overlappingRooms = getRoomOverlaps(room);
         const hasOverlaps = overlappingRooms.length > 0;
         
@@ -327,6 +327,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         // Подписи
         const labelName = String(name || '').trim();
         const labelSqm = Number.isFinite(Number(sqm)) ? `${Number(sqm).toFixed(1)} м²` : '';
+        const labelDimensions = (length && width) ? `${length.toFixed(1)}×${width.toFixed(1)} м` : '';
         const fontSize = Math.max(18, Math.min(48, Math.min(pixelWidth, pixelHeight) * 0.14));
         const labelX = pixelX + pixelWidth / 2;
         const labelY = pixelY + pixelHeight / 2 - fontSize * 0.2;
@@ -338,6 +339,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
         svgContent += `\n<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="${fontWeight}" fill="${textColor}">${escapeXml(labelName)}</text>`;
         if (labelSqm) {
             svgContent += `\n<text x="${labelX}" y="${labelY + fontSize * 0.95}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.7)}" fill="${hasOverlaps ? '#1976d2' : '#2F2F2F'}">${escapeXml(labelSqm)}</text>`;
+        }
+        if (labelDimensions) {
+            svgContent += `\n<text x="${labelX}" y="${labelY + fontSize * 1.6}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.6)}" fill="${hasOverlaps ? '#1976d2' : '#666666'}">${escapeXml(labelDimensions)}</text>`;
         }
         
         // Индикатор наложения
