@@ -269,9 +269,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       }
     } else {
       // Перетаскивание комнаты
-      const newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
-      const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
-      
       if (drag.type === 'resize') {
         let newX = drag.start.x;
         let newY = drag.start.y;
@@ -322,6 +319,10 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
           onUpdate(drag.item.key, { layout: normalized });
         }
       } else {
+        // Перемещение комнаты
+        const newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
+        const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
+        
         // Проверяем коллизии при перемещении
         if (!checkRoomCollision(drag.item.key, newX, newY, drag.start.width, drag.start.height)) {
           const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
@@ -519,14 +520,14 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
               </div>
               
               {/* Ручки для изменения размера */}
-              <div className="room-resize-handle se" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'se')} />
-              <div className="room-resize-handle nw" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'nw')} />
-              <div className="room-resize-handle ne" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'ne')} />
-              <div className="room-resize-handle sw" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'sw')} />
-              <div className="room-resize-handle n" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'n')} />
-              <div className="room-resize-handle s" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 's')} />
-              <div className="room-resize-handle e" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'e')} />
-              <div className="room-resize-handle w" onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'resize', 'w')} />
+              <div className="room-resize-handle se" onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); handlePointerDown(e, room, 'resize', 'se'); }} />
+              <div className="room-resize-handle nw" onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); handlePointerDown(e, room, 'resize', 'nw'); }} />
+              <div className="room-resize-handle ne" onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); handlePointerDown(e, room, 'resize', 'ne'); }} />
+              <div className="room-resize-handle sw" onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); handlePointerDown(e, room, 'resize', 'sw'); }} />
+              <div className="room-resize-handle n" onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); handlePointerDown(e, room, 'resize', 'n'); }} />
+              <div className="room-resize-handle s" onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); handlePointerDown(e, room, 'resize', 's'); }} />
+              <div className="room-resize-handle e" onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); handlePointerDown(e, room, 'resize', 'e'); }} />
+              <div className="room-resize-handle w" onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); handlePointerDown(e, room, 'resize', 'w'); }} />
               
               {/* Установленные окна */}
               {room.windows?.map((window, index) => (
