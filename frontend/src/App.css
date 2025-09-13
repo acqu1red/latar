@@ -1444,38 +1444,6 @@ header p {
 }
 
 /* Элементы управления плавающими окнами */
-.floating-window-rotate-btn {
-  position: absolute;
-  top: -15px;
-  right: -15px;
-  width: 20px;
-  height: 20px;
-  background: #ff9800;
-  border: 2px solid #f57c00;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: bold;
-  color: white;
-  z-index: 25;
-  transition: all 0.2s ease;
-  opacity: 0;
-  transform: scale(0.8);
-}
-
-.floating-window:hover .floating-window-rotate-btn {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.floating-window-rotate-btn:hover {
-  background: #f57c00;
-  transform: scale(1.1);
-  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.4);
-}
 
 /* Ручки растягивания плавающих окон */
 .floating-window-resize-handle {

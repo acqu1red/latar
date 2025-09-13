@@ -267,27 +267,33 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 
     if ('length' in drag.item) {
       // Перетаскивание плавающего окна
-      const newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.item.length, drag.start.x + dx));
-      const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.item.length, drag.start.y + dy));
+      let newX = drag.start.x;
+      let newY = drag.start.y;
+      let newLength = drag.start.length;
       
       if (drag.type === 'resize') {
-        const newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + (drag.item.rotation === 0 ? dx : dy)));
-        
-        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-          w.id === drag.item.id 
-            ? { ...w, x: newX, y: newY, length: newLength }
-            : w
-        ));
+        // Растягивание окна
+        if (drag.item.rotation === 0) {
+          // Горизонтальное окно - растягиваем по X
+          newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + dx));
+        } else {
+          // Вертикальное окно - растягиваем по Y
+          newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + dy));
+        }
       } else {
-        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
-          w.id === drag.item.id 
-            ? { ...w, x: newX, y: newY }
-            : w
-        ));
+        // Перемещение окна
+        newX = Math.max(0, Math.min(CANVAS_WIDTH - (drag.item.rotation === 0 ? newLength : 8), drag.start.x + dx));
+        newY = Math.max(0, Math.min(CANVAS_HEIGHT - (drag.item.rotation === 0 ? 8 : newLength), drag.start.y + dy));
       }
+      
+      setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+        w.id === drag.item.id 
+          ? { ...w, x: newX, y: newY, length: newLength }
+          : w
+      ));
 
       // Проверяем возможность привязки к стене
-      const updatedWindow = { ...drag.item, x: newX, y: newY, length: drag.type === 'resize' ? Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + (drag.item.rotation === 0 ? dx : dy))) : drag.item.length };
+      const updatedWindow = { ...drag.item, x: newX, y: newY, length: newLength };
       const attachment = findNearestWall(updatedWindow);
       
       if (attachment) {
@@ -664,8 +670,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             position: 'absolute',
               left: window.x,
               top: window.y,
-              width: window.rotation === 0 ? window.length : 20,
-              height: window.rotation === 0 ? 20 : window.length,
+              width: window.rotation === 0 ? window.length : 8,
+              height: window.rotation === 0 ? 8 : window.length,
               backgroundColor: pendingAttachment ? '#ffeb3b' : '#4caf50',
               border: '2px solid #2e7d32',
               borderRadius: '4px',
@@ -675,18 +681,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
               zIndex: 20
             }}
             onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, window, 'move')}
+            onDoubleClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              rotateFloatingWindow(window.id);
+            }}
+            title="Перетаскивать: перемещение, двойной клик: поворот"
           >
-            {/* Кнопка поворота */}
-            <div 
-              className="floating-window-rotate-btn"
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                rotateFloatingWindow(window.id);
-              }}
-              title="Повернуть на 90°"
-            >
-              ↻
-            </div>
             
             {/* Ручки растягивания */}
             <div 
