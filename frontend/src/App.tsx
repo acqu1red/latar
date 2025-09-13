@@ -261,7 +261,7 @@ function App() {
       allRooms.splice(0, allRooms.length, ...filteredRooms, ...additionalRooms);
     }
     
-    return allRooms.some(r => r.enabled && r.sqm > 0 && r.file.length > 0);
+    return allRooms.some(r => r.enabled && r.sqm > 0);
   })();
 
   return (
