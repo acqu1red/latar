@@ -99,71 +99,16 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
     applyMinimalCorrection();
 
-    // Разрешение наложений помещений в SVG
-    const resolveOverlaps = () => {
-        const GAP = 10 * SVG_SCALE; // Минимальный зазор между помещениями
-        
-        for (let i = 0; i < pixelRooms.length; i++) {
-            for (let j = i + 1; j < pixelRooms.length; j++) {
-                const roomA = pixelRooms[i];
-                const roomB = pixelRooms[j];
-                
-                // Проверяем наложение
-                const overlapX = Math.max(0, Math.min(roomA.pixelX + roomA.pixelWidth, roomB.pixelX + roomB.pixelWidth) - Math.max(roomA.pixelX, roomB.pixelX));
-                const overlapY = Math.max(0, Math.min(roomA.pixelY + roomA.pixelHeight, roomB.pixelY + roomB.pixelHeight) - Math.max(roomA.pixelY, roomB.pixelY));
-                
-                if (overlapX > 0 && overlapY > 0) {
-                    // Есть наложение - раздвигаем помещения
-                    const totalOverlapX = overlapX + GAP;
-                    const totalOverlapY = overlapY + GAP;
-                    
-                    // Определяем направление раздвигания
-                    const centerAX = roomA.pixelX + roomA.pixelWidth / 2;
-                    const centerBX = roomB.pixelX + roomB.pixelWidth / 2;
-                    const centerAY = roomA.pixelY + roomA.pixelHeight / 2;
-                    const centerBY = roomB.pixelY + roomB.pixelHeight / 2;
-                    
-                    // Горизонтальное раздвигание
-                    if (centerAX < centerBX) {
-                        // A слева от B
-                        roomB.pixelX = roomA.pixelX + roomA.pixelWidth + GAP;
-                    } else {
-                        // B слева от A
-                        roomA.pixelX = roomB.pixelX + roomB.pixelWidth + GAP;
-                    }
-                    
-                    // Вертикальное раздвигание
-                    if (centerAY < centerBY) {
-                        // A выше B
-                        roomB.pixelY = roomA.pixelY + roomA.pixelHeight + GAP;
-                    } else {
-                        // B выше A
-                        roomA.pixelY = roomB.pixelY + roomB.pixelHeight + GAP;
-                    }
-                    
-                    // Проверяем, что помещения не выходят за границы
-                    roomA.pixelX = Math.max(MARGIN, Math.min(roomA.pixelX, CANVAS_WIDTH - MARGIN - roomA.pixelWidth));
-                    roomA.pixelY = Math.max(MARGIN, Math.min(roomA.pixelY, CANVAS_HEIGHT - MARGIN - roomA.pixelHeight));
-                    roomB.pixelX = Math.max(MARGIN, Math.min(roomB.pixelX, CANVAS_WIDTH - MARGIN - roomB.pixelWidth));
-                    roomB.pixelY = Math.max(MARGIN, Math.min(roomB.pixelY, CANVAS_HEIGHT - MARGIN - roomB.pixelHeight));
-                }
-            }
+    // Логирование данных для отладки
+    console.log('Room data before SVG generation:');
+    pixelRooms.forEach(room => {
+        if (room.windows && room.windows.length > 0) {
+            console.log(`Room ${room.key} (${room.name}):`, {
+                position: { x: room.pixelX, y: room.pixelY, width: room.pixelWidth, height: room.pixelHeight },
+                windows: room.windows.map(w => ({ side: w.side, pos: w.pos, len: w.len }))
+            });
         }
-    };
-    
-    resolveOverlaps();
-
-    // Обновляем позиции окон после разрешения наложений
-    const updateWindowPositions = () => {
-        pixelRooms.forEach(room => {
-            if (room.windows && room.windows.length > 0) {
-                // Окна уже правильно позиционированы относительно комнаты
-                // Никаких изменений не требуется, так как окна привязаны к стенам комнаты
-            }
-        });
-    };
-    
-    updateWindowPositions();
+    });
 
     // Infer doors from user connections and geometric adjacency
     const addDoorIfMissing = (room, side, posNorm) => {
@@ -459,6 +404,13 @@ export async function generateSvgFromData(rooms, totalSqm) {
     // Draw windows: прорезаем стену и рисуем полосы окна
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [] } = room;
+
+        if (windows.length > 0) {
+            console.log(`Drawing windows for room ${room.key} (${room.name}):`, {
+                position: { x: pixelX, y: pixelY, width: pixelWidth, height: pixelHeight },
+                windows: windows.map(w => ({ side: w.side, pos: w.pos, len: w.len }))
+            });
+        }
 
         windows.forEach(window => {
             // Правильное позиционирование окон на стенах

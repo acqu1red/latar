@@ -1366,8 +1366,7 @@ header p {
 
 .room:hover {
   background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 8px 24px rgba(33, 150, 243, 0.3);
+  box-shadow: 0 0 20px rgba(33, 150, 243, 0.6), 0 0 40px rgba(33, 150, 243, 0.3);
   border-color: #1976d2;
 }
 
