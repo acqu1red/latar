@@ -36,7 +36,10 @@ export interface ApiResponse {
 export async function generatePlan(rooms: RoomState[], bathroomConfig?: any): Promise<ApiResponse> {
     const formData = new FormData();
 
-    const enabledRooms = rooms.filter(r => r.enabled && r.sqm > 0 && r.file.length > 0);
+    const enabledRooms = rooms.filter(r => r.enabled && r.sqm > 0);
+    
+    console.log('All rooms:', rooms.map(r => ({ key: r.key, name: r.name, enabled: r.enabled, sqm: r.sqm })));
+    console.log('Enabled rooms:', enabledRooms.map(r => ({ key: r.key, name: r.name, enabled: r.enabled, sqm: r.sqm })));
     
     const roomsJson = enabledRooms.map(({ file, ...rest }) => rest);
     formData.append('roomsJson', JSON.stringify(roomsJson));
