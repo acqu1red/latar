@@ -381,33 +381,45 @@ export async function generateSvgFromData(rooms, totalSqm) {
         const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [] } = room;
 
         windows.forEach(window => {
-            const winX = pixelX + (typeof window.pos === 'number' ? window.pos : 0.5) * pixelWidth;
-            const winY = pixelY + (typeof window.pos === 'number' ? window.pos : 0.5) * pixelHeight;
-            const along = (window.side === 'top' || window.side === 'bottom');
-            const winLength = Math.max(50, (window.len || 0.22) * (along ? pixelWidth : pixelHeight));
+            // Правильное позиционирование окон на стенах
+            const pos = typeof window.pos === 'number' ? window.pos : 0.5;
+            const len = typeof window.len === 'number' ? window.len : 0.2;
+            
             const cutWidth = WALL_THICKNESS + 2;
             const stripe = 4;
 
             if (window.side === 'top') {
-                const mid = winX; const y = pixelY;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y}" x2="${mid + winLength/2}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y - 1}" x2="${mid + winLength/2}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y + 1}" x2="${mid + winLength/2}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                // Окно на верхней стене
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                const y = pixelY;
+                svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'bottom') {
-                const mid = winX; const y = pixelY + pixelHeight;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y}" x2="${mid + winLength/2}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y - 1}" x2="${mid + winLength/2}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${mid - winLength/2}" y1="${y + 1}" x2="${mid + winLength/2}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                // Окно на нижней стене
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                const y = pixelY + pixelHeight;
+                svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'left') {
-                const mid = winY; const x = pixelX;
-                svgContent += `\n<line x1="${x}" y1="${mid - winLength/2}" x2="${x}" y2="${mid + winLength/2}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x - 1}" y1="${mid - winLength/2}" x2="${x - 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x + 1}" y1="${mid - winLength/2}" x2="${x + 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                // Окно на левой стене
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                const x = pixelX;
+                svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'right') {
-                const mid = winY; const x = pixelX + pixelWidth;
-                svgContent += `\n<line x1="${x}" y1="${mid - winLength/2}" x2="${x}" y2="${mid + winLength/2}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x - 1}" y1="${mid - winLength/2}" x2="${x - 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x + 1}" y1="${mid - winLength/2}" x2="${x + 1}" y2="${mid + winLength/2}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                // Окно на правой стене
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                const x = pixelX + pixelWidth;
+                svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             }
         });
     });

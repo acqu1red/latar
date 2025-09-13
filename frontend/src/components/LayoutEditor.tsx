@@ -54,6 +54,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     windowId: number;
     attachment: WindowAttachment;
   } | null>(null);
+  const [snappingRoom, setSnappingRoom] = useState<string | null>(null);
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
 
@@ -225,6 +226,20 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     return false;
   };
 
+  // Умное выравнивание
+  const smartAlign = (value: number, snapDistance: number = 20): number => {
+    const gridSize = GRID_SIZE;
+    const snapThreshold = snapDistance;
+    
+    // Выравнивание по сетке
+    const gridSnap = Math.round(value / gridSize) * gridSize;
+    if (Math.abs(value - gridSnap) < snapThreshold) {
+      return gridSnap;
+    }
+    
+    return value;
+  };
+
   // Обработка движения мыши
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!drag) return;
@@ -313,6 +328,28 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             break;
         }
         
+        // Умное выравнивание размеров с другими комнатами
+        for (const room of enabledRooms) {
+          if (room.key === drag.item.key) continue;
+          const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+          const roomPixels = toPixels(layout);
+          
+          // Выравнивание ширины
+          if (Math.abs(newWidth - roomPixels.width) < 20) {
+            newWidth = roomPixels.width;
+          }
+          // Выравнивание высоты
+          if (Math.abs(newHeight - roomPixels.height) < 20) {
+            newHeight = roomPixels.height;
+          }
+        }
+        
+        // Применяем умное выравнивание
+        newX = smartAlign(newX);
+        newY = smartAlign(newY);
+        newWidth = smartAlign(newWidth);
+        newHeight = smartAlign(newHeight);
+        
         // Проверяем коллизии только при изменении размера
         if (!checkRoomCollision(drag.item.key, newX, newY, newWidth, newHeight)) {
           const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
@@ -320,8 +357,48 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         }
       } else {
         // Перемещение комнаты
-        const newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
-        const newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
+        let newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
+        let newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
+        
+        // Умное выравнивание с другими комнатами
+        let isSnapping = false;
+        for (const room of enabledRooms) {
+          if (room.key === drag.item.key) continue;
+          const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+          const roomPixels = toPixels(layout);
+          
+          // Выравнивание по левому краю
+          if (Math.abs(newX - roomPixels.x) < 15) {
+            newX = roomPixels.x;
+            isSnapping = true;
+          }
+          // Выравнивание по правому краю
+          if (Math.abs((newX + drag.start.width) - (roomPixels.x + roomPixels.width)) < 15) {
+            newX = roomPixels.x + roomPixels.width - drag.start.width;
+            isSnapping = true;
+          }
+          // Выравнивание по верхнему краю
+          if (Math.abs(newY - roomPixels.y) < 15) {
+            newY = roomPixels.y;
+            isSnapping = true;
+          }
+          // Выравнивание по нижнему краю
+          if (Math.abs((newY + drag.start.height) - (roomPixels.y + roomPixels.height)) < 15) {
+            newY = roomPixels.y + roomPixels.height - drag.start.height;
+            isSnapping = true;
+          }
+        }
+        
+        // Обновляем состояние выравнивания
+        if (isSnapping) {
+          setSnappingRoom(drag.item.key);
+        } else {
+          setSnappingRoom(null);
+        }
+        
+        // Применяем умное выравнивание
+        newX = smartAlign(newX);
+        newY = smartAlign(newY);
         
         // Проверяем коллизии при перемещении
         if (!checkRoomCollision(drag.item.key, newX, newY, drag.start.width, drag.start.height)) {
@@ -345,6 +422,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       ));
     }
 
+    // Сбрасываем состояние выравнивания
+    setSnappingRoom(null);
     setDrag(null);
     (e.target as Element).releasePointerCapture(e.pointerId);
   };
@@ -499,7 +578,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
           return (
             <div
               key={room.key}
-              className="room"
+              className={`room ${snappingRoom === room.key ? 'snapping' : ''}`}
               style={{
                 position: 'absolute',
                 left: roomPixels.x,
