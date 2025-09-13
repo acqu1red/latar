@@ -220,9 +220,9 @@ function App() {
       return;
     }
 
-    const hasInvalidRoom = enabledRooms.some(r => r.sqm <= 0 || r.file.length === 0);
+    const hasInvalidRoom = enabledRooms.some(r => r.sqm <= 0);
     if (hasInvalidRoom) {
-      setError("Для каждой включённой комнаты необходимо указать площадь и загрузить хотя бы одно фото.");
+      setError("Для каждой включённой комнаты необходимо указать площадь.");
       return;
     }
 
@@ -341,7 +341,7 @@ function App() {
           <div className="constructor-panel" aria-hidden={!editorOpen}>
             <div className="constructor-panel-inner">
               <h3>Мини‑конструктор расположения комнат</h3>
-              <p className="constructor-hint">Перетаскивайте и меняйте размер. Размеры автоматически подстраиваются под площадь (м²), позиции — настраивайте вручную.</p>
+              <p className="constructor-hint">Перетаскивайте и меняйте размер. Размеры автоматически подстраиваются под площадь (м²), позиции — настраивайте вручную. Фотографии необязательны — план можно создать только с указанием площадей.</p>
               <LayoutEditor 
                 rooms={rooms} 
                 onUpdate={handleRoomUpdate}
@@ -358,7 +358,7 @@ function App() {
             disabled={!isGenerateButtonEnabled || loading}
             className="generate-btn"
           >
-            {loading ? 'Анализируем фото и генерируем план...' : 'Генерировать план'}
+            {loading ? 'Генерируем план...' : 'Генерировать план (фото необязательны)'}
           </button>
         </div>
 

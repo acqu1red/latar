@@ -47,7 +47,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted }) => {
     }, [room.file]);
 
     
-    const showError = submitted && room.enabled && (room.sqm <= 0 || room.file.length === 0);
+    const showError = submitted && room.enabled && room.sqm <= 0;
 
     return (
         <div className={`room-card ${room.enabled ? 'enabled' : 'disabled'} ${showError ? 'error' : ''}`}>
@@ -85,11 +85,11 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted }) => {
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpdate(room.key, { sqm: parseFloat(e.target.value) || 0 })}
                                 className={`form-input ${submitted && room.sqm <= 0 ? 'error' : ''}`}
                             />
-                            {submitted && room.sqm <= 0 && <p className="error-text">Укажите площадь</p>}
+                            {submitted && room.sqm <= 0 && <p className="error-text">Укажите площадь (м²)</p>}
                         </div>
                         <div className="form-group">
                             <label className="form-label">
-                                Фотографии комнаты (можно несколько)
+                                Фотографии комнаты (необязательно, можно несколько)
                             </label>
                             <div className="file-input-wrapper">
                                 <input 
@@ -109,7 +109,6 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted }) => {
                                     Очистить все
                                 </button>
                             )}
-                            {submitted && room.file.length === 0 && <p className="error-text">Загрузите фото</p>}
                         </div>
                     </div>
                     

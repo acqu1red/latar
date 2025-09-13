@@ -109,37 +109,65 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
 
     // --- Always use hybrid approach: SVG + DALL-E styling ---
     {
-      // First analyze photos to get furniture/doors data
+      // Analyze photos to get furniture data (only if photos are available)
       let analyzedRooms;
-      try {
-        const analysisPromises = enabledRooms.map(async (room) => {
-          const files = filesByRoomKey[room.key];
-          if (!files) return null;
+      const roomsWithPhotos = enabledRooms.filter(room => {
+        const files = filesByRoomKey[room.key];
+        return files && files.length > 0;
+      });
 
-          console.log(`Analyzing room: ${room.name} (${room.key}) with ${files.length} photos`);
-          const result = await analyzeRoomVision({
-            photoBuffers: files.map(f => f.buffer),
+      if (roomsWithPhotos.length > 0) {
+        try {
+          const analysisPromises = roomsWithPhotos.map(async (room) => {
+            const files = filesByRoomKey[room.key];
+            console.log(`Analyzing room: ${room.name} (${room.key}) with ${files.length} photos`);
+            const result = await analyzeRoomVision({
+              photoBuffers: files.map(f => f.buffer),
+              key: room.key,
+              name: room.name,
+              sqm: room.sqm,
+            });
+            console.log(`Analysis result for ${room.key}:`, { 
+              objects: result.objects?.length || 0,
+              objectTypes: result.objects?.map(o => o.type) || []
+            });
+            return result;
+          });
+
+          const analyzedRoomsWithPhotos = await Promise.all(analysisPromises);
+          
+          // Combine analyzed rooms with rooms without photos
+          analyzedRooms = enabledRooms.map(room => {
+            const analyzed = analyzedRoomsWithPhotos.find(r => r.key === room.key);
+            if (analyzed) {
+              return analyzed;
+            } else {
+              // Room without photos - return basic data
+              return {
+                key: room.key,
+                name: room.name,
+                sqm: room.sqm,
+                objects: []
+              };
+            }
+          });
+          
+          console.log('Analysis completed:', {
+            totalRooms: enabledRooms.length,
+            roomsWithPhotos: roomsWithPhotos.length,
+            roomsWithoutPhotos: enabledRooms.length - roomsWithPhotos.length
+          });
+        } catch (analysisError) {
+          console.error('Photo analysis failed, using basic room data:', analysisError);
+          analyzedRooms = enabledRooms.map(room => ({
             key: room.key,
             name: room.name,
             sqm: room.sqm,
-          });
-          console.log(`Analysis result for ${room.key}:`, { 
-            objects: result.objects?.length || 0, 
-            doors: result.doors?.length || 0, 
-            windows: result.windows?.length || 0,
-            objectTypes: result.objects?.map(o => o.type) || []
-          });
-          return result;
-        });
-
-        analyzedRooms = (await Promise.all(analysisPromises)).filter(Boolean);
-        console.log('Total analyzed rooms:', analyzedRooms.length);
-        
-        if (!analyzedRooms || analyzedRooms.length === 0) {
-          throw new Error('No rooms could be analyzed.');
+            objects: []
+          }));
         }
-      } catch (analysisError) {
-        console.error('Photo analysis failed, using basic room data:', analysisError);
+      } else {
+        console.log('No photos provided, generating plan without furniture analysis');
         analyzedRooms = enabledRooms.map(room => ({
           key: room.key,
           name: room.name,
