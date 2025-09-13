@@ -5,24 +5,33 @@
  * @returns {Promise<{svgDataUrl: string, pngDataUrl: string}>} Generated floor plan
  */
 export async function generateSvgFromData(rooms, totalSqm) {
-    const CANVAS_WIDTH = 2048;
-    const CANVAS_HEIGHT = 2048;
-    const MARGIN = 36;
+    // Размеры канвы конструктора (соответствуют LayoutEditor)
+    const CONSTRUCTOR_WIDTH = 1000;
+    const CONSTRUCTOR_HEIGHT = 700;
+    
+    // Размеры SVG (увеличиваем для качества)
+    const SVG_SCALE = 2;
+    const CANVAS_WIDTH = CONSTRUCTOR_WIDTH * SVG_SCALE;
+    const CANVAS_HEIGHT = CONSTRUCTOR_HEIGHT * SVG_SCALE;
+    const MARGIN = 20 * SVG_SCALE;
+    
     // Единая толщина стен для внешних и внутренних стен
-    const WALL_THICKNESS = 28;
-    const ICON_STROKE = 4;
+    const WALL_THICKNESS = 6 * SVG_SCALE;
+    const ICON_STROKE = 2 * SVG_SCALE;
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
     // Convert normalized coordinates (0-1) to pixel coordinates
+    // Строго используем размеры из конструктора
     const pixelRooms = rooms.map(room => {
         const layout = room.layout || { x: 0, y: 0, width: 0.2, height: 0.2 };
         return {
             ...room,
-            pixelX: MARGIN + layout.x * (CANVAS_WIDTH - 2 * MARGIN),
-            pixelY: MARGIN + layout.y * (CANVAS_HEIGHT - 2 * MARGIN),
-            pixelWidth: layout.width * (CANVAS_WIDTH - 2 * MARGIN),
-            pixelHeight: layout.height * (CANVAS_HEIGHT - 2 * MARGIN),
+            // Прямое масштабирование из конструктора в SVG
+            pixelX: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
+            pixelY: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
+            pixelWidth: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
+            pixelHeight: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE,
             // Игнорируем дверные данные из AI; генерируем строго по connections + внешний вход
             doors: [],
             windows: Array.isArray(room.windows) ? [...room.windows] : [],
@@ -30,11 +39,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
         };
     });
 
-    // Полное соответствие размерам конструктора: ширину/высоту не меняем. Разрешён только лёгкий сдвиг позиций для подгонки стыков.
+    // Минимальная коррекция только для сглаживания углов (не более 3 пикселей)
+    const MINIMAL_CORRECTION = 3 * SVG_SCALE;
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    const MIN_SIZE = 48; // минимальный размер для клампа
-    const SMALL_SNAP = 6; // px — мягкий снэп только позиций
-    const softSnapPositions = () => {
+    
+    const applyMinimalCorrection = () => {
+        // Только легкое выравнивание стен для сглаживания углов
         const vEdges = [];
         const hEdges = [];
         pixelRooms.forEach((r, idx) => {
@@ -44,46 +54,50 @@ export async function generateSvgFromData(rooms, totalSqm) {
             hEdges.push({ idx, kind: 'bottom', value: r.pixelY + r.pixelHeight });
         });
 
-        const clusterAndShift = (edges, isVertical) => {
+        const alignEdges = (edges, isVertical) => {
             edges.sort((a, b) => a.value - b.value);
             let group = [];
             const applyGroup = (grp) => {
                 if (grp.length <= 1) return;
                 const first = grp[0].value;
                 const last = grp[grp.length - 1].value;
-                if (last - first > SMALL_SNAP) return;
+                if (last - first > MINIMAL_CORRECTION) return;
                 const avg = grp.reduce((s, e) => s + e.value, 0) / grp.length;
                 grp.forEach(e => {
                     const r = pixelRooms[e.idx];
                     if (isVertical) {
                         const shift = (e.kind === 'left') ? (avg - r.pixelX) : (avg - (r.pixelX + r.pixelWidth));
-                        r.pixelX += shift;
+                        // Ограничиваем сдвиг максимум 3 пикселями
+                        const limitedShift = Math.max(-MINIMAL_CORRECTION, Math.min(MINIMAL_CORRECTION, shift));
+                        r.pixelX += limitedShift;
                     } else {
                         const shift = (e.kind === 'top') ? (avg - r.pixelY) : (avg - (r.pixelY + r.pixelHeight));
-                        r.pixelY += shift;
+                        // Ограничиваем сдвиг максимум 3 пикселями
+                        const limitedShift = Math.max(-MINIMAL_CORRECTION, Math.min(MINIMAL_CORRECTION, shift));
+                        r.pixelY += limitedShift;
                     }
                 });
             };
 
             for (let i = 0; i < edges.length; i++) {
                 if (group.length === 0) group.push(edges[i]);
-                else if (Math.abs(edges[i].value - group[0].value) <= SMALL_SNAP) group.push(edges[i]);
+                else if (Math.abs(edges[i].value - group[0].value) <= MINIMAL_CORRECTION) group.push(edges[i]);
                 else { applyGroup(group); group = [edges[i]]; }
             }
             applyGroup(group);
         };
 
-        clusterAndShift(vEdges, true);
-        clusterAndShift(hEdges, false);
+        alignEdges(vEdges, true);
+        alignEdges(hEdges, false);
 
-        // Клампим положения в рабочую область. Ширину/высоту не трогаем
+        // Клампим положения в рабочую область. Ширину/высоту НЕ ТРОГАЕМ!
         pixelRooms.forEach(r => {
             r.pixelX = clamp(r.pixelX, MARGIN, CANVAS_WIDTH - MARGIN - r.pixelWidth);
             r.pixelY = clamp(r.pixelY, MARGIN, CANVAS_HEIGHT - MARGIN - r.pixelHeight);
         });
     };
 
-    softSnapPositions();
+    applyMinimalCorrection();
 
     // Infer doors from user connections and geometric adjacency
     const addDoorIfMissing = (room, side, posNorm) => {
