@@ -89,14 +89,18 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     
     // Если площадь указана, рассчитываем размеры на основе площади
     const aspectRatio = getRoomAspectRatio(room);
-    return calculateRoomDimensions(room.sqm, aspectRatio);
+    const dimensions = calculateRoomDimensions(room.sqm, aspectRatio);
+    console.log(`Размеры для ${room.name} (${room.sqm} кв.м): ${dimensions.width}x${dimensions.height} пикселей`);
+    return dimensions;
   };
 
   // Функция для получения текущего соотношения сторон помещения
   const getRoomAspectRatio = (room: RoomState): number => {
     const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
     // Используем нормализованные размеры для расчета соотношения
-    return layout.width / layout.height;
+    const aspectRatio = layout.width / layout.height;
+    console.log(`Текущее соотношение сторон для ${room.name}: ${aspectRatio.toFixed(2)}`);
+    return aspectRatio;
   };
 
   // Функция для обновления размеров помещения с сохранением площади
@@ -107,11 +111,14 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     
     // Рассчитываем новое соотношение сторон
     const aspectRatio = newWidth / newHeight;
+    console.log(`Соотношение сторон: ${aspectRatio.toFixed(2)}`);
     
     // Рассчитываем новые размеры с сохранением площади
     const areaInPixels = room.sqm * 100;
     const width = Math.sqrt(areaInPixels / aspectRatio);
     const height = areaInPixels / width;
+    
+    console.log(`Площадь в пикселях: ${areaInPixels}, Новые размеры: ${Math.round(width)}x${Math.round(height)}`);
     
     return {
       width: Math.round(width),
@@ -523,7 +530,11 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         
         // Если у помещения задана площадь, пересчитываем размеры с сохранением площади
         if (drag.item.sqm && drag.item.sqm > 0) {
+          console.log(`Изменение размера помещения с площадью ${drag.item.sqm} кв.м`);
+          console.log(`Новые размеры: ${newWidth}x${newHeight} пикселей`);
+          
           const updatedDimensions = updateRoomDimensions(drag.item, newWidth, newHeight);
+          console.log(`Пересчитанные размеры: ${updatedDimensions.width}x${updatedDimensions.height} пикселей`);
           
           // Конвертируем новые размеры в нормализованные координаты
           const normalized = toNormalized({ 
@@ -533,6 +544,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
             height: updatedDimensions.height 
           });
           
+          console.log(`Нормализованные координаты:`, normalized);
           onUpdate(drag.item.key, { layout: normalized });
         } else {
           // Обычное изменение размера без ограничений по площади
