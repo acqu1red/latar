@@ -42,7 +42,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
     // Минимальная коррекция только для сглаживания углов (не более 3 пикселей)
     const MINIMAL_CORRECTION = 3 * SVG_SCALE;
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    
+
     const applyMinimalCorrection = () => {
         // Только легкое выравнивание стен для сглаживания углов
         const vEdges = [];
@@ -98,6 +98,72 @@ export async function generateSvgFromData(rooms, totalSqm) {
     };
 
     applyMinimalCorrection();
+
+    // Разрешение наложений помещений в SVG
+    const resolveOverlaps = () => {
+        const GAP = 10 * SVG_SCALE; // Минимальный зазор между помещениями
+        
+        for (let i = 0; i < pixelRooms.length; i++) {
+            for (let j = i + 1; j < pixelRooms.length; j++) {
+                const roomA = pixelRooms[i];
+                const roomB = pixelRooms[j];
+                
+                // Проверяем наложение
+                const overlapX = Math.max(0, Math.min(roomA.pixelX + roomA.pixelWidth, roomB.pixelX + roomB.pixelWidth) - Math.max(roomA.pixelX, roomB.pixelX));
+                const overlapY = Math.max(0, Math.min(roomA.pixelY + roomA.pixelHeight, roomB.pixelY + roomB.pixelHeight) - Math.max(roomA.pixelY, roomB.pixelY));
+                
+                if (overlapX > 0 && overlapY > 0) {
+                    // Есть наложение - раздвигаем помещения
+                    const totalOverlapX = overlapX + GAP;
+                    const totalOverlapY = overlapY + GAP;
+                    
+                    // Определяем направление раздвигания
+                    const centerAX = roomA.pixelX + roomA.pixelWidth / 2;
+                    const centerBX = roomB.pixelX + roomB.pixelWidth / 2;
+                    const centerAY = roomA.pixelY + roomA.pixelHeight / 2;
+                    const centerBY = roomB.pixelY + roomB.pixelHeight / 2;
+                    
+                    // Горизонтальное раздвигание
+                    if (centerAX < centerBX) {
+                        // A слева от B
+                        roomB.pixelX = roomA.pixelX + roomA.pixelWidth + GAP;
+                    } else {
+                        // B слева от A
+                        roomA.pixelX = roomB.pixelX + roomB.pixelWidth + GAP;
+                    }
+                    
+                    // Вертикальное раздвигание
+                    if (centerAY < centerBY) {
+                        // A выше B
+                        roomB.pixelY = roomA.pixelY + roomA.pixelHeight + GAP;
+                    } else {
+                        // B выше A
+                        roomA.pixelY = roomB.pixelY + roomB.pixelHeight + GAP;
+                    }
+                    
+                    // Проверяем, что помещения не выходят за границы
+                    roomA.pixelX = Math.max(MARGIN, Math.min(roomA.pixelX, CANVAS_WIDTH - MARGIN - roomA.pixelWidth));
+                    roomA.pixelY = Math.max(MARGIN, Math.min(roomA.pixelY, CANVAS_HEIGHT - MARGIN - roomA.pixelHeight));
+                    roomB.pixelX = Math.max(MARGIN, Math.min(roomB.pixelX, CANVAS_WIDTH - MARGIN - roomB.pixelWidth));
+                    roomB.pixelY = Math.max(MARGIN, Math.min(roomB.pixelY, CANVAS_HEIGHT - MARGIN - roomB.pixelHeight));
+                }
+            }
+        }
+    };
+    
+    resolveOverlaps();
+
+    // Обновляем позиции окон после разрешения наложений
+    const updateWindowPositions = () => {
+        pixelRooms.forEach(room => {
+            if (room.windows && room.windows.length > 0) {
+                // Окна уже правильно позиционированы относительно комнаты
+                // Никаких изменений не требуется, так как окна привязаны к стенам комнаты
+            }
+        });
+    };
+    
+    updateWindowPositions();
 
     // Infer doors from user connections and geometric adjacency
     const addDoorIfMissing = (room, side, posNorm) => {
