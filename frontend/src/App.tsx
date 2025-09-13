@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import RoomCard from './components/RoomCard';
 import { generatePlan } from './lib/api';
 import type { RoomState, ApiResponse, BathroomType, BathroomConfig } from './lib/api';
@@ -29,39 +29,44 @@ function App() {
   const [submitted, setSubmitted] = useState(false);
   const [editorOpen, setEditorOpen] = useState(true);
 
-  // Total enabled area for auto sizing
-  const totalEnabledSqm = useMemo<number>(() => rooms.filter((r: RoomState) => r.enabled).reduce((s: number, r: RoomState) => s + (r.sqm || 0), 0), [rooms]);
 
   const recomputeLayoutsByArea = (nextRooms: RoomState[]): RoomState[] => {
-    const enabled = nextRooms.filter((r: RoomState) => r.enabled && r.sqm > 0);
-    if (enabled.length === 0 || totalEnabledSqm <= 0) return nextRooms;
+    const enabled = nextRooms.filter((r: RoomState) => r.enabled);
+    if (enabled.length === 0) return nextRooms;
     
-    // Размеры канвы в пикселях
-    const CANVAS_WIDTH = 960;
-    const CANVAS_HEIGHT = 420;
-    const USABLE_WIDTH = CANVAS_WIDTH * 0.86;
+    // Размеры канвы в пикселях (соответствуют LayoutEditor)
+    const CANVAS_WIDTH = 1000;
+    const CANVAS_HEIGHT = 700;
+    const USABLE_WIDTH = CANVAS_WIDTH * 0.9;
 
     // Грубая сеточная авто-раскладка без пересечений
-    const total = enabled.reduce((s: number, x: RoomState) => s + x.sqm, 0);
+    const total = enabled.reduce((s: number, x: RoomState) => s + (x.sqm || 20), 0);
     const BASE_MIN = 100;
     const BASE_MAX = 200;
-    const referenceTotal = Math.max(BASE_MIN, Math.min(BASE_MAX, total || BASE_MIN));
+    const referenceTotal = Math.max(BASE_MIN, Math.min(BASE_MAX, total));
     let cursorX = 20, cursorY = 20, rowH = 0;
     const GAP = 10;
 
     const computed = nextRooms.map(r => {
-      if (!r.enabled || r.sqm <= 0) return r;
-      const MIN_DIM = 50; // минимальная видимая величина в пикселях
-      const MAX_DIM = 400; // максимальная величина в пикселях
-      let edge = Math.sqrt(Math.max(0, r.sqm) / referenceTotal) * USABLE_WIDTH;
+      if (!r.enabled) return r;
+      const MIN_DIM = 80; // минимальная видимая величина в пикселях
+      const MAX_DIM = 300; // максимальная величина в пикселях
+      const sqm = r.sqm || 20; // если площадь не задана, используем 20 кв.м
+      let edge = Math.sqrt(Math.max(0, sqm) / referenceTotal) * USABLE_WIDTH;
       let w = Math.max(MIN_DIM, Math.min(MAX_DIM, edge));
       let h = w;
       // Предположительная ориентация
       const degree = (r.rotation ?? 0);
       if (degree === 90) [w, h] = [h, w];
       if (cursorX + w > CANVAS_WIDTH - 20) { cursorX = 20; cursorY += rowH + GAP; rowH = 0; }
-      const layout = { x: cursorX, y: cursorY, width: Math.min(CANVAS_WIDTH - 40, w), height: Math.min(CANVAS_HEIGHT - 40, h) };
-      cursorX += layout.width + GAP; rowH = Math.max(rowH, layout.height);
+      const layout = { 
+        x: cursorX / CANVAS_WIDTH, 
+        y: cursorY / CANVAS_HEIGHT, 
+        width: Math.min(CANVAS_WIDTH - 40, w) / CANVAS_WIDTH, 
+        height: Math.min(CANVAS_HEIGHT - 40, h) / CANVAS_HEIGHT 
+      };
+      cursorX += layout.width * CANVAS_WIDTH + GAP; 
+      rowH = Math.max(rowH, layout.height * CANVAS_HEIGHT);
       return { ...r, layout };
     });
 
@@ -75,13 +80,14 @@ function App() {
         const bL = b.layout;
         const dx = (aL.x + aL.width) - bL.x;
         const dy = (aL.y + aL.height) - bL.y;
+        const gapNorm = GAP / CANVAS_WIDTH;
         // если далеко по X, приблизим по X вплотную
         if (Math.abs(dx) > Math.abs(dy)) {
-          if (aL.x < bL.x) bL.x = Math.min(CANVAS_WIDTH - bL.width - 20, aL.x + aL.width + GAP);
-          else aL.x = Math.min(CANVAS_WIDTH - aL.width - 20, bL.x + bL.width + GAP);
+          if (aL.x < bL.x) bL.x = Math.min(1 - bL.width - gapNorm, aL.x + aL.width + gapNorm);
+          else aL.x = Math.min(1 - aL.width - gapNorm, bL.x + bL.width + gapNorm);
         } else {
-          if (aL.y < bL.y) bL.y = Math.min(CANVAS_HEIGHT - bL.height - 20, aL.y + aL.height + GAP);
-          else aL.y = Math.min(CANVAS_HEIGHT - aL.height - 20, bL.y + bL.height + GAP);
+          if (aL.y < bL.y) bL.y = Math.min(1 - bL.height - gapNorm, aL.y + aL.height + gapNorm);
+          else aL.y = Math.min(1 - aL.height - gapNorm, bL.y + bL.height + gapNorm);
         }
       });
     });
@@ -95,13 +101,14 @@ function App() {
         const bx1 = b.layout.x, by1 = b.layout.y, bx2 = bx1 + b.layout.width, by2 = by1 + b.layout.height;
         const overlapX = Math.max(0, Math.min(ax2, bx2) - Math.max(ax1, bx1));
         const overlapY = Math.max(0, Math.min(ay2, by2) - Math.max(ay1, by1));
+        const gapNorm = GAP / CANVAS_WIDTH;
         if (overlapX > 0 && overlapY > 0) {
           if (overlapX >= overlapY) {
-            if (ay1 < by1) b.layout.y = Math.min(CANVAS_HEIGHT - b.layout.height - 20, ay2 + GAP); 
-            else a.layout.y = Math.min(CANVAS_HEIGHT - a.layout.height - 20, by2 + GAP);
+            if (ay1 < by1) b.layout.y = Math.min(1 - b.layout.height - gapNorm, ay2 + gapNorm); 
+            else a.layout.y = Math.min(1 - a.layout.height - gapNorm, by2 + gapNorm);
           } else {
-            if (ax1 < bx1) b.layout.x = Math.min(CANVAS_WIDTH - b.layout.width - 20, ax2 + GAP); 
-            else a.layout.x = Math.min(CANVAS_WIDTH - a.layout.width - 20, bx2 + GAP);
+            if (ax1 < bx1) b.layout.x = Math.min(1 - b.layout.width - gapNorm, ax2 + gapNorm); 
+            else a.layout.x = Math.min(1 - a.layout.width - gapNorm, bx2 + gapNorm);
           }
         }
       }
