@@ -360,32 +360,40 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         let newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
         let newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
         
-        // Умное выравнивание с другими комнатами
+        // Умное выравнивание с другими комнатами (оптимизировано)
         let isSnapping = false;
+        const snapDistance = 15;
+        
         for (const room of enabledRooms) {
           if (room.key === drag.item.key) continue;
           const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
           const roomPixels = toPixels(layout);
           
-          // Выравнивание по левому краю
-          if (Math.abs(newX - roomPixels.x) < 15) {
-            newX = roomPixels.x;
-            isSnapping = true;
-          }
-          // Выравнивание по правому краю
-          if (Math.abs((newX + drag.start.width) - (roomPixels.x + roomPixels.width)) < 15) {
-            newX = roomPixels.x + roomPixels.width - drag.start.width;
-            isSnapping = true;
-          }
-          // Выравнивание по верхнему краю
-          if (Math.abs(newY - roomPixels.y) < 15) {
-            newY = roomPixels.y;
-            isSnapping = true;
-          }
-          // Выравнивание по нижнему краю
-          if (Math.abs((newY + drag.start.height) - (roomPixels.y + roomPixels.height)) < 15) {
-            newY = roomPixels.y + roomPixels.height - drag.start.height;
-            isSnapping = true;
+          // Быстрая проверка на близость
+          const distanceX = Math.abs(newX - roomPixels.x);
+          const distanceY = Math.abs(newY - roomPixels.y);
+          
+          if (distanceX < snapDistance || distanceY < snapDistance) {
+            // Выравнивание по левому краю
+            if (distanceX < snapDistance) {
+              newX = roomPixels.x;
+              isSnapping = true;
+            }
+            // Выравнивание по правому краю
+            if (Math.abs((newX + drag.start.width) - (roomPixels.x + roomPixels.width)) < snapDistance) {
+              newX = roomPixels.x + roomPixels.width - drag.start.width;
+              isSnapping = true;
+            }
+            // Выравнивание по верхнему краю
+            if (distanceY < snapDistance) {
+              newY = roomPixels.y;
+              isSnapping = true;
+            }
+            // Выравнивание по нижнему краю
+            if (Math.abs((newY + drag.start.height) - (roomPixels.y + roomPixels.height)) < snapDistance) {
+              newY = roomPixels.y + roomPixels.height - drag.start.height;
+              isSnapping = true;
+            }
           }
         }
         
@@ -589,7 +597,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
                 border: '2px solid #4a90e2',
                 borderRadius: '6px',
                 cursor: 'move',
-                transition: 'all 0.2s ease',
+                transition: 'none',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
               }}
               onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'move')}
