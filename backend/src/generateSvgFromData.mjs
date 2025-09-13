@@ -21,17 +21,50 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
+    // Функция для расчета размеров помещения на основе площади
+    const calculateRoomDimensions = (sqm, aspectRatio = 1) => {
+        if (!sqm || sqm <= 0) return { width: 100, height: 100 };
+        
+        // Рассчитываем размеры на основе площади (квадратные метры)
+        // 1 кв.м = 100 пикселей в конструкторе
+        const areaInPixels = sqm * 100;
+        
+        // Рассчитываем длину и ширину с учетом соотношения сторон
+        const width = Math.sqrt(areaInPixels / aspectRatio);
+        const height = areaInPixels / width;
+        
+        return {
+            width: Math.round(width),
+            height: Math.round(height)
+        };
+    };
+
     // Convert normalized coordinates (0-1) to pixel coordinates
-    // Строго используем размеры из конструктора
+    // Строго используем размеры из конструктора с учетом площади
     const pixelRooms = rooms.map(room => {
         const layout = room.layout || { x: 0, y: 0, width: 0.2, height: 0.2 };
+        
+        // Рассчитываем размеры с учетом площади, если указана
+        let pixelWidth, pixelHeight;
+        if (room.sqm && room.sqm > 0) {
+            // Получаем соотношение сторон из layout
+            const aspectRatio = (layout.width * CONSTRUCTOR_WIDTH) / (layout.height * CONSTRUCTOR_HEIGHT);
+            const dimensions = calculateRoomDimensions(room.sqm, aspectRatio);
+            pixelWidth = dimensions.width * SVG_SCALE;
+            pixelHeight = dimensions.height * SVG_SCALE;
+        } else {
+            // Обычное масштабирование
+            pixelWidth = layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE;
+            pixelHeight = layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE;
+        }
+        
         return {
             ...room,
             // Прямое масштабирование из конструктора в SVG
             pixelX: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
             pixelY: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
-            pixelWidth: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
-            pixelHeight: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE,
+            pixelWidth,
+            pixelHeight,
             // Игнорируем дверные данные из AI; генерируем строго по connections + внешний вход
             doors: [],
             windows: Array.isArray(room.windows) ? [...room.windows] : [],
@@ -308,7 +341,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
     // Рисуем полы комнат (без стен) с учетом наложений
     pixelRooms.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm, length, width } = room;
+        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm } = room;
         const overlappingRooms = getRoomOverlaps(room);
         const hasOverlaps = overlappingRooms.length > 0;
         
@@ -327,7 +360,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         // Подписи
         const labelName = String(name || '').trim();
         const labelSqm = Number.isFinite(Number(sqm)) ? `${Number(sqm).toFixed(1)} м²` : '';
-        const labelDimensions = (length && width) ? `${length.toFixed(1)}×${width.toFixed(1)} м` : '';
         const fontSize = Math.max(18, Math.min(48, Math.min(pixelWidth, pixelHeight) * 0.14));
         const labelX = pixelX + pixelWidth / 2;
         const labelY = pixelY + pixelHeight / 2 - fontSize * 0.2;
@@ -339,9 +371,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         svgContent += `\n<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="${fontWeight}" fill="${textColor}">${escapeXml(labelName)}</text>`;
         if (labelSqm) {
             svgContent += `\n<text x="${labelX}" y="${labelY + fontSize * 0.95}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.7)}" fill="${hasOverlaps ? '#1976d2' : '#2F2F2F'}">${escapeXml(labelSqm)}</text>`;
-        }
-        if (labelDimensions) {
-            svgContent += `\n<text x="${labelX}" y="${labelY + fontSize * 1.6}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.6)}" fill="${hasOverlaps ? '#1976d2' : '#666666'}">${escapeXml(labelDimensions)}</text>`;
         }
         
         // Индикатор наложения

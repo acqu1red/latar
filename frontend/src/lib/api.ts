@@ -13,8 +13,6 @@ export interface RoomState {
     rotation?: 0 | 90 | null; // визуальный поворот комнаты в конструкторе
     windows?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]; // окна для svg
     description?: string; // Room description for UI
-    length?: number; // длина помещения в метрах
-    width?: number; // ширина помещения в метрах
 }
 
 export type BathroomType = 'combined' | 'separate';
