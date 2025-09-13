@@ -84,13 +84,21 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
       const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
       const roomPixels = toPixels(layout);
       
-      // Проверяем все 4 стены комнаты
-      const walls = [
-        { side: 'left' as const, x: roomPixels.x, y: roomPixels.y, width: 0, height: roomPixels.height },
-        { side: 'right' as const, x: roomPixels.x + roomPixels.width, y: roomPixels.y, width: 0, height: roomPixels.height },
-        { side: 'top' as const, x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: 0 },
-        { side: 'bottom' as const, x: roomPixels.x, y: roomPixels.y + roomPixels.height, width: roomPixels.width, height: 0 }
-      ];
+      // Проверяем стены в зависимости от поворота окна
+      let walls;
+      if (window.rotation === 0) {
+        // Горизонтальное окно - может привязываться к верхним и нижним стенам
+        walls = [
+          { side: 'top' as const, x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: 0 },
+          { side: 'bottom' as const, x: roomPixels.x, y: roomPixels.y + roomPixels.height, width: roomPixels.width, height: 0 }
+        ];
+      } else {
+        // Вертикальное окно - может привязываться к левым и правым стенам
+        walls = [
+          { side: 'left' as const, x: roomPixels.x, y: roomPixels.y, width: 0, height: roomPixels.height },
+          { side: 'right' as const, x: roomPixels.x + roomPixels.width, y: roomPixels.y, width: 0, height: roomPixels.height }
+        ];
+      }
 
       for (const wall of walls) {
         const distance = calculateDistanceToWall(window, wall);

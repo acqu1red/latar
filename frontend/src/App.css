@@ -1113,6 +1113,10 @@ header p {
   z-index: 100;
   cursor: move;
   border-radius: 2px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .floating-window .layout-resizer {
@@ -1209,6 +1213,27 @@ header p {
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Предотвращение выделения для всех интерактивных элементов */
+.layout-editor * {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Разрешаем выделение только для текстовых полей */
+.layout-editor input,
+.layout-editor textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 }
 
 .editor-controls {
@@ -1362,6 +1387,10 @@ header p {
   min-height: 100px;
   box-shadow: 0 4px 16px rgba(33, 150, 243, 0.2);
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .room:hover {
