@@ -59,6 +59,26 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
 
+
+  // Функция для определения всех пересечений с конкретным помещением
+  const getRoomOverlaps = (targetRoom: RoomState): RoomState[] => {
+    const targetLayout = targetRoom.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+    const targetPixels = toPixels(targetLayout);
+    
+    return enabledRooms.filter(room => {
+      if (room.key === targetRoom.key) return false;
+      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      const roomPixels = toPixels(layout);
+      
+      // Проверяем пересечение прямоугольников
+      return targetPixels.x < roomPixels.x + roomPixels.width && 
+             targetPixels.x + targetPixels.width > roomPixels.x && 
+             targetPixels.y < roomPixels.y + roomPixels.height && 
+             targetPixels.y + targetPixels.height > roomPixels.y;
+    });
+  };
+
+
   // Конвертация из нормализованных координат в пиксели
   const toPixels = (normalized: { x: number; y: number; width: number; height: number }) => ({
     x: Math.round(normalized.x * CANVAS_WIDTH),
@@ -217,6 +237,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     (e.target as Element).setPointerCapture(e.pointerId);
   };
 
+
+  // Проверка наложения помещений (может быть полезна для будущих функций)
 
   // Умное выравнивание
   const smartAlign = (value: number, snapDistance: number = 20): number => {
@@ -627,23 +649,28 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
         {enabledRooms.map((room) => {
           const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
           const roomPixels = toPixels(layout);
+          const overlappingRooms = getRoomOverlaps(room);
+          const hasOverlaps = overlappingRooms.length > 0;
           
           return (
             <div
               key={room.key}
-              className={`room ${snappingRoom === room.key ? 'snapping' : ''}`}
+              className={`room ${snappingRoom === room.key ? 'snapping' : ''} ${hasOverlaps ? 'overlapping' : ''}`}
               style={{
                 position: 'absolute',
                 left: roomPixels.x,
                 top: roomPixels.y,
                 width: roomPixels.width,
                 height: roomPixels.height,
-                backgroundColor: '#e8f4fd',
-                border: '2px solid #4a90e2',
+                backgroundColor: hasOverlaps ? 'rgba(232, 244, 253, 0.6)' : '#e8f4fd',
+                border: hasOverlaps ? '3px solid #1976d2' : '2px solid #4a90e2',
                 borderRadius: '6px',
                 cursor: 'move',
                 transition: 'none',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                boxShadow: hasOverlaps 
+                  ? '0 0 0 2px #1976d2, 0 4px 16px rgba(25, 118, 210, 0.4), inset 0 0 0 1px rgba(25, 118, 210, 0.3)'
+                  : '0 2px 8px rgba(0,0,0,0.1)',
+                zIndex: hasOverlaps ? 20 : 10
               }}
               onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, room, 'move')}
             >

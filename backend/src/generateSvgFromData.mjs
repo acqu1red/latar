@@ -289,19 +289,62 @@ export async function generateSvgFromData(rooms, totalSqm) {
 </defs>
 <rect width="100%" height="100%" fill="#ECECEC"/>`;
 
-    // Рисуем полы комнат (без стен)
+    // Функция для определения пересечения двух помещений
+    const checkRoomOverlap = (room1, room2) => {
+        return !(
+            room1.pixelX + room1.pixelWidth <= room2.pixelX ||
+            room2.pixelX + room2.pixelWidth <= room1.pixelX ||
+            room1.pixelY + room1.pixelHeight <= room2.pixelY ||
+            room2.pixelY + room2.pixelHeight <= room1.pixelY
+        );
+    };
+
+    // Функция для определения всех пересечений с конкретным помещением
+    const getRoomOverlaps = (targetRoom) => {
+        return pixelRooms.filter(room => 
+            room !== targetRoom && checkRoomOverlap(targetRoom, room)
+        );
+    };
+
+    // Рисуем полы комнат (без стен) с учетом наложений
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm } = room;
-        svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="#FFFFFF" stroke="none"/>`;
+        const overlappingRooms = getRoomOverlaps(room);
+        const hasOverlaps = overlappingRooms.length > 0;
+        
+        // Основной прямоугольник помещения
+        const fillColor = hasOverlaps ? 'rgba(232, 244, 253, 0.6)' : '#FFFFFF';
+        const strokeColor = hasOverlaps ? '#1976d2' : 'none';
+        const strokeWidth = hasOverlaps ? '3' : '0';
+        
+        svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
+        
+        // Дополнительная обводка для наложенных помещений
+        if (hasOverlaps) {
+            svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="none" stroke="#1976d2" stroke-width="2" stroke-dasharray="5,5" opacity="0.8"/>`;
+        }
+        
         // Подписи
         const labelName = String(name || '').trim();
         const labelSqm = Number.isFinite(Number(sqm)) ? `${Number(sqm).toFixed(1)} м²` : '';
         const fontSize = Math.max(18, Math.min(48, Math.min(pixelWidth, pixelHeight) * 0.14));
         const labelX = pixelX + pixelWidth / 2;
         const labelY = pixelY + pixelHeight / 2 - fontSize * 0.2;
-        svgContent += `\n<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="#1D1D1D">${escapeXml(labelName)}</text>`;
+        
+        // Стили для текста наложенных помещений
+        const textColor = hasOverlaps ? '#0d47a1' : '#1D1D1D';
+        const fontWeight = hasOverlaps ? '800' : '700';
+        
+        svgContent += `\n<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="${fontWeight}" fill="${textColor}">${escapeXml(labelName)}</text>`;
         if (labelSqm) {
-            svgContent += `\n<text x="${labelX}" y="${labelY + fontSize * 0.95}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.7)}" fill="#2F2F2F">${escapeXml(labelSqm)}</text>`;
+            svgContent += `\n<text x="${labelX}" y="${labelY + fontSize * 0.95}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.7)}" fill="${hasOverlaps ? '#1976d2' : '#2F2F2F'}">${escapeXml(labelSqm)}</text>`;
+        }
+        
+        // Индикатор наложения
+        if (hasOverlaps) {
+            const iconX = pixelX + pixelWidth - 20;
+            const iconY = pixelY + 20;
+            svgContent += `\n<text x="${iconX}" y="${iconY}" font-family="Arial, sans-serif" font-size="16" fill="#1976d2">🔗</text>`;
         }
     });
 
