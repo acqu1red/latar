@@ -368,7 +368,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
             room.doors.forEach(door => {
                 const doorWidth = 8 * SVG_SCALE;
-                const doorLength = Math.max(60, door.len * (door.side === 'left' || door.side === 'right' ? roomPixels.height : roomPixels.width));
+                const doorLength = door.len * (door.side === 'left' || door.side === 'right' ? roomPixels.height : roomPixels.width);
                 
                 let doorX, doorY, doorRotation = 0;
                 

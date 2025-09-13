@@ -10,7 +10,7 @@ const openai = new OpenAI({
 const RoomObjectType = z.enum([
   "bed", "sofa", "chair", "table", "wardrobe",
   "stove", "fridge", "sink", "toilet",
-  "bathtub", "shower", "washing_machine", "kitchen_block", "door", "window"
+  "bathtub", "shower", "washing_machine", "kitchen_block"
 ]);
 
 const RoomObjectSchema = z.object({
@@ -23,25 +23,11 @@ const RoomObjectSchema = z.object({
   confidence: z.number().min(0).max(1).optional(),
 });
 
-const DoorSchema = z.object({
-  side: z.enum(["left", "right", "top", "bottom"]),
-  pos: z.number().min(0).max(1),
-  len: z.number().min(0).max(1).optional()
-});
-
-const WindowSchema = z.object({
-  side: z.enum(["left", "right", "top", "bottom"]),
-  pos: z.number().min(0).max(1),
-  len: z.number().min(0).max(1),
-});
-
 export const RoomVisionSchema = z.object({
   key: z.string(),
   name: z.string(),
   sqm: z.number(),
   objects: z.array(RoomObjectSchema),
-  doors: z.array(DoorSchema).optional(),
-  windows: z.array(WindowSchema).optional(),
 });
 
 const getPrompt = (name, sqm) => {
@@ -76,21 +62,17 @@ const getPrompt = (name, sqm) => {
 - Шкафчики или полки`;
     }
 
-    return `Проанализируй фото комнаты для создания 2D плана квартиры. Твоя задача — определить только дверные и оконные проемы на границах комнаты. Мебель и предметы интерьера НЕ анализируй и НЕ возвращай.
+    return `Проанализируй фото комнаты для создания 2D плана квартиры. Твоя задача — определить только мебель и предметы интерьера. Окна и двери НЕ анализируй и НЕ возвращай.
 
 Формат ответа (JSON):
 {
-  "objects": [],
-  "doors": [{ "side": "left|right|top|bottom", "pos": 0.0-1.0 }],
-  "windows": [{ "side": "left|right|top|bottom", "pos": 0.0-1.0, "len": 0.1-0.6 }]
+  "objects": [{ "type": "bed|sofa|chair|table|wardrobe|stove|fridge|sink|toilet|bathtub|shower|washing_machine|kitchen_block", "x": 0.0-1.0, "y": 0.0-1.0, "w": 0.0-1.0, "h": 0.0-1.0 }]
 }
 
 Пояснения:
-- side — сторона стены относительно прямоугольной проекции комнаты
-- pos — позиция вдоль выбранной стены (0 — левый/верхний угол, 1 — правый/нижний)
-- len — относительная длина окна вдоль стены
-
-Если дверь/окно не видно, но явно подразумевается (например кадр снят из дверного проема), добавь один проем по центру соответствующей стены.
+- type — тип мебели/предмета
+- x, y — позиция левого верхнего угла (0-1)
+- w, h — ширина и высота (0-1)
 
 ${roomSpecificInstructions}
 
@@ -202,23 +184,11 @@ export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
             .filter(Boolean);
     };
 
-    const sanitizeEdgeFeature = (item) => {
-        if (!item || typeof item !== 'object') return null;
-        const side = ["left", "right", "top", "bottom"].includes(item.side) ? item.side : null;
-        if (!side) return null;
-        const pos = sanitizeNumber01(item.pos);
-        if (pos === null) return null;
-        const len = item.len != null ? sanitizeNumber01(item.len) : undefined;
-        return { side, pos, len };
-    };
-
     const sanitized = {
         key,
         name,
         sqm: typeof sqm === 'string' ? Number(sqm) : sqm,
         objects: sanitizeObjects(jsonData.objects),
-        doors: Array.isArray(jsonData.doors) ? jsonData.doors.map(sanitizeEdgeFeature).filter(Boolean) : [],
-        windows: Array.isArray(jsonData.windows) ? jsonData.windows.map(sanitizeEdgeFeature).filter(Boolean) : [],
     };
 
     let validationResult = RoomVisionSchema.partial().safeParse(sanitized);
@@ -231,8 +201,6 @@ export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
             name,
             sqm,
             objects: validationResult.data.objects || [],
-            doors: validationResult.data.doors || [],
-            windows: validationResult.data.windows || [],
         };
     }
 
@@ -251,8 +219,6 @@ export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
         name,
         sqm: typeof sqm === 'string' ? Number(sqm) : sqm,
         objects: sanitizeObjects(jsonData.objects),
-        doors: Array.isArray(jsonData.doors) ? jsonData.doors.map(sanitizeEdgeFeature).filter(Boolean) : [],
-        windows: Array.isArray(jsonData.windows) ? jsonData.windows.map(sanitizeEdgeFeature).filter(Boolean) : [],
     };
 
     validationResult = RoomVisionSchema.partial().safeParse(sanitizedRepair);
@@ -263,8 +229,6 @@ export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
             name,
             sqm,
             objects: validationResult.data.objects || [],
-            doors: validationResult.data.doors || [],
-            windows: validationResult.data.windows || [],
         };
     }
 

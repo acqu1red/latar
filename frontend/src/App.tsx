@@ -24,6 +24,8 @@ function App() {
   const [rooms, setRooms] = useState<RoomState[]>(initialRooms);
   const [bathroomConfig, setBathroomConfig] = useState<BathroomConfig>(initialBathroomConfig);
   const [loading, setLoading] = useState(false);
+  const [globalWindows, setGlobalWindows] = useState<{ side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]>([]);
+  const [globalDoors, setGlobalDoors] = useState<{ side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]>([]);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -123,6 +125,14 @@ function App() {
     }));
   };
 
+  const handleWindowsUpdate = (windows: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]) => {
+    setGlobalWindows(windows);
+  };
+
+  const handleDoorsUpdate = (doors: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]) => {
+    setGlobalDoors(doors);
+  };
+
   const handleDownload = () => {
     if (!result?.pngDataUrl && !result?.svgDataUrl) {
       console.error('No image data available for download');
@@ -217,8 +227,15 @@ function App() {
     }
 
     setLoading(true);
+    // Добавляем данные окон и дверей к комнатам
+    const allRoomsWithWindowsAndDoors = allRooms.map(room => ({
+      ...room,
+      windows: globalWindows,
+      doors: globalDoors
+    }));
+
     // Always use the new hybrid approach (SVG + DALL-E styling)
-    const apiResponse = await generatePlan(allRooms, bathroomConfig);
+    const apiResponse = await generatePlan(allRoomsWithWindowsAndDoors, bathroomConfig);
     setLoading(false);
 
     if (apiResponse.ok) {
@@ -325,7 +342,12 @@ function App() {
             <div className="constructor-panel-inner">
               <h3>Мини‑конструктор расположения комнат</h3>
               <p className="constructor-hint">Перетаскивайте и меняйте размер. Размеры автоматически подстраиваются под площадь (м²), позиции — настраивайте вручную.</p>
-              <LayoutEditor rooms={rooms} onUpdate={handleRoomUpdate} />
+              <LayoutEditor 
+                rooms={rooms} 
+                onUpdate={handleRoomUpdate}
+                onWindowsUpdate={handleWindowsUpdate}
+                onDoorsUpdate={handleDoorsUpdate}
+              />
             </div>
           </div>
         </div>

@@ -4,6 +4,8 @@ import type { RoomState } from '../lib/api';
 interface LayoutEditorProps {
   rooms: RoomState[];
   onUpdate: (key: string, updates: Partial<RoomState>) => void;
+  onWindowsUpdate?: (windows: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]) => void;
+  onDoorsUpdate?: (doors: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]) => void;
 }
 
 // Константы для пиксельной системы
@@ -24,6 +26,7 @@ type FloatingWindow = {
   isDragging?: boolean;
   isResizing?: boolean;
   isRotating?: boolean;
+  attachedTo?: WindowAttachment;
 };
 
 type Door = {
@@ -54,7 +57,7 @@ type WindowAttachment = {
 };
 
 // Простая канва для расстановки комнат в пикселях
-const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
+const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsUpdate, onDoorsUpdate }) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{
     key: string | number;
@@ -117,6 +120,69 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate }) => {
     width: pixels.width / CANVAS_WIDTH,
     height: pixels.height / CANVAS_HEIGHT
   });
+
+  // Функции для конвертации окон и дверей в формат для SVG
+  const convertWindowsToSvgFormat = () => {
+    return floatingWindows.map((window: FloatingWindow) => {
+      const attachment = window.attachedTo;
+      if (!attachment) return null;
+      
+      // Находим комнату, к которой прикреплено окно
+      const room = enabledRooms.find(r => r.key === attachment.roomKey);
+      if (!room) return null;
+      
+      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      const roomPixels = toPixels(layout);
+      
+      // Вычисляем длину относительно стены комнаты
+      const wallLength = attachment.side === 'left' || attachment.side === 'right' ? roomPixels.height : roomPixels.width;
+      const normalizedLength = Math.min(1, window.length / wallLength);
+      
+      return {
+        side: attachment.side,
+        pos: attachment.position,
+        len: normalizedLength
+      };
+    }).filter(Boolean);
+  };
+
+  const convertDoorsToSvgFormat = () => {
+    return doors.map((door: Door) => {
+      const attachment = door.attachedTo;
+      if (!attachment) return null;
+      
+      // Находим комнату, к которой прикреплена дверь
+      const room = enabledRooms.find(r => r.key === attachment.room1Key);
+      if (!room) return null;
+      
+      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+      const roomPixels = toPixels(layout);
+      
+      // Вычисляем длину относительно стены комнаты
+      const wallLength = attachment.side === 'left' || attachment.side === 'right' ? roomPixels.height : roomPixels.width;
+      const normalizedLength = Math.min(1, door.length / wallLength);
+      
+      return {
+        side: attachment.side,
+        pos: attachment.position,
+        len: normalizedLength,
+        type: door.type
+      };
+    }).filter(Boolean);
+  };
+
+  // Обновляем данные при изменении окон и дверей
+  React.useEffect(() => {
+    if (onWindowsUpdate) {
+      onWindowsUpdate(convertWindowsToSvgFormat());
+    }
+  }, [floatingWindows, onWindowsUpdate]);
+
+  React.useEffect(() => {
+    if (onDoorsUpdate) {
+      onDoorsUpdate(convertDoorsToSvgFormat());
+    }
+  }, [doors, onDoorsUpdate]);
 
   // Функции для работы с дверями
   const addDoor = (type: 'entrance' | 'interior') => {

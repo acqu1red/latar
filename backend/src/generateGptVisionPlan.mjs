@@ -15,9 +15,6 @@ export async function generateGptVisionPlan(rooms, totalSqm, bathroomConfig = nu
   const layoutDescription = rooms.map(room => {
     const layout = room.layout || { x: 0, y: 0, width: 0.2, height: 0.2 };
     const objects = room.objects || [];
-    const doors = room.doors || [];
-    const windows = room.windows || [];
-    const connections = room.connections || [];
     
     let roomInfo = `${room.name} (${room.sqm} м²): position (${(layout.x * 100).toFixed(0)}%, ${(layout.y * 100).toFixed(0)}%), size ${(layout.width * 100).toFixed(0)}% x ${(layout.height * 100).toFixed(0)}%`;
     
@@ -26,19 +23,6 @@ export async function generateGptVisionPlan(rooms, totalSqm, bathroomConfig = nu
       if (majorObjects.length > 0) {
         roomInfo += `\n  - Furniture: ${majorObjects.map(obj => obj.type).join(', ')}`;
       }
-    }
-    
-    if (doors.length > 0) {
-      roomInfo += `\n  - Doors: ${doors.map(d => `${d.side} wall at ${(d.pos * 100).toFixed(0)}%`).join(', ')}`;
-    }
-    
-    if (windows.length > 0) {
-      roomInfo += `\n  - Windows: ${windows.map(w => `${w.side} wall at ${(w.pos * 100).toFixed(0)}%`).join(', ')}`;
-    }
-    
-    if (connections.length > 0) {
-      const connectedRooms = connections.map(key => rooms.find(r => r.key === key)?.name || key).join(', ');
-      roomInfo += `\n  - Connected to: ${connectedRooms}`;
     }
     
     return roomInfo;

@@ -144,10 +144,7 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
           key: room.key,
           name: room.name,
           sqm: room.sqm,
-          objects: [],
-          doors: [],
-          windows: [],
-          connections: room.connections || []
+          objects: []
         }));
       }
 
@@ -157,7 +154,6 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
         return { 
           ...room, 
           layout: src.layout,
-          connections: src.connections || [],
           entrySide: src.entrySide || null
         };
       });
