@@ -26,6 +26,16 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [globalWindows, setGlobalWindows] = useState<{ roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]>([]);
   const [globalDoors, setGlobalDoors] = useState<{ roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]>([]);
+  const [globalWallModifications, setGlobalWallModifications] = useState<Array<{
+    roomKey: string;
+    side: 'left' | 'right' | 'top' | 'bottom';
+    originalLength: number;
+    modifiedLength: number;
+    deletedSegments: Array<{
+      start: number;
+      end: number;
+    }>;
+  }>>([]);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -135,6 +145,20 @@ function App() {
     setGlobalDoors(doors);
   };
 
+  const handleWallModificationsUpdate = (modifications: Array<{
+    roomKey: string;
+    side: 'left' | 'right' | 'top' | 'bottom';
+    originalLength: number;
+    modifiedLength: number;
+    deletedSegments: Array<{
+      start: number;
+      end: number;
+    }>;
+  }>) => {
+    console.log('App: Received wall modifications update:', modifications);
+    setGlobalWallModifications(modifications);
+  };
+
   const handleDownload = () => {
     if (!result?.pngDataUrl && !result?.svgDataUrl) {
       console.error('No image data available for download');
@@ -229,8 +253,8 @@ function App() {
     }
 
     setLoading(true);
-    // Добавляем данные окон и дверей к комнатам
-    // Окна и двери привязываются к конкретным комнатам через roomKey
+    // Добавляем данные окон, дверей и модификаций стен к комнатам
+    // Окна, двери и стены привязываются к конкретным комнатам через roomKey
     const allRoomsWithWindowsAndDoors = allRooms.map(room => {
       // Фильтруем окна и двери по привязке к конкретной комнате
       const roomWindows = globalWindows.filter((w: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }) => w.roomKey === room.key).map((w: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }) => ({
@@ -245,20 +269,31 @@ function App() {
         type: d.type
       }));
       
+      // Фильтруем модификации стен по привязке к конкретной комнате
+      const roomWallModifications = globalWallModifications.filter((w: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; originalLength: number; modifiedLength: number; deletedSegments: Array<{start: number; end: number}> }) => w.roomKey === room.key).map((w: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; originalLength: number; modifiedLength: number; deletedSegments: Array<{start: number; end: number}> }) => ({
+        side: w.side,
+        originalLength: w.originalLength,
+        modifiedLength: w.modifiedLength,
+        deletedSegments: w.deletedSegments
+      }));
+      
       return {
         ...room,
         windows: roomWindows,
-        doors: roomDoors
+        doors: roomDoors,
+        wallModifications: roomWallModifications
       };
     });
 
     console.log('Sending to API - Global windows:', globalWindows);
     console.log('Sending to API - Global doors:', globalDoors);
-    console.log('Sending to API - Rooms with windows/doors:', allRoomsWithWindowsAndDoors.map(r => ({ 
+    console.log('Sending to API - Global wall modifications:', globalWallModifications);
+    console.log('Sending to API - Rooms with windows/doors/walls:', allRoomsWithWindowsAndDoors.map(r => ({ 
       key: r.key, 
       name: r.name, 
       windows: r.windows?.length || 0, 
-      doors: r.doors?.length || 0 
+      doors: r.doors?.length || 0,
+      wallModifications: r.wallModifications?.length || 0
     })));
 
     // Always use the new hybrid approach (SVG + DALL-E styling)
@@ -374,6 +409,7 @@ function App() {
                 onUpdate={handleRoomUpdate}
                 onWindowsUpdate={handleWindowsUpdate}
                 onDoorsUpdate={handleDoorsUpdate}
+                onWallModificationsUpdate={handleWallModificationsUpdate}
               />
             </div>
           </div>

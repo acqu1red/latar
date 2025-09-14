@@ -6,6 +6,7 @@ interface LayoutEditorProps {
   onUpdate: (key: string, updates: Partial<RoomState>) => void;
   onWindowsUpdate?: (windows: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]) => void;
   onDoorsUpdate?: (doors: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]) => void;
+  onWallModificationsUpdate?: (modifications: WallModification[]) => void;
 }
 
 // Константы для пиксельной системы
@@ -49,9 +50,29 @@ type Door = {
   };
 };
 
+type WallOverlap = {
+  room1Key: string;
+  room2Key: string;
+  side: 'left' | 'right' | 'top' | 'bottom';
+  overlapStart: number;
+  overlapEnd: number;
+  wallLength: number;
+};
+
+type WallModification = {
+  roomKey: string;
+  side: 'left' | 'right' | 'top' | 'bottom';
+  originalLength: number;
+  modifiedLength: number;
+  deletedSegments: Array<{
+    start: number;
+    end: number;
+  }>;
+};
+
 
 // Простая канва для расстановки комнат в пикселях
-const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsUpdate, onDoorsUpdate }) => {
+const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsUpdate, onDoorsUpdate, onWallModificationsUpdate }) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{
     key: string | number;
@@ -72,6 +93,14 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   const [doorCreationMode, setDoorCreationMode] = useState<'none' | 'entrance' | 'interior'>('none');
   const [hasEntranceDoor, setHasEntranceDoor] = useState<boolean>(false);
 
+  // Состояние для работы с наложенными стенами
+  const [wallOverlaps, setWallOverlaps] = useState<WallOverlap[]>([]);
+  const [selectedWallOverlap, setSelectedWallOverlap] = useState<WallOverlap | null>(null);
+  const [wallModifications, setWallModifications] = useState<WallModification[]>([]);
+  const [isEditingWall, setIsEditingWall] = useState<boolean>(false);
+  const [wallEditStart, setWallEditStart] = useState<number>(0);
+  const [wallEditEnd, setWallEditEnd] = useState<number>(0);
+
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
 
 
@@ -91,6 +120,130 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
              targetPixels.y < roomPixels.y + roomPixels.height && 
              targetPixels.y + targetPixels.height > roomPixels.y;
     });
+  };
+
+  // Функция для обнаружения пересечений стен между помещениями
+  const detectWallOverlaps = (): WallOverlap[] => {
+    const overlaps: WallOverlap[] = [];
+    
+    for (let i = 0; i < enabledRooms.length; i++) {
+      for (let j = i + 1; j < enabledRooms.length; j++) {
+        const room1 = enabledRooms[i];
+        const room2 = enabledRooms[j];
+        
+        const layout1 = room1.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+        const layout2 = room2.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+        
+        const pixels1 = toPixels(layout1);
+        const pixels2 = toPixels(layout2);
+        
+        // Проверяем пересечение стен
+        const wallOverlaps = checkWallIntersections(room1.key, pixels1, room2.key, pixels2);
+        overlaps.push(...wallOverlaps);
+      }
+    }
+    
+    return overlaps;
+  };
+
+  // Функция для проверки пересечений стен между двумя помещениями
+  const checkWallIntersections = (
+    room1Key: string, 
+    pixels1: { x: number; y: number; width: number; height: number },
+    room2Key: string, 
+    pixels2: { x: number; y: number; width: number; height: number }
+  ): WallOverlap[] => {
+    const overlaps: WallOverlap[] = [];
+    
+    // Проверяем пересечения стен
+    const walls1 = [
+      { side: 'left' as const, x: pixels1.x, y: pixels1.y, width: 0, height: pixels1.height },
+      { side: 'right' as const, x: pixels1.x + pixels1.width, y: pixels1.y, width: 0, height: pixels1.height },
+      { side: 'top' as const, x: pixels1.x, y: pixels1.y, width: pixels1.width, height: 0 },
+      { side: 'bottom' as const, x: pixels1.x, y: pixels1.y + pixels1.height, width: pixels1.width, height: 0 }
+    ];
+    
+    const walls2 = [
+      { side: 'left' as const, x: pixels2.x, y: pixels2.y, width: 0, height: pixels2.height },
+      { side: 'right' as const, x: pixels2.x + pixels2.width, y: pixels2.y, width: 0, height: pixels2.height },
+      { side: 'top' as const, x: pixels2.x, y: pixels2.y, width: pixels2.width, height: 0 },
+      { side: 'bottom' as const, x: pixels2.x, y: pixels2.y + pixels2.height, width: pixels2.width, height: 0 }
+    ];
+    
+    // Проверяем пересечения между стенами
+    for (const wall1 of walls1) {
+      for (const wall2 of walls2) {
+        const overlap = calculateWallOverlap(wall1, wall2);
+        if (overlap) {
+          overlaps.push({
+            room1Key,
+            room2Key,
+            side: wall1.side,
+            overlapStart: overlap.start,
+            overlapEnd: overlap.end,
+            wallLength: wall1.side === 'left' || wall1.side === 'right' ? pixels1.height : pixels1.width
+          });
+        }
+      }
+    }
+    
+    return overlaps;
+  };
+
+  // Функция для вычисления пересечения двух стен
+  const calculateWallOverlap = (
+    wall1: { side: 'left' | 'right' | 'top' | 'bottom'; x: number; y: number; width: number; height: number },
+    wall2: { side: 'left' | 'right' | 'top' | 'bottom'; x: number; y: number; width: number; height: number }
+  ): { start: number; end: number } | null => {
+    const threshold = 5; // Минимальное расстояние для считания стен пересекающимися
+    
+    if (wall1.side === 'left' || wall1.side === 'right') {
+      // Вертикальные стены
+      if (wall2.side === 'left' || wall2.side === 'right') {
+        // Обе вертикальные - проверяем X координату и пересечение по Y
+        if (Math.abs(wall1.x - wall2.x) <= threshold) {
+          const y1Start = wall1.y;
+          const y1End = wall1.y + wall1.height;
+          const y2Start = wall2.y;
+          const y2End = wall2.y + wall2.height;
+          
+          const overlapStart = Math.max(y1Start, y2Start);
+          const overlapEnd = Math.min(y1End, y2End);
+          
+          if (overlapStart < overlapEnd) {
+            const wallLength = wall1.height;
+            return {
+              start: (overlapStart - y1Start) / wallLength,
+              end: (overlapEnd - y1Start) / wallLength
+            };
+          }
+        }
+      }
+    } else {
+      // Горизонтальные стены
+      if (wall2.side === 'top' || wall2.side === 'bottom') {
+        // Обе горизонтальные - проверяем Y координату и пересечение по X
+        if (Math.abs(wall1.y - wall2.y) <= threshold) {
+          const x1Start = wall1.x;
+          const x1End = wall1.x + wall1.width;
+          const x2Start = wall2.x;
+          const x2End = wall2.x + wall2.width;
+          
+          const overlapStart = Math.max(x1Start, x2Start);
+          const overlapEnd = Math.min(x1End, x2End);
+          
+          if (overlapStart < overlapEnd) {
+            const wallLength = wall1.width;
+            return {
+              start: (overlapStart - x1Start) / wallLength,
+              end: (overlapEnd - x1Start) / wallLength
+            };
+          }
+        }
+      }
+    }
+    
+    return null;
   };
 
 
@@ -178,6 +331,142 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       onDoorsUpdate(doorsData);
     }
   }, [doors, enabledRooms, onDoorsUpdate]);
+
+  // Обновляем пересечения стен при изменении помещений
+  React.useEffect(() => {
+    const overlaps = detectWallOverlaps();
+    setWallOverlaps(overlaps);
+    console.log('Wall overlaps detected:', overlaps);
+  }, [enabledRooms]);
+
+  // Передаем данные о модификациях стен
+  React.useEffect(() => {
+    if (onWallModificationsUpdate) {
+      console.log('Updating wall modifications data:', wallModifications);
+      onWallModificationsUpdate(wallModifications);
+    }
+  }, [wallModifications, onWallModificationsUpdate]);
+
+  // Функции для работы с наложенными стенами
+  const handleWallOverlapClick = (overlap: WallOverlap) => {
+    setSelectedWallOverlap(overlap);
+  };
+
+  const deleteWallSegment = (overlap: WallOverlap) => {
+    // Проверяем, есть ли уже модификация для этой стены
+    const existingModification = wallModifications.find(
+      (mod: WallModification) => mod.roomKey === overlap.room1Key && mod.side === overlap.side
+    );
+    
+    if (existingModification) {
+      // Добавляем новый удаленный сегмент к существующей модификации
+      const updatedModification: WallModification = {
+        ...existingModification,
+        deletedSegments: [
+          ...existingModification.deletedSegments,
+          {
+            start: overlap.overlapStart,
+            end: overlap.overlapEnd
+          }
+        ]
+      };
+      
+      setWallModifications((prev: WallModification[]) => 
+        prev.map((mod: WallModification) => 
+          mod.roomKey === overlap.room1Key && mod.side === overlap.side 
+            ? updatedModification 
+            : mod
+        )
+      );
+    } else {
+      // Создаем новую модификацию
+      const modification: WallModification = {
+        roomKey: overlap.room1Key,
+        side: overlap.side,
+        originalLength: overlap.wallLength,
+        modifiedLength: overlap.wallLength,
+        deletedSegments: [{
+          start: overlap.overlapStart,
+          end: overlap.overlapEnd
+        }]
+      };
+      
+      setWallModifications((prev: WallModification[]) => [...prev, modification]);
+    }
+    
+    setSelectedWallOverlap(null);
+    console.log('Wall segment deleted for overlap:', overlap);
+  };
+
+  const editWallSegment = (overlap: WallOverlap) => {
+    setIsEditingWall(true);
+    setSelectedWallOverlap(overlap);
+    setWallEditStart(overlap.overlapStart);
+    setWallEditEnd(overlap.overlapEnd);
+  };
+
+  const saveWallEdit = () => {
+    if (!selectedWallOverlap) return;
+
+    const modification: WallModification = {
+      roomKey: selectedWallOverlap.room1Key,
+      side: selectedWallOverlap.side,
+      originalLength: selectedWallOverlap.wallLength,
+      modifiedLength: selectedWallOverlap.wallLength,
+      deletedSegments: [{
+        start: wallEditStart,
+        end: wallEditEnd
+      }]
+    };
+
+    // Проверяем, есть ли уже модификация для этой стены
+    const existingModification = wallModifications.find(
+      (mod: WallModification) => mod.roomKey === selectedWallOverlap.room1Key && mod.side === selectedWallOverlap.side
+    );
+
+    if (existingModification) {
+      // Обновляем существующую модификацию
+      const updatedModification: WallModification = {
+        ...existingModification,
+        deletedSegments: [
+          ...existingModification.deletedSegments,
+          {
+            start: wallEditStart,
+            end: wallEditEnd
+          }
+        ]
+      };
+
+      setWallModifications((prev: WallModification[]) => 
+        prev.map((mod: WallModification) => 
+          mod.roomKey === selectedWallOverlap.room1Key && mod.side === selectedWallOverlap.side 
+            ? updatedModification 
+            : mod
+        )
+      );
+    } else {
+      // Создаем новую модификацию
+      setWallModifications((prev: WallModification[]) => [...prev, modification]);
+    }
+
+    setIsEditingWall(false);
+    setSelectedWallOverlap(null);
+    console.log('Wall edit saved:', modification);
+  };
+
+  const resetWallModifications = () => {
+    setWallModifications([]);
+    setSelectedWallOverlap(null);
+    setIsEditingWall(false);
+    console.log('Wall modifications reset');
+  };
+
+  // Проверяем, нужно ли сбросить изменения стен при смещении помещений
+  const checkForRoomMovement = () => {
+    if (wallModifications.length > 0) {
+      resetWallModifications();
+    }
+  };
 
   // Функции для работы с дверями
   const addDoor = (type: 'entrance' | 'interior') => {
@@ -674,6 +963,9 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         // Применяем изменения без проверки коллизий
         const normalized = toNormalized({ x: newX, y: newY, width: newWidth, height: newHeight });
         onUpdate(drag.item.key, { layout: normalized });
+        
+        // Проверяем движение помещения и сбрасываем изменения стен
+        checkForRoomMovement();
       } else {
         // Перемещение комнаты
         let newX = Math.max(0, Math.min(CANVAS_WIDTH - drag.start.width, drag.start.x + dx));
@@ -727,6 +1019,9 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         // Применяем изменения без проверки коллизий
         const normalized = toNormalized({ x: newX, y: newY, width: drag.start.width, height: drag.start.height });
         onUpdate(drag.item.key, { layout: normalized });
+        
+        // Проверяем движение помещения и сбрасываем изменения стен
+        checkForRoomMovement();
       }
     }
   };
@@ -963,6 +1258,84 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
           );
         })}
 
+        {/* Наложенные стены */}
+        {wallOverlaps.map((overlap: WallOverlap, index: number) => {
+          const room = enabledRooms.find(r => r.key === overlap.room1Key);
+          if (!room) return null;
+          
+          // Проверяем, не удален ли этот сегмент стены
+          const modification = wallModifications.find(
+            (mod: WallModification) => mod.roomKey === overlap.room1Key && mod.side === overlap.side
+          );
+          
+          const isDeleted = modification?.deletedSegments.some((segment: {start: number; end: number}) => 
+            segment.start <= overlap.overlapStart && segment.end >= overlap.overlapEnd
+          );
+          
+          if (isDeleted) return null; // Не рендерим удаленные сегменты
+          
+          const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+          const roomPixels = toPixels(layout);
+          
+          // Вычисляем позицию и размер наложенной части стены
+          let wallStyle: React.CSSProperties = {};
+          
+          if (overlap.side === 'left' || overlap.side === 'right') {
+            // Вертикальная стена
+            const wallX = overlap.side === 'left' ? roomPixels.x : roomPixels.x + roomPixels.width;
+            const wallY = roomPixels.y + (overlap.overlapStart * roomPixels.height);
+            const wallHeight = (overlap.overlapEnd - overlap.overlapStart) * roomPixels.height;
+            
+            wallStyle = {
+              position: 'absolute',
+              left: wallX - 2,
+              top: wallY,
+              width: 4,
+              height: wallHeight,
+              backgroundColor: '#ff5722',
+              border: '2px solid #d32f2f',
+              borderRadius: '2px',
+              cursor: 'pointer',
+              zIndex: 30,
+              boxShadow: '0 0 10px rgba(255, 87, 34, 0.6)',
+              animation: 'wallOverlapPulse 2s ease-in-out infinite'
+            };
+          } else {
+            // Горизонтальная стена
+            const wallX = roomPixels.x + (overlap.overlapStart * roomPixels.width);
+            const wallY = overlap.side === 'top' ? roomPixels.y : roomPixels.y + roomPixels.height;
+            const wallWidth = (overlap.overlapEnd - overlap.overlapStart) * roomPixels.width;
+            
+            wallStyle = {
+              position: 'absolute',
+              left: wallX,
+              top: wallY - 2,
+              width: wallWidth,
+              height: 4,
+              backgroundColor: '#ff5722',
+              border: '2px solid #d32f2f',
+              borderRadius: '2px',
+              cursor: 'pointer',
+              zIndex: 30,
+              boxShadow: '0 0 10px rgba(255, 87, 34, 0.6)',
+              animation: 'wallOverlapPulse 2s ease-in-out infinite'
+            };
+          }
+          
+          return (
+            <div
+              key={`wall-overlap-${index}`}
+              className="wall-overlap"
+              style={wallStyle}
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                handleWallOverlapClick(overlap);
+              }}
+              title="Нажмите для управления наложенной стеной"
+            />
+          );
+        })}
+
         {/* Окна */}
         {windows.map((window: WindowElement) => (
           <div
@@ -1130,6 +1503,113 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
                     🔗 Открепить
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Панель управления наложенными стенами */}
+        {selectedWallOverlap && (
+          <div className="wall-control-panel">
+            <div className="wall-control-content">
+              <p>Управление наложенной стеной</p>
+              <div className="wall-control-buttons">
+                <button 
+                  className="delete-wall-btn"
+                  onClick={() => deleteWallSegment(selectedWallOverlap)}
+                >
+                  🗑️ Удалить
+                </button>
+                <button 
+                  className="edit-wall-btn"
+                  onClick={() => editWallSegment(selectedWallOverlap)}
+                >
+                  ✏️ Изменить
+                </button>
+                <button 
+                  className="cancel-wall-btn"
+                  onClick={() => setSelectedWallOverlap(null)}
+                >
+                  ❌ Отмена
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Панель редактирования стены */}
+        {isEditingWall && selectedWallOverlap && (
+          <div className="wall-edit-panel">
+            <div className="wall-edit-content">
+              <p>Редактирование стены</p>
+              <div className="wall-edit-info">
+                <span>Комната: {enabledRooms.find(r => r.key === selectedWallOverlap.room1Key)?.name}</span>
+                <span>Сторона: {selectedWallOverlap.side}</span>
+                <span>Исходное пересечение: {Math.round(selectedWallOverlap.overlapStart * 100)}% - {Math.round(selectedWallOverlap.overlapEnd * 100)}%</span>
+              </div>
+              
+              <div className="wall-edit-controls">
+                <div className="wall-edit-range">
+                  <label>Начало удаляемого сегмента: {Math.round(wallEditStart * 100)}%</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={wallEditStart}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWallEditStart(parseFloat(e.target.value))}
+                    className="wall-range-slider"
+                  />
+                </div>
+                
+                <div className="wall-edit-range">
+                  <label>Конец удаляемого сегмента: {Math.round(wallEditEnd * 100)}%</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={wallEditEnd}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWallEditEnd(parseFloat(e.target.value))}
+                    className="wall-range-slider"
+                  />
+                </div>
+                
+                <div className="wall-edit-preview">
+                  <span>Предварительный просмотр:</span>
+                  <div className="wall-preview-bar">
+                    <div 
+                      className="wall-preview-segment wall-preview-keep"
+                      style={{ width: `${wallEditStart * 100}%` }}
+                    />
+                    <div 
+                      className="wall-preview-segment wall-preview-delete"
+                      style={{ width: `${(wallEditEnd - wallEditStart) * 100}%` }}
+                    />
+                    <div 
+                      className="wall-preview-segment wall-preview-keep"
+                      style={{ width: `${(1 - wallEditEnd) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="wall-edit-buttons">
+                <button 
+                  className="save-wall-btn"
+                  onClick={saveWallEdit}
+                >
+                  💾 Сохранить
+                </button>
+                <button 
+                  className="cancel-edit-btn"
+                  onClick={() => {
+                    setIsEditingWall(false);
+                    setSelectedWallOverlap(null);
+                  }}
+                >
+                  ❌ Отмена
+                </button>
               </div>
             </div>
           </div>

@@ -5,160 +5,43 @@
  * @returns {Promise<{svgDataUrl: string, pngDataUrl: string}>} Generated floor plan
  */
 export async function generateSvgFromData(rooms, totalSqm) {
-    // Размеры канвы конструктора (соответствуют LayoutEditor)
-    const CONSTRUCTOR_WIDTH = 1000;
-    const CONSTRUCTOR_HEIGHT = 700;
+    // Import new design system components
+    const { PlanCanvas } = await import('./PlanCanvas.js');
+    const { mmToSvg } = await import('./utils/scale.js');
+    // Convert constructor coordinates to millimeters
+    const CONSTRUCTOR_WIDTH = 1000; // pixels
+    const CONSTRUCTOR_HEIGHT = 700; // pixels
     
-    // Размеры SVG (увеличиваем для качества)
-    const SVG_SCALE = 2;
-    const CANVAS_WIDTH = CONSTRUCTOR_WIDTH * SVG_SCALE;
-    const CANVAS_HEIGHT = CONSTRUCTOR_HEIGHT * SVG_SCALE;
-    const MARGIN = 20 * SVG_SCALE;
-    
-    // Единая толщина стен для внешних и внутренних стен
-    const WALL_THICKNESS = 6 * SVG_SCALE;
-    const ICON_STROKE = 2 * SVG_SCALE;
-    const ICON_STROKE_COLOR = '#2F2F2F';
-    const ICON_FILL_LIGHT = '#F5F6F9';
+    // Convert to millimeters (assuming 1 pixel = 1mm for simplicity)
+    const PLAN_WIDTH = CONSTRUCTOR_WIDTH; // mm
+    const PLAN_HEIGHT = CONSTRUCTOR_HEIGHT; // mm
 
-    // Функция для генерации дизайна окна согласно JSON спецификации
-    function generateWindowDesign(windowLength, windowWidth, windowX, windowY, windowRotation, roomKey, windowSide, windowPos) {
-        // Параметры дизайна из JSON (адаптированные под SVG)
-        const designConfig = {
-            // Боковые линии
-            sideLines: {
-                leftX: 0.08, // 8% от ширины окна
-                rightX: 0.92, // 92% от ширины окна
-                thickness: 8 * SVG_SCALE,
-                color: '#2f2f2f'
-            },
-            // Колпачки
-            caps: {
-                enabled: true,
-                height: 40 * SVG_SCALE,
-                color: '#111111'
-            },
-            // Центральный модуль
-            centerModule: {
-                x: 0.5, // 50% от ширины окна
-                rails: [
-                    { offset: -10 * SVG_SCALE, thickness: 4 * SVG_SCALE, color: '#222222' },
-                    { offset: 10 * SVG_SCALE, thickness: 4 * SVG_SCALE, color: '#222222' }
-                ],
-                rungsGroups: [
-                    { y: 0.28, sep: 24 * SVG_SCALE, thickness: 3 * SVG_SCALE, color: '#222222' },
-                    { y: 0.5, sep: 24 * SVG_SCALE, thickness: 3 * SVG_SCALE, color: '#222222' },
-                    { y: 0.72, sep: 24 * SVG_SCALE, thickness: 3 * SVG_SCALE, color: '#222222' }
-                ]
-            }
-        };
-
-        // Адаптируем размеры под длину окна
-        const adaptedLength = Math.max(windowLength, 200 * SVG_SCALE); // Минимальная длина
-        const adaptedWidth = Math.max(windowWidth, 60 * SVG_SCALE); // Минимальная ширина
-        
-        // Вычисляем позиции элементов
-        const leftLineX = adaptedLength * designConfig.sideLines.leftX;
-        const rightLineX = adaptedLength * designConfig.sideLines.rightX;
-        const centerX = adaptedLength * designConfig.centerModule.x;
-        
-        // Адаптируем расстояние между перекладинами в зависимости от длины окна
-        const baseSep = designConfig.centerModule.rungsGroups[0].sep;
-        const scaleFactor = Math.max(0.5, Math.min(2.0, adaptedLength / (400 * SVG_SCALE))); // Масштабируем от 0.5 до 2.0
-        const adaptedSep = baseSep * scaleFactor;
-        
-        // Генерируем SVG элементы
-        let windowElements = '';
-        
-        // Боковые линии
-        windowElements += `<line x1="${leftLineX}" y1="0" x2="${leftLineX}" y2="${adaptedWidth}" 
-            stroke="${designConfig.sideLines.color}" stroke-width="${designConfig.sideLines.thickness}" stroke-linecap="square"/>`;
-        windowElements += `<line x1="${rightLineX}" y1="0" x2="${rightLineX}" y2="${adaptedWidth}" 
-            stroke="${designConfig.sideLines.color}" stroke-width="${designConfig.sideLines.thickness}" stroke-linecap="square"/>`;
-        
-        // Колпачки (верхний и нижний)
-        if (designConfig.caps.enabled) {
-            windowElements += `<rect x="0" y="0" width="${adaptedLength}" height="${designConfig.caps.height}" 
-                fill="${designConfig.caps.color}"/>`;
-            windowElements += `<rect x="0" y="${adaptedWidth - designConfig.caps.height}" width="${adaptedLength}" height="${designConfig.caps.height}" 
-                fill="${designConfig.caps.color}"/>`;
-        }
-        
-        // Рейки центрального модуля
-        designConfig.centerModule.rails.forEach(rail => {
-            const railY = adaptedWidth / 2 + rail.offset;
-            windowElements += `<line x1="0" y1="${railY}" x2="${adaptedLength}" y2="${railY}" 
-                stroke="${rail.color}" stroke-width="${rail.thickness}" stroke-linecap="square"/>`;
-        });
-        
-        // Перекладины для каждой группы
-        designConfig.centerModule.rungsGroups.forEach(group => {
-            const groupY = adaptedWidth * group.y;
-            const rungLength = rightLineX - leftLineX;
-            const rungStartX = leftLineX;
-            
-            // Используем адаптированное расстояние между перекладинами
-            const groupRungsCount = Math.max(2, Math.floor(rungLength / adaptedSep));
-            const actualSep = rungLength / (groupRungsCount + 1);
-            
-            for (let i = 1; i <= groupRungsCount; i++) {
-                const rungX = rungStartX + i * actualSep;
-                windowElements += `<line x1="${rungX}" y1="${groupY - group.thickness/2}" x2="${rungX}" y2="${groupY + group.thickness/2}" 
-                    stroke="${group.color}" stroke-width="${group.thickness}" stroke-linecap="square"/>`;
-            }
-        });
-        
-        // Создаем группу с клиппингом
-        const clipPathId = `windowClip_${roomKey}_${windowSide}_${windowPos}`;
-        const windowGroup = `
-            <defs>
-                <clipPath id="${clipPathId}">
-                    <rect x="0" y="0" width="${adaptedLength}" height="${adaptedWidth}" />
-                </clipPath>
-            </defs>
-            <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})" clip-path="url(#${clipPathId})">
-                ${windowElements}
-            </g>
-        `;
-        
-        return windowGroup;
-    }
-
-    // Convert normalized coordinates (0-1) to pixel coordinates
-    // Строго используем размеры из конструктора
-    const pixelRooms = rooms.map(room => {
+    // Convert normalized coordinates (0-1) to millimeters
+    const roomData = rooms.map(room => {
         const layout = room.layout || { x: 0, y: 0, width: 0.2, height: 0.2 };
-        const pixelRoom = {
-            ...room,
-            // Прямое масштабирование из конструктора в SVG
-            pixelX: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
-            pixelY: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
-            pixelWidth: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
-            pixelHeight: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE,
-            // Используем данные дверей и окон из конструктора
-            doors: Array.isArray(room.doors) ? [...room.doors] : [],
+        return {
+            key: room.key,
+            name: room.name,
+            x: layout.x * PLAN_WIDTH,
+            y: layout.y * PLAN_HEIGHT,
+            width: layout.width * PLAN_WIDTH,
+            height: layout.height * PLAN_HEIGHT,
+            sqm: room.sqm || 0,
             windows: Array.isArray(room.windows) ? [...room.windows] : [],
-            entrySide: room.entrySide || null,
+            doors: Array.isArray(room.doors) ? [...room.doors] : [],
+            furniture: [], // Will be populated from room analysis if available
+            fixtures: [], // Will be populated from room analysis if available
         };
-        
-        
-        return pixelRoom;
     });
 
-    // Определяем границы всего плана для выявления внешних стен (перемещаем сразу после pixelRooms)
-    const planBounds = {
-        left: Math.min(...pixelRooms.map(r => r.pixelX)),
-        right: Math.max(...pixelRooms.map(r => r.pixelX + r.pixelWidth)),
-        top: Math.min(...pixelRooms.map(r => r.pixelY)),
-        bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
-    };
-
-    // Определяем константу EPS для проверок (перемещаем выше)
-    const EPS = 1;
-
-    // Минимальная коррекция только для сглаживания углов (не более 3 пикселей)
-    const MINIMAL_CORRECTION = 3 * SVG_SCALE;
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    // Generate SVG using new design system
+    const svgContent = PlanCanvas({
+        rooms: roomData,
+        totalSqm: totalSqm,
+        scale: '1:50',
+        width: PLAN_WIDTH,
+        height: PLAN_HEIGHT
+    });
 
     const applyMinimalCorrection = () => {
         // Только легкое выравнивание стен для сглаживания углов
@@ -375,14 +258,13 @@ export async function generateSvgFromData(rooms, totalSqm) {
     // Функция для определения пересечения двух помещений
     // Комнаты считаются пересекающимися только если они действительно накладываются друг на друга
     const checkRoomOverlap = (room1, room2) => {
-        // Используем строгую проверку без допусков - комнаты пересекаются только если действительно накладываются
-        const hasHorizontalOverlap = room1.pixelX < room2.pixelX + room2.pixelWidth && 
-                                    room1.pixelX + room1.pixelWidth > room2.pixelX;
-        const hasVerticalOverlap = room1.pixelY < room2.pixelY + room2.pixelHeight && 
-                                  room1.pixelY + room1.pixelHeight > room2.pixelY;
-        
-        // Комнаты пересекаются только если есть пересечение и по горизонтали, и по вертикали
-        return hasHorizontalOverlap && hasVerticalOverlap;
+        const tolerance = 2; // Допуск в 2 пикселя для комнат, стоящих впритык
+        return !(
+            room1.pixelX + room1.pixelWidth <= room2.pixelX + tolerance ||
+            room2.pixelX + room2.pixelWidth <= room1.pixelX + tolerance ||
+            room1.pixelY + room1.pixelHeight <= room2.pixelY + tolerance ||
+            room2.pixelY + room2.pixelHeight <= room1.pixelY + tolerance
+        );
     };
 
     // Функция для определения всех пересечений с конкретным помещением
@@ -397,7 +279,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm } = room;
         const overlappingRooms = getRoomOverlaps(room);
         const hasOverlaps = overlappingRooms.length > 0;
-        
         
         // Основной прямоугольник помещения
         const fillColor = hasOverlaps ? 'rgba(232, 244, 253, 0.6)' : '#FFFFFF';
@@ -516,7 +397,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     }
 
-    // Draw windows with new design based on JSON specification
+    // Draw windows (старый код, аналогичный коду дверей)
     console.log('SVG Generation - Checking for windows in rooms:', rooms.map(r => ({ 
         key: r.key, 
         name: r.name, 
@@ -539,27 +420,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
             };
 
             room.windows.forEach(window => {
-                // Определяем, является ли стена внешней
-                let isExternalWall = false;
-                let isBalconyWall = false;
-                
-                if (window.side === 'left' || window.side === 'right') {
-                    isExternalWall = Math.abs(roomPixels.x - planBounds.left) < EPS || Math.abs(roomPixels.x + roomPixels.width - planBounds.right) < EPS;
-                } else {
-                    isExternalWall = Math.abs(roomPixels.y - planBounds.top) < EPS || Math.abs(roomPixels.y + roomPixels.height - planBounds.bottom) < EPS;
-                }
-                
-                // Проверяем, не является ли это стеной балкона/лоджии
-                if (room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия')) {
-                    isBalconyWall = true;
-                }
-                
-                // Определяем толщину стены для окна
-                const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
-                
                 // Для вертикальных окон (left/right) используем правильные размеры
                 const isVertical = window.side === 'left' || window.side === 'right';
-                const windowWidth = wallThickness; // Используем толщину стены
+                const windowWidth = isVertical ? 8 * SVG_SCALE : 8 * SVG_SCALE;
                 const windowLength = window.len * (isVertical ? roomPixels.height : roomPixels.width);
                 
                 let windowX, windowY, windowRotation = 0;
@@ -587,15 +450,37 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         break;
                 }
 
-                // Генерируем окно с новым дизайном
-                const windowGroup = generateWindowDesign(windowLength, windowWidth, windowX, windowY, windowRotation, room.key, window.side, window.pos);
+                // Создаем окно в стиле волнистых линий (шторы)
+                // Ограничиваем область рисования для предотвращения лишних текстур
+                const clipPathId = `windowClip_${room.key}_${window.side}_${window.pos}`;
+                const windowGroup = `
+                    <defs>
+                        <clipPath id="${clipPathId}">
+                            <rect x="0" y="0" width="${windowLength}" height="${windowWidth}" />
+                        </clipPath>
+                    </defs>
+                    <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})" clip-path="url(#${clipPathId})">
+                        <!-- Волнистые линии как шторы -->
+                        <path d="M 0 ${windowWidth/2} Q ${windowLength/4} ${windowWidth/4} ${windowLength/2} ${windowWidth/2} T ${windowLength} ${windowWidth/2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 + 2} Q ${windowLength/4} ${windowWidth/4 + 2} ${windowLength/2} ${windowWidth/2 + 2} T ${windowLength} ${windowWidth/2 + 2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 + 4} Q ${windowLength/4} ${windowWidth/4 + 4} ${windowLength/2} ${windowWidth/2 + 4} T ${windowLength} ${windowWidth/2 + 4}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 - 2} Q ${windowLength/4} ${windowWidth/4 - 2} ${windowLength/2} ${windowWidth/2 - 2} T ${windowLength} ${windowWidth/2 - 2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 - 4} Q ${windowLength/4} ${windowWidth/4 - 4} ${windowLength/2} ${windowWidth/2 - 4} T ${windowLength} ${windowWidth/2 - 4}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                    </g>
+                `;
+                
                 svgContent += windowGroup;
             });
         });
     }
 
-
     // Построим единый слой стен по уникальным рёбрам
+    const EPS = 1;
     const edges = [];
     const addEdge = (orientation, fixCoord, start, end) => {
         if (end - start <= 0) return;
@@ -620,6 +505,13 @@ export async function generateSvgFromData(rooms, totalSqm) {
         addEdge('h', y1, x1, x2); // top
         addEdge('h', y2, x1, x2); // bottom
     });
+    // Определяем границы всего плана для выявления внешних стен
+    const planBounds = {
+        left: Math.min(...pixelRooms.map(r => r.pixelX)),
+        right: Math.max(...pixelRooms.map(r => r.pixelX + r.pixelWidth)),
+        top: Math.min(...pixelRooms.map(r => r.pixelY)),
+        bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
+    };
     
     // Рисуем стены с разной толщиной для внешних и внутренних
     edges.forEach(e => {
