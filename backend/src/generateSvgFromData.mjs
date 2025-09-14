@@ -421,35 +421,70 @@ export async function generateSvgFromData(rooms, totalSqm) {
         addEdge('h', y1, x1, x2); // top
         addEdge('h', y2, x1, x2); // bottom
     });
-    // Рисуем стены
+    // Определяем границы всего плана для выявления внешних стен
+    const planBounds = {
+        left: Math.min(...pixelRooms.map(r => r.pixelX)),
+        right: Math.max(...pixelRooms.map(r => r.pixelX + r.pixelWidth)),
+        top: Math.min(...pixelRooms.map(r => r.pixelY)),
+        bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
+    };
+    
+    // Рисуем стены с разной толщиной для внешних и внутренних
     edges.forEach(e => {
+        let isExternalWall = false;
+        let isBalconyWall = false;
+        
+        // Проверяем, является ли стена внешней
+        if (e.o === 'v') { // вертикальная стена
+            isExternalWall = Math.abs(e.c - planBounds.left) < EPS || Math.abs(e.c - planBounds.right) < EPS;
+        } else { // горизонтальная стена
+            isExternalWall = Math.abs(e.c - planBounds.top) < EPS || Math.abs(e.c - planBounds.bottom) < EPS;
+        }
+        
+        // Проверяем, не является ли это стеной балкона/лоджии
+        // Балкон/лоджия должны иметь обычную толщину стен
+        const roomAtEdge = pixelRooms.find(r => {
+            if (e.o === 'v') {
+                return Math.abs(e.c - r.pixelX) < EPS || Math.abs(e.c - (r.pixelX + r.pixelWidth)) < EPS;
+            } else {
+                return Math.abs(e.c - r.pixelY) < EPS || Math.abs(e.c - (r.pixelY + r.pixelHeight)) < EPS;
+            }
+        });
+        
+        if (roomAtEdge && (roomAtEdge.key === 'balcony' || roomAtEdge.name.toLowerCase().includes('балкон') || roomAtEdge.name.toLowerCase().includes('лоджия'))) {
+            isBalconyWall = true;
+        }
+        
+        // Определяем толщину стены
+        const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+        
         if (e.o === 'v') {
-            svgContent += `\n<line x1="${e.c}" y1="${e.s}" x2="${e.c}" y2="${e.e}" stroke="url(#wallHatch)" stroke-width="${WALL_THICKNESS}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+            svgContent += `\n<line x1="${e.c}" y1="${e.s}" x2="${e.c}" y2="${e.e}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
         } else {
-            svgContent += `\n<line x1="${e.s}" y1="${e.c}" x2="${e.e}" y2="${e.c}" stroke="url(#wallHatch)" stroke-width="${WALL_THICKNESS}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+            svgContent += `\n<line x1="${e.s}" y1="${e.c}" x2="${e.e}" y2="${e.c}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
         }
     });
 
     // Draw windows (отображение окон)
-    console.log('SVG Generation - Checking for windows in rooms:', rooms.map(r => ({ 
+    console.log('SVG Generation - Checking for windows in rooms:', pixelRooms.map(r => ({ 
         key: r.key, 
         name: r.name, 
         windows: r.windows?.length || 0,
         windowsData: r.windows 
     })));
     
-    if (rooms.some(room => room.windows && room.windows.length > 0)) {
+    if (pixelRooms.some(room => room.windows && room.windows.length > 0)) {
         console.log('SVG Generation - Found windows, processing...');
-        rooms.forEach(room => {
+        pixelRooms.forEach(room => {
             if (!room.windows || room.windows.length === 0) return;
             console.log(`SVG Generation - Processing windows for room ${room.name}:`, room.windows);
             
-            const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+            // Используем уже вычисленные пиксельные координаты
             const roomPixels = {
-                x: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
-                y: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
-                width: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
-                height: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE
+                x: room.pixelX,
+                y: room.pixelY,
+                width: room.pixelWidth,
+                height: room.pixelHeight
             };
 
             room.windows.forEach(window => {
@@ -481,26 +516,20 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         break;
                 }
 
-                // Создаем реалистичное окно
+                // Создаем окно в стиле волнистых линий (шторы)
                 const windowGroup = `
                     <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})">
-                        <!-- Рама окна -->
-                        <rect x="0" y="0" width="${windowLength}" height="${windowWidth}" 
-                              fill="none" stroke="#2E7D32" stroke-width="3" rx="2"/>
-                        
-                        <!-- Стекло -->
-                        <rect x="2" y="2" width="${windowLength - 4}" height="${windowWidth - 4}" 
-                              fill="#E3F2FD" stroke="#1976D2" stroke-width="1" rx="1"/>
-                        
-                        <!-- Переплеты -->
-                        <line x1="${windowLength / 2}" y1="2" x2="${windowLength / 2}" y2="${windowWidth - 2}" 
-                              stroke="#2E7D32" stroke-width="1"/>
-                        <line x1="2" y1="${windowWidth / 2}" x2="${windowLength - 2}" y2="${windowWidth / 2}" 
-                              stroke="#2E7D32" stroke-width="1"/>
-                        
-                        <!-- Отражение -->
-                        <rect x="3" y="3" width="${windowLength / 3}" height="${windowWidth / 3}" 
-                              fill="#FFFFFF" opacity="0.6" rx="1"/>
+                        <!-- Волнистые линии как шторы -->
+                        <path d="M 0 ${windowWidth/2} Q ${windowLength/4} ${windowWidth/4} ${windowLength/2} ${windowWidth/2} T ${windowLength} ${windowWidth/2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 + 2} Q ${windowLength/4} ${windowWidth/4 + 2} ${windowLength/2} ${windowWidth/2 + 2} T ${windowLength} ${windowWidth/2 + 2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 + 4} Q ${windowLength/4} ${windowWidth/4 + 4} ${windowLength/2} ${windowWidth/2 + 4} T ${windowLength} ${windowWidth/2 + 4}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 - 2} Q ${windowLength/4} ${windowWidth/4 - 2} ${windowLength/2} ${windowWidth/2 - 2} T ${windowLength} ${windowWidth/2 - 2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 - 4} Q ${windowLength/4} ${windowWidth/4 - 4} ${windowLength/2} ${windowWidth/2 - 4} T ${windowLength} ${windowWidth/2 - 4}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
                     </g>
                 `;
                 
@@ -518,8 +547,23 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const doorCenterY = pixelY + door.pos * pixelHeight;
             const doorSpan = Math.min(130, Math.max(80, Math.min(pixelWidth, pixelHeight) * 0.28));
             const arcRadius = doorSpan;
-            const gapStroke = WALL_THICKNESS + 2; // разрез по толщине стены
-            const jambStroke = Math.max(2, Math.floor(WALL_THICKNESS * 0.25));
+            
+            // Определяем, является ли стена внешней
+            let isExternalWall = false;
+            if (door.side === 'left' || door.side === 'right') {
+                isExternalWall = Math.abs(pixelX - planBounds.left) < EPS || Math.abs(pixelX + pixelWidth - planBounds.right) < EPS;
+            } else {
+                isExternalWall = Math.abs(pixelY - planBounds.top) < EPS || Math.abs(pixelY + pixelHeight - planBounds.bottom) < EPS;
+            }
+            
+            // Проверяем, не является ли это стеной балкона/лоджии
+            const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
+            
+            // Определяем толщину стены
+            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+            
+            const gapStroke = wallThickness + 2; // разрез по толщине стены
+            const jambStroke = Math.max(2, Math.floor(wallThickness * 0.25));
             const jambColor = '#1E1E1E';
             const hingeRadius = Math.max(3, Math.floor(arcRadius * 0.08));
 
@@ -527,8 +571,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // gap
                 svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
                 // jambs
-                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + WALL_THICKNESS/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + WALL_THICKNESS/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + wallThickness/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + wallThickness/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
                 // arc (hinge at left)
                 const hx = doorCenterX - doorSpan / 2;
                 const hy = pixelY;
@@ -538,8 +582,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
             } else if (door.side === 'bottom') {
                 svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
-                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight - WALL_THICKNESS/2}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY + pixelHeight - WALL_THICKNESS/2}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight - wallThickness/2}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY + pixelHeight - wallThickness/2}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
                 const hx = doorCenterX - doorSpan / 2;
                 const hy = pixelY + pixelHeight;
                 const ex = hx + arcRadius;
@@ -548,8 +592,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
             } else if (door.side === 'left') {
                 svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + WALL_THICKNESS/2}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + WALL_THICKNESS/2}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + wallThickness/2}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + wallThickness/2}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
                 const hx = pixelX;
                 const hy = doorCenterY - doorSpan / 2;
                 const ex = hx + arcRadius;
@@ -558,8 +602,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
             } else if (door.side === 'right') {
                 svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
-                svgContent += `\n<line x1="${pixelX + pixelWidth - WALL_THICKNESS/2}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                svgContent += `\n<line x1="${pixelX + pixelWidth - WALL_THICKNESS/2}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth - wallThickness/2}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth - wallThickness/2}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
                 const hx = pixelX + pixelWidth;
                 const hy = doorCenterY - doorSpan / 2;
                 const ex = hx - arcRadius;
@@ -586,38 +630,48 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const pos = typeof window.pos === 'number' ? window.pos : 0.5;
             const len = typeof window.len === 'number' ? window.len : 0.2;
             
-            const cutWidth = WALL_THICKNESS + 2;
+            // Определяем толщину стены для окон
+            let isExternalWall = false;
+            if (window.side === 'left' || window.side === 'right') {
+                isExternalWall = Math.abs(roomPixels.x - planBounds.left) < EPS || Math.abs(roomPixels.x + roomPixels.width - planBounds.right) < EPS;
+            } else {
+                isExternalWall = Math.abs(roomPixels.y - planBounds.top) < EPS || Math.abs(roomPixels.y + roomPixels.height - planBounds.bottom) < EPS;
+            }
+            
+            const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
+            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+            const cutWidth = wallThickness + 2;
             const stripe = 4;
 
             if (window.side === 'top') {
                 // Окно на верхней стене
-                const startX = pixelX + pos * pixelWidth;
-                const winLength = len * pixelWidth;
-                const y = pixelY;
+                const startX = roomPixels.x + pos * roomPixels.width;
+                const winLength = len * roomPixels.width;
+                const y = roomPixels.y;
                 svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'bottom') {
                 // Окно на нижней стене
-                const startX = pixelX + pos * pixelWidth;
-                const winLength = len * pixelWidth;
-                const y = pixelY + pixelHeight;
+                const startX = roomPixels.x + pos * roomPixels.width;
+                const winLength = len * roomPixels.width;
+                const y = roomPixels.y + roomPixels.height;
                 svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'left') {
                 // Окно на левой стене
-                const startY = pixelY + pos * pixelHeight;
-                const winLength = len * pixelHeight;
-                const x = pixelX;
+                const startY = roomPixels.y + pos * roomPixels.height;
+                const winLength = len * roomPixels.height;
+                const x = roomPixels.x;
                 svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'right') {
                 // Окно на правой стене
-                const startY = pixelY + pos * pixelHeight;
-                const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth;
+                const startY = roomPixels.y + pos * roomPixels.height;
+                const winLength = len * roomPixels.height;
+                const x = roomPixels.x + roomPixels.width;
                 svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
