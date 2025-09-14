@@ -333,25 +333,24 @@ export async function generateSvgFromData(rooms, totalSqm) {
     });
 
     // Рисуем двери (если есть данные о дверях)
-    console.log('SVG Generation - Checking for doors in rooms:', rooms.map(r => ({ 
+    console.log('SVG Generation - Checking for doors in pixelRooms:', pixelRooms.map(r => ({ 
         key: r.key, 
         name: r.name, 
         doors: r.doors?.length || 0,
         doorsData: r.doors 
     })));
     
-    if (rooms.some(room => room.doors && room.doors.length > 0)) {
+    if (pixelRooms.some(room => room.doors && room.doors.length > 0)) {
         console.log('SVG Generation - Found doors, processing...');
-        rooms.forEach(room => {
+        pixelRooms.forEach(room => {
             if (!room.doors || room.doors.length === 0) return;
             console.log(`SVG Generation - Processing doors for room ${room.name}:`, room.doors);
             
-            const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
             const roomPixels = {
-                x: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
-                y: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
-                width: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
-                height: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE
+                x: room.pixelX,
+                y: room.pixelY,
+                width: room.pixelWidth,
+                height: room.pixelHeight
             };
 
             room.doors.forEach(door => {
@@ -413,15 +412,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     }
 
-    // Draw windows (старый код, аналогичный коду дверей)
-    console.log('SVG Generation - Checking for windows in rooms:', rooms.map(r => ({ 
-        key: r.key, 
-        name: r.name, 
-        windows: r.windows?.length || 0,
-        windowsData: r.windows 
-    })));
-    
-    console.log('SVG Generation - Checking for windows in rooms:', rooms.map(r => ({ 
+    // Draw windows
+    console.log('SVG Generation - Checking for windows in pixelRooms:', pixelRooms.map(r => ({ 
         key: r.key, 
         name: r.name, 
         windows: r.windows?.length || 0,
@@ -429,21 +421,20 @@ export async function generateSvgFromData(rooms, totalSqm) {
     })));
     
     // Проверяем, есть ли окна в любой из комнат
-    const hasAnyWindows = rooms.some(room => room.windows && room.windows.length > 0);
+    const hasAnyWindows = pixelRooms.some(room => room.windows && room.windows.length > 0);
     console.log('SVG Generation - Has any windows:', hasAnyWindows);
     
     if (hasAnyWindows) {
         console.log('SVG Generation - Found windows, processing...');
-        rooms.forEach(room => {
+        pixelRooms.forEach(room => {
             if (!room.windows || room.windows.length === 0) return;
             console.log(`SVG Generation - Processing windows for room ${room.name}:`, room.windows);
             
-            const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
             const roomPixels = {
-                x: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
-                y: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
-                width: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
-                height: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE
+                x: room.pixelX,
+                y: room.pixelY,
+                width: room.pixelWidth,
+                height: room.pixelHeight
             };
 
             room.windows.forEach(window => {
@@ -742,18 +733,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     });
 
-    // Draw windows: прорезаем стену и рисуем полосы окна
-    pixelRooms.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [] } = room;
-
-        if (windows.length > 0) {
-            console.log(`Drawing windows for room ${room.key} (${room.name}):`, {
-                position: { x: pixelX, y: pixelY, width: pixelWidth, height: pixelHeight },
-                windows: windows.map(w => ({ side: w.side, pos: w.pos, len: w.len }))
-            });
-        }
-
-    });
 
     // Draw furniture (improved 2D icons with softer strokes and light fill)
     pixelRooms.forEach(room => {
