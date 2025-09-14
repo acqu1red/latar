@@ -600,21 +600,21 @@ export async function generateSvgFromData(rooms, totalSqm) {
     // НОВАЯ ФУНКЦИЯ: Рендеринг окна с учетом поворота
     function renderWindow(window, room, planBounds) {
         const { pixelX, pixelY, pixelWidth, pixelHeight } = room;
-        const pos = typeof window.pos === 'number' ? window.pos : 0.5;
-        const len = typeof window.len === 'number' ? window.len : 0.2;
+            const pos = typeof window.pos === 'number' ? window.pos : 0.5;
+            const len = typeof window.len === 'number' ? window.len : 0.2;
         const rotation = window.rotation || 0; // Получаем поворот из конструктора
-        
+            
         // Определяем толщину стены
-        let isExternalWall = false;
-        if (window.side === 'left' || window.side === 'right') {
-            isExternalWall = Math.abs(pixelX - planBounds.left) < EPS || Math.abs(pixelX + pixelWidth - planBounds.right) < EPS;
-        } else {
-            isExternalWall = Math.abs(pixelY - planBounds.top) < EPS || Math.abs(pixelY + pixelHeight - planBounds.bottom) < EPS;
-        }
-        
-        const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
-        const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
-        const cutWidth = wallThickness + 2;
+            let isExternalWall = false;
+            if (window.side === 'left' || window.side === 'right') {
+                isExternalWall = Math.abs(pixelX - planBounds.left) < EPS || Math.abs(pixelX + pixelWidth - planBounds.right) < EPS;
+            } else {
+                isExternalWall = Math.abs(pixelY - planBounds.top) < EPS || Math.abs(pixelY + pixelHeight - planBounds.bottom) < EPS;
+            }
+            
+            const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
+            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+            const cutWidth = wallThickness + 2;
         
         // Константы дизайна
         const frameThickness = 1;
@@ -623,11 +623,11 @@ export async function generateSvgFromData(rooms, totalSqm) {
         const windowColor = '#1F1F1F';
         
         let svg = '';
-        
-        if (window.side === 'top') {
-            const startX = pixelX + pos * pixelWidth;
-            const winLength = len * pixelWidth;
-            const y = pixelY;
+
+            if (window.side === 'top') {
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                const y = pixelY;
             
             // Вырезаем отверстие в стене
             svg += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
@@ -669,8 +669,106 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Нижняя часть импоста
                 svg += `\n<line x1="${centerX}" y1="${mullionEnd - mullionGap}" x2="${centerX}" y2="${mullionEnd}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
             }
+            } else if (window.side === 'bottom') {
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                const y = pixelY + pixelHeight;
+            
+            // Вырезаем отверстие в стене
+            svg += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+            
+            if (rotation === 90) {
+                // Вертикальное окно
+                const centerX = startX + winLength / 2;
+                const halfHeight = winLength / 2;
+                
+                svg += `\n<line x1="${centerX - frameGap}" y1="${y - halfHeight}" x2="${centerX - frameGap}" y2="${y + halfHeight}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${centerX + frameGap}" y1="${y - halfHeight}" x2="${centerX + frameGap}" y2="${y + halfHeight}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                const mullionStart = centerX - halfHeight;
+                const mullionEnd = centerX + halfHeight;
+                
+                svg += `\n<line x1="${mullionStart}" y1="${y}" x2="${mullionStart + mullionGap}" y2="${y}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${mullionEnd - mullionGap}" y1="${y}" x2="${mullionEnd}" y2="${y}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+            } else {
+                // Горизонтальное окно
+                svg += `\n<line x1="${startX}" y1="${y + frameGap}" x2="${startX + winLength}" y2="${y + frameGap}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${startX}" y1="${y - frameGap}" x2="${startX + winLength}" y2="${y - frameGap}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                const centerX = startX + winLength / 2;
+                const mullionStart = y - winLength / 2;
+                const mullionEnd = y + winLength / 2;
+                
+                svg += `\n<line x1="${centerX}" y1="${mullionStart}" x2="${centerX}" y2="${mullionStart + mullionGap}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${centerX}" y1="${mullionEnd - mullionGap}" x2="${centerX}" y2="${mullionEnd}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+            }
+            } else if (window.side === 'left') {
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                const x = pixelX;
+            
+            // Вырезаем отверстие в стене
+            svg += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+            
+            if (rotation === 90) {
+                // Горизонтальное окно (повернутое)
+                const centerY = startY + winLength / 2;
+                const halfWidth = winLength / 2;
+                
+                svg += `\n<line x1="${x - halfWidth}" y1="${centerY - frameGap}" x2="${x + halfWidth}" y2="${centerY - frameGap}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${x - halfWidth}" y1="${centerY + frameGap}" x2="${x + halfWidth}" y2="${centerY + frameGap}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                const mullionStart = x - halfWidth;
+                const mullionEnd = x + halfWidth;
+                
+                svg += `\n<line x1="${mullionStart}" y1="${centerY}" x2="${mullionStart + mullionGap}" y2="${centerY}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${mullionEnd - mullionGap}" y1="${centerY}" x2="${mullionEnd}" y2="${centerY}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+            } else {
+                // Вертикальное окно
+                svg += `\n<line x1="${x - frameGap}" y1="${startY}" x2="${x - frameGap}" y2="${startY + winLength}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${x + frameGap}" y1="${startY}" x2="${x + frameGap}" y2="${startY + winLength}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                const centerY = startY + winLength / 2;
+                const mullionStart = x - winLength / 2;
+                const mullionEnd = x + winLength / 2;
+                
+                svg += `\n<line x1="${mullionStart}" y1="${centerY}" x2="${mullionStart + mullionGap}" y2="${centerY}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${mullionEnd - mullionGap}" y1="${centerY}" x2="${mullionEnd}" y2="${centerY}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+            }
+            } else if (window.side === 'right') {
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                const x = pixelX + pixelWidth;
+            
+            // Вырезаем отверстие в стене
+            svg += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+            
+            if (rotation === 90) {
+                // Горизонтальное окно (повернутое)
+                const centerY = startY + winLength / 2;
+                const halfWidth = winLength / 2;
+                
+                svg += `\n<line x1="${x - halfWidth}" y1="${centerY - frameGap}" x2="${x + halfWidth}" y2="${centerY - frameGap}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${x - halfWidth}" y1="${centerY + frameGap}" x2="${x + halfWidth}" y2="${centerY + frameGap}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                const mullionStart = x - halfWidth;
+                const mullionEnd = x + halfWidth;
+                
+                svg += `\n<line x1="${mullionStart}" y1="${centerY}" x2="${mullionStart + mullionGap}" y2="${centerY}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${mullionEnd - mullionGap}" y1="${centerY}" x2="${mullionEnd}" y2="${centerY}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+            } else {
+                // Вертикальное окно
+                svg += `\n<line x1="${x + frameGap}" y1="${startY}" x2="${x + frameGap}" y2="${startY + winLength}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${x - frameGap}" y1="${startY}" x2="${x - frameGap}" y2="${startY + winLength}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                const centerY = startY + winLength / 2;
+                const mullionStart = x - winLength / 2;
+                const mullionEnd = x + winLength / 2;
+                
+                svg += `\n<line x1="${mullionStart}" y1="${centerY}" x2="${mullionStart + mullionGap}" y2="${centerY}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svg += `\n<line x1="${mullionEnd - mullionGap}" y1="${centerY}" x2="${mullionEnd}" y2="${centerY}" stroke="${windowColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+            }
         }
-        // Аналогично для других сторон...
         
         return svg;
     }
@@ -768,7 +866,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svg += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="1" fill="${doorColor}"/>`;
             }
         }
-        // Аналогично для других сторон...
+        // TODO: Добавить остальные стороны (bottom, left, right)
         
         return svg;
     }
