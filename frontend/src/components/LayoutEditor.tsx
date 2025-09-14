@@ -21,7 +21,6 @@ type WindowElement = {
   x: number;
   y: number;
   length: number;
-  width: number;
   rotation: 0 | 90;
   type: 'window';
   isDragging?: boolean;
@@ -38,7 +37,6 @@ type Door = {
   x: number;
   y: number;
   length: number;
-  width: number;
   rotation: 0 | 90;
   type: 'entrance' | 'interior';
   isDragging?: boolean;
@@ -188,7 +186,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       x: CANVAS_WIDTH / 2 - 50,
       y: CANVAS_HEIGHT / 2 - 50,
       length: 80,
-      width: 8,
       rotation: 0,
       type,
       isDragging: false,
@@ -468,52 +465,26 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     return value;
   };
 
-  // НОВАЯ СИСТЕМА ПОВОРОТА - ПРОСТАЯ И НАДЕЖНАЯ
-  
   // Поворот окна на 90 градусов
   const rotateWindow = (windowId: number) => {
-    console.log('🔄 Rotating window:', windowId);
-    setWindows((prev: WindowElement[]) => prev.map((window: WindowElement) => {
-      if (window.id === windowId) {
-        const newRotation = window.rotation === 0 ? 90 : 0;
-        console.log(`Window ${windowId}: ${window.rotation}° → ${newRotation}°`);
-        return {
-          ...window,
-          rotation: newRotation
-        };
+    setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => {
+      if (w.id === windowId) {
+        const newRotation = w.rotation === 0 ? 90 : 0;
+        return { ...w, rotation: newRotation };
       }
-      return window;
+      return w;
     }));
   };
 
   // Поворот двери на 90 градусов
   const rotateDoor = (doorId: number) => {
-    console.log('🔄 Rotating door:', doorId);
-    setDoors((prev: Door[]) => prev.map((door: Door) => {
-      if (door.id === doorId) {
-        const newRotation = door.rotation === 0 ? 90 : 0;
-        console.log(`Door ${doorId}: ${door.rotation}° → ${newRotation}°`);
-        return {
-          ...door,
-          rotation: newRotation
-        };
+    setDoors((prev: Door[]) => prev.map((d: Door) => {
+      if (d.id === doorId) {
+        const newRotation = d.rotation === 0 ? 90 : 0;
+        return { ...d, rotation: newRotation };
       }
-      return door;
+      return d;
     }));
-  };
-
-  // Обработка клика по окну
-  const handleWindowClick = (windowId: number) => {
-    console.log('🪟 Window clicked:', windowId);
-    setSelectedWindow(windowId);
-    setSelectedDoor(null);
-  };
-
-  // Обработка клика по двери
-  const handleDoorClick = (doorId: number) => {
-    console.log('🚪 Door clicked:', doorId);
-    setSelectedDoor(doorId);
-    setSelectedWindow(null);
   };
 
 
@@ -549,17 +520,15 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         // Убираем ограничение длины окна размером стены - позволяем свободное растягивание
       } else {
         // Перемещение окна или двери
-        const currentWidth = drag.item.rotation === 0 ? drag.item.width : drag.item.length;
-        const currentLength = drag.item.rotation === 0 ? drag.item.length : drag.item.width;
-        newX = Math.max(0, Math.min(CANVAS_WIDTH - currentLength, drag.start.x + dx));
-        newY = Math.max(0, Math.min(CANVAS_HEIGHT - currentWidth, drag.start.y + dy));
+        newX = Math.max(0, Math.min(CANVAS_WIDTH - (drag.item.rotation === 0 ? newLength : 8), drag.start.x + dx));
+        newY = Math.max(0, Math.min(CANVAS_HEIGHT - (drag.item.rotation === 0 ? 8 : newLength), drag.start.y + dy));
       }
       
       // Обновляем состояние в зависимости от типа элемента
       if ('type' in drag.item && drag.item.type === 'window') {
         setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => 
           w.id === drag.item.id 
-            ? { ...w, x: newX, y: newY, length: newLength, width: w.width }
+            ? { ...w, x: newX, y: newY, length: newLength }
             : w
         ));
 
@@ -585,7 +554,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       } else if ('type' in drag.item && (drag.item.type === 'entrance' || drag.item.type === 'interior')) {
         setDoors((prev: Door[]) => prev.map((d: Door) => 
           d.id === drag.item.id 
-            ? { ...d, x: newX, y: newY, length: newLength, width: d.width }
+            ? { ...d, x: newX, y: newY, length: newLength }
             : d
         ));
 
@@ -796,7 +765,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       x: CANVAS_WIDTH / 2 - 50,
       y: CANVAS_HEIGHT / 2 - 50,
       length: 100,
-      width: 8,
       rotation: 0,
       type: 'window',
       isDragging: false,
@@ -835,6 +803,14 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     setSelectedWindow(null);
   };
 
+  // Обработка клика по окну
+  const handleWindowClick = (windowId: number) => {
+    if (selectedWindow === windowId) {
+      setSelectedWindow(null);
+    } else {
+      setSelectedWindow(windowId);
+    }
+  };
 
   return (
     <div className="layout-editor">
@@ -846,27 +822,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         >
           🪟 Добавить окно
         </button>
-        
-        {/* Кнопки управления выбранными элементами */}
-        {selectedWindow && (
-          <button 
-            className="rotate-btn"
-            onClick={() => rotateWindow(selectedWindow)}
-            style={{ marginLeft: '10px', backgroundColor: '#4CAF50', color: 'white' }}
-          >
-            🔄 Повернуть окно
-          </button>
-        )}
-        
-        {selectedDoor && (
-          <button 
-            className="rotate-btn"
-            onClick={() => rotateDoor(selectedDoor)}
-            style={{ marginLeft: '10px', backgroundColor: '#FF9800', color: 'white' }}
-          >
-            🔄 Повернуть дверь
-          </button>
-        )}
         
         <button 
           className="delete-selected-window-btn"
@@ -1017,8 +972,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             position: 'absolute',
               left: window.x,
               top: window.y,
-              width: window.rotation === 0 ? window.length : (window.width || 8),
-              height: window.rotation === 0 ? (window.width || 8) : window.length,
+              width: window.rotation === 0 ? window.length : 8,
+              height: window.rotation === 0 ? 8 : window.length,
               backgroundColor: window.attachedTo ? '#4CAF50' : '#2196F3',
               border: '2px solid #2e7d32',
               borderRadius: '4px',
@@ -1034,7 +989,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             }}
             onDoubleClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              console.log('🔄 Double click - rotating window:', window.id);
               rotateWindow(window.id);
             }}
             title="Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание"
@@ -1079,9 +1033,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               </>
             )}
             
-            <div className="window-label">
-              🪟 {window.rotation}°
-            </div>
+            <div className="window-label">🪟</div>
             </div>
         ))}
 
@@ -1094,8 +1046,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               position: 'absolute',
               left: door.x,
               top: door.y,
-              width: door.rotation === 0 ? door.length : (door.width || 8),
-              height: door.rotation === 0 ? (door.width || 8) : door.length,
+              width: door.rotation === 0 ? door.length : 8,
+              height: door.rotation === 0 ? 8 : door.length,
               backgroundColor: door.type === 'entrance' ? '#ff9800' : '#9c27b0',
               border: door.attachedTo ? '3px solid #4caf50' : '2px solid #673ab7',
               borderRadius: '4px',
@@ -1107,13 +1059,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               zIndex: 25
             }}
             onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, door, 'move')}
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              handleDoorClick(door.id);
-            }}
             onDoubleClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              console.log('🔄 Double click - rotating door:', door.id);
               rotateDoor(door.id);
             }}
             title={`${door.type === 'entrance' ? 'Входная' : 'Межкомнотная'} дверь. Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание`}
@@ -1158,7 +1105,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             )}
             
             <div className="door-label">
-              {door.type === 'entrance' ? '🏠' : '🚪'} {door.rotation}°
+              {door.type === 'entrance' ? '🏠' : '🚪'}
             </div>
           </div>
         ))}

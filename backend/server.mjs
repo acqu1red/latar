@@ -88,19 +88,20 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
     }
 
     // Check if all enabled rooms have a corresponding file
-    const filesByRoomKey = req.files.reduce((acc, file) => {
+    const filesByRoomKey = req.files ? req.files.reduce((acc, file) => {
       const key = file.fieldname.replace('photo_', '');
       if (!acc[key]) {
         acc[key] = [];
       }
       acc[key].push(file);
       return acc;
-    }, {});
+    }, {}) : {};
 
     console.log('Files by room key:', Object.keys(filesByRoomKey));
 
+    // Для тестирования разрешаем работу без фотографий
     const missingFiles = enabledRooms.filter(r => !filesByRoomKey[r.key] || filesByRoomKey[r.key].length === 0);
-    if (missingFiles.length > 0) {
+    if (missingFiles.length > 0 && req.files && req.files.length > 0) {
       const missingKeys = missingFiles.map(r => r.key).join(', ');
       return res.status(400).json({ ok: false, error: `Missing photo files for: ${missingKeys}` });
     }

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { parseJson } from './utils/parseJson.mjs';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || 'test-key-for-testing',
 });
 
 // Zod Schemas for validation
