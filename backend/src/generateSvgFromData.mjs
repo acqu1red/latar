@@ -415,133 +415,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     }
 
-    // Draw windows
-    console.log('SVG Generation - Checking for windows in pixelRooms:', pixelRooms.map(r => ({ 
-        key: r.key, 
-        name: r.name, 
-        windows: r.windows?.length || 0,
-        windowsData: r.windows 
-    })));
-    
-    // Проверяем, есть ли окна в любой из комнат
-    const hasAnyWindows = pixelRooms.some(room => room.windows && room.windows.length > 0);
-    console.log('SVG Generation - Has any windows:', hasAnyWindows);
-    
-    if (hasAnyWindows) {
-        console.log('SVG Generation - Found windows, processing...');
-        pixelRooms.forEach(room => {
-            if (!room.windows || room.windows.length === 0) return;
-            console.log(`SVG Generation - Processing windows for room ${room.name}:`, room.windows);
-            
-            const roomPixels = {
-                x: room.pixelX,
-                y: room.pixelY,
-                width: room.pixelWidth,
-                height: room.pixelHeight
-            };
-
-            room.windows.forEach(window => {
-                // Определяем, является ли стена внешней
-                let isExternalWall = false;
-                let isBalconyWall = false;
-                
-                if (window.side === 'left' || window.side === 'right') {
-                    isExternalWall = Math.abs(roomPixels.x - planBounds.left) < EPS || Math.abs(roomPixels.x + roomPixels.width - planBounds.right) < EPS;
-                } else {
-                    isExternalWall = Math.abs(roomPixels.y - planBounds.top) < EPS || Math.abs(roomPixels.y + roomPixels.height - planBounds.bottom) < EPS;
-                }
-                
-                // Проверяем, не является ли это стеной балкона/лоджии
-                if (room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия')) {
-                    isBalconyWall = true;
-                }
-                
-                // Определяем толщину стены для окна
-                const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
-                
-                // Для вертикальных окон (left/right) используем правильные размеры
-                const isVertical = window.side === 'left' || window.side === 'right';
-                const windowWidth = wallThickness; // Используем толщину стены
-                const windowLength = window.len * (isVertical ? roomPixels.height : roomPixels.width);
-                
-                let windowX, windowY, windowRotation = 0;
-                
-                switch (window.side) {
-                    case 'left':
-                        windowX = roomPixels.x - windowWidth / 2;
-                        windowY = roomPixels.y + window.pos * roomPixels.height;
-                        windowRotation = 90;
-                        break;
-                    case 'right':
-                        windowX = roomPixels.x + roomPixels.width - windowWidth / 2;
-                        windowY = roomPixels.y + window.pos * roomPixels.height;
-                        windowRotation = 90;
-                        break;
-                    case 'top':
-                        windowX = roomPixels.x + window.pos * roomPixels.width;
-                        windowY = roomPixels.y - windowWidth / 2;
-                        windowRotation = 0;
-                        break;
-                    case 'bottom':
-                        windowX = roomPixels.x + window.pos * roomPixels.width;
-                        windowY = roomPixels.y + roomPixels.height - windowWidth / 2;
-                        windowRotation = 0;
-                        break;
-                }
-
-                // Создаем окно в новом стиле согласно JSON дизайну
-                console.log(`SVG Generation - Creating window for room ${room.name}, side: ${window.side}, pos: ${window.pos}, len: ${window.len}`);
-                const clipPathId = `windowClip_${room.key}_${window.side}_${window.pos}`;
-                
-                // Параметры дизайна из JSON
-                const sideLineThickness = 8;
-                const railThickness = 4;
-                const rungThickness = 3;
-                const railOffset = 10;
-                const rungSeparation = 24;
-                const rungOverlap = 2;
-                
-                // Вычисляем позиции элементов
-                const leftRailX = windowLength * 0.08;
-                const rightRailX = windowLength * 0.92;
-                const centerX = windowLength * 0.5;
-                const leftInnerX = centerX - railOffset;
-                const rightInnerX = centerX + railOffset;
-                
-                // Собираем clipPath для добавления в defs
-                windowClipPaths.push(`<clipPath id="${clipPathId}">
-                    <rect x="0" y="0" width="${windowLength}" height="${windowWidth}" />
-                </clipPath>`);
-                
-                const windowGroup = `
-                    <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})" clip-path="url(#${clipPathId})">
-                        <!-- Боковые линии (side_lines) -->
-                        <line x1="${leftRailX}" y1="0" x2="${leftRailX}" y2="${windowWidth}" 
-                              stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>
-                        <line x1="${rightRailX}" y1="0" x2="${rightRailX}" y2="${windowWidth}" 
-                              stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>
-                        
-                        <!-- Внутренние рейки (rails) -->
-                        <line x1="${leftInnerX}" y1="0" x2="${leftInnerX}" y2="${windowWidth}" 
-                              stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>
-                        <line x1="${rightInnerX}" y1="0" x2="${rightInnerX}" y2="${windowWidth}" 
-                              stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>
-                        
-                        <!-- Поперечные перекладины (rungs) -->
-                        ${[0.28, 0.5, 0.72].map(yFrac => {
-                            const y = windowWidth * yFrac;
-                            const rungLength = rightInnerX - leftInnerX + rungOverlap * 2;
-                            const rungX = leftInnerX - rungOverlap;
-                            return `<line x1="${rungX}" y1="${y}" x2="${rungX + rungLength}" y2="${y}" 
-                                          stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
-                        }).join('\n                        ')}
-                    </g>
-                `;
-                
-                svgContent += windowGroup;
-            });
-        });
-    }
 
 
     // Построим единый слой стен по уникальным рёбрам
@@ -736,6 +609,135 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     });
 
+    // Draw windows (ПОСЛЕ стен, чтобы они были видны)
+    console.log('SVG Generation - Checking for windows in pixelRooms:', pixelRooms.map(r => ({ 
+        key: r.key, 
+        name: r.name, 
+        windows: r.windows?.length || 0,
+        windowsData: r.windows 
+    })));
+    
+    // Проверяем, есть ли окна в любой из комнат
+    const hasAnyWindows = pixelRooms.some(room => room.windows && room.windows.length > 0);
+    console.log('SVG Generation - Has any windows:', hasAnyWindows);
+    
+    if (hasAnyWindows) {
+        console.log('SVG Generation - Found windows, processing...');
+        pixelRooms.forEach(room => {
+            if (!room.windows || room.windows.length === 0) return;
+            console.log(`SVG Generation - Processing windows for room ${room.name}:`, room.windows);
+            
+            const roomPixels = {
+                x: room.pixelX,
+                y: room.pixelY,
+                width: room.pixelWidth,
+                height: room.pixelHeight
+            };
+
+            room.windows.forEach(window => {
+                // Определяем, является ли стена внешней
+                let isExternalWall = false;
+                let isBalconyWall = false;
+                
+                if (window.side === 'left' || window.side === 'right') {
+                    isExternalWall = Math.abs(roomPixels.x - planBounds.left) < EPS || Math.abs(roomPixels.x + roomPixels.width - planBounds.right) < EPS;
+                } else {
+                    isExternalWall = Math.abs(roomPixels.y - planBounds.top) < EPS || Math.abs(roomPixels.y + roomPixels.height - planBounds.bottom) < EPS;
+                }
+                
+                // Проверяем, не является ли это стеной балкона/лоджии
+                if (room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия')) {
+                    isBalconyWall = true;
+                }
+                
+                // Определяем толщину стены для окна
+                const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+                
+                // Для вертикальных окон (left/right) используем правильные размеры
+                const isVertical = window.side === 'left' || window.side === 'right';
+                const windowWidth = wallThickness; // Используем толщину стены
+                const windowLength = window.len * (isVertical ? roomPixels.height : roomPixels.width);
+                
+                let windowX, windowY, windowRotation = 0;
+                
+                switch (window.side) {
+                    case 'left':
+                        windowX = roomPixels.x - windowWidth / 2;
+                        windowY = roomPixels.y + window.pos * roomPixels.height;
+                        windowRotation = 90;
+                        break;
+                    case 'right':
+                        windowX = roomPixels.x + roomPixels.width - windowWidth / 2;
+                        windowY = roomPixels.y + window.pos * roomPixels.height;
+                        windowRotation = 90;
+                        break;
+                    case 'top':
+                        windowX = roomPixels.x + window.pos * roomPixels.width;
+                        windowY = roomPixels.y - windowWidth / 2;
+                        windowRotation = 0;
+                        break;
+                    case 'bottom':
+                        windowX = roomPixels.x + window.pos * roomPixels.width;
+                        windowY = roomPixels.y + roomPixels.height - windowWidth / 2;
+                        windowRotation = 0;
+                        break;
+                }
+
+                // Создаем окно в новом стиле согласно JSON дизайну
+                console.log(`SVG Generation - Creating window for room ${room.name}, side: ${window.side}, pos: ${window.pos}, len: ${window.len}`);
+                const clipPathId = `windowClip_${room.key}_${window.side}_${window.pos}`;
+                
+                // Параметры дизайна из JSON
+                const sideLineThickness = 8;
+                const railThickness = 4;
+                const rungThickness = 3;
+                const railOffset = 10;
+                const rungSeparation = 24;
+                const rungOverlap = 2;
+                
+                // Вычисляем позиции элементов
+                const leftRailX = windowLength * 0.08;
+                const rightRailX = windowLength * 0.92;
+                const centerX = windowLength * 0.5;
+                const leftInnerX = centerX - railOffset;
+                const rightInnerX = centerX + railOffset;
+                
+                // Собираем clipPath для добавления в defs
+                windowClipPaths.push(`<clipPath id="${clipPathId}">
+                    <rect x="0" y="0" width="${windowLength}" height="${windowWidth}" />
+                </clipPath>`);
+                
+                const windowGroup = `
+                    <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})" clip-path="url(#${clipPathId})">
+                        <!-- Боковые линии (side_lines) -->
+                        <line x1="${leftRailX}" y1="0" x2="${leftRailX}" y2="${windowWidth}" 
+                              stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>
+                        <line x1="${rightRailX}" y1="0" x2="${rightRailX}" y2="${windowWidth}" 
+                              stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>
+                        
+                        <!-- Внутренние рейки (rails) -->
+                        <line x1="${leftInnerX}" y1="0" x2="${leftInnerX}" y2="${windowWidth}" 
+                              stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>
+                        <line x1="${rightInnerX}" y1="0" x2="${rightInnerX}" y2="${windowWidth}" 
+                              stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>
+                        
+                        <!-- Поперечные перекладины (rungs) -->
+                        ${[0.28, 0.5, 0.72].map(yFrac => {
+                            const y = windowWidth * yFrac;
+                            const rungLength = rightInnerX - leftInnerX + rungOverlap * 2;
+                            const rungX = leftInnerX - rungOverlap;
+                            return `<line x1="${rungX}" y1="${y}" x2="${rungX + rungLength}" y2="${y}" 
+                                          stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
+                        }).join('\n                        ')}
+                    </g>
+                `;
+                
+                svgContent += windowGroup;
+                console.log(`SVG Generation - Window added to SVG for room ${room.name}, side: ${window.side}`);
+            });
+        });
+    }
+
 
     // Draw furniture (improved 2D icons with softer strokes and light fill)
     pixelRooms.forEach(room => {
@@ -881,6 +883,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
     }
 
     svgContent += `</svg>`;
+    
+    // Логируем размер SVG контента для отладки
+    console.log(`SVG Generation - Final SVG content length: ${svgContent.length} characters`);
+    console.log(`SVG Generation - Number of window clipPaths: ${windowClipPaths.length}`);
 
     // Convert to PNG (render at 2048 for crisper lines, then downscale to 1024)
     const sharp = (await import('sharp')).default;
