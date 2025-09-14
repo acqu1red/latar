@@ -421,7 +421,18 @@ export async function generateSvgFromData(rooms, totalSqm) {
         windowsData: r.windows 
     })));
     
-    if (rooms.some(room => room.windows && room.windows.length > 0)) {
+    console.log('SVG Generation - Checking for windows in rooms:', rooms.map(r => ({ 
+        key: r.key, 
+        name: r.name, 
+        windows: r.windows?.length || 0,
+        windowsData: r.windows 
+    })));
+    
+    // Проверяем, есть ли окна в любой из комнат
+    const hasAnyWindows = rooms.some(room => room.windows && room.windows.length > 0);
+    console.log('SVG Generation - Has any windows:', hasAnyWindows);
+    
+    if (hasAnyWindows) {
         console.log('SVG Generation - Found windows, processing...');
         rooms.forEach(room => {
             if (!room.windows || room.windows.length === 0) return;
@@ -485,6 +496,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 }
 
                 // Создаем окно в новом стиле согласно JSON дизайну
+                console.log(`SVG Generation - Creating window for room ${room.name}, side: ${window.side}, pos: ${window.pos}, len: ${window.len}`);
                 const clipPathId = `windowClip_${room.key}_${window.side}_${window.pos}`;
                 
                 // Параметры дизайна из JSON
