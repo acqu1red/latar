@@ -1,4 +1,0 @@
-{
-  "roomsJson": "[{\"key\":\"living_room\",\"name\":\"Гостиная\",\"enabled\":true,\"sqm\":25,\"layout\":{\"x\":0.1,\"y\":0.1,\"width\":0.4,\"height\":0.4},\"windows\":[{\"side\":\"right\",\"pos\":0.5,\"len\":0.6}],\"doors\":[]}]",
-  "bathroomConfig": null
-}

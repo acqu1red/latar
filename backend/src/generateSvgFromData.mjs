@@ -21,241 +21,99 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
-    // Функция для генерации дизайна окна согласно JSON спецификации
+    // Функция для генерации дизайна окна - новый красивый дизайн
     function generateWindowDesign(windowLength, windowWidth, windowX, windowY, windowRotation, roomKey, windowSide, windowPos, doorsOnSameWall = []) {
-        // Параметры дизайна из JSON (точно соответствующие спецификации)
-        const designConfig = {
-            // Боковые линии - должны быть на уровне краев стены
-            sideLines: [
-                {
-                    x_frac: 0.08, // 8% от ширины окна
-                    thickness: 8 * SVG_SCALE,
-                    color: '#2f2f2f'
-                },
-                {
-                    x_frac: 0.92, // 92% от ширины окна
-                    thickness: 8 * SVG_SCALE,
-                    color: '#2f2f2f'
-                }
-            ],
-            // Колпачки
-            caps: {
-                enabled: true,
-                height: 40 * SVG_SCALE,
-                color: '#111111'
-            },
-            // Центральный модуль
-            centerModule: {
-                x_frac: 0.5, // 50% от ширины окна
-                outer: {
-                    enabled: false,
-                    thickness: 0,
-                    color: '#ffffff'
-                },
-                rails: [
-                    {
-                        offset_px: -10 * SVG_SCALE,
-                        thickness: 4 * SVG_SCALE,
-                        color: '#222222'
-                    },
-                    {
-                        offset_px: 10 * SVG_SCALE,
-                        thickness: 4 * SVG_SCALE,
-                        color: '#222222'
-                    }
-                ],
-                rungs_groups: [
-                    {
-                        y_frac: 0.28,
-                        sep_px: 24 * SVG_SCALE,
-                        thickness: 3 * SVG_SCALE,
-                        inset_px: 0,
-                        overlap_px: 2,
-                        color: '#222222'
-                    },
-                    {
-                        y_frac: 0.5,
-                        sep_px: 24 * SVG_SCALE,
-                        thickness: 3 * SVG_SCALE,
-                        inset_px: 0,
-                        overlap_px: 2,
-                        color: '#222222'
-                    },
-                    {
-                        y_frac: 0.72,
-                        sep_px: 24 * SVG_SCALE,
-                        thickness: 3 * SVG_SCALE,
-                        inset_px: 0,
-                        overlap_px: 2,
-                        color: '#222222'
-                    }
-                ]
-            }
-        };
-
-        // Адаптируем размеры под длину окна согласно JSON спецификации
-        const adaptedLength = Math.max(windowLength, 200 * SVG_SCALE); // Минимальная длина
-        const adaptedWidth = Math.max(windowWidth, 60 * SVG_SCALE); // Минимальная ширина
+        // Минимальные размеры окна
+        const minLength = 200 * SVG_SCALE;
+        const minWidth = 60 * SVG_SCALE;
+        const adaptedLength = Math.max(windowLength, minLength);
+        const adaptedWidth = Math.max(windowWidth, minWidth);
         
-        // Вычисляем позиции элементов согласно JSON
-        const leftLineX = adaptedLength * designConfig.sideLines[0].x_frac;
-        const rightLineX = adaptedLength * designConfig.sideLines[1].x_frac;
-        const centerX = adaptedLength * designConfig.centerModule.x_frac;
+        // Параметры дизайна
+        const wallThickness = 6 * SVG_SCALE;
+        const centerGap = 20 * SVG_SCALE; // Расстояние между центральными линиями
+        const rungThickness = 2 * SVG_SCALE;
+        const rungSpacing = 15 * SVG_SCALE;
         
-        // Адаптируем расстояние между перекладинами в зависимости от длины окна
-        const baseSep = designConfig.centerModule.rungs_groups[0].sep_px;
-        const scaleFactor = Math.max(0.5, Math.min(2.0, adaptedLength / (400 * SVG_SCALE))); // Масштабируем от 0.5 до 2.0
-        const adaptedSep = baseSep * scaleFactor;
-        
-        // Генерируем SVG элементы согласно JSON дизайну
         let windowElements = '';
         
-        // Проверяем, есть ли пересечения с дверями
-        const doorIntersections = doorsOnSameWall.filter(door => {
-            // Вычисляем позицию двери относительно окна
+        // Проверяем пересечения с дверями
+        const hasDoorIntersection = doorsOnSameWall.some(door => {
             const doorStart = door.pos - door.len / 2;
             const doorEnd = door.pos + door.len / 2;
             const windowStart = windowPos - windowLength / adaptedLength;
             const windowEnd = windowPos + windowLength / adaptedLength;
-            
-            // Проверяем пересечение диапазонов
-            const intersects = !(doorEnd <= windowStart || doorStart >= windowEnd);
-            return intersects;
+            return !(doorEnd <= windowStart || doorStart >= windowEnd);
         });
         
-        if (doorIntersections.length > 0) {
-            // Если есть пересечения с дверями, рисуем только центральные полосы
-            const centerX = adaptedLength * 0.5; // Центр окна
-            const centerWidth = adaptedLength * 0.1; // 10% от ширины окна для центральной области
+        if (!hasDoorIntersection) {
+            // Две линии на уровне стены (боковые границы окна)
+            windowElements += `<line x1="0" y1="0" x2="0" y2="${adaptedWidth}" 
+                stroke="#2f2f2f" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
+            windowElements += `<line x1="${adaptedLength}" y1="0" x2="${adaptedLength}" y2="${adaptedWidth}" 
+                stroke="#2f2f2f" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
             
-            // Рисуем центральную область без боковых линий
-            windowElements += `<line x1="${centerX - centerWidth/2}" y1="0" x2="${centerX - centerWidth/2}" y2="${adaptedWidth}" 
-                stroke="#2f2f2f" stroke-width="8" stroke-linecap="square"/>`;
-            windowElements += `<line x1="${centerX + centerWidth/2}" y1="0" x2="${centerX + centerWidth/2}" y2="${adaptedWidth}" 
-                stroke="#2f2f2f" stroke-width="8" stroke-linecap="square"/>`;
-        } else {
-            // Если нет пересечений, рисуем боковые линии согласно JSON
-            designConfig.sideLines.forEach(sideLine => {
-                const lineX = adaptedLength * sideLine.x_frac;
-                windowElements += `<line x1="${lineX}" y1="0" x2="${lineX}" y2="${adaptedWidth}" 
-                    stroke="${sideLine.color}" stroke-width="${sideLine.thickness}" stroke-linecap="square"/>`;
-            });
-        }
-        
-        // Колпачки (верхний и нижний) согласно JSON
-        if (designConfig.caps.enabled) {
-            windowElements += `<rect x="0" y="0" width="${adaptedLength}" height="${designConfig.caps.height}" 
-                fill="${designConfig.caps.color}"/>`;
-            windowElements += `<rect x="0" y="${adaptedWidth - designConfig.caps.height}" width="${adaptedLength}" height="${designConfig.caps.height}" 
-                fill="${designConfig.caps.color}"/>`;
-        }
-        
-        // Рейки центрального модуля согласно JSON
-        designConfig.centerModule.rails.forEach(rail => {
-            const railY = adaptedWidth / 2 + rail.offset_px;
-            windowElements += `<line x1="0" y1="${railY}" x2="${adaptedLength}" y2="${railY}" 
-                stroke="${rail.color}" stroke-width="${rail.thickness}" stroke-linecap="square"/>`;
-        });
-        
-        // Перекладины для каждой группы согласно JSON
-        designConfig.centerModule.rungs_groups.forEach(group => {
-            const groupY = adaptedWidth * group.y_frac;
-            const rungLength = rightLineX - leftLineX;
-            const rungStartX = leftLineX;
+            // Две центральные линии с перекладинами
+            const leftCenterX = adaptedLength * 0.4;
+            const rightCenterX = adaptedLength * 0.6;
             
-            // Используем адаптированное расстояние между перекладинами
-            const groupRungsCount = Math.max(2, Math.floor(rungLength / adaptedSep));
-            const actualSep = rungLength / (groupRungsCount + 1);
+            // Левая центральная линия
+            windowElements += `<line x1="${leftCenterX}" y1="0" x2="${leftCenterX}" y2="${adaptedWidth}" 
+                stroke="#2f2f2f" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
             
-            for (let i = 1; i <= groupRungsCount; i++) {
-                const rungX = rungStartX + i * actualSep;
-                windowElements += `<line x1="${rungX}" y1="${groupY - group.thickness/2}" x2="${rungX}" y2="${groupY + group.thickness/2}" 
-                    stroke="${group.color}" stroke-width="${group.thickness}" stroke-linecap="square"/>`;
+            // Правая центральная линия
+            windowElements += `<line x1="${rightCenterX}" y1="0" x2="${rightCenterX}" y2="${adaptedWidth}" 
+                stroke="#2f2f2f" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
+            
+            // Перекладины между центральными линиями (создают визуальный "полу-квадрат")
+            const rungAreaWidth = rightCenterX - leftCenterX;
+            const rungCount = Math.max(3, Math.floor(rungAreaWidth / rungSpacing));
+            const actualRungSpacing = rungAreaWidth / (rungCount + 1);
+            
+            // Верхние перекладины (направлены вправо)
+            for (let i = 1; i <= rungCount; i++) {
+                const rungX = leftCenterX + i * actualRungSpacing;
+                const rungY = adaptedWidth * 0.3;
+                windowElements += `<line x1="${rungX}" y1="${rungY}" x2="${rungX + actualRungSpacing * 0.6}" y2="${rungY}" 
+                    stroke="#2f2f2f" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
             }
-        });
+            
+            // Нижние перекладины (направлены влево)
+            for (let i = 1; i <= rungCount; i++) {
+                const rungX = leftCenterX + i * actualRungSpacing;
+                const rungY = adaptedWidth * 0.7;
+                windowElements += `<line x1="${rungX + actualRungSpacing * 0.6}" y1="${rungY}" x2="${rungX}" y2="${rungY}" 
+                    stroke="#2f2f2f" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
+            }
+        }
         
-        // Создаем группу с клиппингом
-        const clipPathId = `windowClip_${roomKey}_${windowSide}_${windowPos}`;
-        const windowGroup = `
-            <defs>
-                <clipPath id="${clipPathId}">
-                    <rect x="0" y="0" width="${adaptedLength}" height="${adaptedWidth}" />
-                </clipPath>
-            </defs>
-            <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})" clip-path="url(#${clipPathId})">
-                ${windowElements}
-            </g>
-        `;
-        
-        return windowGroup;
+        return windowElements;
     }
 
-    // Функция для генерации дизайна двери согласно JSON спецификации
+    // Функция для генерации дизайна двери - новый красивый дизайн
     function generateDoorDesign(doorLength, doorWidth, doorX, doorY, doorRotation, doorType, roomKey, doorSide, doorPos) {
-        // Параметры дизайна из JSON (адаптированные под SVG)
-        const designConfig = {
-            // Межкомнатные двери
-            interior: {
-                topLine: {
-                    thickness: 3 * SVG_SCALE,
-                    color: '#2f2f2f'
-                },
-                arc: {
-                    thickness: 2 * SVG_SCALE,
-                    color: '#2f2f2f'
-                },
-                hinges: {
-                    size: 40 * SVG_SCALE,
-                    fill: '#2f2f2f',
-                    stroke: '#2f2f2f'
-                }
-            },
-            // Входные двери
-            entrance: {
-                topLine: {
-                    thickness: 6 * SVG_SCALE,
-                    color: '#2f2f2f'
-                },
-                arc: {
-                    thickness: 4 * SVG_SCALE,
-                    color: '#2f2f2f'
-                },
-                hinges: {
-                    size: 40 * SVG_SCALE,
-                    fill: '#2f2f2f',
-                    stroke: '#2f2f2f'
-                }
-            }
-        };
-
-        const config = designConfig[doorType] || designConfig.interior;
+        // Минимальные размеры двери
+        const minLength = 100 * SVG_SCALE;
+        const minWidth = 20 * SVG_SCALE;
+        const adaptedLength = Math.max(doorLength, minLength);
+        const adaptedWidth = Math.max(doorWidth, minWidth);
         
-        // Адаптируем размеры под длину двери
-        const adaptedLength = Math.max(doorLength, 100 * SVG_SCALE); // Минимальная длина
-        const adaptedWidth = Math.max(doorWidth, 20 * SVG_SCALE); // Минимальная ширина
+        // Параметры дизайна
+        const wallThickness = 6 * SVG_SCALE;
+        const doorThickness = 3 * SVG_SCALE;
+        const arcRadius = adaptedLength * 0.8;
+        const arcCenterX = adaptedLength * 0.2;
+        const arcCenterY = adaptedWidth * 0.5;
         
-        // Вычисляем позиции элементов
-        const topLineY = adaptedWidth / 2;
-        const arcCenterX = adaptedLength * 0.75; // 75% от длины двери
-        const arcCenterY = -adaptedLength * 0.1; // 10% выше двери
-        const arcRadius = adaptedLength * 0.9; // 90% от длины двери
-        
-        // Позиции петель
-        const hingeTopX = adaptedLength * 0.83; // 83% от длины двери
-        const hingeTopY = adaptedWidth * 0.1; // 10% от высоты двери
-        const hingeBottomX = adaptedLength * 0.83;
-        const hingeBottomY = adaptedWidth * 0.9; // 90% от высоты двери
-        
-        // Генерируем SVG элементы
         let doorElements = '';
         
-        // Верхняя линия (проем в стене)
-        doorElements += `<line x1="0" y1="${topLineY}" x2="${adaptedLength}" y2="${topLineY}" 
-            stroke="${config.topLine.color}" stroke-width="${config.topLine.thickness}" stroke-linecap="square"/>`;
+        // Проем в стене (верхняя линия)
+        doorElements += `<line x1="0" y1="0" x2="${adaptedLength}" y2="0" 
+            stroke="#2f2f2f" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
         
         // Дуга открывания двери
-        const startAngle = 168.6900675259798;
-        const endAngle = 78.69006752597979;
+        const startAngle = 180;
+        const endAngle = 90;
         const startRad = (startAngle * Math.PI) / 180;
         const endRad = (endAngle * Math.PI) / 180;
         
@@ -265,30 +123,20 @@ export async function generateSvgFromData(rooms, totalSqm) {
         const endY = arcCenterY + arcRadius * Math.sin(endRad);
         
         doorElements += `<path d="M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 0 1 ${endX} ${endY}" 
-            stroke="${config.arc.color}" stroke-width="${config.arc.thickness}" fill="none"/>`;
+            stroke="#2f2f2f" stroke-width="${doorThickness}" fill="none"/>`;
         
-        // Верхняя петля
-        doorElements += `<rect x="${hingeTopX}" y="${hingeTopY}" width="${config.hinges.size}" height="${config.hinges.size}" 
-            fill="${config.hinges.fill}" stroke="${config.hinges.stroke}" stroke-width="1"/>`;
+        // Петли двери
+        const hingeSize = 8 * SVG_SCALE;
+        const hingeY1 = adaptedWidth * 0.2;
+        const hingeY2 = adaptedWidth * 0.8;
+        const hingeX = adaptedLength * 0.1;
         
-        // Нижняя петля
-        doorElements += `<rect x="${hingeBottomX}" y="${hingeBottomY}" width="${config.hinges.size}" height="${config.hinges.size}" 
-            fill="${config.hinges.fill}" stroke="${config.hinges.stroke}" stroke-width="1"/>`;
+        doorElements += `<circle cx="${hingeX}" cy="${hingeY1}" r="${hingeSize}" 
+            fill="#2f2f2f" stroke="none"/>`;
+        doorElements += `<circle cx="${hingeX}" cy="${hingeY2}" r="${hingeSize}" 
+            fill="#2f2f2f" stroke="none"/>`;
         
-        // Создаем группу с клиппингом
-        const clipPathId = `doorClip_${roomKey}_${doorSide}_${doorPos}`;
-        const doorGroup = `
-            <defs>
-                <clipPath id="${clipPathId}">
-                    <rect x="0" y="0" width="${adaptedLength}" height="${adaptedWidth}" />
-                </clipPath>
-            </defs>
-            <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})" clip-path="url(#${clipPathId})">
-                ${doorElements}
-            </g>
-        `;
-        
-        return doorGroup;
+        return doorElements;
     }
 
     // Convert normalized coordinates (0-1) to pixel coordinates
@@ -657,7 +505,14 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const doorType = door.type === 'entrance' ? 'entrance' : 'interior';
                 
                 // Генерируем дверь с новым дизайном
-                const doorGroup = generateDoorDesign(doorLength, doorWidth, doorX, doorY, doorRotation, doorType, room.key, door.side, door.pos);
+                const doorElements = generateDoorDesign(doorLength, doorWidth, doorX, doorY, doorRotation, doorType, room.key, door.side, door.pos);
+                
+                // Создаем группу с трансформацией
+                const doorGroup = `
+                    <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})">
+                        ${doorElements}
+                    </g>
+                `;
                 svgContent += doorGroup;
             });
         });
@@ -738,7 +593,14 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const doorsOnSameWall = room.doors.filter(door => door.side === window.side);
                 
                 // Генерируем окно с новым дизайном
-                const windowGroup = generateWindowDesign(windowLength, windowWidth, windowX, windowY, windowRotation, room.key, window.side, window.pos, doorsOnSameWall);
+                const windowElements = generateWindowDesign(windowLength, windowWidth, windowX, windowY, windowRotation, room.key, window.side, window.pos, doorsOnSameWall);
+                
+                // Создаем группу с трансформацией
+                const windowGroup = `
+                    <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})">
+                        ${windowElements}
+                    </g>
+                `;
                 svgContent += windowGroup;
             });
         });
@@ -810,70 +672,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
     // Note: Door rendering is now handled by the new generateDoorDesign function above
 
-    // Draw windows: прорезаем стену и рисуем полосы окна
-    pixelRooms.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [] } = room;
-
-        if (windows.length > 0) {
-            console.log(`Drawing windows for room ${room.key} (${room.name}):`, {
-                position: { x: pixelX, y: pixelY, width: pixelWidth, height: pixelHeight },
-                windows: windows.map(w => ({ side: w.side, pos: w.pos, len: w.len }))
-            });
-        }
-
-        windows.forEach(window => {
-            // Правильное позиционирование окон на стенах
-            const pos = typeof window.pos === 'number' ? window.pos : 0.5;
-            const len = typeof window.len === 'number' ? window.len : 0.2;
-            
-            // Определяем толщину стены для окон
-            let isExternalWall = false;
-            if (window.side === 'left' || window.side === 'right') {
-                isExternalWall = Math.abs(pixelX - planBounds.left) < EPS || Math.abs(pixelX + pixelWidth - planBounds.right) < EPS;
-            } else {
-                isExternalWall = Math.abs(pixelY - planBounds.top) < EPS || Math.abs(pixelY + pixelHeight - planBounds.bottom) < EPS;
-            }
-            
-            const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
-            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
-            const cutWidth = wallThickness + 2;
-            const stripe = 4;
-
-            if (window.side === 'top') {
-                // Окно на верхней стене
-                const startX = pixelX + pos * pixelWidth;
-                const winLength = len * pixelWidth;
-                const y = pixelY;
-                svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-            } else if (window.side === 'bottom') {
-                // Окно на нижней стене
-                const startX = pixelX + pos * pixelWidth;
-                const winLength = len * pixelWidth;
-                const y = pixelY + pixelHeight;
-                svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-            } else if (window.side === 'left') {
-                // Окно на левой стене
-                const startY = pixelY + pos * pixelHeight;
-                const winLength = len * pixelHeight;
-                const x = pixelX;
-                svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-            } else if (window.side === 'right') {
-                // Окно на правой стене
-                const startY = pixelY + pos * pixelHeight;
-                const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth;
-                svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-            }
-        });
-    });
 
     // Draw furniture (improved 2D icons with softer strokes and light fill)
     pixelRooms.forEach(room => {
