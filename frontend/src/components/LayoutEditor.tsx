@@ -487,6 +487,24 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     }));
   };
 
+  // Растягивание окна на всю стену
+  const expandWindowToFullWall = (windowId: number) => {
+    setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => {
+      if (w.id === windowId && w.attachedTo) {
+        const room = enabledRooms.find(r => r.key === w.attachedTo?.roomKey);
+        if (room && w.attachedTo) {
+          const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+          const roomPixels = toPixels(layout);
+          const wallLength = w.attachedTo.side === 'left' || w.attachedTo.side === 'right' 
+            ? roomPixels.height 
+            : roomPixels.width;
+          return { ...w, length: wallLength };
+        }
+      }
+      return w;
+    }));
+  };
+
 
   // Обработка движения мыши
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -514,6 +532,19 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         } else {
           // Вертикальное - растягиваем по Y
           newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + dy));
+        }
+        
+        // Для прикрепленных окон ограничиваем максимальную длину размером стены
+        if ('type' in drag.item && drag.item.type === 'window' && drag.item.attachedTo) {
+          const room = enabledRooms.find(r => r.key === drag.item.attachedTo.roomKey);
+          if (room) {
+            const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+            const roomPixels = toPixels(layout);
+            const wallLength = drag.item.attachedTo.side === 'left' || drag.item.attachedTo.side === 'right' 
+              ? roomPixels.height 
+              : roomPixels.width;
+            newLength = Math.min(newLength, wallLength);
+          }
         }
       } else {
         // Перемещение окна или двери
@@ -986,9 +1017,13 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             }}
             onDoubleClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              rotateWindow(window.id);
+              if (window.attachedTo) {
+                expandWindowToFullWall(window.id);
+              } else {
+                rotateWindow(window.id);
+              }
             }}
-            title="Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание"
+            title={window.attachedTo ? "Перетаскивать: перемещение, двойной клик: растянуть на всю стену, ручки: растягивание" : "Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание"}
           >
             
             {/* Ручки растягивания длины */}
