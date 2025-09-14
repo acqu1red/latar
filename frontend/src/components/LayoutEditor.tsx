@@ -470,15 +470,21 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
 
   // Поворот окна на 90 градусов
   const rotateWindow = (windowId: number) => {
+    console.log('Rotating window:', windowId);
     setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => {
       if (w.id === windowId) {
         const newRotation = w.rotation === 0 ? 90 : 0;
+        // Инициализируем width если его нет
+        const currentWidth = w.width || 8;
+        const currentLength = w.length;
+        console.log('Window rotation:', w.rotation, '->', newRotation);
+        console.log('Window dimensions:', { length: currentLength, width: currentWidth });
         // При повороте меняем местами длину и ширину
         return { 
           ...w, 
           rotation: newRotation,
-          length: w.width,
-          width: w.length
+          length: currentWidth,
+          width: currentLength
         };
       }
       return w;
@@ -487,15 +493,21 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
 
   // Поворот двери на 90 градусов
   const rotateDoor = (doorId: number) => {
+    console.log('Rotating door:', doorId);
     setDoors((prev: Door[]) => prev.map((d: Door) => {
       if (d.id === doorId) {
         const newRotation = d.rotation === 0 ? 90 : 0;
+        // Инициализируем width если его нет
+        const currentWidth = d.width || 8;
+        const currentLength = d.length;
+        console.log('Door rotation:', d.rotation, '->', newRotation);
+        console.log('Door dimensions:', { length: currentLength, width: currentWidth });
         // При повороте меняем местами длину и ширину
         return { 
           ...d, 
           rotation: newRotation,
-          length: d.width,
-          width: d.length
+          length: currentWidth,
+          width: currentLength
         };
       }
       return d;
@@ -990,8 +1002,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             position: 'absolute',
               left: window.x,
               top: window.y,
-              width: window.rotation === 0 ? window.length : window.width,
-              height: window.rotation === 0 ? window.width : window.length,
+              width: window.rotation === 0 ? window.length : (window.width || 8),
+              height: window.rotation === 0 ? (window.width || 8) : window.length,
               backgroundColor: window.attachedTo ? '#4CAF50' : '#2196F3',
               border: '2px solid #2e7d32',
               borderRadius: '4px',
@@ -1007,6 +1019,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             }}
             onDoubleClick={(e: React.MouseEvent) => {
               e.stopPropagation();
+              console.log('Double click on window:', window.id);
               rotateWindow(window.id);
             }}
             title="Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание"
@@ -1064,8 +1077,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               position: 'absolute',
               left: door.x,
               top: door.y,
-              width: door.rotation === 0 ? door.length : door.width,
-              height: door.rotation === 0 ? door.width : door.length,
+              width: door.rotation === 0 ? door.length : (door.width || 8),
+              height: door.rotation === 0 ? (door.width || 8) : door.length,
               backgroundColor: door.type === 'entrance' ? '#ff9800' : '#9c27b0',
               border: door.attachedTo ? '3px solid #4caf50' : '2px solid #673ab7',
               borderRadius: '4px',
@@ -1079,6 +1092,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, door, 'move')}
             onDoubleClick={(e: React.MouseEvent) => {
               e.stopPropagation();
+              console.log('Double click on door:', door.id);
               rotateDoor(door.id);
             }}
             title={`${door.type === 'entrance' ? 'Входная' : 'Межкомнотная'} дверь. Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание`}
