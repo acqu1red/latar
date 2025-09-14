@@ -38,7 +38,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         if (isHorizontal) {
             // Горизонтальное окно (top/bottom стены)
             
-            // 1. Внешние линии (сверху и снизу стены)
+            // 1. Внешние линии (точно на уровне стены)
             windowGroup += `
                 <line x1="${x}" y1="${y}" x2="${x + length}" y2="${y}" 
                       stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
@@ -46,8 +46,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
                       stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
             `;
             
-            // 2. Внутренние линии (близко друг к другу)
-            const innerOffset = depth * 0.3; // отступ от внешних линий
+            // 2. Внутренние линии (близко друг к другу, внутри окна)
+            const innerOffset = depth * 0.25; // уменьшаем отступ для лучшего соединения
             windowGroup += `
                 <line x1="${x}" y1="${y + innerOffset}" x2="${x + length}" y2="${y + innerOffset}" 
                       stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
@@ -70,7 +70,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         } else {
             // Вертикальное окно (left/right стены)
             
-            // 1. Внешние линии (слева и справа стены)
+            // 1. Внешние линии (точно на уровне стены)
             windowGroup += `
                 <line x1="${x}" y1="${y}" x2="${x}" y2="${y + length}" 
                       stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
@@ -78,8 +78,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
                       stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
             `;
             
-            // 2. Внутренние линии (близко друг к другу)
-            const innerOffset = depth * 0.3; // отступ от внешних линий
+            // 2. Внутренние линии (близко друг к другу, внутри окна)
+            const innerOffset = depth * 0.25; // уменьшаем отступ для лучшего соединения
             windowGroup += `
                 <line x1="${x + innerOffset}" y1="${y}" x2="${x + innerOffset}" y2="${y + length}" 
                       stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
@@ -389,22 +389,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         // Дополнительная обводка для наложенных помещений
         if (hasOverlaps) {
             svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="none" stroke="#1976d2" stroke-width="2" stroke-dasharray="5,5" opacity="0.8"/>`;
-        }
-        
-        // Подписи
-        const labelName = String(name || '').trim();
-        const labelSqm = Number.isFinite(Number(sqm)) ? `${Number(sqm).toFixed(1)} м²` : '';
-        const fontSize = Math.max(18, Math.min(48, Math.min(pixelWidth, pixelHeight) * 0.14));
-        const labelX = pixelX + pixelWidth / 2;
-        const labelY = pixelY + pixelHeight / 2 - fontSize * 0.2;
-        
-        // Стили для текста наложенных помещений
-        const textColor = hasOverlaps ? '#0d47a1' : '#1D1D1D';
-        const fontWeight = hasOverlaps ? '800' : '700';
-        
-        svgContent += `\n<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="${fontWeight}" fill="${textColor}">${escapeXml(labelName)}</text>`;
-        if (labelSqm) {
-            svgContent += `\n<text x="${labelX}" y="${labelY + fontSize * 0.95}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.7)}" fill="${hasOverlaps ? '#1976d2' : '#2F2F2F'}">${escapeXml(labelSqm)}</text>`;
         }
         
         // Индикатор наложения
@@ -729,12 +713,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на верхней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY;
+                const y = pixelY; // Точно на уровне стены
                 
                 // Прорезаем стену
                 svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем объемное окно - точно на уровне стены
+                // Создаем окно - точно на уровне стены, без смещений
                 const windowGroup = createLayeredWindow(
                     startX, y, winLength, windowDepth, 
                     frameThickness, sillThickness, glassThickness, 
@@ -746,12 +730,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на нижней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY + pixelHeight - windowDepth; // Смещаем вверх на глубину окна
+                const y = pixelY + pixelHeight - windowDepth; // Окно начинается от стены
                 
                 // Прорезаем стену
                 svgContent += `\n<line x1="${startX}" y1="${pixelY + pixelHeight}" x2="${startX + winLength}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем объемное окно - точно на уровне стены
+                // Создаем окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
                     startX, y, winLength, windowDepth, 
                     frameThickness, sillThickness, glassThickness, 
@@ -763,12 +747,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на левой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX - windowDepth; // Смещаем влево на глубину окна
+                const x = pixelX - windowDepth; // Окно начинается от стены
                 
                 // Прорезаем стену
                 svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем объемное окно - точно на уровне стены
+                // Создаем окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 
                     frameThickness, sillThickness, glassThickness, 
@@ -780,12 +764,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на правой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth; // Начинаем точно от стены
+                const x = pixelX + pixelWidth; // Окно начинается точно от стены
                 
                 // Прорезаем стену
                 svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем объемное окно - точно на уровне стены
+                // Создаем окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 
                     frameThickness, sillThickness, glassThickness, 
@@ -810,8 +794,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
         
         filteredObjects.forEach(obj => {
             // Ограничиваем размеры объектов и добавляем отступы от стен
-            const MARGIN_FROM_WALL = 12; // минимум 12px от стены
-            const MAX_OBJECT_SIZE = 0.4; // максимум 40% от размера комнаты
+            const MARGIN_FROM_WALL = 20; // увеличиваем отступ от стен
+            const MARGIN_FROM_DOORS_WINDOWS = 30; // отступ от дверей и окон
+            const MAX_OBJECT_SIZE = 0.35; // максимум 35% от размера комнаты
             const MIN_OBJECT_SIZE = 24; // минимум 24px
             
             // Нормализуем размеры объектов
@@ -821,14 +806,98 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const objWidth = Math.max(MIN_OBJECT_SIZE, normalizedW * pixelWidth);
             const objHeight = Math.max(MIN_OBJECT_SIZE, normalizedH * pixelHeight);
             
+            // Проверяем, не пересекается ли объект с дверями и окнами
+            const checkObjectCollision = (x, y, w, h) => {
+                // Проверяем пересечение с дверями
+                if (room.doors && room.doors.length > 0) {
+                    for (const door of room.doors) {
+                        const doorX = pixelX + door.pos * pixelWidth;
+                        const doorY = pixelY + door.pos * pixelHeight;
+                        const doorSpan = Math.min(130, Math.max(80, Math.min(pixelWidth, pixelHeight) * 0.28));
+                        
+                        let doorLeft, doorRight, doorTop, doorBottom;
+                        if (door.side === 'top' || door.side === 'bottom') {
+                            doorLeft = doorX - doorSpan / 2;
+                            doorRight = doorX + doorSpan / 2;
+                            doorTop = door.side === 'top' ? pixelY : pixelY + pixelHeight;
+                            doorBottom = doorTop;
+                        } else {
+                            doorLeft = door.side === 'left' ? pixelX : pixelX + pixelWidth;
+                            doorRight = doorLeft;
+                            doorTop = doorY - doorSpan / 2;
+                            doorBottom = doorY + doorSpan / 2;
+                        }
+                        
+                        // Проверяем пересечение с зоной двери + отступ
+                        if (!(x + w + MARGIN_FROM_DOORS_WINDOWS < doorLeft || 
+                              x - MARGIN_FROM_DOORS_WINDOWS > doorRight || 
+                              y + h + MARGIN_FROM_DOORS_WINDOWS < doorTop || 
+                              y - MARGIN_FROM_DOORS_WINDOWS > doorBottom)) {
+                            return true; // есть пересечение
+                        }
+                    }
+                }
+                
+                // Проверяем пересечение с окнами
+                if (room.windows && room.windows.length > 0) {
+                    for (const window of room.windows) {
+                        const windowX = pixelX + window.pos * pixelWidth;
+                        const windowY = pixelY + window.pos * pixelHeight;
+                        const windowLength = window.len * (window.side === 'left' || window.side === 'right' ? pixelHeight : pixelWidth);
+                        const windowDepth = WALL_THICKNESS * 0.8;
+                        
+                        let windowLeft, windowRight, windowTop, windowBottom;
+                        if (window.side === 'top' || window.side === 'bottom') {
+                            windowLeft = windowX;
+                            windowRight = windowX + windowLength;
+                            windowTop = window.side === 'top' ? pixelY : pixelY + pixelHeight - windowDepth;
+                            windowBottom = window.side === 'top' ? pixelY + windowDepth : pixelY + pixelHeight;
+                        } else {
+                            windowLeft = window.side === 'left' ? pixelX - windowDepth : pixelX + pixelWidth;
+                            windowRight = window.side === 'left' ? pixelX : pixelX + pixelWidth + windowDepth;
+                            windowTop = windowY;
+                            windowBottom = windowY + windowLength;
+                        }
+                        
+                        // Проверяем пересечение с зоной окна + отступ
+                        if (!(x + w + MARGIN_FROM_DOORS_WINDOWS < windowLeft || 
+                              x - MARGIN_FROM_DOORS_WINDOWS > windowRight || 
+                              y + h + MARGIN_FROM_DOORS_WINDOWS < windowTop || 
+                              y - MARGIN_FROM_DOORS_WINDOWS > windowBottom)) {
+                            return true; // есть пересечение
+                        }
+                    }
+                }
+                
+                return false; // пересечений нет
+            };
+            
+            // Пытаемся найти подходящую позицию для объекта
+            let objX = pixelX + obj.x * pixelWidth;
+            let objY = pixelY + obj.y * pixelHeight;
+            
+            // Если объект пересекается с дверями/окнами, сдвигаем его
+            if (checkObjectCollision(objX - objWidth/2, objY - objHeight/2, objWidth, objHeight)) {
+                // Пробуем сдвинуть объект в центр комнаты
+                objX = pixelX + pixelWidth / 2;
+                objY = pixelY + pixelHeight / 2;
+                
+                // Если и в центре пересекается, сдвигаем дальше
+                if (checkObjectCollision(objX - objWidth/2, objY - objHeight/2, objWidth, objHeight)) {
+                    // Сдвигаем к углу комнаты
+                    objX = pixelX + MARGIN_FROM_WALL + objWidth/2;
+                    objY = pixelY + MARGIN_FROM_WALL + objHeight/2;
+                }
+            }
+            
             // Ограничиваем позицию объекта, чтобы он не выходил за рамки комнаты
             const minX = pixelX + MARGIN_FROM_WALL + objWidth/2;
             const maxX = pixelX + pixelWidth - MARGIN_FROM_WALL - objWidth/2;
             const minY = pixelY + MARGIN_FROM_WALL + objHeight/2;
             const maxY = pixelY + pixelHeight - MARGIN_FROM_WALL - objHeight/2;
             
-            const objX = Math.max(minX, Math.min(maxX, pixelX + obj.x * pixelWidth));
-            const objY = Math.max(minY, Math.min(maxY, pixelY + obj.y * pixelHeight));
+            objX = Math.max(minX, Math.min(maxX, objX));
+            objY = Math.max(minY, Math.min(maxY, objY));
             
             const drawRect = () => {
                 svgContent += `\n<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" width="${objWidth}" height="${objHeight}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -927,6 +996,31 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 drawRect();
             }
         });
+    });
+
+    // Рисуем названия помещений и квадратуру поверх всех объектов
+    pixelRooms.forEach(room => {
+        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm } = room;
+        const overlappingRooms = getRoomOverlaps(room);
+        const hasOverlaps = overlappingRooms.length > 0;
+        
+        // Подписи
+        const labelName = String(name || '').trim();
+        const labelSqm = Number.isFinite(Number(sqm)) ? `${Number(sqm).toFixed(1)} м²` : '';
+        const fontSize = Math.max(18, Math.min(48, Math.min(pixelWidth, pixelHeight) * 0.14));
+        const labelX = pixelX + pixelWidth / 2;
+        const labelY = pixelY + pixelHeight / 2 - fontSize * 0.2;
+        
+        // Стили для текста наложенных помещений
+        const textColor = hasOverlaps ? '#0d47a1' : '#1D1D1D';
+        const fontWeight = hasOverlaps ? '800' : '700';
+        
+        // Название помещения с белой обводкой
+        svgContent += `\n<text x="${labelX}" y="${labelY}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="${fontWeight}" fill="${textColor}" stroke="#FFFFFF" stroke-width="3" paint-order="stroke">${escapeXml(labelName)}</text>`;
+        
+        if (labelSqm) {
+            svgContent += `\n<text x="${labelX}" y="${labelY + fontSize * 0.95}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${Math.round(fontSize*0.7)}" fill="${hasOverlaps ? '#1976d2' : '#2F2F2F'}" stroke="#FFFFFF" stroke-width="2" paint-order="stroke">${escapeXml(labelSqm)}</text>`;
+        }
     });
 
     svgContent += `</svg>`;
