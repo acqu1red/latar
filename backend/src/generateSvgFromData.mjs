@@ -38,11 +38,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
             entrySide: room.entrySide || null,
         };
         
-        // Отладочная информация для конвертации координат
-        console.log(`SVG Generation - Room ${room.name}:`, {
-            original: layout,
-            pixel: { x: pixelRoom.pixelX, y: pixelRoom.pixelY, width: pixelRoom.pixelWidth, height: pixelRoom.pixelHeight }
-        });
         
         return pixelRoom;
     });
@@ -289,19 +284,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         const overlappingRooms = getRoomOverlaps(room);
         const hasOverlaps = overlappingRooms.length > 0;
         
-        // Отладочная информация для проверки пересечений
-        if (hasOverlaps) {
-            console.log(`SVG Generation - Room ${name} has overlaps:`, overlappingRooms.map(r => r.name));
-            console.log(`Room ${name} bounds:`, { x: pixelX, y: pixelY, width: pixelWidth, height: pixelHeight });
-            overlappingRooms.forEach(overlap => {
-                console.log(`Overlapping room ${overlap.name} bounds:`, { 
-                    x: overlap.pixelX, 
-                    y: overlap.pixelY, 
-                    width: overlap.pixelWidth, 
-                    height: overlap.pixelHeight 
-                });
-            });
-        }
         
         // Основной прямоугольник помещения
         const fillColor = hasOverlaps ? 'rgba(232, 244, 253, 0.6)' : '#FFFFFF';
@@ -520,6 +502,14 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     }
 
+    // Определяем границы всего плана для выявления внешних стен (перемещаем выше)
+    const planBounds = {
+        left: Math.min(...pixelRooms.map(r => r.pixelX)),
+        right: Math.max(...pixelRooms.map(r => r.pixelX + r.pixelWidth)),
+        top: Math.min(...pixelRooms.map(r => r.pixelY)),
+        bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
+    };
+
     // Построим единый слой стен по уникальным рёбрам
     const EPS = 1;
     const edges = [];
@@ -546,13 +536,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         addEdge('h', y1, x1, x2); // top
         addEdge('h', y2, x1, x2); // bottom
     });
-    // Определяем границы всего плана для выявления внешних стен
-    const planBounds = {
-        left: Math.min(...pixelRooms.map(r => r.pixelX)),
-        right: Math.max(...pixelRooms.map(r => r.pixelX + r.pixelWidth)),
-        top: Math.min(...pixelRooms.map(r => r.pixelY)),
-        bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
-    };
     
     // Рисуем стены с разной толщиной для внешних и внутренних
     edges.forEach(e => {
