@@ -21,150 +21,83 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
-    // Функция для создания объемного многослойного окна
+    // Функция для создания схематичного окна с 4 линиями и перегородками
     function createLayeredWindow(x, y, length, depth, frameThickness, sillThickness, glassThickness, mullionThickness, mullionCount, orientation) {
         const isHorizontal = orientation === 'horizontal';
-        const windowWidth = isHorizontal ? length : depth;
-        const windowHeight = isHorizontal ? depth : length;
         
-        // Цвета для разных слоев
-        const frameColor = '#8B4513'; // коричневый для рамы
-        const sillColor = '#D2B48C'; // бежевый для подоконника
-        const glassColor = '#E6F3FF'; // светло-голубой для стекла
-        const mullionColor = '#2F2F2F'; // темно-серый для перегородок
-        const highlightColor = '#F5F5F5'; // белый для бликов
+        // Единый цвет для всех линий (как стены)
+        const lineColor = '#2F2F2F';
+        
+        // Параметры линий
+        const outerLineThickness = 6; // толщина внешних линий
+        const innerLineThickness = 3; // толщина внутренних линий
+        const mullionLineThickness = 2; // толщина перегородок
         
         let windowGroup = `<g>`;
         
         if (isHorizontal) {
             // Горизонтальное окно (top/bottom стены)
             
-            // 1. Подоконник (самый нижний слой)
+            // 1. Внешние линии (сверху и снизу стены)
             windowGroup += `
-                <rect x="${x}" y="${y + depth - sillThickness}" 
-                      width="${length}" height="${sillThickness}" 
-                      fill="${sillColor}" stroke="#8B7355" stroke-width="1"/>
-                <rect x="${x + 2}" y="${y + depth - sillThickness + 2}" 
-                      width="${length - 4}" height="${sillThickness - 4}" 
-                      fill="${highlightColor}" opacity="0.3"/>
+                <line x1="${x}" y1="${y}" x2="${x + length}" y2="${y}" 
+                      stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
+                <line x1="${x}" y1="${y + depth}" x2="${x + length}" y2="${y + depth}" 
+                      stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
             `;
             
-            // 2. Внешняя рама
+            // 2. Внутренние линии (близко друг к другу)
+            const innerOffset = depth * 0.3; // отступ от внешних линий
             windowGroup += `
-                <rect x="${x}" y="${y}" 
-                      width="${length}" height="${depth}" 
-                      fill="none" stroke="${frameColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>
+                <line x1="${x}" y1="${y + innerOffset}" x2="${x + length}" y2="${y + innerOffset}" 
+                      stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
+                <line x1="${x}" y1="${y + depth - innerOffset}" x2="${x + length}" y2="${y + depth - innerOffset}" 
+                      stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
             `;
             
-            // 3. Внутренняя рама (с отступом)
-            const innerOffset = frameThickness / 2;
-            windowGroup += `
-                <rect x="${x + innerOffset}" y="${y + innerOffset}" 
-                      width="${length - frameThickness}" height="${depth - frameThickness}" 
-                      fill="none" stroke="${frameColor}" stroke-width="${frameThickness / 2}" stroke-linecap="square"/>
-            `;
+            // 3. Вертикальные перегородки (создают квадраты)
+            const mullionCount = Math.max(2, Math.min(3, Math.floor(length / 80))); // 2-3 квадрата
+            const mullionSpacing = length / (mullionCount + 1);
             
-            // 4. Стеклянные панели
-            const glassWidth = (length - frameThickness * 2) / (mullionCount + 1);
-            for (let i = 0; i <= mullionCount; i++) {
-                const glassX = x + frameThickness + i * glassWidth;
-                windowGroup += `
-                    <rect x="${glassX}" y="${y + frameThickness}" 
-                          width="${glassWidth - 1}" height="${depth - frameThickness * 2 - sillThickness}" 
-                          fill="${glassColor}" stroke="${mullionColor}" stroke-width="${glassThickness}"/>
-                `;
-            }
-            
-            // 5. Вертикальные перегородки (mullions)
             for (let i = 1; i <= mullionCount; i++) {
-                const mullionX = x + frameThickness + i * glassWidth - mullionThickness / 2;
+                const mullionX = x + i * mullionSpacing;
                 windowGroup += `
-                    <rect x="${mullionX}" y="${y + frameThickness}" 
-                          width="${mullionThickness}" height="${depth - frameThickness * 2 - sillThickness}" 
-                          fill="${mullionColor}" stroke="none"/>
+                    <line x1="${mullionX}" y1="${y + innerOffset}" x2="${mullionX}" y2="${y + depth - innerOffset}" 
+                          stroke="${lineColor}" stroke-width="${mullionLineThickness}" stroke-linecap="square"/>
                 `;
             }
-            
-            // 6. Горизонтальные перекладины
-            const horizontalBarY = y + frameThickness + (depth - frameThickness * 2 - sillThickness) / 2;
-            windowGroup += `
-                <line x1="${x + frameThickness}" y1="${horizontalBarY}" 
-                      x2="${x + length - frameThickness}" y2="${horizontalBarY}" 
-                      stroke="${mullionColor}" stroke-width="${mullionThickness}" stroke-linecap="square"/>
-            `;
-            
-            // 7. Декоративные элементы (ручки)
-            const handleX = x + length - frameThickness - 8;
-            const handleY = y + frameThickness + 8;
-            windowGroup += `
-                <circle cx="${handleX}" cy="${handleY}" r="3" 
-                        fill="#FFD700" stroke="#B8860B" stroke-width="1"/>
-            `;
             
         } else {
             // Вертикальное окно (left/right стены)
             
-            // 1. Подоконник (боковой)
+            // 1. Внешние линии (слева и справа стены)
             windowGroup += `
-                <rect x="${x + depth - sillThickness}" y="${y}" 
-                      width="${sillThickness}" height="${length}" 
-                      fill="${sillColor}" stroke="#8B7355" stroke-width="1"/>
-                <rect x="${x + depth - sillThickness + 2}" y="${y + 2}" 
-                      width="${sillThickness - 4}" height="${length - 4}" 
-                      fill="${highlightColor}" opacity="0.3"/>
+                <line x1="${x}" y1="${y}" x2="${x}" y2="${y + length}" 
+                      stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
+                <line x1="${x + depth}" y1="${y}" x2="${x + depth}" y2="${y + length}" 
+                      stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
             `;
             
-            // 2. Внешняя рама
+            // 2. Внутренние линии (близко друг к другу)
+            const innerOffset = depth * 0.3; // отступ от внешних линий
             windowGroup += `
-                <rect x="${x}" y="${y}" 
-                      width="${depth}" height="${length}" 
-                      fill="none" stroke="${frameColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>
+                <line x1="${x + innerOffset}" y1="${y}" x2="${x + innerOffset}" y2="${y + length}" 
+                      stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
+                <line x1="${x + depth - innerOffset}" y1="${y}" x2="${x + depth - innerOffset}" y2="${y + length}" 
+                      stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
             `;
             
-            // 3. Внутренняя рама (с отступом)
-            const innerOffset = frameThickness / 2;
-            windowGroup += `
-                <rect x="${x + innerOffset}" y="${y + innerOffset}" 
-                      width="${depth - frameThickness}" height="${length - frameThickness}" 
-                      fill="none" stroke="${frameColor}" stroke-width="${frameThickness / 2}" stroke-linecap="square"/>
-            `;
+            // 3. Горизонтальные перегородки (создают квадраты)
+            const mullionCount = Math.max(2, Math.min(3, Math.floor(length / 80))); // 2-3 квадрата
+            const mullionSpacing = length / (mullionCount + 1);
             
-            // 4. Стеклянные панели
-            const glassHeight = (length - frameThickness * 2) / (mullionCount + 1);
-            for (let i = 0; i <= mullionCount; i++) {
-                const glassY = y + frameThickness + i * glassHeight;
-                windowGroup += `
-                    <rect x="${x + frameThickness}" y="${glassY}" 
-                          width="${depth - frameThickness * 2 - sillThickness}" height="${glassHeight - 1}" 
-                          fill="${glassColor}" stroke="${mullionColor}" stroke-width="${glassThickness}"/>
-                `;
-            }
-            
-            // 5. Горизонтальные перегородки (mullions)
             for (let i = 1; i <= mullionCount; i++) {
-                const mullionY = y + frameThickness + i * glassHeight - mullionThickness / 2;
+                const mullionY = y + i * mullionSpacing;
                 windowGroup += `
-                    <rect x="${x + frameThickness}" y="${mullionY}" 
-                          width="${depth - frameThickness * 2 - sillThickness}" height="${mullionThickness}" 
-                          fill="${mullionColor}" stroke="none"/>
+                    <line x1="${x + innerOffset}" y1="${mullionY}" x2="${x + depth - innerOffset}" y2="${mullionY}" 
+                          stroke="${lineColor}" stroke-width="${mullionLineThickness}" stroke-linecap="square"/>
                 `;
             }
-            
-            // 6. Вертикальные перекладины
-            const verticalBarX = x + frameThickness + (depth - frameThickness * 2 - sillThickness) / 2;
-            windowGroup += `
-                <line x1="${verticalBarX}" y1="${y + frameThickness}" 
-                      x2="${verticalBarX}" y2="${y + length - frameThickness}" 
-                      stroke="${mullionColor}" stroke-width="${mullionThickness}" stroke-linecap="square"/>
-            `;
-            
-            // 7. Декоративные элементы (ручки)
-            const handleX = x + frameThickness + 8;
-            const handleY = y + length - frameThickness - 8;
-            windowGroup += `
-                <circle cx="${handleX}" cy="${handleY}" r="3" 
-                        fill="#FFD700" stroke="#B8860B" stroke-width="1"/>
-            `;
         }
         
         windowGroup += `</g>`;
