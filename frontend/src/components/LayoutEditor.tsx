@@ -16,17 +16,20 @@ const WINDOW_MIN_LENGTH = 60;
 const WINDOW_MAX_LENGTH = 200;
 const SNAP_DISTANCE = 15;
 
-type FloatingWindow = { 
-  id: number; 
-  x: number; 
-  y: number; 
-  length: number; 
-  rotation: 0 | 90; 
+type WindowElement = {
+  id: number;
+  x: number;
+  y: number;
+  length: number;
+  rotation: 0 | 90;
   type: 'window';
   isDragging?: boolean;
   isResizing?: boolean;
-  isRotating?: boolean;
-  attachedTo?: WindowAttachment;
+  attachedTo?: {
+    roomKey: string;
+    side: 'left' | 'right' | 'top' | 'bottom';
+    position: number;
+  };
 };
 
 type Door = {
@@ -46,15 +49,6 @@ type Door = {
   };
 };
 
-type WindowAttachment = {
-  roomKey: string;
-  side: 'left' | 'right' | 'top' | 'bottom';
-  position: number; // позиция на стене (0-1)
-  length: number; // длина на стене (0-1)
-  pixelX: number; // точные пиксельные координаты
-  pixelY: number;
-  pixelLength: number;
-};
 
 // Простая канва для расстановки комнат в пикселях
 const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsUpdate, onDoorsUpdate }) => {
@@ -69,13 +63,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     resizeHandle?: string;
   } | null>(null);
   
-  const [floatingWindows, setFloatingWindows] = useState<FloatingWindow[]>([]);
-  const [selectedWindow, setSelectedWindow] = useState<{ roomKey: string; index: number } | null>(null);
-  const [pendingAttachment, setPendingAttachment] = useState<{
-    windowId: number;
-    attachment: WindowAttachment;
-  } | null>(null);
-  const [snappingRoom, setSnappingRoom] = useState<string | null>(null);
+  const [windows, setWindows] = useState<WindowElement[]>([]);
+  const [selectedWindow, setSelectedWindow] = useState<number | null>(null);
   
   // Состояние для дверей
   const [doors, setDoors] = useState<Door[]>([]);
@@ -123,7 +112,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
 
   // Функции для конвертации окон и дверей в формат для SVG
   const convertWindowsToSvgFormat = () => {
-    return floatingWindows.map((window: FloatingWindow) => {
+    return windows.map((window: WindowElement) => {
       const attachment = window.attachedTo;
       if (!attachment) return null;
       
@@ -180,7 +169,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       console.log('Updating windows data:', windowsData);
       onWindowsUpdate(windowsData);
     }
-  }, [floatingWindows, enabledRooms, onWindowsUpdate]);
+  }, [windows, enabledRooms, onWindowsUpdate]);
 
   React.useEffect(() => {
     if (onDoorsUpdate) {
@@ -275,7 +264,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       }
 
       for (const wall of walls) {
-        const distance = calculateDistanceToWall({ x: door.x, y: door.y, length: door.length, rotation: door.rotation } as FloatingWindow, wall);
+        const distance = calculateDistanceToWall({ x: door.x, y: door.y, length: door.length, rotation: door.rotation } as WindowElement, wall);
         console.log(`Wall ${wall.side} distance:`, distance);
         
         if (distance < minDistance && distance <= SNAP_DISTANCE) {
@@ -311,8 +300,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   };
 
   // Поиск ближайшей стены для привязки окна
-  const findNearestWall = (window: FloatingWindow): WindowAttachment | null => {
-    let bestAttachment: WindowAttachment | null = null;
+  const findNearestWallForWindowElement = (window: WindowElement): { roomKey: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number } | null => {
+    let bestAttachment: { roomKey: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number } | null = null;
     let minDistance = Infinity;
 
     for (const room of enabledRooms) {
@@ -343,34 +332,23 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
           
           // Вычисляем позицию на стене
           let position: number;
-          let pixelX: number, pixelY: number, pixelLength: number;
           
           if (wall.side === 'left' || wall.side === 'right') {
             // Вертикальная стена
             const wallLength = wall.height;
             const relativeY = window.y - wall.y;
             position = Math.max(0, Math.min(1, relativeY / wallLength));
-            pixelX = wall.x;
-            pixelY = wall.y + relativeY;
-            pixelLength = Math.min(window.length, wallLength * 0.8);
           } else {
             // Горизонтальная стена
             const wallLength = wall.width;
             const relativeX = window.x - wall.x;
             position = Math.max(0, Math.min(1, relativeX / wallLength));
-            pixelX = wall.x + relativeX;
-            pixelY = wall.y;
-            pixelLength = Math.min(window.length, wallLength * 0.8);
           }
 
           bestAttachment = {
             roomKey: room.key,
             side: wall.side,
-            position,
-            length: pixelLength / (wall.side === 'left' || wall.side === 'right' ? wall.height : wall.width),
-            pixelX,
-            pixelY,
-            pixelLength
+            position
           };
         }
       }
@@ -380,7 +358,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   };
 
   // Вычисление расстояния от окна до стены
-  const calculateDistanceToWall = (window: FloatingWindow, wall: any): number => {
+  const calculateDistanceToWall = (window: WindowElement, wall: any): number => {
     if (wall.side === 'left' || wall.side === 'right') {
       // Вертикальная стена
       const wallX = wall.x;
@@ -411,16 +389,16 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   };
 
   // Обработка начала перетаскивания
-  const handlePointerDown = (e: React.PointerEvent, item: RoomState | FloatingWindow | Door, type: 'move' | 'resize', resizeHandle?: string) => {
+  const handlePointerDown = (e: React.PointerEvent, item: RoomState | WindowElement | Door, type: 'move' | 'resize', resizeHandle?: string) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
 
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const isWindow = 'length' in item && 'type' in item && item.type === 'window';
+    const isWindowElement = 'length' in item && 'type' in item && item.type === 'window';
     const isDoor = 'length' in item && 'type' in item && (item.type === 'entrance' || item.type === 'interior');
 
-    if (isWindow) {
+    if (isWindowElement) {
       setDrag({
         key: item.id,
         item,
@@ -431,7 +409,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       });
       
       // Обновляем состояние окна
-      setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+      setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => 
         w.id === item.id 
           ? { ...w, isDragging: type === 'move', isResizing: type === 'resize' }
           : w
@@ -487,12 +465,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     return value;
   };
 
-  // Поворот плавающего окна на 90 градусов
-  const rotateFloatingWindow = (windowId: number) => {
-    setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => {
+  // Поворот окна на 90 градусов
+  const rotateWindow = (windowId: number) => {
+    setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => {
       if (w.id === windowId) {
         const newRotation = w.rotation === 0 ? 90 : 0;
-        return { ...w, rotation: newRotation, isRotating: true };
+        return { ...w, rotation: newRotation };
       }
       return w;
     }));
@@ -534,28 +512,26 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       
       // Обновляем состояние в зависимости от типа элемента
       if ('type' in drag.item && drag.item.type === 'window') {
-        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+        setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => 
           w.id === drag.item.id 
             ? { ...w, x: newX, y: newY, length: newLength }
             : w
         ));
 
         // Проверяем возможность привязки окна к стене
-        const updatedWindow = { ...drag.item, x: newX, y: newY, length: newLength };
-        const attachment = findNearestWall(updatedWindow);
+        const updatedWindowElement = { ...drag.item, x: newX, y: newY, length: newLength };
+        const attachment = findNearestWallForWindowElement(updatedWindowElement);
         
         if (attachment) {
-          setPendingAttachment({ windowId: drag.item.id, attachment });
           // Автоматически прикрепляем окно к стене
-          setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+          setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => 
             w.id === drag.item.id 
               ? { ...w, attachedTo: attachment }
               : w
           ));
         } else {
-          setPendingAttachment(null);
           // Открепляем окно от стены
-          setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+          setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => 
             w.id === drag.item.id 
               ? { ...w, attachedTo: undefined }
               : w
@@ -635,7 +611,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         }
         
         // Магнитное притяжение стен при изменении размера
-        let isSnapping = false;
         const snapDistance = 20;
         
         for (const room of enabledRooms) {
@@ -671,16 +646,10 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
           if (closestAlignment.distance < snapDistance) {
             newX = closestAlignment.snapX;
             newY = closestAlignment.snapY;
-            isSnapping = true;
           }
         }
         
         // Обновляем состояние выравнивания
-        if (isSnapping) {
-          setSnappingRoom(drag.item.key);
-        } else {
-          setSnappingRoom(null);
-        }
         
         // Применяем умное выравнивание
         newX = smartAlign(newX);
@@ -697,7 +666,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         let newY = Math.max(0, Math.min(CANVAS_HEIGHT - drag.start.height, drag.start.y + dy));
         
         // Магнитное притяжение стен
-        let isSnapping = false;
         const snapDistance = 20;
         
         for (const room of enabledRooms) {
@@ -733,16 +701,10 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
           if (closestAlignment.distance < snapDistance) {
             newX = closestAlignment.snapX;
             newY = closestAlignment.snapY;
-            isSnapping = true;
           }
         }
         
         // Обновляем состояние выравнивания
-        if (isSnapping) {
-          setSnappingRoom(drag.item.key);
-        } else {
-          setSnappingRoom(null);
-        }
         
         // Применяем умное выравнивание
         newX = smartAlign(newX);
@@ -762,9 +724,9 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     if ('length' in drag.item) {
       if ('type' in drag.item && drag.item.type === 'window') {
         // Сбрасываем состояние перетаскивания окна
-        setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+        setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => 
           w.id === drag.item.id 
-            ? { ...w, isDragging: false, isResizing: false, isRotating: false }
+            ? { ...w, isDragging: false, isResizing: false }
             : w
         ));
       } else if ('type' in drag.item && (drag.item.type === 'entrance' || drag.item.type === 'interior')) {
@@ -778,14 +740,13 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     }
 
     // Сбрасываем состояние выравнивания
-    setSnappingRoom(null);
     setDrag(null);
     (e.target as Element).releasePointerCapture(e.pointerId);
   };
 
   // Добавление нового окна
   const addWindow = () => {
-    const newWindow: FloatingWindow = {
+    const newWindow: WindowElement = {
       id: Date.now(),
       x: CANVAS_WIDTH / 2 - 50,
       y: CANVAS_HEIGHT / 2 - 50,
@@ -793,17 +754,16 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       rotation: 0,
       type: 'window',
       isDragging: false,
-      isResizing: false,
-      isRotating: false
+      isResizing: false
     };
     
     // Автоматически прикрепляем к ближайшей стене
-    const attachment = findNearestWall(newWindow);
+    const attachment = findNearestWallForWindowElement(newWindow);
     if (attachment) {
       newWindow.attachedTo = attachment;
     }
     
-    setFloatingWindows((prev: FloatingWindow[]) => [...prev, newWindow]);
+    setWindows((prev: WindowElement[]) => [...prev, newWindow]);
     
     // Принудительно обновляем данные
     setTimeout(() => {
@@ -815,61 +775,26 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     }, 100);
   };
 
-  // Подтверждение привязки окна
-  const confirmAttachment = () => {
-    if (!pendingAttachment) return;
-
-    const room = rooms.find(r => r.key === pendingAttachment.attachment.roomKey);
-    if (!room) return;
-
-    const newWindow = {
-      side: pendingAttachment.attachment.side,
-      pos: pendingAttachment.attachment.position,
-      len: pendingAttachment.attachment.length
-    };
-
-    onUpdate(room.key, {
-      windows: [...(room.windows || []), newWindow]
-    });
-
-    // Удаляем плавающее окно
-    setFloatingWindows((prev: FloatingWindow[]) => prev.filter((w: FloatingWindow) => w.id !== pendingAttachment.windowId));
-    setPendingAttachment(null);
-  };
-
-  // Отмена привязки окна
-  const cancelAttachment = () => {
-    setPendingAttachment(null);
-  };
 
   // Удаление выбранного окна
   const deleteSelectedWindow = () => {
     if (!selectedWindow) return;
-
-    const room = rooms.find(r => r.key === selectedWindow.roomKey);
-    if (!room || !room.windows) return;
-
-    const updatedWindows = room.windows.filter((_, index) => index !== selectedWindow.index);
-    onUpdate(room.key, { windows: updatedWindows });
+    setWindows((prev: WindowElement[]) => prev.filter((w: WindowElement) => w.id !== selectedWindow));
     setSelectedWindow(null);
   };
 
   // Удаление всех окон
   const deleteAllWindows = () => {
-    for (const room of rooms) {
-      if (room.windows && room.windows.length > 0) {
-        onUpdate(room.key, { windows: [] });
-      }
-    }
+    setWindows([]);
     setSelectedWindow(null);
   };
 
-  // Обработка клика по установленному окну
-  const handlePlacedWindowClick = (roomKey: string, index: number) => {
-    if (selectedWindow?.roomKey === roomKey && selectedWindow?.index === index) {
+  // Обработка клика по окну
+  const handleWindowClick = (windowId: number) => {
+    if (selectedWindow === windowId) {
       setSelectedWindow(null);
     } else {
-      setSelectedWindow({ roomKey, index });
+      setSelectedWindow(windowId);
     }
   };
 
@@ -930,22 +855,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         </div>
       </div>
 
-      {/* Панель подтверждения привязки */}
-      {pendingAttachment && (
-        <div className="attachment-panel">
-          <div className="attachment-content">
-            <p>Прикрепить окно к стене помещения?</p>
-            <div className="attachment-buttons">
-              <button className="confirm-btn" onClick={confirmAttachment}>
-                ✅ Прикрепить
-              </button>
-              <button className="cancel-btn" onClick={cancelAttachment}>
-                ❌ Отмена
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Холст */}
       <div
@@ -984,7 +893,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
           return (
             <div
               key={room.key}
-              className={`room ${snappingRoom === room.key ? 'snapping' : ''} ${hasOverlaps ? 'overlapping' : ''}`}
+              className={`room ${hasOverlaps ? 'overlapping' : ''}`}
               style={{
                 position: 'absolute',
                 left: roomPixels.x,
@@ -1024,7 +933,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
                   className={`placed-window ${selectedWindow?.roomKey === room.key && selectedWindow?.index === index ? 'selected' : ''}`}
                   style={{
                     position: 'absolute',
-                    ...getWindowStyle(window, roomPixels),
+                    ...getWindowElementStyle(window, roomPixels),
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     transform: selectedWindow?.roomKey === room.key && selectedWindow?.index === index ? 'scale(1.1)' : 'scale(1)',
@@ -1032,7 +941,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
                   }}
                   onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
-                    handlePlacedWindowClick(room.key, index);
+                    handleWindowClick(index);
                   }}
                 />
               ))}
@@ -1040,29 +949,33 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
           );
         })}
 
-        {/* Плавающие окна */}
-        {floatingWindows.map((window: FloatingWindow) => (
+        {/* Окна */}
+        {windows.map((window: WindowElement) => (
           <div
             key={window.id}
-            className={`floating-window ${window.isDragging ? 'dragging' : ''} ${window.isResizing ? 'resizing' : ''} ${window.isRotating ? 'rotating' : ''}`}
+            className={`window ${window.isDragging ? 'dragging' : ''} ${window.isResizing ? 'resizing' : ''} ${selectedWindow === window.id ? 'selected' : ''}`}
             style={{
             position: 'absolute',
               left: window.x,
               top: window.y,
               width: window.rotation === 0 ? window.length : 8,
               height: window.rotation === 0 ? 8 : window.length,
-              backgroundColor: pendingAttachment ? '#ffeb3b' : '#4caf50',
+              backgroundColor: window.attachedTo ? '#4CAF50' : '#2196F3',
               border: '2px solid #2e7d32',
               borderRadius: '4px',
               cursor: 'move',
-              transition: window.isDragging || window.isResizing || window.isRotating ? 'none' : 'all 0.3s ease',
+              transition: window.isDragging || window.isResizing ? 'none' : 'all 0.3s ease',
               boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
               zIndex: 20
             }}
             onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, window, 'move')}
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              handleWindowClick(window.id);
+            }}
             onDoubleClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              rotateFloatingWindow(window.id);
+              rotateWindow(window.id);
             }}
             title="Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание"
           >
@@ -1213,7 +1126,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
 };
 
 // Получение стилей для установленного окна
-const getWindowStyle = (window: any, _roomPixels: any) => {
+const getWindowElementStyle = (window: any, _roomPixels: any) => {
   const wallThickness = 8;
   
   switch (window.side) {
