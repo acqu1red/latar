@@ -484,23 +484,22 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         break;
                 }
 
-                // Создаем окно в новом стиле согласно JSON дизайну
+                // Создаем окно в новом дизайне: две параллельные линии с внутренними элементами
                 const clipPathId = `windowClip_${room.key}_${window.side}_${window.pos}`;
                 
                 // Параметры дизайна из JSON
                 const sideLineThickness = 8;
                 const railThickness = 4;
                 const rungThickness = 3;
-                const railOffset = 10;
                 const rungSeparation = 24;
-                const rungOverlap = 2;
+                const railOffset = 10;
                 
                 // Вычисляем позиции элементов
-                const leftRailX = windowLength * 0.08;
-                const rightRailX = windowLength * 0.92;
+                const leftLineX = windowLength * 0.08;
+                const rightLineX = windowLength * 0.92;
                 const centerX = windowLength * 0.5;
-                const leftInnerX = centerX - railOffset;
-                const rightInnerX = centerX + railOffset;
+                const leftRailX = centerX - railOffset;
+                const rightRailX = centerX + railOffset;
                 
                 const windowGroup = `
                     <defs>
@@ -510,25 +509,24 @@ export async function generateSvgFromData(rooms, totalSqm) {
                     </defs>
                     <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})" clip-path="url(#${clipPathId})">
                         <!-- Боковые линии (side_lines) -->
-                        <line x1="${leftRailX}" y1="0" x2="${leftRailX}" y2="${windowWidth}" 
+                        <line x1="${leftLineX}" y1="0" x2="${leftLineX}" y2="${windowWidth}" 
                               stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>
-                        <line x1="${rightRailX}" y1="0" x2="${rightRailX}" y2="${windowWidth}" 
+                        <line x1="${rightLineX}" y1="0" x2="${rightLineX}" y2="${windowWidth}" 
                               stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>
                         
-                        <!-- Внутренние рейки (rails) -->
-                        <line x1="${leftInnerX}" y1="0" x2="${leftInnerX}" y2="${windowWidth}" 
+                        <!-- Внутренние рельсы (rails) -->
+                        <line x1="${leftRailX}" y1="0" x2="${leftRailX}" y2="${windowWidth}" 
                               stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>
-                        <line x1="${rightInnerX}" y1="0" x2="${rightInnerX}" y2="${windowWidth}" 
+                        <line x1="${rightRailX}" y1="0" x2="${rightRailX}" y2="${windowWidth}" 
                               stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>
                         
                         <!-- Поперечные перекладины (rungs) -->
-                        ${[0.28, 0.5, 0.72].map(yFrac => {
-                            const y = windowWidth * yFrac;
-                            const rungLength = rightInnerX - leftInnerX + rungOverlap * 2;
-                            const rungX = leftInnerX - rungOverlap;
-                            return `<line x1="${rungX}" y1="${y}" x2="${rungX + rungLength}" y2="${y}" 
-                                          stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
-                        }).join('\n                        ')}
+                        <line x1="${leftRailX}" y1="${windowWidth * 0.28}" x2="${rightRailX}" y2="${windowWidth * 0.28}" 
+                              stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>
+                        <line x1="${leftRailX}" y1="${windowWidth * 0.5}" x2="${rightRailX}" y2="${windowWidth * 0.5}" 
+                              stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>
+                        <line x1="${leftRailX}" y1="${windowWidth * 0.72}" x2="${rightRailX}" y2="${windowWidth * 0.72}" 
+                              stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>
                     </g>
                 `;
                 
@@ -759,140 +757,38 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const cutWidth = wallThickness + 2;
             const stripe = 4;
 
-            // Создаем окно в новом стиле согласно JSON дизайну
-            const sideLineThickness = 8;
-            const railThickness = 4;
-            const rungThickness = 3;
-            const railOffset = 10;
-            const rungOverlap = 2;
-            
             if (window.side === 'top') {
                 // Окно на верхней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
                 const y = pixelY;
-                
-                // Вырезаем отверстие в стене
                 svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                
-                // Рисуем дизайн окна
-                const leftRailX = startX + winLength * 0.08;
-                const rightRailX = startX + winLength * 0.92;
-                const centerX = startX + winLength * 0.5;
-                const leftInnerX = centerX - railOffset;
-                const rightInnerX = centerX + railOffset;
-                
-                // Боковые линии
-                svgContent += `\n<line x1="${leftRailX}" y1="${y}" x2="${leftRailX}" y2="${y + wallThickness}" stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${rightRailX}" y1="${y}" x2="${rightRailX}" y2="${y + wallThickness}" stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>`;
-                
-                // Внутренние рейки
-                svgContent += `\n<line x1="${leftInnerX}" y1="${y}" x2="${leftInnerX}" y2="${y + wallThickness}" stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${rightInnerX}" y1="${y}" x2="${rightInnerX}" y2="${y + wallThickness}" stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>`;
-                
-                // Поперечные перекладины
-                [0.28, 0.5, 0.72].forEach(yFrac => {
-                    const lineY = y + wallThickness * yFrac;
-                    const rungLength = rightInnerX - leftInnerX + rungOverlap * 2;
-                    const rungX = leftInnerX - rungOverlap;
-                    svgContent += `\n<line x1="${rungX}" y1="${lineY}" x2="${rungX + rungLength}" y2="${lineY}" stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
-                });
-                
+                svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'bottom') {
                 // Окно на нижней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
                 const y = pixelY + pixelHeight;
-                
-                // Вырезаем отверстие в стене
                 svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                
-                // Рисуем дизайн окна
-                const leftRailX = startX + winLength * 0.08;
-                const rightRailX = startX + winLength * 0.92;
-                const centerX = startX + winLength * 0.5;
-                const leftInnerX = centerX - railOffset;
-                const rightInnerX = centerX + railOffset;
-                
-                // Боковые линии
-                svgContent += `\n<line x1="${leftRailX}" y1="${y - wallThickness}" x2="${leftRailX}" y2="${y}" stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${rightRailX}" y1="${y - wallThickness}" x2="${rightRailX}" y2="${y}" stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>`;
-                
-                // Внутренние рейки
-                svgContent += `\n<line x1="${leftInnerX}" y1="${y - wallThickness}" x2="${leftInnerX}" y2="${y}" stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${rightInnerX}" y1="${y - wallThickness}" x2="${rightInnerX}" y2="${y}" stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>`;
-                
-                // Поперечные перекладины
-                [0.28, 0.5, 0.72].forEach(yFrac => {
-                    const lineY = y - wallThickness * (1 - yFrac);
-                    const rungLength = rightInnerX - leftInnerX + rungOverlap * 2;
-                    const rungX = leftInnerX - rungOverlap;
-                    svgContent += `\n<line x1="${rungX}" y1="${lineY}" x2="${rungX + rungLength}" y2="${lineY}" stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
-                });
-                
+                svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'left') {
                 // Окно на левой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
                 const x = pixelX;
-                
-                // Вырезаем отверстие в стене
                 svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                
-                // Рисуем дизайн окна
-                const topRailY = startY + winLength * 0.08;
-                const bottomRailY = startY + winLength * 0.92;
-                const centerY = startY + winLength * 0.5;
-                const topInnerY = centerY - railOffset;
-                const bottomInnerY = centerY + railOffset;
-                
-                // Боковые линии
-                svgContent += `\n<line x1="${x}" y1="${topRailY}" x2="${x + wallThickness}" y2="${topRailY}" stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x}" y1="${bottomRailY}" x2="${x + wallThickness}" y2="${bottomRailY}" stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>`;
-                
-                // Внутренние рейки
-                svgContent += `\n<line x1="${x}" y1="${topInnerY}" x2="${x + wallThickness}" y2="${topInnerY}" stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x}" y1="${bottomInnerY}" x2="${x + wallThickness}" y2="${bottomInnerY}" stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>`;
-                
-                // Поперечные перекладины
-                [0.28, 0.5, 0.72].forEach(xFrac => {
-                    const lineX = x + wallThickness * xFrac;
-                    const rungLength = bottomInnerY - topInnerY + rungOverlap * 2;
-                    const rungY = topInnerY - rungOverlap;
-                    svgContent += `\n<line x1="${lineX}" y1="${rungY}" x2="${lineX}" y2="${rungY + rungLength}" stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
-                });
-                
+                svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'right') {
                 // Окно на правой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
                 const x = pixelX + pixelWidth;
-                
-                // Вырезаем отверстие в стене
                 svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                
-                // Рисуем дизайн окна
-                const topRailY = startY + winLength * 0.08;
-                const bottomRailY = startY + winLength * 0.92;
-                const centerY = startY + winLength * 0.5;
-                const topInnerY = centerY - railOffset;
-                const bottomInnerY = centerY + railOffset;
-                
-                // Боковые линии
-                svgContent += `\n<line x1="${x - wallThickness}" y1="${topRailY}" x2="${x}" y2="${topRailY}" stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x - wallThickness}" y1="${bottomRailY}" x2="${x}" y2="${bottomRailY}" stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>`;
-                
-                // Внутренние рейки
-                svgContent += `\n<line x1="${x - wallThickness}" y1="${topInnerY}" x2="${x}" y2="${topInnerY}" stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x - wallThickness}" y1="${bottomInnerY}" x2="${x}" y2="${bottomInnerY}" stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>`;
-                
-                // Поперечные перекладины
-                [0.28, 0.5, 0.72].forEach(xFrac => {
-                    const lineX = x - wallThickness * (1 - xFrac);
-                    const rungLength = bottomInnerY - topInnerY + rungOverlap * 2;
-                    const rungY = topInnerY - rungOverlap;
-                    svgContent += `\n<line x1="${lineX}" y1="${rungY}" x2="${lineX}" y2="${rungY + rungLength}" stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
-                });
+                svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             }
         });
     });
