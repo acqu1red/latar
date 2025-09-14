@@ -28,10 +28,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
         // Единый цвет для всех линий (как стены)
         const lineColor = '#2F2F2F';
         
-        // Параметры линий
-        const outerLineThickness = 6; // толщина внешних линий
-        const innerLineThickness = 3; // толщина внутренних линий
-        const mullionLineThickness = 2; // толщина перегородок
+        // Параметры линий - адаптируем к толщине стены
+        const outerLineThickness = Math.max(4, Math.min(8, depth * 0.25)); // толщина внешних линий
+        const innerLineThickness = Math.max(2, Math.min(4, depth * 0.15)); // толщина внутренних линий
+        const mullionLineThickness = Math.max(1, Math.min(3, depth * 0.1)); // толщина перегородок
         
         let windowGroup = `<g>`;
         
@@ -47,7 +47,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             `;
             
             // 2. Внутренние линии (близко друг к другу, внутри окна)
-            const innerOffset = depth * 0.25; // уменьшаем отступ для лучшего соединения
+            const innerOffset = depth * 0.2; // уменьшаем отступ для лучшего соединения
             windowGroup += `
                 <line x1="${x}" y1="${y + innerOffset}" x2="${x + length}" y2="${y + innerOffset}" 
                       stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
@@ -79,7 +79,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             `;
             
             // 2. Внутренние линии (близко друг к другу, внутри окна)
-            const innerOffset = depth * 0.25; // уменьшаем отступ для лучшего соединения
+            const innerOffset = depth * 0.2; // уменьшаем отступ для лучшего соединения
             windowGroup += `
                 <line x1="${x + innerOffset}" y1="${y}" x2="${x + innerOffset}" y2="${y + length}" 
                       stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
@@ -701,12 +701,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
             const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
             
-            // Параметры объемного окна
-            const windowDepth = wallThickness * 0.8; // глубина окна
-            const frameThickness = 8; // толщина рамы
-            const sillThickness = 12; // толщина подоконника
+            // Параметры объемного окна - адаптируем к толщине стены
+            const windowDepth = wallThickness; // глубина окна = толщина стены
+            const frameThickness = Math.max(4, Math.min(12, wallThickness * 0.3)); // адаптивная толщина рамы
+            const sillThickness = Math.max(8, Math.min(16, wallThickness * 0.4)); // адаптивная толщина подоконника
             const glassThickness = 2; // толщина стекла
-            const mullionThickness = 3; // толщина перегородок
+            const mullionThickness = Math.max(2, Math.min(4, wallThickness * 0.15)); // адаптивная толщина перегородок
             const mullionCount = 2; // количество вертикальных перегородок
 
             if (window.side === 'top') {
@@ -730,10 +730,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на нижней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY + pixelHeight - windowDepth; // Окно начинается от стены
+                const y = pixelY + pixelHeight; // Начинаем точно от стены
                 
                 // Прорезаем стену
-                svgContent += `\n<line x1="${startX}" y1="${pixelY + pixelHeight}" x2="${startX + winLength}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
                 // Создаем окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
@@ -747,10 +747,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на левой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX - windowDepth; // Окно начинается от стены
+                const x = pixelX; // Начинаем точно от стены
                 
                 // Прорезаем стену
-                svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
                 // Создаем окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
@@ -767,7 +767,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const x = pixelX + pixelWidth; // Окно начинается точно от стены
                 
                 // Прорезаем стену
-                svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
                 // Создаем окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
