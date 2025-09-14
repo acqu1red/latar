@@ -50,6 +50,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
         bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
     };
 
+    // Определяем константу EPS для проверок (перемещаем выше)
+    const EPS = 1;
+
     // Минимальная коррекция только для сглаживания углов (не более 3 пикселей)
     const MINIMAL_CORRECTION = 3 * SVG_SCALE;
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -512,7 +515,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
 
     // Построим единый слой стен по уникальным рёбрам
-    const EPS = 1;
     const edges = [];
     const addEdge = (orientation, fixCoord, start, end) => {
         if (end - start <= 0) return;
