@@ -105,7 +105,87 @@ export async function renderSvgPlan(roomsWithLayout, totalSqm) {
         }
 
         let windowsSvg = '';
-        
+        if (room.windows && room.windows.length > 0) {
+            const defaultLen = 0.16;
+
+            room.windows.forEach(window => {
+                const pos = Math.min(1, Math.max(0, Number(window.pos)));
+                const len = Math.min(1, Math.max(0.1, Number(window.len) || defaultLen));
+                
+                if (window.side === 'top') {
+                    const mid = x + width * pos;
+                    const half = (width * len) / 2;
+                    const maskWidth = WALL_THICKNESS + 2;
+                    
+                    // Вырезаем отверстие в стене
+                    windowsSvg += `<line x1="${mid - half}" y1="${y}" x2="${mid + half}" y2="${y}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
+                    
+                    // Рисуем полосы окна
+                    const stripeCount = 3;
+                    const stripeWidth = 2;
+                    const stripeGap = (len * width - stripeCount * stripeWidth) / (stripeCount + 1);
+                    
+                    for (let i = 0; i < stripeCount; i++) {
+                        const stripeX = mid - half + stripeGap + i * (stripeWidth + stripeGap);
+                        windowsSvg += `<line x1="${stripeX}" y1="${y - WALL_THICKNESS/2}" x2="${stripeX + stripeWidth}" y2="${y - WALL_THICKNESS/2}" stroke="#4a90e2" stroke-width="1"/>`;
+                    }
+                }
+                if (window.side === 'bottom') {
+                    const mid = x + width * pos;
+                    const half = (width * len) / 2;
+                    const maskWidth = WALL_THICKNESS + 2;
+                    
+                    // Вырезаем отверстие в стене
+                    windowsSvg += `<line x1="${mid - half}" y1="${y + height}" x2="${mid + half}" y2="${y + height}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
+                    
+                    // Рисуем полосы окна
+                    const stripeCount = 3;
+                    const stripeWidth = 2;
+                    const stripeGap = (len * width - stripeCount * stripeWidth) / (stripeCount + 1);
+                    
+                    for (let i = 0; i < stripeCount; i++) {
+                        const stripeX = mid - half + stripeGap + i * (stripeWidth + stripeGap);
+                        windowsSvg += `<line x1="${stripeX}" y1="${y + height + WALL_THICKNESS/2}" x2="${stripeX + stripeWidth}" y2="${y + height + WALL_THICKNESS/2}" stroke="#4a90e2" stroke-width="1"/>`;
+                    }
+                }
+                if (window.side === 'left') {
+                    const mid = y + height * pos;
+                    const half = (height * len) / 2;
+                    const maskWidth = WALL_THICKNESS + 2;
+                    
+                    // Вырезаем отверстие в стене
+                    windowsSvg += `<line x1="${x}" y1="${mid - half}" x2="${x}" y2="${mid + half}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
+                    
+                    // Рисуем полосы окна
+                    const stripeCount = 3;
+                    const stripeWidth = 2;
+                    const stripeGap = (len * height - stripeCount * stripeWidth) / (stripeCount + 1);
+                    
+                    for (let i = 0; i < stripeCount; i++) {
+                        const stripeY = mid - half + stripeGap + i * (stripeWidth + stripeGap);
+                        windowsSvg += `<line x1="${x - WALL_THICKNESS/2}" y1="${stripeY}" x2="${x - WALL_THICKNESS/2}" y2="${stripeY + stripeWidth}" stroke="#4a90e2" stroke-width="1"/>`;
+                    }
+                }
+                if (window.side === 'right') {
+                    const mid = y + height * pos;
+                    const half = (height * len) / 2;
+                    const maskWidth = WALL_THICKNESS + 2;
+                    
+                    // Вырезаем отверстие в стене
+                    windowsSvg += `<line x1="${x + width}" y1="${mid - half}" x2="${x + width}" y2="${mid + half}" stroke="#fff" stroke-width="${maskWidth}" stroke-linecap="square"/>`;
+                    
+                    // Рисуем полосы окна
+                    const stripeCount = 3;
+                    const stripeWidth = 2;
+                    const stripeGap = (len * height - stripeCount * stripeWidth) / (stripeCount + 1);
+                    
+                    for (let i = 0; i < stripeCount; i++) {
+                        const stripeY = mid - half + stripeGap + i * (stripeWidth + stripeGap);
+                        windowsSvg += `<line x1="${x + width + WALL_THICKNESS/2}" y1="${stripeY}" x2="${x + width + WALL_THICKNESS/2}" y2="${stripeY + stripeWidth}" stroke="#4a90e2" stroke-width="1"/>`;
+                    }
+                }
+            });
+        }
 
         roomsSvg += `
             <g>
