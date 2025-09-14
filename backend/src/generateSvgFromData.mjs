@@ -22,7 +22,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const ICON_FILL_LIGHT = '#F5F6F9';
 
     // Функция для создания схематичного окна с 4 линиями и перегородками
-    function createLayeredWindow(x, y, length, depth, frameThickness, sillThickness, glassThickness, mullionThickness, mullionCount, orientation) {
+    function createLayeredWindow(x, y, length, depth, orientation) {
         const isHorizontal = orientation === 'horizontal';
         
         // Единый цвет для всех линий (как стены)
@@ -720,9 +720,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 
                 // Создаем окно - точно на уровне стены, без смещений
                 const windowGroup = createLayeredWindow(
-                    startX, y, winLength, windowDepth, 
-                    frameThickness, sillThickness, glassThickness, 
-                    mullionThickness, mullionCount, 'horizontal'
+                    startX, y, winLength, windowDepth, 'horizontal'
                 );
                 svgContent += windowGroup;
                 
@@ -737,9 +735,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 
                 // Создаем окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
-                    startX, y, winLength, windowDepth, 
-                    frameThickness, sillThickness, glassThickness, 
-                    mullionThickness, mullionCount, 'horizontal'
+                    startX, y, winLength, windowDepth, 'horizontal'
                 );
                 svgContent += windowGroup;
                 
@@ -754,9 +750,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 
                 // Создаем окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
-                    x, startY, winLength, windowDepth, 
-                    frameThickness, sillThickness, glassThickness, 
-                    mullionThickness, mullionCount, 'vertical'
+                    x, startY, winLength, windowDepth, 'vertical'
                 );
                 svgContent += windowGroup;
                 
@@ -771,9 +765,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 
                 // Создаем окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
-                    x, startY, winLength, windowDepth, 
-                    frameThickness, sillThickness, glassThickness, 
-                    mullionThickness, mullionCount, 'vertical'
+                    x, startY, winLength, windowDepth, 'vertical'
                 );
                 svgContent += windowGroup;
             }
