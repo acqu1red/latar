@@ -154,7 +154,9 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
         return { 
           ...room, 
           layout: src.layout,
-          entrySide: src.entrySide || null
+          entrySide: src.entrySide || null,
+          windows: src.windows || [],
+          doors: src.doors || []
         };
       });
 
@@ -162,7 +164,9 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
         key: r.key, 
         name: r.name, 
         objectCount: r.objects?.length || 0,
-        layout: r.layout ? 'present' : 'missing'
+        layout: r.layout ? 'present' : 'missing',
+        windows: r.windows?.length || 0,
+        doors: r.doors?.length || 0
       })));
 
       // Генерируем точный SVG и производную PNG без стилизации DALL·E

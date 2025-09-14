@@ -24,8 +24,8 @@ function App() {
   const [rooms, setRooms] = useState<RoomState[]>(initialRooms);
   const [bathroomConfig, setBathroomConfig] = useState<BathroomConfig>(initialBathroomConfig);
   const [loading, setLoading] = useState(false);
-  const [globalWindows, setGlobalWindows] = useState<{ side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]>([]);
-  const [globalDoors, setGlobalDoors] = useState<{ side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]>([]);
+  const [globalWindows, setGlobalWindows] = useState<{ roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]>([]);
+  const [globalDoors, setGlobalDoors] = useState<{ roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]>([]);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -125,12 +125,12 @@ function App() {
     }));
   };
 
-  const handleWindowsUpdate = (windows: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]) => {
+  const handleWindowsUpdate = (windows: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]) => {
     console.log('App: Received windows update:', windows);
     setGlobalWindows(windows);
   };
 
-  const handleDoorsUpdate = (doors: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]) => {
+  const handleDoorsUpdate = (doors: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]) => {
     console.log('App: Received doors update:', doors);
     setGlobalDoors(doors);
   };
@@ -230,14 +230,25 @@ function App() {
 
     setLoading(true);
     // Добавляем данные окон и дверей к комнатам
-    // Окна и двери привязываются к конкретным комнатам через attachedTo
+    // Окна и двери привязываются к конкретным комнатам через roomKey
     const allRoomsWithWindowsAndDoors = allRooms.map(room => {
-      // Пока передаем все окна и двери ко всем комнатам
-      // В будущем можно будет фильтровать по привязке к конкретным комнатам
+      // Фильтруем окна и двери по привязке к конкретной комнате
+      const roomWindows = globalWindows.filter((w: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }) => w.roomKey === room.key).map((w: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }) => ({
+        side: w.side,
+        pos: w.pos,
+        len: w.len
+      }));
+      const roomDoors = globalDoors.filter((d: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }) => d.roomKey === room.key).map((d: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }) => ({
+        side: d.side,
+        pos: d.pos,
+        len: d.len,
+        type: d.type
+      }));
+      
       return {
         ...room,
-        windows: globalWindows,
-        doors: globalDoors
+        windows: roomWindows,
+        doors: roomDoors
       };
     });
 

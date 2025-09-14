@@ -32,8 +32,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
             pixelY: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
             pixelWidth: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
             pixelHeight: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE,
-            // Игнорируем дверные данные из AI; генерируем строго по connections + внешний вход
-            doors: [],
+            // Используем данные дверей и окон из конструктора
+            doors: Array.isArray(room.doors) ? [...room.doors] : [],
             windows: Array.isArray(room.windows) ? [...room.windows] : [],
             entrySide: room.entrySide || null,
         };
@@ -102,12 +102,11 @@ export async function generateSvgFromData(rooms, totalSqm) {
     // Логирование данных для отладки
     console.log('Room data before SVG generation:');
     pixelRooms.forEach(room => {
-        if (room.windows && room.windows.length > 0) {
-            console.log(`Room ${room.key} (${room.name}):`, {
-                position: { x: room.pixelX, y: room.pixelY, width: room.pixelWidth, height: room.pixelHeight },
-                windows: room.windows.map(w => ({ side: w.side, pos: w.pos, len: w.len }))
-            });
-        }
+        console.log(`Room ${room.key} (${room.name}):`, {
+            position: { x: room.pixelX, y: room.pixelY, width: room.pixelWidth, height: room.pixelHeight },
+            windows: room.windows?.map(w => ({ side: w.side, pos: w.pos, len: w.len })) || [],
+            doors: room.doors?.map(d => ({ side: d.side, pos: d.pos, len: d.len, type: d.type })) || []
+        });
     });
 
     // Infer doors from user connections and geometric adjacency

@@ -4,8 +4,8 @@ import type { RoomState } from '../lib/api';
 interface LayoutEditorProps {
   rooms: RoomState[];
   onUpdate: (key: string, updates: Partial<RoomState>) => void;
-  onWindowsUpdate?: (windows: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]) => void;
-  onDoorsUpdate?: (doors: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]) => void;
+  onWindowsUpdate?: (windows: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]) => void;
+  onDoorsUpdate?: (doors: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]) => void;
 }
 
 // Константы для пиксельной системы
@@ -139,6 +139,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       const normalizedLength = Math.min(1, window.length / wallLength);
       
       return {
+        roomKey: room.key,
         side: attachment.side,
         pos: attachment.position,
         len: normalizedLength
@@ -163,6 +164,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       const normalizedLength = Math.min(1, door.length / wallLength);
       
       return {
+        roomKey: room.key,
         side: attachment.side,
         pos: attachment.position,
         len: normalizedLength,
