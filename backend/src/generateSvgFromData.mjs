@@ -42,6 +42,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
         return pixelRoom;
     });
 
+    // Определяем константы для проверок
+    const EPS = 1;
+    
     // Определяем границы всего плана для выявления внешних стен (перемещаем сразу после pixelRooms)
     const planBounds = {
         left: Math.min(...pixelRooms.map(r => r.pixelX)),
@@ -512,7 +515,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
 
     // Построим единый слой стен по уникальным рёбрам
-    const EPS = 1;
     const edges = [];
     const addEdge = (orientation, fixCoord, start, end) => {
         if (end - start <= 0) return;
