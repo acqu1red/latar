@@ -484,9 +484,24 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         break;
                 }
 
-                // Создаем окно в стиле волнистых линий (шторы)
-                // Ограничиваем область рисования для предотвращения лишних текстур
+                // Создаем окно в новом стиле согласно JSON дизайну
                 const clipPathId = `windowClip_${room.key}_${window.side}_${window.pos}`;
+                
+                // Параметры дизайна из JSON
+                const sideLineThickness = 8;
+                const railThickness = 4;
+                const rungThickness = 3;
+                const railOffset = 10;
+                const rungSeparation = 24;
+                const rungOverlap = 2;
+                
+                // Вычисляем позиции элементов
+                const leftRailX = windowLength * 0.08;
+                const rightRailX = windowLength * 0.92;
+                const centerX = windowLength * 0.5;
+                const leftInnerX = centerX - railOffset;
+                const rightInnerX = centerX + railOffset;
+                
                 const windowGroup = `
                     <defs>
                         <clipPath id="${clipPathId}">
@@ -494,17 +509,26 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         </clipPath>
                     </defs>
                     <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})" clip-path="url(#${clipPathId})">
-                        <!-- Волнистые линии как шторы -->
-                        <path d="M 0 ${windowWidth/2} Q ${windowLength/4} ${windowWidth/4} ${windowLength/2} ${windowWidth/2} T ${windowLength} ${windowWidth/2}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 + 2} Q ${windowLength/4} ${windowWidth/4 + 2} ${windowLength/2} ${windowWidth/2 + 2} T ${windowLength} ${windowWidth/2 + 2}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 + 4} Q ${windowLength/4} ${windowWidth/4 + 4} ${windowLength/2} ${windowWidth/2 + 4} T ${windowLength} ${windowWidth/2 + 4}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 - 2} Q ${windowLength/4} ${windowWidth/4 - 2} ${windowLength/2} ${windowWidth/2 - 2} T ${windowLength} ${windowWidth/2 - 2}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 - 4} Q ${windowLength/4} ${windowWidth/4 - 4} ${windowLength/2} ${windowWidth/2 - 4} T ${windowLength} ${windowWidth/2 - 4}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <!-- Боковые линии (side_lines) -->
+                        <line x1="${leftRailX}" y1="0" x2="${leftRailX}" y2="${windowWidth}" 
+                              stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>
+                        <line x1="${rightRailX}" y1="0" x2="${rightRailX}" y2="${windowWidth}" 
+                              stroke="#2f2f2f" stroke-width="${sideLineThickness}" stroke-linecap="square"/>
+                        
+                        <!-- Внутренние рейки (rails) -->
+                        <line x1="${leftInnerX}" y1="0" x2="${leftInnerX}" y2="${windowWidth}" 
+                              stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>
+                        <line x1="${rightInnerX}" y1="0" x2="${rightInnerX}" y2="${windowWidth}" 
+                              stroke="#222222" stroke-width="${railThickness}" stroke-linecap="square"/>
+                        
+                        <!-- Поперечные перекладины (rungs) -->
+                        ${[0.28, 0.5, 0.72].map(yFrac => {
+                            const y = windowWidth * yFrac;
+                            const rungLength = rightInnerX - leftInnerX + rungOverlap * 2;
+                            const rungX = leftInnerX - rungOverlap;
+                            return `<line x1="${rungX}" y1="${y}" x2="${rungX + rungLength}" y2="${y}" 
+                                          stroke="#222222" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
+                        }).join('\n                        ')}
                     </g>
                 `;
                 
