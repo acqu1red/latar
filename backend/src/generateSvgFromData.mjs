@@ -577,6 +577,26 @@ export async function generateSvgFromData(rooms, totalSqm) {
     });
 
 
+    // Функция для проверки близости окна к двери
+    function isWindowNearDoor(window, door, room) {
+        const windowPos = window.pos * (window.side === 'left' || window.side === 'right' ? room.pixelHeight : room.pixelWidth);
+        const doorPos = door.pos * (door.side === 'left' || door.side === 'right' ? room.pixelHeight : room.pixelWidth);
+        const windowLen = window.len * (window.side === 'left' || window.side === 'right' ? room.pixelHeight : room.pixelWidth);
+        const doorLen = door.len * (door.side === 'left' || door.side === 'right' ? room.pixelHeight : room.pixelWidth);
+        
+        // Проверяем, находятся ли окно и дверь на одной стороне
+        if (window.side !== door.side) return false;
+        
+        // Проверяем перекрытие или близость (в пределах 50px)
+        const windowStart = windowPos - windowLen / 2;
+        const windowEnd = windowPos + windowLen / 2;
+        const doorStart = doorPos - doorLen / 2;
+        const doorEnd = doorPos + doorLen / 2;
+        
+        const overlap = !(windowEnd < doorStart - 50 || windowStart > doorEnd + 50);
+        return overlap;
+    }
+
     // Draw doors (детализация: косяки, петля, ровная дуга)
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, doors = [] } = room;
@@ -607,48 +627,161 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const hingeRadius = Math.max(3, Math.floor(arcRadius * 0.08));
 
             if (door.side === 'top') {
-                // gap
+                // Проём в стене (пропуск)
                 svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
-                // jambs
-                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + wallThickness/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + wallThickness/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                // arc (hinge at left)
-                const hx = doorCenterX - doorSpan / 2;
-                const hy = pixelY;
-                const ex = hx + arcRadius;
-                const ey = hy + arcRadius;
-                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 1 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
-                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+                
+                // Дверная коробка (две тонкие параллельные линии по периметру)
+                const frameThickness = 1;
+                const frameGap = 2;
+                
+                // Внешний контур коробки (ближе к стене)
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY - frameGap}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY - frameGap}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Внутренний контур коробки (ближе к комнате)
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + frameGap}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + frameGap}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Боковые стойки коробки
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY - frameGap}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + frameGap}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY - frameGap}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + frameGap}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Дверное полотно (тонкий прямоугольник, примкнутый к левой стойке)
+                const doorThickness = door.type === 'entrance' ? 4 : 2; // 70-90мм для входной, 35-44мм для межкомнатной
+                const doorWidth = doorSpan - 4; // ширина полотна
+                const doorX = doorCenterX - doorSpan / 2 + 1; // примыкает к левой стойке
+                const doorY = pixelY - frameGap + 1;
+                
+                svgContent += `\n<rect x="${doorX}" y="${doorY}" width="${doorWidth}" height="${doorThickness}" fill="none" stroke="${jambColor}" stroke-width="1"/>`;
+                
+                // Дуга открывания от свободной кромки полотна
+                const arcStartX = doorX + doorWidth;
+                const arcStartY = doorY + doorThickness / 2;
+                const arcEndX = arcStartX + arcRadius;
+                const arcEndY = arcStartY + arcRadius;
+                
+                svgContent += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 1 ${arcEndX} ${arcEndY}" stroke="${jambColor}" stroke-width="1" fill="none"/>`;
+                
+                // Петля (где полотно примыкает к стойке)
+                svgContent += `\n<circle cx="${doorX}" cy="${arcStartY}" r="1" fill="${jambColor}"/>`;
+                
+                // Ручка/защёлка (где начинается дуга)
+                svgContent += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="1" fill="${jambColor}"/>`;
             } else if (door.side === 'bottom') {
+                // Проём в стене (пропуск)
                 svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
-                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight - wallThickness/2}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY + pixelHeight - wallThickness/2}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                const hx = doorCenterX - doorSpan / 2;
-                const hy = pixelY + pixelHeight;
-                const ex = hx + arcRadius;
-                const ey = hy - arcRadius;
-                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 0 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
-                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+                
+                // Дверная коробка (две тонкие параллельные линии по периметру)
+                const frameThickness = 1;
+                const frameGap = 2;
+                
+                // Внешний контур коробки (ближе к стене)
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight + frameGap}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight + frameGap}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Внутренний контур коробки (ближе к комнате)
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight - frameGap}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight - frameGap}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Боковые стойки коробки
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight - frameGap}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + pixelHeight + frameGap}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY + pixelHeight - frameGap}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight + frameGap}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Дверное полотно (тонкий прямоугольник, примкнутый к левой стойке)
+                const doorThickness = door.type === 'entrance' ? 4 : 2;
+                const doorWidth = doorSpan - 4;
+                const doorX = doorCenterX - doorSpan / 2 + 1;
+                const doorY = pixelY + pixelHeight - frameGap - doorThickness;
+                
+                svgContent += `\n<rect x="${doorX}" y="${doorY}" width="${doorWidth}" height="${doorThickness}" fill="none" stroke="${jambColor}" stroke-width="1"/>`;
+                
+                // Дуга открывания от свободной кромки полотна
+                const arcStartX = doorX + doorWidth;
+                const arcStartY = doorY + doorThickness / 2;
+                const arcEndX = arcStartX + arcRadius;
+                const arcEndY = arcStartY - arcRadius;
+                
+                svgContent += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 0 ${arcEndX} ${arcEndY}" stroke="${jambColor}" stroke-width="1" fill="none"/>`;
+                
+                // Петля (где полотно примыкает к стойке)
+                svgContent += `\n<circle cx="${doorX}" cy="${arcStartY}" r="1" fill="${jambColor}"/>`;
+                
+                // Ручка/защёлка (где начинается дуга)
+                svgContent += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="1" fill="${jambColor}"/>`;
             } else if (door.side === 'left') {
+                // Проём в стене (пропуск)
                 svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + wallThickness/2}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + wallThickness/2}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                const hx = pixelX;
-                const hy = doorCenterY - doorSpan / 2;
-                const ex = hx + arcRadius;
-                const ey = hy + arcRadius;
-                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 1 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
-                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+                
+                // Дверная коробка (две тонкие параллельные линии по периметру)
+                const frameThickness = 1;
+                const frameGap = 2;
+                
+                // Внешний контур коробки (ближе к стене)
+                svgContent += `\n<line x1="${pixelX - frameGap}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX - frameGap}" y2="${doorCenterY + doorSpan / 2}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Внутренний контур коробки (ближе к комнате)
+                svgContent += `\n<line x1="${pixelX + frameGap}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX + frameGap}" y2="${doorCenterY + doorSpan / 2}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Боковые стойки коробки
+                svgContent += `\n<line x1="${pixelX - frameGap}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX + frameGap}" y2="${doorCenterY - doorSpan / 2}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${pixelX - frameGap}" y1="${doorCenterY + doorSpan / 2}" x2="${pixelX + frameGap}" y2="${doorCenterY + doorSpan / 2}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Дверное полотно (тонкий прямоугольник, примкнутый к верхней стойке)
+                const doorThickness = door.type === 'entrance' ? 4 : 2;
+                const doorHeight = doorSpan - 4;
+                const doorX = pixelX - frameGap + 1;
+                const doorY = doorCenterY - doorSpan / 2 + 1;
+                
+                svgContent += `\n<rect x="${doorX}" y="${doorY}" width="${doorThickness}" height="${doorHeight}" fill="none" stroke="${jambColor}" stroke-width="1"/>`;
+                
+                // Дуга открывания от свободной кромки полотна
+                const arcStartX = doorX + doorThickness / 2;
+                const arcStartY = doorY + doorHeight;
+                const arcEndX = arcStartX + arcRadius;
+                const arcEndY = arcStartY + arcRadius;
+                
+                svgContent += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 1 ${arcEndX} ${arcEndY}" stroke="${jambColor}" stroke-width="1" fill="none"/>`;
+                
+                // Петля (где полотно примыкает к стойке)
+                svgContent += `\n<circle cx="${arcStartX}" cy="${doorY}" r="1" fill="${jambColor}"/>`;
+                
+                // Ручка/защёлка (где начинается дуга)
+                svgContent += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="1" fill="${jambColor}"/>`;
             } else if (door.side === 'right') {
+                // Проём в стене (пропуск)
                 svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
-                svgContent += `\n<line x1="${pixelX + pixelWidth - wallThickness/2}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                svgContent += `\n<line x1="${pixelX + pixelWidth - wallThickness/2}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
-                const hx = pixelX + pixelWidth;
-                const hy = doorCenterY - doorSpan / 2;
-                const ex = hx - arcRadius;
-                const ey = hy + arcRadius;
-                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 0 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
-                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+                
+                // Дверная коробка (две тонкие параллельные линии по периметру)
+                const frameThickness = 1;
+                const frameGap = 2;
+                
+                // Внешний контур коробки (ближе к стене)
+                svgContent += `\n<line x1="${pixelX + pixelWidth + frameGap}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX + pixelWidth + frameGap}" y2="${doorCenterY + doorSpan / 2}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Внутренний контур коробки (ближе к комнате)
+                svgContent += `\n<line x1="${pixelX + pixelWidth - frameGap}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX + pixelWidth - frameGap}" y2="${doorCenterY + doorSpan / 2}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Боковые стойки коробки
+                svgContent += `\n<line x1="${pixelX + pixelWidth - frameGap}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX + pixelWidth + frameGap}" y2="${doorCenterY - doorSpan / 2}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth - frameGap}" y1="${doorCenterY + doorSpan / 2}" x2="${pixelX + pixelWidth + frameGap}" y2="${doorCenterY + doorSpan / 2}" stroke="${jambColor}" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                
+                // Дверное полотно (тонкий прямоугольник, примкнутый к верхней стойке)
+                const doorThickness = door.type === 'entrance' ? 4 : 2;
+                const doorHeight = doorSpan - 4;
+                const doorX = pixelX + pixelWidth - frameGap - doorThickness;
+                const doorY = doorCenterY - doorSpan / 2 + 1;
+                
+                svgContent += `\n<rect x="${doorX}" y="${doorY}" width="${doorThickness}" height="${doorHeight}" fill="none" stroke="${jambColor}" stroke-width="1"/>`;
+                
+                // Дуга открывания от свободной кромки полотна
+                const arcStartX = doorX + doorThickness / 2;
+                const arcStartY = doorY + doorHeight;
+                const arcEndX = arcStartX - arcRadius;
+                const arcEndY = arcStartY + arcRadius;
+                
+                svgContent += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 0 ${arcEndX} ${arcEndY}" stroke="${jambColor}" stroke-width="1" fill="none"/>`;
+                
+                // Петля (где полотно примыкает к стойке)
+                svgContent += `\n<circle cx="${arcStartX}" cy="${doorY}" r="1" fill="${jambColor}"/>`;
+                
+                // Ручка/защёлка (где начинается дуга)
+                svgContent += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="1" fill="${jambColor}"/>`;
             }
         });
     });
@@ -669,6 +802,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const pos = typeof window.pos === 'number' ? window.pos : 0.5;
             const len = typeof window.len === 'number' ? window.len : 0.2;
             
+            // Проверяем, есть ли рядом дверь на той же стороне
+            const nearbyDoor = room.doors?.find(door => isWindowNearDoor(window, door, room));
+            
             // Определяем толщину стены для окон
             let isExternalWall = false;
             if (window.side === 'left' || window.side === 'right') {
@@ -687,33 +823,172 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
                 const y = pixelY;
+                const frameThickness = 1; // Толщина линий рамы
+                const frameGap = 2; // Расстояние между линиями рамы
+                const mullionGap = 8; // Расстояние между разделениями импоста
+                
+                // Вырезаем отверстие в стене
                 svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                
+                if (nearbyDoor) {
+                    // Если рядом дверь - рисуем только центральную полоску с разделениями
+                    const centerX = startX + winLength / 2;
+                    const mullionStart = y - winLength / 2;
+                    const mullionEnd = y + winLength / 2;
+                    
+                    // Верхняя часть импоста
+                    svgContent += `\n<line x1="${centerX}" y1="${mullionStart}" x2="${centerX}" y2="${mullionStart + mullionGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Нижняя часть импоста
+                    svgContent += `\n<line x1="${centerX}" y1="${mullionEnd - mullionGap}" x2="${centerX}" y2="${mullionEnd}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                } else {
+                    // Обычное окно с полной рамой
+                    // Внешний контур рамы (ближе к стене)
+                    svgContent += `\n<line x1="${startX}" y1="${y - frameGap}" x2="${startX + winLength}" y2="${y - frameGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Внутренний контур рамы (ближе к комнате)
+                    svgContent += `\n<line x1="${startX}" y1="${y + frameGap}" x2="${startX + winLength}" y2="${y + frameGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Центральный импост с разделениями
+                    const centerX = startX + winLength / 2;
+                    const mullionStart = y - winLength / 2;
+                    const mullionEnd = y + winLength / 2;
+                    
+                    // Верхняя часть импоста
+                    svgContent += `\n<line x1="${centerX}" y1="${mullionStart}" x2="${centerX}" y2="${mullionStart + mullionGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Нижняя часть импоста
+                    svgContent += `\n<line x1="${centerX}" y1="${mullionEnd - mullionGap}" x2="${centerX}" y2="${mullionEnd}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                }
+                
             } else if (window.side === 'bottom') {
                 // Окно на нижней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
                 const y = pixelY + pixelHeight;
+                const frameThickness = 1;
+                const frameGap = 2;
+                const mullionGap = 8;
+                
+                // Вырезаем отверстие в стене
                 svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                
+                if (nearbyDoor) {
+                    // Если рядом дверь - рисуем только центральную полоску с разделениями
+                    const centerX = startX + winLength / 2;
+                    const mullionStart = y - winLength / 2;
+                    const mullionEnd = y + winLength / 2;
+                    
+                    // Верхняя часть импоста
+                    svgContent += `\n<line x1="${centerX}" y1="${mullionStart}" x2="${centerX}" y2="${mullionStart + mullionGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Нижняя часть импоста
+                    svgContent += `\n<line x1="${centerX}" y1="${mullionEnd - mullionGap}" x2="${centerX}" y2="${mullionEnd}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                } else {
+                    // Обычное окно с полной рамой
+                    // Внешний контур рамы (ближе к стене)
+                    svgContent += `\n<line x1="${startX}" y1="${y + frameGap}" x2="${startX + winLength}" y2="${y + frameGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Внутренний контур рамы (ближе к комнате)
+                    svgContent += `\n<line x1="${startX}" y1="${y - frameGap}" x2="${startX + winLength}" y2="${y - frameGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Центральный импост с разделениями
+                    const centerX = startX + winLength / 2;
+                    const mullionStart = y - winLength / 2;
+                    const mullionEnd = y + winLength / 2;
+                    
+                    // Верхняя часть импоста
+                    svgContent += `\n<line x1="${centerX}" y1="${mullionStart}" x2="${centerX}" y2="${mullionStart + mullionGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Нижняя часть импоста
+                    svgContent += `\n<line x1="${centerX}" y1="${mullionEnd - mullionGap}" x2="${centerX}" y2="${mullionEnd}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                }
+                
             } else if (window.side === 'left') {
                 // Окно на левой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
                 const x = pixelX;
+                const frameThickness = 1;
+                const frameGap = 2;
+                const mullionGap = 8;
+                
+                // Вырезаем отверстие в стене
                 svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                
+                if (nearbyDoor) {
+                    // Если рядом дверь - рисуем только центральную полоску с разделениями
+                    const centerY = startY + winLength / 2;
+                    const mullionStart = startY;
+                    const mullionEnd = startY + winLength;
+                    
+                    // Верхняя часть импоста
+                    svgContent += `\n<line x1="${x}" y1="${mullionStart}" x2="${x}" y2="${mullionStart + mullionGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Нижняя часть импоста
+                    svgContent += `\n<line x1="${x}" y1="${mullionEnd - mullionGap}" x2="${x}" y2="${mullionEnd}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                } else {
+                    // Обычное окно с полной рамой
+                    // Внешний контур рамы (ближе к стене)
+                    svgContent += `\n<line x1="${x - frameGap}" y1="${startY}" x2="${x - frameGap}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Внутренний контур рамы (ближе к комнате)
+                    svgContent += `\n<line x1="${x + frameGap}" y1="${startY}" x2="${x + frameGap}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Центральный импост с разделениями
+                    const centerY = startY + winLength / 2;
+                    const mullionStart = startY;
+                    const mullionEnd = startY + winLength;
+                    
+                    // Верхняя часть импоста
+                    svgContent += `\n<line x1="${x}" y1="${mullionStart}" x2="${x}" y2="${mullionStart + mullionGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Нижняя часть импоста
+                    svgContent += `\n<line x1="${x}" y1="${mullionEnd - mullionGap}" x2="${x}" y2="${mullionEnd}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                }
+                
             } else if (window.side === 'right') {
                 // Окно на правой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
                 const x = pixelX + pixelWidth;
+                const frameThickness = 1;
+                const frameGap = 2;
+                const mullionGap = 8;
+                
+                // Вырезаем отверстие в стене
                 svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
-                svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                
+                if (nearbyDoor) {
+                    // Если рядом дверь - рисуем только центральную полоску с разделениями
+                    const centerY = startY + winLength / 2;
+                    const mullionStart = startY;
+                    const mullionEnd = startY + winLength;
+                    
+                    // Верхняя часть импоста
+                    svgContent += `\n<line x1="${x}" y1="${mullionStart}" x2="${x}" y2="${mullionStart + mullionGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Нижняя часть импоста
+                    svgContent += `\n<line x1="${x}" y1="${mullionEnd - mullionGap}" x2="${x}" y2="${mullionEnd}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                } else {
+                    // Обычное окно с полной рамой
+                    // Внешний контур рамы (ближе к стене)
+                    svgContent += `\n<line x1="${x + frameGap}" y1="${startY}" x2="${x + frameGap}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Внутренний контур рамы (ближе к комнате)
+                    svgContent += `\n<line x1="${x - frameGap}" y1="${startY}" x2="${x - frameGap}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Центральный импост с разделениями
+                    const centerY = startY + winLength / 2;
+                    const mullionStart = startY;
+                    const mullionEnd = startY + winLength;
+                    
+                    // Верхняя часть импоста
+                    svgContent += `\n<line x1="${x}" y1="${mullionStart}" x2="${x}" y2="${mullionStart + mullionGap}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                    
+                    // Нижняя часть импоста
+                    svgContent += `\n<line x1="${x}" y1="${mullionEnd - mullionGap}" x2="${x}" y2="${mullionEnd}" stroke="#1F1F1F" stroke-width="${frameThickness}" stroke-linecap="square"/>`;
+                }
             }
         });
     });

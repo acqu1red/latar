@@ -34,14 +34,14 @@ export async function generateSvgFromData(rooms, totalSqm) {
         };
     });
 
-    // Generate SVG using new design system
-    const svgContent = PlanCanvas({
-        rooms: roomData,
-        totalSqm: totalSqm,
-        scale: '1:50',
-        width: PLAN_WIDTH,
-        height: PLAN_HEIGHT
-    });
+    // Note: PlanCanvas is available but not used in this implementation
+    // const planCanvasSvg = PlanCanvas({
+    //     rooms: roomData,
+    //     totalSqm: totalSqm,
+    //     scale: '1:50',
+    //     width: PLAN_WIDTH,
+    //     height: PLAN_HEIGHT
+    // });
 
     const applyMinimalCorrection = () => {
         // Только легкое выравнивание стен для сглаживания углов

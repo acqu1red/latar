@@ -21,6 +21,7 @@ type WindowElement = {
   x: number;
   y: number;
   length: number;
+  width: number;
   rotation: 0 | 90;
   type: 'window';
   isDragging?: boolean;
@@ -37,6 +38,7 @@ type Door = {
   x: number;
   y: number;
   length: number;
+  width: number;
   rotation: 0 | 90;
   type: 'entrance' | 'interior';
   isDragging?: boolean;
@@ -186,6 +188,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       x: CANVAS_WIDTH / 2 - 50,
       y: CANVAS_HEIGHT / 2 - 50,
       length: 80,
+      width: 8,
       rotation: 0,
       type,
       isDragging: false,
@@ -470,7 +473,13 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => {
       if (w.id === windowId) {
         const newRotation = w.rotation === 0 ? 90 : 0;
-        return { ...w, rotation: newRotation };
+        // При повороте меняем местами длину и ширину
+        return { 
+          ...w, 
+          rotation: newRotation,
+          length: w.width,
+          width: w.length
+        };
       }
       return w;
     }));
@@ -481,7 +490,13 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     setDoors((prev: Door[]) => prev.map((d: Door) => {
       if (d.id === doorId) {
         const newRotation = d.rotation === 0 ? 90 : 0;
-        return { ...d, rotation: newRotation };
+        // При повороте меняем местами длину и ширину
+        return { 
+          ...d, 
+          rotation: newRotation,
+          length: d.width,
+          width: d.length
+        };
       }
       return d;
     }));
@@ -520,15 +535,17 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         // Убираем ограничение длины окна размером стены - позволяем свободное растягивание
       } else {
         // Перемещение окна или двери
-        newX = Math.max(0, Math.min(CANVAS_WIDTH - (drag.item.rotation === 0 ? newLength : 8), drag.start.x + dx));
-        newY = Math.max(0, Math.min(CANVAS_HEIGHT - (drag.item.rotation === 0 ? 8 : newLength), drag.start.y + dy));
+        const currentWidth = drag.item.rotation === 0 ? drag.item.width : drag.item.length;
+        const currentLength = drag.item.rotation === 0 ? drag.item.length : drag.item.width;
+        newX = Math.max(0, Math.min(CANVAS_WIDTH - currentLength, drag.start.x + dx));
+        newY = Math.max(0, Math.min(CANVAS_HEIGHT - currentWidth, drag.start.y + dy));
       }
       
       // Обновляем состояние в зависимости от типа элемента
       if ('type' in drag.item && drag.item.type === 'window') {
         setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => 
           w.id === drag.item.id 
-            ? { ...w, x: newX, y: newY, length: newLength }
+            ? { ...w, x: newX, y: newY, length: newLength, width: w.width }
             : w
         ));
 
@@ -554,7 +571,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       } else if ('type' in drag.item && (drag.item.type === 'entrance' || drag.item.type === 'interior')) {
         setDoors((prev: Door[]) => prev.map((d: Door) => 
           d.id === drag.item.id 
-            ? { ...d, x: newX, y: newY, length: newLength }
+            ? { ...d, x: newX, y: newY, length: newLength, width: d.width }
             : d
         ));
 
@@ -765,6 +782,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       x: CANVAS_WIDTH / 2 - 50,
       y: CANVAS_HEIGHT / 2 - 50,
       length: 100,
+      width: 8,
       rotation: 0,
       type: 'window',
       isDragging: false,
@@ -972,8 +990,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             position: 'absolute',
               left: window.x,
               top: window.y,
-              width: window.rotation === 0 ? window.length : 8,
-              height: window.rotation === 0 ? 8 : window.length,
+              width: window.rotation === 0 ? window.length : window.width,
+              height: window.rotation === 0 ? window.width : window.length,
               backgroundColor: window.attachedTo ? '#4CAF50' : '#2196F3',
               border: '2px solid #2e7d32',
               borderRadius: '4px',
@@ -1046,8 +1064,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               position: 'absolute',
               left: door.x,
               top: door.y,
-              width: door.rotation === 0 ? door.length : 8,
-              height: door.rotation === 0 ? 8 : door.length,
+              width: door.rotation === 0 ? door.length : door.width,
+              height: door.rotation === 0 ? door.width : door.length,
               backgroundColor: door.type === 'entrance' ? '#ff9800' : '#9c27b0',
               border: door.attachedTo ? '3px solid #4caf50' : '2px solid #673ab7',
               borderRadius: '4px',
