@@ -269,6 +269,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
 </defs>
 <rect width="100%" height="100%" fill="#ECECEC"/>`;
 
+    // Собираем все clipPath для окон
+    const windowClipPaths = [];
+
     // Функция для определения пересечения двух помещений
     // Комнаты считаются пересекающимися только если они действительно накладываются друг на друга
     const checkRoomOverlap = (room1, room2) => {
@@ -505,12 +508,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const leftInnerX = centerX - railOffset;
                 const rightInnerX = centerX + railOffset;
                 
+                // Собираем clipPath для добавления в defs
+                windowClipPaths.push(`<clipPath id="${clipPathId}">
+                    <rect x="0" y="0" width="${windowLength}" height="${windowWidth}" />
+                </clipPath>`);
+                
                 const windowGroup = `
-                    <defs>
-                        <clipPath id="${clipPathId}">
-                            <rect x="0" y="0" width="${windowLength}" height="${windowWidth}" />
-                        </clipPath>
-                    </defs>
                     <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})" clip-path="url(#${clipPathId})">
                         <!-- Боковые линии (side_lines) -->
                         <line x1="${leftRailX}" y1="0" x2="${leftRailX}" y2="${windowWidth}" 
@@ -866,6 +869,16 @@ export async function generateSvgFromData(rooms, totalSqm) {
             }
         });
     });
+
+    // Добавляем clipPath для окон в defs
+    if (windowClipPaths.length > 0) {
+        const defsEndIndex = svgContent.indexOf('</defs>');
+        if (defsEndIndex !== -1) {
+            const beforeDefsEnd = svgContent.substring(0, defsEndIndex);
+            const afterDefsEnd = svgContent.substring(defsEndIndex);
+            svgContent = beforeDefsEnd + '\n  ' + windowClipPaths.join('\n  ') + '\n' + afterDefsEnd;
+        }
+    }
 
     svgContent += `</svg>`;
 
