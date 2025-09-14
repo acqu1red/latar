@@ -465,78 +465,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         }
     });
 
-    // Draw windows (отображение окон)
-    console.log('SVG Generation - Checking for windows in rooms:', pixelRooms.map(r => ({ 
-        key: r.key, 
-        name: r.name, 
-        windows: r.windows?.length || 0,
-        windowsData: r.windows 
-    })));
-    
-    if (pixelRooms.some(room => room.windows && room.windows.length > 0)) {
-        console.log('SVG Generation - Found windows, processing...');
-        pixelRooms.forEach(room => {
-            if (!room.windows || room.windows.length === 0) return;
-            console.log(`SVG Generation - Processing windows for room ${room.name}:`, room.windows);
-            
-            // Используем уже вычисленные пиксельные координаты
-            const roomPixels = {
-                x: room.pixelX,
-                y: room.pixelY,
-                width: room.pixelWidth,
-                height: room.pixelHeight
-            };
-
-            room.windows.forEach(window => {
-                const windowWidth = 8 * SVG_SCALE;
-                const windowLength = window.len * (window.side === 'left' || window.side === 'right' ? roomPixels.height : roomPixels.width);
-                
-                let windowX, windowY, windowRotation = 0;
-                
-                switch (window.side) {
-                    case 'left':
-                        windowX = roomPixels.x - windowWidth / 2;
-                        windowY = roomPixels.y + window.pos * roomPixels.height;
-                        windowRotation = 90;
-                        break;
-                    case 'right':
-                        windowX = roomPixels.x + roomPixels.width - windowWidth / 2;
-                        windowY = roomPixels.y + window.pos * roomPixels.height;
-                        windowRotation = 90;
-                        break;
-                    case 'top':
-                        windowX = roomPixels.x + window.pos * roomPixels.width;
-                        windowY = roomPixels.y - windowWidth / 2;
-                        windowRotation = 0;
-                        break;
-                    case 'bottom':
-                        windowX = roomPixels.x + window.pos * roomPixels.width;
-                        windowY = roomPixels.y + roomPixels.height - windowWidth / 2;
-                        windowRotation = 0;
-                        break;
-                }
-
-                // Создаем окно в стиле волнистых линий (шторы)
-                const windowGroup = `
-                    <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})">
-                        <!-- Волнистые линии как шторы -->
-                        <path d="M 0 ${windowWidth/2} Q ${windowLength/4} ${windowWidth/4} ${windowLength/2} ${windowWidth/2} T ${windowLength} ${windowWidth/2}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 + 2} Q ${windowLength/4} ${windowWidth/4 + 2} ${windowLength/2} ${windowWidth/2 + 2} T ${windowLength} ${windowWidth/2 + 2}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 + 4} Q ${windowLength/4} ${windowWidth/4 + 4} ${windowLength/2} ${windowWidth/2 + 4} T ${windowLength} ${windowWidth/2 + 4}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 - 2} Q ${windowLength/4} ${windowWidth/4 - 2} ${windowLength/2} ${windowWidth/2 - 2} T ${windowLength} ${windowWidth/2 - 2}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 - 4} Q ${windowLength/4} ${windowWidth/4 - 4} ${windowLength/2} ${windowWidth/2 - 4} T ${windowLength} ${windowWidth/2 - 4}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                    </g>
-                `;
-                
-                svgContent += windowGroup;
-            });
-        });
-    }
 
     // Draw doors (детализация: косяки, петля, ровная дуга)
     pixelRooms.forEach(room => {
@@ -633,9 +561,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
             // Определяем толщину стены для окон
             let isExternalWall = false;
             if (window.side === 'left' || window.side === 'right') {
-                isExternalWall = Math.abs(roomPixels.x - planBounds.left) < EPS || Math.abs(roomPixels.x + roomPixels.width - planBounds.right) < EPS;
+                isExternalWall = Math.abs(pixelX - planBounds.left) < EPS || Math.abs(pixelX + pixelWidth - planBounds.right) < EPS;
             } else {
-                isExternalWall = Math.abs(roomPixels.y - planBounds.top) < EPS || Math.abs(roomPixels.y + roomPixels.height - planBounds.bottom) < EPS;
+                isExternalWall = Math.abs(pixelY - planBounds.top) < EPS || Math.abs(pixelY + pixelHeight - planBounds.bottom) < EPS;
             }
             
             const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
@@ -645,33 +573,33 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
             if (window.side === 'top') {
                 // Окно на верхней стене
-                const startX = roomPixels.x + pos * roomPixels.width;
-                const winLength = len * roomPixels.width;
-                const y = roomPixels.y;
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                const y = pixelY;
                 svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'bottom') {
                 // Окно на нижней стене
-                const startX = roomPixels.x + pos * roomPixels.width;
-                const winLength = len * roomPixels.width;
-                const y = roomPixels.y + roomPixels.height;
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                const y = pixelY + pixelHeight;
                 svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'left') {
                 // Окно на левой стене
-                const startY = roomPixels.y + pos * roomPixels.height;
-                const winLength = len * roomPixels.height;
-                const x = roomPixels.x;
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                const x = pixelX;
                 svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
             } else if (window.side === 'right') {
                 // Окно на правой стене
-                const startY = roomPixels.y + pos * roomPixels.height;
-                const winLength = len * roomPixels.height;
-                const x = roomPixels.x + roomPixels.width;
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                const x = pixelX + pixelWidth;
                 svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
                 svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
