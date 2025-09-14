@@ -21,124 +21,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
-    // Функция для генерации дизайна окна - новый красивый дизайн
-    function generateWindowDesign(windowLength, windowWidth, windowX, windowY, windowRotation, roomKey, windowSide, windowPos, doorsOnSameWall = []) {
-        // Минимальные размеры окна
-        const minLength = 200 * SVG_SCALE;
-        const minWidth = 60 * SVG_SCALE;
-        const adaptedLength = Math.max(windowLength, minLength);
-        const adaptedWidth = Math.max(windowWidth, minWidth);
-        
-        // Параметры дизайна
-        const wallThickness = 6 * SVG_SCALE;
-        const centerGap = 20 * SVG_SCALE; // Расстояние между центральными линиями
-        const rungThickness = 2 * SVG_SCALE;
-        const rungSpacing = 15 * SVG_SCALE;
-        
-        let windowElements = '';
-        
-        // Проверяем пересечения с дверями
-        const hasDoorIntersection = doorsOnSameWall.some(door => {
-            const doorStart = door.pos - door.len / 2;
-            const doorEnd = door.pos + door.len / 2;
-            const windowStart = windowPos - windowLength / adaptedLength;
-            const windowEnd = windowPos + windowLength / adaptedLength;
-            return !(doorEnd <= windowStart || doorStart >= windowEnd);
-        });
-        
-        if (!hasDoorIntersection) {
-            // Две линии на уровне стены (боковые границы окна)
-            windowElements += `<line x1="0" y1="0" x2="0" y2="${adaptedWidth}" 
-                stroke="#2f2f2f" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
-            windowElements += `<line x1="${adaptedLength}" y1="0" x2="${adaptedLength}" y2="${adaptedWidth}" 
-                stroke="#2f2f2f" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
-            
-            // Две центральные линии с перекладинами
-            const leftCenterX = adaptedLength * 0.4;
-            const rightCenterX = adaptedLength * 0.6;
-            
-            // Левая центральная линия
-            windowElements += `<line x1="${leftCenterX}" y1="0" x2="${leftCenterX}" y2="${adaptedWidth}" 
-                stroke="#2f2f2f" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
-            
-            // Правая центральная линия
-            windowElements += `<line x1="${rightCenterX}" y1="0" x2="${rightCenterX}" y2="${adaptedWidth}" 
-                stroke="#2f2f2f" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
-            
-            // Перекладины между центральными линиями (создают визуальный "полу-квадрат")
-            const rungAreaWidth = rightCenterX - leftCenterX;
-            const rungCount = Math.max(3, Math.floor(rungAreaWidth / rungSpacing));
-            const actualRungSpacing = rungAreaWidth / (rungCount + 1);
-            
-            // Верхние перекладины (направлены вправо)
-            for (let i = 1; i <= rungCount; i++) {
-                const rungX = leftCenterX + i * actualRungSpacing;
-                const rungY = adaptedWidth * 0.3;
-                windowElements += `<line x1="${rungX}" y1="${rungY}" x2="${rungX + actualRungSpacing * 0.6}" y2="${rungY}" 
-                    stroke="#2f2f2f" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
-            }
-            
-            // Нижние перекладины (направлены влево)
-            for (let i = 1; i <= rungCount; i++) {
-                const rungX = leftCenterX + i * actualRungSpacing;
-                const rungY = adaptedWidth * 0.7;
-                windowElements += `<line x1="${rungX + actualRungSpacing * 0.6}" y1="${rungY}" x2="${rungX}" y2="${rungY}" 
-                    stroke="#2f2f2f" stroke-width="${rungThickness}" stroke-linecap="square"/>`;
-            }
-        }
-        
-        return windowElements;
-    }
-
-    // Функция для генерации дизайна двери - новый красивый дизайн
-    function generateDoorDesign(doorLength, doorWidth, doorX, doorY, doorRotation, doorType, roomKey, doorSide, doorPos) {
-        // Минимальные размеры двери
-        const minLength = 100 * SVG_SCALE;
-        const minWidth = 20 * SVG_SCALE;
-        const adaptedLength = Math.max(doorLength, minLength);
-        const adaptedWidth = Math.max(doorWidth, minWidth);
-        
-        // Параметры дизайна
-        const wallThickness = 6 * SVG_SCALE;
-        const doorThickness = 3 * SVG_SCALE;
-        const arcRadius = adaptedLength * 0.8;
-        const arcCenterX = adaptedLength * 0.2;
-        const arcCenterY = adaptedWidth * 0.5;
-        
-        let doorElements = '';
-        
-        // Проем в стене (верхняя линия)
-        doorElements += `<line x1="0" y1="0" x2="${adaptedLength}" y2="0" 
-            stroke="#2f2f2f" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
-        
-        // Дуга открывания двери
-        const startAngle = 180;
-        const endAngle = 90;
-        const startRad = (startAngle * Math.PI) / 180;
-        const endRad = (endAngle * Math.PI) / 180;
-        
-        const startX = arcCenterX + arcRadius * Math.cos(startRad);
-        const startY = arcCenterY + arcRadius * Math.sin(startRad);
-        const endX = arcCenterX + arcRadius * Math.cos(endRad);
-        const endY = arcCenterY + arcRadius * Math.sin(endRad);
-        
-        doorElements += `<path d="M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 0 1 ${endX} ${endY}" 
-            stroke="#2f2f2f" stroke-width="${doorThickness}" fill="none"/>`;
-        
-        // Петли двери
-        const hingeSize = 8 * SVG_SCALE;
-        const hingeY1 = adaptedWidth * 0.2;
-        const hingeY2 = adaptedWidth * 0.8;
-        const hingeX = adaptedLength * 0.1;
-        
-        doorElements += `<circle cx="${hingeX}" cy="${hingeY1}" r="${hingeSize}" 
-            fill="#2f2f2f" stroke="none"/>`;
-        doorElements += `<circle cx="${hingeX}" cy="${hingeY2}" r="${hingeSize}" 
-            fill="#2f2f2f" stroke="none"/>`;
-        
-        return doorElements;
-    }
-
     // Convert normalized coordinates (0-1) to pixel coordinates
     // Строго используем размеры из конструктора
     const pixelRooms = rooms.map(room => {
@@ -159,17 +41,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         
         return pixelRoom;
     });
-
-    // Определяем границы всего плана для выявления внешних стен (перемещаем сразу после pixelRooms)
-    const planBounds = {
-        left: Math.min(...pixelRooms.map(r => r.pixelX)),
-        right: Math.max(...pixelRooms.map(r => r.pixelX + r.pixelWidth)),
-        top: Math.min(...pixelRooms.map(r => r.pixelY)),
-        bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
-    };
-
-    // Определяем константу EPS для проверок (перемещаем выше)
-    const EPS = 1;
 
     // Минимальная коррекция только для сглаживания углов (не более 3 пикселей)
     const MINIMAL_CORRECTION = 3 * SVG_SCALE;
@@ -501,24 +372,37 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         break;
                 }
 
-                // Определяем тип двери (входная или межкомнатная)
-                const doorType = door.type === 'entrance' ? 'entrance' : 'interior';
-                
-                // Генерируем дверь с новым дизайном
-                const doorElements = generateDoorDesign(doorLength, doorWidth, doorX, doorY, doorRotation, doorType, room.key, door.side, door.pos);
-                
-                // Создаем группу с трансформацией
+                // Создаем реалистичную дверь с объемом
                 const doorGroup = `
                     <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})">
-                        ${doorElements}
+                        <!-- Тень двери -->
+                        <rect x="2" y="2" width="${doorLength}" height="${doorWidth}" 
+                              fill="#8D6E63" opacity="0.3" rx="2"/>
+                        
+                        <!-- Основная дверь -->
+                        <rect x="0" y="0" width="${doorLength}" height="${doorWidth}" 
+                              fill="url(#doorGradient)" stroke="#5D4037" stroke-width="1" rx="2"/>
+                        
+                        <!-- Ручка двери -->
+                        <circle cx="${doorLength - 12}" cy="${doorWidth / 2}" r="3" 
+                                fill="#FFD700" stroke="#B8860B" stroke-width="0.5"/>
+                        
+                        <!-- Панели двери -->
+                        <rect x="8" y="2" width="${doorLength - 16}" height="2" fill="#8D6E63" opacity="0.6"/>
+                        <rect x="8" y="${doorWidth - 4}" width="${doorLength - 16}" height="2" fill="#8D6E63" opacity="0.6"/>
+                        
+                        <!-- Центральная панель -->
+                        <rect x="${doorLength / 2 - 8}" y="4" width="16" height="${doorWidth - 8}" 
+                              fill="#8D6E63" opacity="0.4" rx="1"/>
                     </g>
                 `;
+                
                 svgContent += doorGroup;
             });
         });
     }
 
-    // Draw windows with new design based on JSON specification
+    // Draw windows (старый код, аналогичный коду дверей)
     console.log('SVG Generation - Checking for windows in rooms:', rooms.map(r => ({ 
         key: r.key, 
         name: r.name, 
@@ -589,25 +473,45 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         break;
                 }
 
-                // Находим двери на той же стене
-                const doorsOnSameWall = room.doors.filter(door => door.side === window.side);
-                
-                // Генерируем окно с новым дизайном
-                const windowElements = generateWindowDesign(windowLength, windowWidth, windowX, windowY, windowRotation, room.key, window.side, window.pos, doorsOnSameWall);
-                
-                // Создаем группу с трансформацией
+                // Создаем окно в стиле волнистых линий (шторы)
+                // Ограничиваем область рисования для предотвращения лишних текстур
+                const clipPathId = `windowClip_${room.key}_${window.side}_${window.pos}`;
                 const windowGroup = `
-                    <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})">
-                        ${windowElements}
+                    <defs>
+                        <clipPath id="${clipPathId}">
+                            <rect x="0" y="0" width="${windowLength}" height="${windowWidth}" />
+                        </clipPath>
+                    </defs>
+                    <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})" clip-path="url(#${clipPathId})">
+                        <!-- Волнистые линии как шторы -->
+                        <path d="M 0 ${windowWidth/2} Q ${windowLength/4} ${windowWidth/4} ${windowLength/2} ${windowWidth/2} T ${windowLength} ${windowWidth/2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 + 2} Q ${windowLength/4} ${windowWidth/4 + 2} ${windowLength/2} ${windowWidth/2 + 2} T ${windowLength} ${windowWidth/2 + 2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 + 4} Q ${windowLength/4} ${windowWidth/4 + 4} ${windowLength/2} ${windowWidth/2 + 4} T ${windowLength} ${windowWidth/2 + 4}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 - 2} Q ${windowLength/4} ${windowWidth/4 - 2} ${windowLength/2} ${windowWidth/2 - 2} T ${windowLength} ${windowWidth/2 - 2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 - 4} Q ${windowLength/4} ${windowWidth/4 - 4} ${windowLength/2} ${windowWidth/2 - 4} T ${windowLength} ${windowWidth/2 - 4}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
                     </g>
                 `;
+                
                 svgContent += windowGroup;
             });
         });
     }
 
+    // Определяем границы всего плана для выявления внешних стен (перемещаем выше)
+    const planBounds = {
+        left: Math.min(...pixelRooms.map(r => r.pixelX)),
+        right: Math.max(...pixelRooms.map(r => r.pixelX + r.pixelWidth)),
+        top: Math.min(...pixelRooms.map(r => r.pixelY)),
+        bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
+    };
 
     // Построим единый слой стен по уникальным рёбрам
+    const EPS = 1;
     const edges = [];
     const addEdge = (orientation, fixCoord, start, end) => {
         if (end - start <= 0) return;
@@ -670,8 +574,146 @@ export async function generateSvgFromData(rooms, totalSqm) {
     });
 
 
-    // Note: Door rendering is now handled by the new generateDoorDesign function above
+    // Draw doors (детализация: косяки, петля, ровная дуга)
+    pixelRooms.forEach(room => {
+        const { pixelX, pixelY, pixelWidth, pixelHeight, doors = [] } = room;
 
+        doors.forEach(door => {
+            const doorCenterX = pixelX + door.pos * pixelWidth;
+            const doorCenterY = pixelY + door.pos * pixelHeight;
+            const doorSpan = Math.min(130, Math.max(80, Math.min(pixelWidth, pixelHeight) * 0.28));
+            const arcRadius = doorSpan;
+            
+            // Определяем, является ли стена внешней
+            let isExternalWall = false;
+            if (door.side === 'left' || door.side === 'right') {
+                isExternalWall = Math.abs(pixelX - planBounds.left) < EPS || Math.abs(pixelX + pixelWidth - planBounds.right) < EPS;
+            } else {
+                isExternalWall = Math.abs(pixelY - planBounds.top) < EPS || Math.abs(pixelY + pixelHeight - planBounds.bottom) < EPS;
+            }
+            
+            // Проверяем, не является ли это стеной балкона/лоджии
+            const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
+            
+            // Определяем толщину стены
+            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+            
+            const gapStroke = wallThickness + 2; // разрез по толщине стены
+            const jambStroke = Math.max(2, Math.floor(wallThickness * 0.25));
+            const jambColor = '#1E1E1E';
+            const hingeRadius = Math.max(3, Math.floor(arcRadius * 0.08));
+
+            if (door.side === 'top') {
+                // gap
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
+                // jambs
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + wallThickness/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + wallThickness/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                // arc (hinge at left)
+                const hx = doorCenterX - doorSpan / 2;
+                const hy = pixelY;
+                const ex = hx + arcRadius;
+                const ey = hy + arcRadius;
+                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 1 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+            } else if (door.side === 'bottom') {
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight - wallThickness/2}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY + pixelHeight - wallThickness/2}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                const hx = doorCenterX - doorSpan / 2;
+                const hy = pixelY + pixelHeight;
+                const ex = hx + arcRadius;
+                const ey = hy - arcRadius;
+                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 0 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+            } else if (door.side === 'left') {
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + wallThickness/2}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + wallThickness/2}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                const hx = pixelX;
+                const hy = doorCenterY - doorSpan / 2;
+                const ex = hx + arcRadius;
+                const ey = hy + arcRadius;
+                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 1 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+            } else if (door.side === 'right') {
+                svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth - wallThickness/2}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth - wallThickness/2}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                const hx = pixelX + pixelWidth;
+                const hy = doorCenterY - doorSpan / 2;
+                const ex = hx - arcRadius;
+                const ey = hy + arcRadius;
+                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 0 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+            }
+        });
+    });
+
+    // Draw windows: прорезаем стену и рисуем полосы окна
+    pixelRooms.forEach(room => {
+        const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [] } = room;
+
+        if (windows.length > 0) {
+            console.log(`Drawing windows for room ${room.key} (${room.name}):`, {
+                position: { x: pixelX, y: pixelY, width: pixelWidth, height: pixelHeight },
+                windows: windows.map(w => ({ side: w.side, pos: w.pos, len: w.len }))
+            });
+        }
+
+        windows.forEach(window => {
+            // Правильное позиционирование окон на стенах
+            const pos = typeof window.pos === 'number' ? window.pos : 0.5;
+            const len = typeof window.len === 'number' ? window.len : 0.2;
+            
+            // Определяем толщину стены для окон
+            let isExternalWall = false;
+            if (window.side === 'left' || window.side === 'right') {
+                isExternalWall = Math.abs(pixelX - planBounds.left) < EPS || Math.abs(pixelX + pixelWidth - planBounds.right) < EPS;
+            } else {
+                isExternalWall = Math.abs(pixelY - planBounds.top) < EPS || Math.abs(pixelY + pixelHeight - planBounds.bottom) < EPS;
+            }
+            
+            const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
+            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+            const cutWidth = wallThickness + 2;
+            const stripe = 4;
+
+            if (window.side === 'top') {
+                // Окно на верхней стене
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                const y = pixelY;
+                svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+            } else if (window.side === 'bottom') {
+                // Окно на нижней стене
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                const y = pixelY + pixelHeight;
+                svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y - 1}" x2="${startX + winLength}" y2="${y - 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${y + 1}" x2="${startX + winLength}" y2="${y + 1}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+            } else if (window.side === 'left') {
+                // Окно на левой стене
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                const x = pixelX;
+                svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+            } else if (window.side === 'right') {
+                // Окно на правой стене
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                const x = pixelX + pixelWidth;
+                svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${cutWidth}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x - 1}" y1="${startY}" x2="${x - 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${x + 1}" y1="${startY}" x2="${x + 1}" y2="${startY + winLength}" stroke="#1F1F1F" stroke-width="${stripe}" stroke-linecap="square"/>`;
+            }
+        });
+    });
 
     // Draw furniture (improved 2D icons with softer strokes and light fill)
     pixelRooms.forEach(room => {

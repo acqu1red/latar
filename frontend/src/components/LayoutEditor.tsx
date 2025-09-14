@@ -13,7 +13,7 @@ const CANVAS_WIDTH = 1000;
 const CANVAS_HEIGHT = 700;
 const GRID_SIZE = 20;
 const WINDOW_MIN_LENGTH = 60;
-const WINDOW_MAX_LENGTH = 800; // Увеличиваем максимальную длину для свободного растягивания
+const WINDOW_MAX_LENGTH = 200;
 const SNAP_DISTANCE = 15;
 
 type WindowElement = {
@@ -64,12 +64,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   } | null>(null);
   
   const [windows, setWindows] = useState<WindowElement[]>([]);
-  const [selectedWindow, setSelectedWindow] = useState<number | null>(null);
+  const [selectedWindow, setSelectedWindow] = useState<{ roomKey: string; index: number } | null>(null);
   
   // Состояние для дверей
   const [doors, setDoors] = useState<Door[]>([]);
   const [selectedDoor, setSelectedDoor] = useState<number | null>(null);
-  const [doorCreationMode, setDoorCreationMode] = useState<'none' | 'entrance' | 'interior'>('none');
+  const [doorCreationMode, setDoorCreationMode] = useState<'none' | 'entrance' | 'interior' | 'menu'>('none');
   const [hasEntranceDoor, setHasEntranceDoor] = useState<boolean>(false);
 
   const enabledRooms = useMemo(() => rooms.filter(r => r.enabled), [rooms]);
@@ -165,7 +165,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   // Обновляем данные при изменении окон и дверей
   React.useEffect(() => {
     if (onWindowsUpdate) {
-      const windowsData = convertWindowsToSvgFormat();
+      const windowsData = convertWindowsToSvgFormat().filter((item): item is NonNullable<typeof item> => item !== null);
       console.log('Updating windows data:', windowsData);
       onWindowsUpdate(windowsData);
     }
@@ -173,7 +173,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
 
   React.useEffect(() => {
     if (onDoorsUpdate) {
-      const doorsData = convertDoorsToSvgFormat();
+      const doorsData = convertDoorsToSvgFormat().filter((item): item is NonNullable<typeof item> => item !== null);
       console.log('Updating doors data:', doorsData);
       onDoorsUpdate(doorsData);
     }
@@ -208,7 +208,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     // Принудительно обновляем данные
     setTimeout(() => {
       if (onDoorsUpdate) {
-        const doorsData = convertDoorsToSvgFormat();
+        const doorsData = convertDoorsToSvgFormat().filter((item): item is NonNullable<typeof item> => item !== null);
         console.log('Force updating doors data after add:', doorsData);
         onDoorsUpdate(doorsData);
       }
@@ -511,13 +511,28 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         // Растягивание окна или двери
         if (drag.item.rotation === 0) {
           // Горизонтальное - растягиваем по X
-          newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + dx));
+          newLength = drag.start.length + dx;
         } else {
           // Вертикальное - растягиваем по Y
-          newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, drag.start.length + dy));
+          newLength = drag.start.length + dy;
         }
         
-        // Убираем ограничение длины окна размером стены - позволяем свободное растягивание
+        // Для прикрепленных окон ограничиваем максимальную длину размером стены
+        if ('type' in drag.item && drag.item.type === 'window' && drag.item.attachedTo) {
+          const room = enabledRooms.find(r => r.key === drag.item.attachedTo.roomKey);
+          if (room) {
+            const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+            const roomPixels = toPixels(layout);
+            const wallLength = drag.item.attachedTo.side === 'left' || drag.item.attachedTo.side === 'right' 
+              ? roomPixels.height 
+              : roomPixels.width;
+            // Ограничиваем длину размером стены, но позволяем растягивать в пределах стены
+            newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(newLength, wallLength));
+          }
+        } else {
+          // Для свободных окон используем стандартные ограничения
+          newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(WINDOW_MAX_LENGTH, newLength));
+        }
       } else {
         // Перемещение окна или двери
         newX = Math.max(0, Math.min(CANVAS_WIDTH - (drag.item.rotation === 0 ? newLength : 8), drag.start.x + dx));
@@ -782,7 +797,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     // Принудительно обновляем данные
     setTimeout(() => {
       if (onWindowsUpdate) {
-        const windowsData = convertWindowsToSvgFormat();
+        const windowsData = convertWindowsToSvgFormat().filter((item): item is NonNullable<typeof item> => item !== null);
         console.log('Force updating windows data after add:', windowsData);
         onWindowsUpdate(windowsData);
       }
@@ -793,7 +808,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   // Удаление выбранного окна
   const deleteSelectedWindow = () => {
     if (!selectedWindow) return;
-    setWindows((prev: WindowElement[]) => prev.filter((w: WindowElement) => w.id !== selectedWindow));
+    setWindows((prev: WindowElement[]) => prev.filter((w: WindowElement) => w.id !== selectedWindow.index));
     setSelectedWindow(null);
   };
 
@@ -805,10 +820,10 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
 
   // Обработка клика по окну
   const handleWindowClick = (windowId: number) => {
-    if (selectedWindow === windowId) {
+    if (selectedWindow?.index === windowId) {
       setSelectedWindow(null);
     } else {
-      setSelectedWindow(windowId);
+      setSelectedWindow({ roomKey: '', index: windowId });
     }
   };
 
@@ -967,7 +982,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         {windows.map((window: WindowElement) => (
           <div
             key={window.id}
-            className={`window ${window.isDragging ? 'dragging' : ''} ${window.isResizing ? 'resizing' : ''} ${selectedWindow === window.id ? 'selected' : ''}`}
+            className={`window ${window.isDragging ? 'dragging' : ''} ${window.isResizing ? 'resizing' : ''} ${selectedWindow?.index === window.id ? 'selected' : ''}`}
             style={{
             position: 'absolute',
               left: window.x,
