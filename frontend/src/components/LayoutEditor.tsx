@@ -67,6 +67,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   
   const [windows, setWindows] = useState<WindowElement[]>([]);
   const [selectedWindow, setSelectedWindow] = useState<number | null>(null);
+  const [clickTimeout, setClickTimeout] = useState<number | null>(null);
   
   // Состояние для дверей
   const [doors, setDoors] = useState<Door[]>([]);
@@ -514,6 +515,48 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     }));
   };
 
+  // Обработка клика по окну с поддержкой двойного клика
+  const handleWindowClick = (windowId: number) => {
+    console.log('Window click:', windowId);
+    if (clickTimeout) {
+      // Это двойной клик
+      clearTimeout(clickTimeout);
+      setClickTimeout(null);
+      console.log('Double click detected, rotating window:', windowId);
+      rotateWindow(windowId);
+    } else {
+      // Это одинарный клик - устанавливаем таймаут
+      const timeout = setTimeout(() => {
+        console.log('Single click timeout, selecting window:', windowId);
+        setSelectedWindow(windowId);
+        setSelectedDoor(null);
+        setClickTimeout(null);
+      }, 300); // 300ms задержка для различения одинарного и двойного клика
+      setClickTimeout(timeout);
+    }
+  };
+
+  // Обработка клика по двери с поддержкой двойного клика
+  const handleDoorClick = (doorId: number) => {
+    console.log('Door click:', doorId);
+    if (clickTimeout) {
+      // Это двойной клик
+      clearTimeout(clickTimeout);
+      setClickTimeout(null);
+      console.log('Double click detected, rotating door:', doorId);
+      rotateDoor(doorId);
+    } else {
+      // Это одинарный клик - устанавливаем таймаут
+      const timeout = setTimeout(() => {
+        console.log('Single click timeout, selecting door:', doorId);
+        setSelectedDoor(doorId);
+        setSelectedWindow(null);
+        setClickTimeout(null);
+      }, 300); // 300ms задержка для различения одинарного и двойного клика
+      setClickTimeout(timeout);
+    }
+  };
+
 
 
   // Обработка движения мыши
@@ -833,14 +876,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     setSelectedWindow(null);
   };
 
-  // Обработка клика по окну
-  const handleWindowClick = (windowId: number) => {
-    if (selectedWindow === windowId) {
-      setSelectedWindow(null);
-    } else {
-      setSelectedWindow(windowId);
-    }
-  };
 
   return (
     <div className="layout-editor">
@@ -1017,11 +1052,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               e.stopPropagation();
               handleWindowClick(window.id);
             }}
-            onDoubleClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              console.log('Double click on window:', window.id);
-              rotateWindow(window.id);
-            }}
             title="Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание"
           >
             
@@ -1090,10 +1120,9 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               zIndex: 25
             }}
             onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, door, 'move')}
-            onDoubleClick={(e: React.MouseEvent) => {
+            onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              console.log('Double click on door:', door.id);
-              rotateDoor(door.id);
+              handleDoorClick(door.id);
             }}
             title={`${door.type === 'entrance' ? 'Входная' : 'Межкомнотная'} дверь. Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание`}
           >
