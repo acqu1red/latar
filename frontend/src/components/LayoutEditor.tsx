@@ -174,15 +174,19 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   // Обновляем данные при изменении окон и дверей
   React.useEffect(() => {
     if (onWindowsUpdate) {
-      onWindowsUpdate(convertWindowsToSvgFormat());
+      const windowsData = convertWindowsToSvgFormat();
+      console.log('Updating windows data:', windowsData);
+      onWindowsUpdate(windowsData);
     }
-  }, [floatingWindows, onWindowsUpdate]);
+  }, [floatingWindows, enabledRooms, onWindowsUpdate]);
 
   React.useEffect(() => {
     if (onDoorsUpdate) {
-      onDoorsUpdate(convertDoorsToSvgFormat());
+      const doorsData = convertDoorsToSvgFormat();
+      console.log('Updating doors data:', doorsData);
+      onDoorsUpdate(doorsData);
     }
-  }, [doors, onDoorsUpdate]);
+  }, [doors, enabledRooms, onDoorsUpdate]);
 
   // Функции для работы с дверями
   const addDoor = (type: 'entrance' | 'interior') => {
@@ -203,6 +207,15 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     if (type === 'entrance') {
       setHasEntranceDoor(true);
     }
+    
+    // Принудительно обновляем данные
+    setTimeout(() => {
+      if (onDoorsUpdate) {
+        const doorsData = convertDoorsToSvgFormat();
+        console.log('Force updating doors data after add:', doorsData);
+        onDoorsUpdate(doorsData);
+      }
+    }, 100);
   };
 
   const deleteDoor = (doorId: number) => {
@@ -229,9 +242,13 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     let bestAttachment: { room1Key: string; room2Key?: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number } | null = null;
     let minDistance = Infinity;
 
+    console.log('Finding wall for door:', { x: door.x, y: door.y, length: door.length, rotation: door.rotation });
+
     for (const room of enabledRooms) {
       const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
       const roomPixels = toPixels(layout);
+      
+      console.log(`Checking room ${room.name}:`, roomPixels);
       
       // Проверяем стены в зависимости от поворота двери
       let walls;
@@ -251,6 +268,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
 
       for (const wall of walls) {
         const distance = calculateDistanceToWall({ x: door.x, y: door.y, length: door.length, rotation: door.rotation } as FloatingWindow, wall);
+        console.log(`Wall ${wall.side} distance:`, distance);
         
         if (distance < minDistance && distance <= SNAP_DISTANCE) {
           minDistance = distance;
@@ -275,10 +293,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             side: wall.side,
             position
           };
+          console.log('Found attachment:', bestAttachment);
         }
       }
     }
 
+    console.log('Final attachment:', bestAttachment);
     return bestAttachment;
   };
 
@@ -518,8 +538,20 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         
         if (attachment) {
           setPendingAttachment({ windowId: drag.item.id, attachment });
+          // Автоматически прикрепляем окно к стене
+          setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+            w.id === drag.item.id 
+              ? { ...w, attachedTo: attachment }
+              : w
+          ));
         } else {
           setPendingAttachment(null);
+          // Открепляем окно от стены
+          setFloatingWindows((prev: FloatingWindow[]) => prev.map((w: FloatingWindow) => 
+            w.id === drag.item.id 
+              ? { ...w, attachedTo: undefined }
+              : w
+          ));
         }
       } else if ('type' in drag.item && (drag.item.type === 'entrance' || drag.item.type === 'interior')) {
         setDoors((prev: Door[]) => prev.map((d: Door) => 
@@ -757,6 +789,15 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       isRotating: false
     };
     setFloatingWindows((prev: FloatingWindow[]) => [...prev, newWindow]);
+    
+    // Принудительно обновляем данные
+    setTimeout(() => {
+      if (onWindowsUpdate) {
+        const windowsData = convertWindowsToSvgFormat();
+        console.log('Force updating windows data after add:', windowsData);
+        onWindowsUpdate(windowsData);
+      }
+    }, 100);
   };
 
   // Подтверждение привязки окна
@@ -841,6 +882,37 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
           onClick={deleteAllWindows}
         >
           🗑️ Удалить все окна
+        </button>
+
+        <button 
+          className="debug-attach-btn"
+          onClick={() => {
+            console.log('Current windows:', floatingWindows);
+            console.log('Current doors:', doors);
+            console.log('Windows data for SVG:', convertWindowsToSvgFormat());
+            console.log('Doors data for SVG:', convertDoorsToSvgFormat());
+          }}
+        >
+          🔍 Отладка данных
+        </button>
+
+        <button 
+          className="force-attach-btn"
+          onClick={() => {
+            // Принудительно прикрепляем все окна к ближайшим стенам
+            setFloatingWindows((prev: FloatingWindow[]) => prev.map((window: FloatingWindow) => {
+              const attachment = findNearestWall(window);
+              return { ...window, attachedTo: attachment || undefined };
+            }));
+            
+            // Принудительно прикрепляем все двери к ближайшим стенам
+            setDoors((prev: Door[]) => prev.map((door: Door) => {
+              const attachment = findNearestWallForDoor(door);
+              return { ...door, attachedTo: attachment || undefined };
+            }));
+          }}
+        >
+          🔗 Прикрепить все к стенам
         </button>
 
         {/* Кнопки управления дверями */}

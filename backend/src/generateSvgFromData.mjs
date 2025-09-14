@@ -354,9 +354,18 @@ export async function generateSvgFromData(rooms, totalSqm) {
     });
 
     // Рисуем двери (если есть данные о дверях)
+    console.log('SVG Generation - Checking for doors in rooms:', rooms.map(r => ({ 
+        key: r.key, 
+        name: r.name, 
+        doors: r.doors?.length || 0,
+        doorsData: r.doors 
+    })));
+    
     if (rooms.some(room => room.doors && room.doors.length > 0)) {
+        console.log('SVG Generation - Found doors, processing...');
         rooms.forEach(room => {
             if (!room.doors || room.doors.length === 0) return;
+            console.log(`SVG Generation - Processing doors for room ${room.name}:`, room.doors);
             
             const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
             const roomPixels = {

@@ -126,10 +126,12 @@ function App() {
   };
 
   const handleWindowsUpdate = (windows: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]) => {
+    console.log('App: Received windows update:', windows);
     setGlobalWindows(windows);
   };
 
   const handleDoorsUpdate = (doors: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]) => {
+    console.log('App: Received doors update:', doors);
     setGlobalDoors(doors);
   };
 
@@ -220,19 +222,33 @@ function App() {
       return;
     }
 
-    const hasInvalidRoom = enabledRooms.some(r => r.sqm <= 0);
+    const hasInvalidRoom = enabledRooms.some(r => r.sqm <= 0 || r.file.length === 0);
     if (hasInvalidRoom) {
-      setError("Для каждой включённой комнаты необходимо указать площадь.");
+      setError("Для каждой включённой комнаты необходимо указать площадь и загрузить хотя бы одно фото.");
       return;
     }
 
     setLoading(true);
     // Добавляем данные окон и дверей к комнатам
-    const allRoomsWithWindowsAndDoors = allRooms.map(room => ({
-      ...room,
-      windows: globalWindows,
-      doors: globalDoors
-    }));
+    // Окна и двери привязываются к конкретным комнатам через attachedTo
+    const allRoomsWithWindowsAndDoors = allRooms.map(room => {
+      // Пока передаем все окна и двери ко всем комнатам
+      // В будущем можно будет фильтровать по привязке к конкретным комнатам
+      return {
+        ...room,
+        windows: globalWindows,
+        doors: globalDoors
+      };
+    });
+
+    console.log('Sending to API - Global windows:', globalWindows);
+    console.log('Sending to API - Global doors:', globalDoors);
+    console.log('Sending to API - Rooms with windows/doors:', allRoomsWithWindowsAndDoors.map(r => ({ 
+      key: r.key, 
+      name: r.name, 
+      windows: r.windows?.length || 0, 
+      doors: r.doors?.length || 0 
+    })));
 
     // Always use the new hybrid approach (SVG + DALL-E styling)
     const apiResponse = await generatePlan(allRoomsWithWindowsAndDoors, bathroomConfig);
@@ -261,7 +277,7 @@ function App() {
       allRooms.splice(0, allRooms.length, ...filteredRooms, ...additionalRooms);
     }
     
-    return allRooms.some(r => r.enabled && r.sqm > 0);
+    return allRooms.some(r => r.enabled && r.sqm > 0 && r.file.length > 0);
   })();
 
   return (
@@ -341,7 +357,7 @@ function App() {
           <div className="constructor-panel" aria-hidden={!editorOpen}>
             <div className="constructor-panel-inner">
               <h3>Мини‑конструктор расположения комнат</h3>
-              <p className="constructor-hint">Перетаскивайте и меняйте размер. Размеры автоматически подстраиваются под площадь (м²), позиции — настраивайте вручную. Фотографии необязательны — план можно создать только с указанием площадей.</p>
+              <p className="constructor-hint">Перетаскивайте и меняйте размер. Размеры автоматически подстраиваются под площадь (м²), позиции — настраивайте вручную.</p>
               <LayoutEditor 
                 rooms={rooms} 
                 onUpdate={handleRoomUpdate}
@@ -358,7 +374,7 @@ function App() {
             disabled={!isGenerateButtonEnabled || loading}
             className="generate-btn"
           >
-            {loading ? 'Генерируем план...' : 'Генерировать план (фото необязательны)'}
+            {loading ? 'Анализируем фото и генерируем план...' : 'Генерировать план'}
           </button>
         </div>
 

@@ -80,32 +80,14 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
 
     console.log('Received rooms:', rooms.map(r => ({ key: r.key, name: r.name, enabled: r.enabled, sqm: r.sqm })));
 
-    // Process bathroom configuration first
-    let allRooms = [...rooms];
-    if (bathroomConfig) {
-      const parsedBathroomConfig = JSON.parse(bathroomConfig);
-      if (parsedBathroomConfig.type === 'combined') {
-        const bathroomIndex = allRooms.findIndex(r => r.key === 'bathroom');
-        if (bathroomIndex !== -1 && parsedBathroomConfig.bathroom.enabled) {
-          allRooms[bathroomIndex] = { ...parsedBathroomConfig.bathroom, key: 'bathroom', name: 'Уборная' };
-        }
-      } else {
-        const filteredRooms = allRooms.filter(r => r.key !== 'bathroom');
-        const additionalRooms = [];
-        if (parsedBathroomConfig.bathroom.enabled) additionalRooms.push(parsedBathroomConfig.bathroom);
-        if (parsedBathroomConfig.toilet.enabled) additionalRooms.push(parsedBathroomConfig.toilet);
-        allRooms.splice(0, allRooms.length, ...filteredRooms, ...additionalRooms);
-      }
-    }
-
-    const enabledRooms = allRooms.filter(r => r.enabled && r.sqm > 0);
+    const enabledRooms = rooms.filter(r => r.enabled && r.sqm > 0);
     console.log('Enabled rooms:', enabledRooms.map(r => ({ key: r.key, name: r.name, sqm: r.sqm })));
     
     if (enabledRooms.length === 0) {
       return res.status(400).json({ ok: false, error: 'No enabled rooms with sqm > 0.' });
     }
 
-    // Process photo files (optional)
+    // Check if all enabled rooms have a corresponding file
     const filesByRoomKey = req.files.reduce((acc, file) => {
       const key = file.fieldname.replace('photo_', '');
       if (!acc[key]) {
@@ -117,69 +99,47 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
 
     console.log('Files by room key:', Object.keys(filesByRoomKey));
 
+    const missingFiles = enabledRooms.filter(r => !filesByRoomKey[r.key] || filesByRoomKey[r.key].length === 0);
+    if (missingFiles.length > 0) {
+      const missingKeys = missingFiles.map(r => r.key).join(', ');
+      return res.status(400).json({ ok: false, error: `Missing photo files for: ${missingKeys}` });
+    }
+
     const totalSqm = enabledRooms.reduce((sum, r) => sum + r.sqm, 0);
 
     // --- Always use hybrid approach: SVG + DALL-E styling ---
     {
-      // Analyze photos to get furniture data (only if photos are available)
+      // First analyze photos to get furniture/doors data
       let analyzedRooms;
-      const roomsWithPhotos = enabledRooms.filter(room => {
-        const files = filesByRoomKey[room.key];
-        return files && files.length > 0;
-      });
+      try {
+        const analysisPromises = enabledRooms.map(async (room) => {
+          const files = filesByRoomKey[room.key];
+          if (!files) return null;
 
-      if (roomsWithPhotos.length > 0) {
-        try {
-          const analysisPromises = roomsWithPhotos.map(async (room) => {
-            const files = filesByRoomKey[room.key];
-            console.log(`Analyzing room: ${room.name} (${room.key}) with ${files.length} photos`);
-            const result = await analyzeRoomVision({
-              photoBuffers: files.map(f => f.buffer),
-              key: room.key,
-              name: room.name,
-              sqm: room.sqm,
-            });
-            console.log(`Analysis result for ${room.key}:`, { 
-              objects: result.objects?.length || 0,
-              objectTypes: result.objects?.map(o => o.type) || []
-            });
-            return result;
-          });
-
-          const analyzedRoomsWithPhotos = await Promise.all(analysisPromises);
-          
-          // Combine analyzed rooms with rooms without photos
-          analyzedRooms = enabledRooms.map(room => {
-            const analyzed = analyzedRoomsWithPhotos.find(r => r.key === room.key);
-            if (analyzed) {
-              return analyzed;
-            } else {
-              // Room without photos - return basic data
-              return {
-                key: room.key,
-                name: room.name,
-                sqm: room.sqm,
-                objects: []
-              };
-            }
-          });
-          
-          console.log('Analysis completed:', {
-            totalRooms: enabledRooms.length,
-            roomsWithPhotos: roomsWithPhotos.length,
-            roomsWithoutPhotos: enabledRooms.length - roomsWithPhotos.length
-          });
-        } catch (analysisError) {
-          console.error('Photo analysis failed, using basic room data:', analysisError);
-          analyzedRooms = enabledRooms.map(room => ({
+          console.log(`Analyzing room: ${room.name} (${room.key}) with ${files.length} photos`);
+          const result = await analyzeRoomVision({
+            photoBuffers: files.map(f => f.buffer),
             key: room.key,
             name: room.name,
             sqm: room.sqm,
-            objects: []
-          }));
+          });
+          console.log(`Analysis result for ${room.key}:`, { 
+            objects: result.objects?.length || 0, 
+            doors: result.doors?.length || 0, 
+            windows: result.windows?.length || 0,
+            objectTypes: result.objects?.map(o => o.type) || []
+          });
+          return result;
+        });
+
+        analyzedRooms = (await Promise.all(analysisPromises)).filter(Boolean);
+        console.log('Total analyzed rooms:', analyzedRooms.length);
+        
+        if (!analyzedRooms || analyzedRooms.length === 0) {
+          throw new Error('No rooms could be analyzed.');
         }
-      } else {
-        console.log('No photos provided, generating plan without furniture analysis');
+      } catch (analysisError) {
+        console.error('Photo analysis failed, using basic room data:', analysisError);
         analyzedRooms = enabledRooms.map(room => ({
           key: room.key,
           name: room.name,
