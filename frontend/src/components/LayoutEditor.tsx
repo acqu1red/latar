@@ -476,6 +476,17 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     }));
   };
 
+  // Поворот двери на 90 градусов
+  const rotateDoor = (doorId: number) => {
+    setDoors((prev: Door[]) => prev.map((d: Door) => {
+      if (d.id === doorId) {
+        const newRotation = d.rotation === 0 ? 90 : 0;
+        return { ...d, rotation: newRotation };
+      }
+      return d;
+    }));
+  };
+
 
   // Обработка движения мыши
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -1047,9 +1058,9 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, door, 'move')}
             onDoubleClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              setSelectedDoor(selectedDoor === door.id ? null : door.id);
+              rotateDoor(door.id);
             }}
-            title={`${door.type === 'entrance' ? 'Входная' : 'Межкомнотная'} дверь. Перетаскивать: перемещение, двойной клик: управление, ручки: растягивание`}
+            title={`${door.type === 'entrance' ? 'Входная' : 'Межкомнотная'} дверь. Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание`}
           >
             {/* Ручки растягивания длины */}
             {door.rotation === 0 ? (

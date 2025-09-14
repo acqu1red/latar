@@ -256,12 +256,14 @@ export async function generateSvgFromData(rooms, totalSqm) {
 <rect width="100%" height="100%" fill="#ECECEC"/>`;
 
     // Функция для определения пересечения двух помещений
+    // Комнаты считаются пересекающимися только при реальном наложении, а не при касании
     const checkRoomOverlap = (room1, room2) => {
+        const EPS = 1; // Допуск в 1 пиксель для учета погрешностей округления
         return !(
-            room1.pixelX + room1.pixelWidth <= room2.pixelX ||
-            room2.pixelX + room2.pixelWidth <= room1.pixelX ||
-            room1.pixelY + room1.pixelHeight <= room2.pixelY ||
-            room2.pixelY + room2.pixelHeight <= room1.pixelY
+            room1.pixelX + room1.pixelWidth <= room2.pixelX + EPS ||
+            room2.pixelX + room2.pixelWidth <= room1.pixelX + EPS ||
+            room1.pixelY + room1.pixelHeight <= room2.pixelY + EPS ||
+            room2.pixelY + room2.pixelHeight <= room1.pixelY + EPS
         );
     };
 
@@ -365,28 +367,14 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         break;
                 }
 
-                // Создаем реалистичную дверь с объемом
+                // Создаем схематичную дверь как на фото
                 const doorGroup = `
                     <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})">
-                        <!-- Тень двери -->
-                        <rect x="2" y="2" width="${doorLength}" height="${doorWidth}" 
-                              fill="#8D6E63" opacity="0.3" rx="2"/>
-                        
-                        <!-- Основная дверь -->
-                        <rect x="0" y="0" width="${doorLength}" height="${doorWidth}" 
-                              fill="url(#doorGradient)" stroke="#5D4037" stroke-width="1" rx="2"/>
-                        
-                        <!-- Ручка двери -->
-                        <circle cx="${doorLength - 12}" cy="${doorWidth / 2}" r="3" 
-                                fill="#FFD700" stroke="#B8860B" stroke-width="0.5"/>
-                        
-                        <!-- Панели двери -->
-                        <rect x="8" y="2" width="${doorLength - 16}" height="2" fill="#8D6E63" opacity="0.6"/>
-                        <rect x="8" y="${doorWidth - 4}" width="${doorLength - 16}" height="2" fill="#8D6E63" opacity="0.6"/>
-                        
-                        <!-- Центральная панель -->
-                        <rect x="${doorLength / 2 - 8}" y="4" width="16" height="${doorWidth - 8}" 
-                              fill="#8D6E63" opacity="0.4" rx="1"/>
+                        <!-- Простая линия двери -->
+                        <line x1="0" y1="0" x2="${doorLength}" y2="0" stroke="#2F2F2F" stroke-width="2"/>
+                        <!-- Дуга открывания -->
+                        <path d="M 0 0 A ${doorLength} ${doorLength} 0 0 1 ${doorLength} 0" 
+                              stroke="#2F2F2F" stroke-width="1" fill="none" stroke-dasharray="2,2"/>
                     </g>
                 `;
                 
@@ -446,20 +434,15 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         break;
                 }
 
-                // Создаем окно в стиле волнистых линий (шторы)
+                // Создаем окно в схематичном стиле как на фото
                 const windowGroup = `
                     <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})">
-                        <!-- Волнистые линии как шторы -->
+                        <!-- Простые параллельные линии окна -->
+                        <line x1="0" y1="0" x2="${windowLength}" y2="0" stroke="#2F2F2F" stroke-width="2"/>
+                        <line x1="0" y1="${windowWidth}" x2="${windowLength}" y2="${windowWidth}" stroke="#2F2F2F" stroke-width="2"/>
+                        <!-- Волнистая линия между ними (шторы) -->
                         <path d="M 0 ${windowWidth/2} Q ${windowLength/4} ${windowWidth/4} ${windowLength/2} ${windowWidth/2} T ${windowLength} ${windowWidth/2}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 + 2} Q ${windowLength/4} ${windowWidth/4 + 2} ${windowLength/2} ${windowWidth/2 + 2} T ${windowLength} ${windowWidth/2 + 2}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 + 4} Q ${windowLength/4} ${windowWidth/4 + 4} ${windowLength/2} ${windowWidth/2 + 4} T ${windowLength} ${windowWidth/2 + 4}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 - 2} Q ${windowLength/4} ${windowWidth/4 - 2} ${windowLength/2} ${windowWidth/2 - 2} T ${windowLength} ${windowWidth/2 - 2}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
-                        <path d="M 0 ${windowWidth/2 - 4} Q ${windowLength/4} ${windowWidth/4 - 4} ${windowLength/2} ${windowWidth/2 - 4} T ${windowLength} ${windowWidth/2 - 4}" 
-                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                              stroke="#2F2F2F" stroke-width="1" fill="none"/>
                     </g>
                 `;
                 
@@ -722,92 +705,53 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += `\n<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" ry="${r}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}" stroke-linecap="round" stroke-linejoin="round"/>`;
             };
 
+            // Схематичный дизайн мебели как на фото
             if (obj.type === 'sofa') {
-                const pad = Math.min(objWidth, objHeight) * 0.08;
-                const innerX = objX - objWidth/2 + pad;
-                const innerY = objY - objHeight/2 + pad;
-                const innerW = objWidth - pad * 2;
-                const innerH = objHeight - pad * 2;
-                const backThickness = Math.max(8, innerH * 0.18);
-                const cushionGap = Math.max(6, innerW * 0.04);
-                const cushionW = (innerW - cushionGap) / 2;
-                const cushionH = innerH - backThickness - pad * 0.5;
-                svgContent += `\n<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" width="${objWidth}" height="${objHeight}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}" stroke-linecap="round" stroke-linejoin="round"/>`;
-                svgContent += `\n<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${backThickness}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}"/>`;
-                svgContent += `\n<rect x="${innerX}" y="${innerY + backThickness + cushionGap * 0.25}" width="${cushionW}" height="${cushionH}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}"/>`;
-                svgContent += `\n<rect x="${innerX + cushionW + cushionGap}" y="${innerY + backThickness + cushionGap * 0.25}" width="${cushionW}" height="${cushionH}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}"/>`;
+                // Простой прямоугольник с линией спинки
+                drawRect();
+                svgContent += `\n<line x1="${objX - objWidth/2}" y1="${objY - objHeight/2}" x2="${objX + objWidth/2}" y2="${objY - objHeight/2}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}"/>`;
             } else if (obj.type === 'bed') {
-                const pad = Math.min(objWidth, objHeight) * 0.08;
-                const headThickness = Math.max(8, objHeight * 0.18);
-                const pillowGap = Math.max(6, objWidth * 0.04);
-                const pillowW = (objWidth - pillowGap - pad * 2) / 2;
-                const pillowH = Math.max(18, headThickness - pad);
-                svgContent += `\n<rect x="${objX - objWidth/2}" y="${objY - objHeight/2}" width="${objWidth}" height="${objHeight}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}"/>`;
-                svgContent += `\n<rect x="${objX - objWidth/2 + pad}" y="${objY - objHeight/2 + pad}" width="${pillowW}" height="${pillowH}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}"/>`;
-                svgContent += `\n<rect x="${objX - objWidth/2 + pad + pillowW + pillowGap}" y="${objY - objHeight/2 + pad}" width="${pillowW}" height="${pillowH}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}"/>`;
+                // Простой прямоугольник с двумя подушками
+                drawRect();
+                const pillowSize = Math.min(objWidth, objHeight) * 0.15;
+                svgContent += `\n<circle cx="${objX - objWidth*0.25}" cy="${objY - objHeight*0.3}" r="${pillowSize}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
+                svgContent += `\n<circle cx="${objX + objWidth*0.25}" cy="${objY - objHeight*0.3}" r="${pillowSize}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
             } else if (obj.type === 'chair') {
-                // Chair: seat + backrest
-                const seatW = objWidth * 0.6;
-                const seatH = objHeight * 0.6;
-                drawRoundedRect(objX - seatW/2, objY - seatH/2, seatW, seatH, Math.min(seatW, seatH)*0.2);
-                const backH = Math.max(10, objHeight * 0.25);
-                svgContent += `\n<rect x="${objX - seatW/2}" y="${objY - seatH/2 - backH}" width="${seatW}" height="${backH}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}"/>`;
+                // Простой квадрат
+                drawRect();
             } else if (obj.type === 'table') {
-                // Table: rounded rectangle
-                drawRoundedRect(objX - objWidth/2, objY - objHeight/2, objWidth, objHeight, Math.min(objWidth, objHeight)*0.15);
+                // Простой прямоугольник
+                drawRect();
             } else if (obj.type === 'wardrobe') {
-                // Wardrobe: two-door cabinet
+                // Прямоугольник с вертикальной линией посередине
                 drawRect();
-                const midX = objX;
-                svgContent += `\n<line x1="${midX}" y1="${objY - objHeight/2}" x2="${midX}" y2="${objY + objHeight/2}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}" stroke-linecap="round"/>`;
-                svgContent += `\n<circle cx="${midX - objWidth*0.2}" cy="${objY}" r="${ICON_STROKE}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
-                svgContent += `\n<circle cx="${midX + objWidth*0.2}" cy="${objY}" r="${ICON_STROKE}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
+                svgContent += `\n<line x1="${objX}" y1="${objY - objHeight/2}" x2="${objX}" y2="${objY + objHeight/2}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
             } else if (obj.type === 'kitchen_block') {
-                // Kitchen block: long rectangle with sink + stove marks
+                // Простой прямоугольник
                 drawRect();
-                // Sink: small rounded rect on left
-                const sinkW = objWidth * 0.22; const sinkH = objHeight * 0.45;
-                drawRoundedRect(objX - objWidth/2 + objWidth*0.08, objY - sinkH/2, sinkW, sinkH, Math.min(sinkW, sinkH)*0.2);
-                // Stove: four burners on right
-                const baseX = objX + objWidth*0.15; const baseY = objY; const r = Math.min(objWidth, objHeight) * 0.08;
-                const dx = objWidth*0.18; const dy = objHeight*0.18;
-                svgContent += `\n<circle cx="${baseX}" cy="${baseY}" r="${r}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
-                svgContent += `\n<circle cx="${baseX + dx}" cy="${baseY}" r="${r}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
-                svgContent += `\n<circle cx="${baseX}" cy="${baseY + dy}" r="${r}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
-                svgContent += `\n<circle cx="${baseX + dx}" cy="${baseY + dy}" r="${r}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
             } else if (obj.type === 'toilet') {
-                // Toilet: bowl + tank
-                drawRoundedRect(objX - objWidth*0.25, objY - objHeight*0.15, objWidth*0.5, objHeight*0.3, Math.min(objWidth, objHeight)*0.15);
-                svgContent += `\n<rect x="${objX - objWidth*0.2}" y="${objY - objHeight*0.45}" width="${objWidth*0.4}" height="${objHeight*0.2}" fill="${ICON_FILL_LIGHT}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE}"/>`;
+                // Простой прямоугольник
+                drawRect();
             } else if (obj.type === 'bathtub') {
-                // Bathtub: rounded outer + inner
-                drawRoundedRect(objX - objWidth/2, objY - objHeight/2, objWidth, objHeight, Math.min(objWidth, objHeight)*0.35);
-                drawRoundedRect(objX - objWidth*0.45, objY - objHeight*0.35, objWidth*0.9, objHeight*0.7, Math.min(objWidth, objHeight)*0.3);
+                // Простой прямоугольник
+                drawRect();
             } else if (obj.type === 'shower') {
-                // Shower: square with drain
+                // Простой квадрат
                 drawRect();
-                svgContent += `\n<circle cx="${objX}" cy="${objY}" r="${Math.min(objWidth, objHeight)*0.08}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
             } else if (obj.type === 'sink') {
-                // Sink standalone: small rounded rect
-                drawRoundedRect(objX - objWidth/2, objY - objHeight/2, objWidth, objHeight, Math.min(objWidth, objHeight)*0.25);
+                // Простой прямоугольник
+                drawRect();
             } else if (obj.type === 'stove') {
-                // Stove standalone: four burners
+                // Простой прямоугольник
                 drawRect();
-                const r = Math.min(objWidth, objHeight) * 0.18;
-                const ox = objX - objWidth*0.25; const oy = objY - objHeight*0.2; const dx = objWidth*0.33; const dy = objHeight*0.33;
-                svgContent += `\n<circle cx="${ox}" cy="${oy}" r="${r}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
-                svgContent += `\n<circle cx="${ox + dx}" cy="${oy}" r="${r}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
-                svgContent += `\n<circle cx="${ox}" cy="${oy + dy}" r="${r}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
-                svgContent += `\n<circle cx="${ox + dx}" cy="${oy + dy}" r="${r}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
             } else if (obj.type === 'fridge') {
-                // Fridge: rounded rect with divider
-                drawRoundedRect(objX - objWidth/2, objY - objHeight/2, objWidth, objHeight, Math.min(objWidth, objHeight)*0.18);
-                svgContent += `\n<line x1="${objX}" y1="${objY - objHeight/2}" x2="${objX}" y2="${objY + objHeight/2}" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}" stroke-linecap="round"/>`;
-            } else if (obj.type === 'washing_machine') {
-                // Washer: square with drum circle
+                // Простой прямоугольник
                 drawRect();
-                svgContent += `\n<circle cx="${objX}" cy="${objY}" r="${Math.min(objWidth, objHeight)*0.25}" fill="none" stroke="${ICON_STROKE_COLOR}" stroke-width="${ICON_STROKE/2}"/>`;
+            } else if (obj.type === 'washing_machine') {
+                // Простой квадрат
+                drawRect();
             } else {
+                // Для всех остальных типов - простой прямоугольник
                 drawRect();
             }
         });
