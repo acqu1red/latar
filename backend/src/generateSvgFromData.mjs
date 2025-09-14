@@ -544,14 +544,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const getWallThickness = (edge, segmentStart, segmentEnd) => {
         const segmentMid = (segmentStart + segmentEnd) / 2;
         
-        // Проверяем, является ли эта часть стены внешней
-        let isExternalPart = false;
-        if (edge.o === 'v') { // вертикальная стена
-            isExternalPart = Math.abs(edge.c - planBounds.left) < EPS || Math.abs(edge.c - planBounds.right) < EPS;
-        } else { // горизонтальная стена
-            isExternalPart = Math.abs(edge.c - planBounds.top) < EPS || Math.abs(edge.c - planBounds.bottom) < EPS;
-        }
-        
         // Находим комнаты, которые касаются этой части стены
         const roomsAtSegment = pixelRooms.filter(r => {
             if (edge.o === 'v') { // вертикальная стена
@@ -569,6 +561,47 @@ export async function generateSvgFromData(rooms, totalSqm) {
         const hasBalconyRoom = roomsAtSegment.some(r => 
             r.key === 'balcony' || r.name.toLowerCase().includes('балкон') || r.name.toLowerCase().includes('лоджия')
         );
+        
+        // Определяем, является ли эта часть стены внешней
+        let isExternalPart = false;
+        
+        // Проверяем, является ли стена внешней по границам плана
+        if (edge.o === 'v') { // вертикальная стена
+            isExternalPart = Math.abs(edge.c - planBounds.left) < EPS || Math.abs(edge.c - planBounds.right) < EPS;
+        } else { // горизонтальная стена
+            isExternalPart = Math.abs(edge.c - planBounds.top) < EPS || Math.abs(edge.c - planBounds.bottom) < EPS;
+        }
+        
+        // Дополнительная проверка: если стена не внешняя по границам, но касается только одной комнаты,
+        // то это тоже может быть внешняя стена (комната выходит за пределы других комнат)
+        if (!isExternalPart && roomsAtSegment.length === 1) {
+            // Проверяем, есть ли комната с другой стороны стены
+            const room = roomsAtSegment[0];
+            let hasRoomOnOtherSide = false;
+            
+            if (edge.o === 'v') { // вертикальная стена
+                const wallX = edge.c;
+                const otherSideX = wallX > room.pixelX + room.pixelWidth / 2 ? wallX + EPS : wallX - EPS;
+                hasRoomOnOtherSide = pixelRooms.some(r => 
+                    r !== room && 
+                    otherSideX >= r.pixelX && otherSideX <= r.pixelX + r.pixelWidth &&
+                    segmentMid >= r.pixelY && segmentMid <= r.pixelY + r.pixelHeight
+                );
+            } else { // горизонтальная стена
+                const wallY = edge.c;
+                const otherSideY = wallY > room.pixelY + room.pixelHeight / 2 ? wallY + EPS : wallY - EPS;
+                hasRoomOnOtherSide = pixelRooms.some(r => 
+                    r !== room && 
+                    otherSideY >= r.pixelY && otherSideY <= r.pixelY + r.pixelHeight &&
+                    segmentMid >= r.pixelX && segmentMid <= r.pixelX + r.pixelWidth
+                );
+            }
+            
+            // Если нет комнаты с другой стороны, это внешняя стена
+            if (!hasRoomOnOtherSide) {
+                isExternalPart = true;
+            }
+        }
         
         // Если это внешняя часть стены и нет балкона/лоджии, используем толстую стену
         return (isExternalPart && !hasBalconyRoom) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
