@@ -540,39 +540,59 @@ export async function generateSvgFromData(rooms, totalSqm) {
         addEdge('h', y2, x1, x2); // bottom
     });
     
-    // Рисуем стены с разной толщиной для внешних и внутренних
-    edges.forEach(e => {
-        let isExternalWall = false;
-        let isBalconyWall = false;
+    // Функция для определения толщины стены в зависимости от позиции
+    const getWallThickness = (edge, segmentStart, segmentEnd) => {
+        const segmentMid = (segmentStart + segmentEnd) / 2;
         
-        // Проверяем, является ли стена внешней
-        if (e.o === 'v') { // вертикальная стена
-            isExternalWall = Math.abs(e.c - planBounds.left) < EPS || Math.abs(e.c - planBounds.right) < EPS;
+        // Проверяем, является ли эта часть стены внешней
+        let isExternalPart = false;
+        if (edge.o === 'v') { // вертикальная стена
+            isExternalPart = Math.abs(edge.c - planBounds.left) < EPS || Math.abs(edge.c - planBounds.right) < EPS;
         } else { // горизонтальная стена
-            isExternalWall = Math.abs(e.c - planBounds.top) < EPS || Math.abs(e.c - planBounds.bottom) < EPS;
+            isExternalPart = Math.abs(edge.c - planBounds.top) < EPS || Math.abs(edge.c - planBounds.bottom) < EPS;
         }
         
-        // Проверяем, не является ли это стеной балкона/лоджии
-        // Балкон/лоджия должны иметь обычную толщину стен
-        const roomAtEdge = pixelRooms.find(r => {
-            if (e.o === 'v') {
-                return Math.abs(e.c - r.pixelX) < EPS || Math.abs(e.c - (r.pixelX + r.pixelWidth)) < EPS;
-            } else {
-                return Math.abs(e.c - r.pixelY) < EPS || Math.abs(e.c - (r.pixelY + r.pixelHeight)) < EPS;
+        // Находим комнаты, которые касаются этой части стены
+        const roomsAtSegment = pixelRooms.filter(r => {
+            if (edge.o === 'v') { // вертикальная стена
+                const touchesWall = Math.abs(edge.c - r.pixelX) < EPS || Math.abs(edge.c - (r.pixelX + r.pixelWidth)) < EPS;
+                const overlapsVertically = segmentMid >= r.pixelY && segmentMid <= r.pixelY + r.pixelHeight;
+                return touchesWall && overlapsVertically;
+            } else { // горизонтальная стена
+                const touchesWall = Math.abs(edge.c - r.pixelY) < EPS || Math.abs(edge.c - (r.pixelY + r.pixelHeight)) < EPS;
+                const overlapsHorizontally = segmentMid >= r.pixelX && segmentMid <= r.pixelX + r.pixelWidth;
+                return touchesWall && overlapsHorizontally;
             }
         });
         
-        if (roomAtEdge && (roomAtEdge.key === 'balcony' || roomAtEdge.name.toLowerCase().includes('балкон') || roomAtEdge.name.toLowerCase().includes('лоджия'))) {
-            isBalconyWall = true;
-        }
+        // Проверяем, есть ли среди комнат балкон/лоджия
+        const hasBalconyRoom = roomsAtSegment.some(r => 
+            r.key === 'balcony' || r.name.toLowerCase().includes('балкон') || r.name.toLowerCase().includes('лоджия')
+        );
         
-        // Определяем толщину стены
-        const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+        // Если это внешняя часть стены и нет балкона/лоджии, используем толстую стену
+        return (isExternalPart && !hasBalconyRoom) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+    };
+
+    // Рисуем стены с разной толщиной для внешних и внутренних частей
+    edges.forEach(e => {
+        // Разбиваем стену на сегменты и анализируем каждый сегмент
+        const segmentLength = 50; // Длина сегмента для анализа
+        const totalLength = e.e - e.s;
+        const segments = Math.ceil(totalLength / segmentLength);
         
-        if (e.o === 'v') {
-            svgContent += `\n<line x1="${e.c}" y1="${e.s}" x2="${e.c}" y2="${e.e}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-        } else {
-            svgContent += `\n<line x1="${e.s}" y1="${e.c}" x2="${e.e}" y2="${e.c}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+        for (let i = 0; i < segments; i++) {
+            const segmentStart = e.s + (i * totalLength / segments);
+            const segmentEnd = e.s + ((i + 1) * totalLength / segments);
+            const segmentMid = (segmentStart + segmentEnd) / 2;
+            
+            const wallThickness = getWallThickness(e, segmentStart, segmentEnd);
+            
+            if (e.o === 'v') {
+                svgContent += `\n<line x1="${e.c}" y1="${segmentStart}" x2="${e.c}" y2="${segmentEnd}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+            } else {
+                svgContent += `\n<line x1="${segmentStart}" y1="${e.c}" x2="${segmentEnd}" y2="${e.c}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+            }
         }
     });
 
