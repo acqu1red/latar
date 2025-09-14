@@ -235,45 +235,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             return segments;
         };
 
-        // Не удаляем двери у других комнат — сохраняем внутренние двери между помещениями
-
-        hallway.doors = hallway.doors || [];
-        const addDoorInFreeSegment = (side) => {
-            const freeSegments = findFreeSegments(side);
-            if (freeSegments.length > 0) {
-                // Выбираем центральный сегмент для размещения двери
-                const middleSegment = freeSegments[Math.floor(freeSegments.length / 2)];
-                addDoorIfMissing(hallway, side, middleSegment.center);
-            }
-        };
-
-        if (hallway.entrySide) {
-            // Если пользователь выбрал конкретную сторону, проверяем есть ли свободные сегменты
-            const freeSegments = findFreeSegments(hallway.entrySide);
-            if (freeSegments.length > 0) {
-                addDoorInFreeSegment(hallway.entrySide);
-            } else {
-                // Если выбранная сторона полностью занята, ищем любую свободную сторону
-                const sides = ['left', 'right', 'top', 'bottom'];
-                for (const side of sides) {
-                    const freeSegments = findFreeSegments(side);
-                    if (freeSegments.length > 0) {
-                        addDoorInFreeSegment(side);
-                        break;
-                    }
-                }
-            }
-        } else {
-            // Автоматический выбор стороны с учетом свободных сегментов
-            const sides = ['left', 'right', 'top', 'bottom'];
-            for (const side of sides) {
-                const freeSegments = findFreeSegments(side);
-                if (freeSegments.length > 0) {
-                    addDoorInFreeSegment(side);
-                    break;
-                }
-            }
-        }
+        // Не создаем автоматически входную дверь - только те, что добавлены в конструкторе
     }
 
     let svgContent = `<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #ECECEC; shape-rendering: crispEdges;">
@@ -468,6 +430,85 @@ export async function generateSvgFromData(rooms, totalSqm) {
             svgContent += `\n<line x1="${e.s}" y1="${e.c}" x2="${e.e}" y2="${e.c}" stroke="url(#wallHatch)" stroke-width="${WALL_THICKNESS}" stroke-linecap="square" stroke-linejoin="miter"/>`;
         }
     });
+
+    // Draw windows (отображение окон)
+    console.log('SVG Generation - Checking for windows in rooms:', rooms.map(r => ({ 
+        key: r.key, 
+        name: r.name, 
+        windows: r.windows?.length || 0,
+        windowsData: r.windows 
+    })));
+    
+    if (rooms.some(room => room.windows && room.windows.length > 0)) {
+        console.log('SVG Generation - Found windows, processing...');
+        rooms.forEach(room => {
+            if (!room.windows || room.windows.length === 0) return;
+            console.log(`SVG Generation - Processing windows for room ${room.name}:`, room.windows);
+            
+            const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+            const roomPixels = {
+                x: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
+                y: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
+                width: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
+                height: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE
+            };
+
+            room.windows.forEach(window => {
+                const windowWidth = 8 * SVG_SCALE;
+                const windowLength = window.len * (window.side === 'left' || window.side === 'right' ? roomPixels.height : roomPixels.width);
+                
+                let windowX, windowY, windowRotation = 0;
+                
+                switch (window.side) {
+                    case 'left':
+                        windowX = roomPixels.x - windowWidth / 2;
+                        windowY = roomPixels.y + window.pos * roomPixels.height;
+                        windowRotation = 90;
+                        break;
+                    case 'right':
+                        windowX = roomPixels.x + roomPixels.width - windowWidth / 2;
+                        windowY = roomPixels.y + window.pos * roomPixels.height;
+                        windowRotation = 90;
+                        break;
+                    case 'top':
+                        windowX = roomPixels.x + window.pos * roomPixels.width;
+                        windowY = roomPixels.y - windowWidth / 2;
+                        windowRotation = 0;
+                        break;
+                    case 'bottom':
+                        windowX = roomPixels.x + window.pos * roomPixels.width;
+                        windowY = roomPixels.y + roomPixels.height - windowWidth / 2;
+                        windowRotation = 0;
+                        break;
+                }
+
+                // Создаем реалистичное окно
+                const windowGroup = `
+                    <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})">
+                        <!-- Рама окна -->
+                        <rect x="0" y="0" width="${windowLength}" height="${windowWidth}" 
+                              fill="none" stroke="#2E7D32" stroke-width="3" rx="2"/>
+                        
+                        <!-- Стекло -->
+                        <rect x="2" y="2" width="${windowLength - 4}" height="${windowWidth - 4}" 
+                              fill="#E3F2FD" stroke="#1976D2" stroke-width="1" rx="1"/>
+                        
+                        <!-- Переплеты -->
+                        <line x1="${windowLength / 2}" y1="2" x2="${windowLength / 2}" y2="${windowWidth - 2}" 
+                              stroke="#2E7D32" stroke-width="1"/>
+                        <line x1="2" y1="${windowWidth / 2}" x2="${windowLength - 2}" y2="${windowWidth / 2}" 
+                              stroke="#2E7D32" stroke-width="1"/>
+                        
+                        <!-- Отражение -->
+                        <rect x="3" y="3" width="${windowLength / 3}" height="${windowWidth / 3}" 
+                              fill="#FFFFFF" opacity="0.6" rx="1"/>
+                    </g>
+                `;
+                
+                svgContent += windowGroup;
+            });
+        });
+    }
 
     // Draw doors (детализация: косяки, петля, ровная дуга)
     pixelRooms.forEach(room => {

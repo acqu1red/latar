@@ -201,6 +201,12 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       isResizing: false
     };
     
+    // Автоматически прикрепляем к ближайшей стене
+    const attachment = findNearestWallForDoor(newDoor);
+    if (attachment) {
+      newDoor.attachedTo = attachment;
+    }
+    
     setDoors((prev: Door[]) => [...prev, newDoor]);
     setDoorCreationMode('none');
     
@@ -788,6 +794,13 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       isResizing: false,
       isRotating: false
     };
+    
+    // Автоматически прикрепляем к ближайшей стене
+    const attachment = findNearestWall(newWindow);
+    if (attachment) {
+      newWindow.attachedTo = attachment;
+    }
+    
     setFloatingWindows((prev: FloatingWindow[]) => [...prev, newWindow]);
     
     // Принудительно обновляем данные
@@ -884,36 +897,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
           🗑️ Удалить все окна
         </button>
 
-        <button 
-          className="debug-attach-btn"
-          onClick={() => {
-            console.log('Current windows:', floatingWindows);
-            console.log('Current doors:', doors);
-            console.log('Windows data for SVG:', convertWindowsToSvgFormat());
-            console.log('Doors data for SVG:', convertDoorsToSvgFormat());
-          }}
-        >
-          🔍 Отладка данных
-        </button>
-
-        <button 
-          className="force-attach-btn"
-          onClick={() => {
-            // Принудительно прикрепляем все окна к ближайшим стенам
-            setFloatingWindows((prev: FloatingWindow[]) => prev.map((window: FloatingWindow) => {
-              const attachment = findNearestWall(window);
-              return { ...window, attachedTo: attachment || undefined };
-            }));
-            
-            // Принудительно прикрепляем все двери к ближайшим стенам
-            setDoors((prev: Door[]) => prev.map((door: Door) => {
-              const attachment = findNearestWallForDoor(door);
-              return { ...door, attachedTo: attachment || undefined };
-            }));
-          }}
-        >
-          🔗 Прикрепить все к стенам
-        </button>
 
         {/* Кнопки управления дверями */}
         <div className="door-controls">
