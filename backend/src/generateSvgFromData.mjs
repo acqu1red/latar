@@ -395,6 +395,79 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     }
 
+    // Draw windows (старый код, аналогичный коду дверей)
+    console.log('SVG Generation - Checking for windows in rooms:', rooms.map(r => ({ 
+        key: r.key, 
+        name: r.name, 
+        windows: r.windows?.length || 0,
+        windowsData: r.windows 
+    })));
+    
+    if (rooms.some(room => room.windows && room.windows.length > 0)) {
+        console.log('SVG Generation - Found windows, processing...');
+        rooms.forEach(room => {
+            if (!room.windows || room.windows.length === 0) return;
+            console.log(`SVG Generation - Processing windows for room ${room.name}:`, room.windows);
+            
+            const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+            const roomPixels = {
+                x: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
+                y: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
+                width: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
+                height: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE
+            };
+
+            room.windows.forEach(window => {
+                const windowWidth = 8 * SVG_SCALE;
+                const windowLength = window.len * (window.side === 'left' || window.side === 'right' ? roomPixels.height : roomPixels.width);
+                
+                let windowX, windowY, windowRotation = 0;
+                
+                switch (window.side) {
+                    case 'left':
+                        windowX = roomPixels.x - windowWidth / 2;
+                        windowY = roomPixels.y + window.pos * roomPixels.height;
+                        windowRotation = 90;
+                        break;
+                    case 'right':
+                        windowX = roomPixels.x + roomPixels.width - windowWidth / 2;
+                        windowY = roomPixels.y + window.pos * roomPixels.height;
+                        windowRotation = 90;
+                        break;
+                    case 'top':
+                        windowX = roomPixels.x + window.pos * roomPixels.width;
+                        windowY = roomPixels.y - windowWidth / 2;
+                        windowRotation = 0;
+                        break;
+                    case 'bottom':
+                        windowX = roomPixels.x + window.pos * roomPixels.width;
+                        windowY = roomPixels.y + roomPixels.height - windowWidth / 2;
+                        windowRotation = 0;
+                        break;
+                }
+
+                // Создаем окно в стиле волнистых линий (шторы)
+                const windowGroup = `
+                    <g transform="translate(${windowX}, ${windowY}) rotate(${windowRotation})">
+                        <!-- Волнистые линии как шторы -->
+                        <path d="M 0 ${windowWidth/2} Q ${windowLength/4} ${windowWidth/4} ${windowLength/2} ${windowWidth/2} T ${windowLength} ${windowWidth/2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 + 2} Q ${windowLength/4} ${windowWidth/4 + 2} ${windowLength/2} ${windowWidth/2 + 2} T ${windowLength} ${windowWidth/2 + 2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 + 4} Q ${windowLength/4} ${windowWidth/4 + 4} ${windowLength/2} ${windowWidth/2 + 4} T ${windowLength} ${windowWidth/2 + 4}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 - 2} Q ${windowLength/4} ${windowWidth/4 - 2} ${windowLength/2} ${windowWidth/2 - 2} T ${windowLength} ${windowWidth/2 - 2}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                        <path d="M 0 ${windowWidth/2 - 4} Q ${windowLength/4} ${windowWidth/4 - 4} ${windowLength/2} ${windowWidth/2 - 4} T ${windowLength} ${windowWidth/2 - 4}" 
+                              stroke="#2E7D32" stroke-width="2" fill="none"/>
+                    </g>
+                `;
+                
+                svgContent += windowGroup;
+            });
+        });
+    }
+
     // Построим единый слой стен по уникальным рёбрам
     const EPS = 1;
     const edges = [];
