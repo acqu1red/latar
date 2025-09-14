@@ -734,7 +734,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Прорезаем стену
                 svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем объемное окно
+                // Создаем объемное окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
                     startX, y, winLength, windowDepth, 
                     frameThickness, sillThickness, glassThickness, 
@@ -746,12 +746,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на нижней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY + pixelHeight;
+                const y = pixelY + pixelHeight - windowDepth; // Смещаем вверх на глубину окна
                 
                 // Прорезаем стену
-                svgContent += `\n<line x1="${startX}" y1="${y}" x2="${startX + winLength}" y2="${y}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${pixelY + pixelHeight}" x2="${startX + winLength}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем объемное окно
+                // Создаем объемное окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
                     startX, y, winLength, windowDepth, 
                     frameThickness, sillThickness, glassThickness, 
@@ -763,12 +763,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на левой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX;
+                const x = pixelX - windowDepth; // Смещаем влево на глубину окна
                 
                 // Прорезаем стену
-                svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем объемное окно
+                // Создаем объемное окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 
                     frameThickness, sillThickness, glassThickness, 
@@ -780,12 +780,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на правой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth;
+                const x = pixelX + pixelWidth; // Начинаем точно от стены
                 
                 // Прорезаем стену
-                svgContent += `\n<line x1="${x}" y1="${startY}" x2="${x}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем объемное окно
+                // Создаем объемное окно - точно на уровне стены
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 
                     frameThickness, sillThickness, glassThickness, 
