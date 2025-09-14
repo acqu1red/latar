@@ -2,9 +2,9 @@
  * Main SVG plan canvas component
  */
 
-import { colors, lineWidths, opacity, fonts } from './design/tokens.mjs';
-import { mmToSvg, getStrokeWidth } from './utils/scale.mjs';
-import { Rect, Line, Circle } from './draw/primitives.mjs';
+import { colors, lineWidths, opacity, type MM, type Scale } from '../design/tokens.js';
+import { mmToSvg, getStrokeWidth, type Scale as ScaleType } from '../utils/scale.js';
+import { Rect, Line, Circle } from '../draw/primitives.js';
 import { 
   ZonesLayer, 
   WallsLayer, 
@@ -13,17 +13,56 @@ import {
   DoorsLayer, 
   FurnitureLayer, 
   AnnotationsLayer 
-} from './draw/layers.mjs';
-import { Window } from './symbols/Window.mjs';
-import { DoorSwing } from './symbols/DoorSwing.mjs';
-import { DoorPocket } from './symbols/DoorPocket.mjs';
-import { ClosetFront } from './symbols/ClosetFront.mjs';
-import { Furniture } from './symbols/Furniture.mjs';
-import { Bathtub, Toilet, Sink, Kitchen } from './symbols/BathKitchen.mjs';
+} from '../draw/layers.js';
+import { Window } from '../symbols/Window.js';
+import { DoorSwing, DoorPocket } from '../symbols/DoorSwing.js';
+import { ClosetFront } from '../symbols/ClosetFront.js';
+import { Furniture } from '../symbols/Furniture.js';
+import { Bathtub, Toilet, Sink, Kitchen } from '../symbols/BathKitchen.js';
 
-// Room data structure
-// RoomData: { key, name, x, y, width, height, sqm, windows?, doors?, furniture?, fixtures? }
-// PlanCanvasProps: { rooms, totalSqm, scale?, width?, height? }
+export interface RoomData {
+  key: string;
+  name: string;
+  x: MM;
+  y: MM;
+  width: MM;
+  height: MM;
+  sqm: number;
+  windows?: Array<{
+    side: 'left' | 'right' | 'top' | 'bottom';
+    pos: number;
+    len: number;
+  }>;
+  doors?: Array<{
+    side: 'left' | 'right' | 'top' | 'bottom';
+    pos: number;
+    len: number;
+    type: 'entrance' | 'interior';
+  }>;
+  furniture?: Array<{
+    kind: 'bed' | 'sofa' | 'tableRound' | 'tableRect' | 'chair' | 'desk' | 'tvStand';
+    x: MM;
+    y: MM;
+    w: MM;
+    h: MM;
+    rotation?: number;
+  }>;
+  fixtures?: Array<{
+    type: 'bathtub' | 'toilet' | 'sink' | 'kitchen';
+    x: MM;
+    y: MM;
+    w: MM;
+    h: MM;
+  }>;
+}
+
+export interface PlanCanvasProps {
+  rooms: RoomData[];
+  totalSqm: number;
+  scale?: Scale;
+  width?: MM;
+  height?: MM;
+}
 
 export function PlanCanvas({ 
   rooms, 
@@ -31,7 +70,7 @@ export function PlanCanvas({
   scale = '1:50',
   width = 8000,
   height = 6000
-}) {
+}: PlanCanvasProps): string {
   const svgWidth = mmToSvg(width, scale);
   const svgHeight = mmToSvg(height, scale);
 
@@ -64,7 +103,7 @@ export function PlanCanvas({
   return svgContent;
 }
 
-function generateZones(rooms, scale) {
+function generateZones(rooms: RoomData[], scale: ScaleType): string {
   const zoneElements = rooms.map(room => {
     const zoneRect = Rect({
       x: room.x,
@@ -81,8 +120,8 @@ function generateZones(rooms, scale) {
   return ZonesLayer(zoneElements);
 }
 
-function generateWalls(rooms, scale) {
-  const wallElements = [];
+function generateWalls(rooms: RoomData[], scale: ScaleType): string {
+  const wallElements: string[] = [];
 
   // Generate walls for each room
   rooms.forEach(room => {
@@ -115,8 +154,8 @@ function generateWalls(rooms, scale) {
   return WallsLayer(wallElements.join('\n'));
 }
 
-function generateFixtures(rooms, scale) {
-  const fixtureElements = [];
+function generateFixtures(rooms: RoomData[], scale: ScaleType): string {
+  const fixtureElements: string[] = [];
 
   rooms.forEach(room => {
     if (room.fixtures) {
@@ -142,8 +181,8 @@ function generateFixtures(rooms, scale) {
   return FixturesLayer(fixtureElements.join('\n'));
 }
 
-function generateOpenings(rooms, scale) {
-  const openingElements = [];
+function generateOpenings(rooms: RoomData[], scale: ScaleType): string {
+  const openingElements: string[] = [];
 
   rooms.forEach(room => {
     if (room.windows) {
@@ -170,8 +209,8 @@ function generateOpenings(rooms, scale) {
   return OpeningsLayer(openingElements.join('\n'));
 }
 
-function generateDoors(rooms, scale) {
-  const doorElements = [];
+function generateDoors(rooms: RoomData[], scale: ScaleType): string {
+  const doorElements: string[] = [];
 
   rooms.forEach(room => {
     if (room.doors) {
@@ -201,8 +240,8 @@ function generateDoors(rooms, scale) {
   return DoorsLayer(doorElements.join('\n'));
 }
 
-function generateFurniture(rooms, scale) {
-  const furnitureElements = [];
+function generateFurniture(rooms: RoomData[], scale: ScaleType): string {
+  const furnitureElements: string[] = [];
 
   rooms.forEach(room => {
     if (room.furniture) {
@@ -219,8 +258,8 @@ function generateFurniture(rooms, scale) {
   return FurnitureLayer(furnitureElements.join('\n'));
 }
 
-function generateAnnotations(rooms, totalSqm, scale) {
-  const annotationElements = [];
+function generateAnnotations(rooms: RoomData[], totalSqm: number, scale: ScaleType): string {
+  const annotationElements: string[] = [];
 
   // Room labels
   rooms.forEach(room => {
