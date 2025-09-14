@@ -67,7 +67,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   
   const [windows, setWindows] = useState<WindowElement[]>([]);
   const [selectedWindow, setSelectedWindow] = useState<number | null>(null);
-  const [clickTimeout, setClickTimeout] = useState<number | null>(null);
   
   // Состояние для дверей
   const [doors, setDoors] = useState<Door[]>([]);
@@ -469,92 +468,52 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     return value;
   };
 
+  // НОВАЯ СИСТЕМА ПОВОРОТА - ПРОСТАЯ И НАДЕЖНАЯ
+  
   // Поворот окна на 90 градусов
   const rotateWindow = (windowId: number) => {
-    console.log('Rotating window:', windowId);
-    setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => {
-      if (w.id === windowId) {
-        const newRotation = w.rotation === 0 ? 90 : 0;
-        // Инициализируем width если его нет
-        const currentWidth = w.width || 8;
-        const currentLength = w.length;
-        console.log('Window rotation:', w.rotation, '->', newRotation);
-        console.log('Window dimensions:', { length: currentLength, width: currentWidth });
-        // При повороте меняем местами длину и ширину
-        return { 
-          ...w, 
-          rotation: newRotation,
-          length: currentWidth,
-          width: currentLength
+    console.log('🔄 Rotating window:', windowId);
+    setWindows((prev: WindowElement[]) => prev.map((window: WindowElement) => {
+      if (window.id === windowId) {
+        const newRotation = window.rotation === 0 ? 90 : 0;
+        console.log(`Window ${windowId}: ${window.rotation}° → ${newRotation}°`);
+        return {
+          ...window,
+          rotation: newRotation
         };
       }
-      return w;
+      return window;
     }));
   };
 
   // Поворот двери на 90 градусов
   const rotateDoor = (doorId: number) => {
-    console.log('Rotating door:', doorId);
-    setDoors((prev: Door[]) => prev.map((d: Door) => {
-      if (d.id === doorId) {
-        const newRotation = d.rotation === 0 ? 90 : 0;
-        // Инициализируем width если его нет
-        const currentWidth = d.width || 8;
-        const currentLength = d.length;
-        console.log('Door rotation:', d.rotation, '->', newRotation);
-        console.log('Door dimensions:', { length: currentLength, width: currentWidth });
-        // При повороте меняем местами длину и ширину
-        return { 
-          ...d, 
-          rotation: newRotation,
-          length: currentWidth,
-          width: currentLength
+    console.log('🔄 Rotating door:', doorId);
+    setDoors((prev: Door[]) => prev.map((door: Door) => {
+      if (door.id === doorId) {
+        const newRotation = door.rotation === 0 ? 90 : 0;
+        console.log(`Door ${doorId}: ${door.rotation}° → ${newRotation}°`);
+        return {
+          ...door,
+          rotation: newRotation
         };
       }
-      return d;
+      return door;
     }));
   };
 
-  // Обработка клика по окну с поддержкой двойного клика
+  // Обработка клика по окну
   const handleWindowClick = (windowId: number) => {
-    console.log('Window click:', windowId);
-    if (clickTimeout) {
-      // Это двойной клик
-      clearTimeout(clickTimeout);
-      setClickTimeout(null);
-      console.log('Double click detected, rotating window:', windowId);
-      rotateWindow(windowId);
-    } else {
-      // Это одинарный клик - устанавливаем таймаут
-      const timeout = setTimeout(() => {
-        console.log('Single click timeout, selecting window:', windowId);
-        setSelectedWindow(windowId);
-        setSelectedDoor(null);
-        setClickTimeout(null);
-      }, 300); // 300ms задержка для различения одинарного и двойного клика
-      setClickTimeout(timeout);
-    }
+    console.log('🪟 Window clicked:', windowId);
+    setSelectedWindow(windowId);
+    setSelectedDoor(null);
   };
 
-  // Обработка клика по двери с поддержкой двойного клика
+  // Обработка клика по двери
   const handleDoorClick = (doorId: number) => {
-    console.log('Door click:', doorId);
-    if (clickTimeout) {
-      // Это двойной клик
-      clearTimeout(clickTimeout);
-      setClickTimeout(null);
-      console.log('Double click detected, rotating door:', doorId);
-      rotateDoor(doorId);
-    } else {
-      // Это одинарный клик - устанавливаем таймаут
-      const timeout = setTimeout(() => {
-        console.log('Single click timeout, selecting door:', doorId);
-        setSelectedDoor(doorId);
-        setSelectedWindow(null);
-        setClickTimeout(null);
-      }, 300); // 300ms задержка для различения одинарного и двойного клика
-      setClickTimeout(timeout);
-    }
+    console.log('🚪 Door clicked:', doorId);
+    setSelectedDoor(doorId);
+    setSelectedWindow(null);
   };
 
 
@@ -888,6 +847,27 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
           🪟 Добавить окно
         </button>
         
+        {/* Кнопки управления выбранными элементами */}
+        {selectedWindow && (
+          <button 
+            className="rotate-btn"
+            onClick={() => rotateWindow(selectedWindow)}
+            style={{ marginLeft: '10px', backgroundColor: '#4CAF50', color: 'white' }}
+          >
+            🔄 Повернуть окно
+          </button>
+        )}
+        
+        {selectedDoor && (
+          <button 
+            className="rotate-btn"
+            onClick={() => rotateDoor(selectedDoor)}
+            style={{ marginLeft: '10px', backgroundColor: '#FF9800', color: 'white' }}
+          >
+            🔄 Повернуть дверь
+          </button>
+        )}
+        
         <button 
           className="delete-selected-window-btn"
           onClick={deleteSelectedWindow}
@@ -1052,6 +1032,11 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               e.stopPropagation();
               handleWindowClick(window.id);
             }}
+            onDoubleClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              console.log('🔄 Double click - rotating window:', window.id);
+              rotateWindow(window.id);
+            }}
             title="Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание"
           >
             
@@ -1094,7 +1079,9 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               </>
             )}
             
-            <div className="window-label">🪟</div>
+            <div className="window-label">
+              🪟 {window.rotation}°
+            </div>
             </div>
         ))}
 
@@ -1123,6 +1110,11 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
               handleDoorClick(door.id);
+            }}
+            onDoubleClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              console.log('🔄 Double click - rotating door:', door.id);
+              rotateDoor(door.id);
             }}
             title={`${door.type === 'entrance' ? 'Входная' : 'Межкомнотная'} дверь. Перетаскивать: перемещение, двойной клик: поворот, ручки: растягивание`}
           >
@@ -1166,7 +1158,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             )}
             
             <div className="door-label">
-              {door.type === 'entrance' ? '🏠' : '🚪'}
+              {door.type === 'entrance' ? '🏠' : '🚪'} {door.rotation}°
             </div>
           </div>
         ))}
