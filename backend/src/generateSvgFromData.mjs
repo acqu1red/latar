@@ -42,6 +42,14 @@ export async function generateSvgFromData(rooms, totalSqm) {
         return pixelRoom;
     });
 
+    // Определяем границы всего плана для выявления внешних стен (перемещаем сразу после pixelRooms)
+    const planBounds = {
+        left: Math.min(...pixelRooms.map(r => r.pixelX)),
+        right: Math.max(...pixelRooms.map(r => r.pixelX + r.pixelWidth)),
+        top: Math.min(...pixelRooms.map(r => r.pixelY)),
+        bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
+    };
+
     // Минимальная коррекция только для сглаживания углов (не более 3 пикселей)
     const MINIMAL_CORRECTION = 3 * SVG_SCALE;
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -502,13 +510,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         });
     }
 
-    // Определяем границы всего плана для выявления внешних стен (перемещаем выше)
-    const planBounds = {
-        left: Math.min(...pixelRooms.map(r => r.pixelX)),
-        right: Math.max(...pixelRooms.map(r => r.pixelX + r.pixelWidth)),
-        top: Math.min(...pixelRooms.map(r => r.pixelY)),
-        bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
-    };
 
     // Построим единый слой стен по уникальным рёбрам
     const EPS = 1;
