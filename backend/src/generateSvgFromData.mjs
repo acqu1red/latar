@@ -34,6 +34,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
         if (isHorizontal) {
             // Горизонтальное окно (top/bottom стены)
             
+            // 0. Черный прямоугольник-мост для заполнения щели между стеной и окном
+            windowGroup += `
+                <rect x="${x}" y="${y}" width="${length}" height="${depth}" 
+                      fill="${lineColor}" stroke="none"/>
+            `;
+            
             // 1. Две линии на уровне стены (внешние границы окна)
             windowGroup += `
                 <line x1="${x}" y1="${y}" x2="${x + length}" y2="${y}" 
@@ -66,6 +72,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
             
         } else {
             // Вертикальное окно (left/right стены)
+            
+            // 0. Черный прямоугольник-мост для заполнения щели между стеной и окном
+            windowGroup += `
+                <rect x="${x}" y="${y}" width="${depth}" height="${length}" 
+                      fill="${lineColor}" stroke="none"/>
+            `;
             
             // 1. Две линии на уровне стены (внешние границы окна)
             windowGroup += `
@@ -630,6 +642,25 @@ export async function generateSvgFromData(rooms, totalSqm) {
             } else {
                 svgContent += `\n<line x1="${segmentStart}" y1="${e.c}" x2="${segmentEnd}" y2="${e.c}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
             }
+        }
+    });
+
+    // Дорисовываем стены до окон - добавляем сегменты стены вплотную к окнам
+    windowSegments.forEach(ws => {
+        const wallThickness = WALL_THICKNESS; // Используем стандартную толщину для дорисовки
+        
+        if (ws.orientation === 'h') {
+            // Горизонтальная стена - дорисовываем слева и справа от окна
+            // Левый сегмент: от начала стены до начала окна
+            svgContent += `\n<line x1="${ws.start - 5}" y1="${ws.coord}" x2="${ws.start}" y2="${ws.coord}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+            // Правый сегмент: от конца окна до конца стены
+            svgContent += `\n<line x1="${ws.end}" y1="${ws.coord}" x2="${ws.end + 5}" y2="${ws.coord}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+        } else {
+            // Вертикальная стена - дорисовываем сверху и снизу от окна
+            // Верхний сегмент: от начала стены до начала окна
+            svgContent += `\n<line x1="${ws.coord}" y1="${ws.start - 5}" x2="${ws.coord}" y2="${ws.start}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+            // Нижний сегмент: от конца окна до конца стены
+            svgContent += `\n<line x1="${ws.coord}" y1="${ws.end}" x2="${ws.coord}" y2="${ws.end + 5}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
         }
     });
 
