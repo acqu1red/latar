@@ -27,77 +27,55 @@ export async function generateSvgFromData(rooms, totalSqm) {
         
         // Единый цвет для всех линий (как стены)
         const lineColor = '#2F2F2F';
-        
-        // Параметры линий - адаптируем к толщине стены
-        const outerLineThickness = Math.max(4, Math.min(8, depth * 0.25)); // толщина внешних линий
-        const innerLineThickness = Math.max(2, Math.min(4, depth * 0.15)); // толщина внутренних линий
-        const mullionLineThickness = Math.max(1, Math.min(3, depth * 0.1)); // толщина перегородок
+        const lineThickness = 4; // простая толщина линий
         
         let windowGroup = `<g>`;
         
         if (isHorizontal) {
             // Горизонтальное окно (top/bottom стены)
+            // Три линии: две на концах (внешняя и внутренняя) и одна по середине
             
-            // 1. Внешние линии (точно на уровне стены)
+            // 1. Внешняя линия (на уровне стены)
             windowGroup += `
                 <line x1="${x}" y1="${y}" x2="${x + length}" y2="${y}" 
-                      stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
-                <line x1="${x}" y1="${y + depth}" x2="${x + length}" y2="${y + depth}" 
-                      stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
+                      stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 2. Внутренние линии (близко друг к другу, внутри окна)
-            const innerOffset = depth * 0.3; // увеличиваем отступ для лучшего визуального эффекта
+            // 2. Внутренняя линия (внутри окна)
             windowGroup += `
-                <line x1="${x}" y1="${y + innerOffset}" x2="${x + length}" y2="${y + innerOffset}" 
-                      stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
-                <line x1="${x}" y1="${y + depth - innerOffset}" x2="${x + length}" y2="${y + depth - innerOffset}" 
-                      stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
+                <line x1="${x}" y1="${y + depth}" x2="${x + length}" y2="${y + depth}" 
+                      stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 3. Вертикальные перегородки (создают квадраты)
-            const mullionCount = Math.max(2, Math.min(3, Math.floor(length / 80))); // 2-3 квадрата
-            const mullionSpacing = length / (mullionCount + 1);
-            
-            for (let i = 1; i <= mullionCount; i++) {
-                const mullionX = x + i * mullionSpacing;
-                windowGroup += `
-                    <line x1="${mullionX}" y1="${y + innerOffset}" x2="${mullionX}" y2="${y + depth - innerOffset}" 
-                          stroke="${lineColor}" stroke-width="${mullionLineThickness}" stroke-linecap="square"/>
-                `;
-            }
+            // 3. Средняя линия (по центру окна)
+            const middleY = y + depth / 2;
+            windowGroup += `
+                <line x1="${x}" y1="${middleY}" x2="${x + length}" y2="${middleY}" 
+                      stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
+            `;
             
         } else {
             // Вертикальное окно (left/right стены)
+            // Три линии: две на концах (внешняя и внутренняя) и одна по середине
             
-            // 1. Внешние линии (точно на уровне стены)
+            // 1. Внешняя линия (на уровне стены)
             windowGroup += `
                 <line x1="${x}" y1="${y}" x2="${x}" y2="${y + length}" 
-                      stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
-                <line x1="${x + depth}" y1="${y}" x2="${x + depth}" y2="${y + length}" 
-                      stroke="${lineColor}" stroke-width="${outerLineThickness}" stroke-linecap="square"/>
+                      stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 2. Внутренние линии (близко друг к другу, внутри окна)
-            const innerOffset = depth * 0.3; // увеличиваем отступ для лучшего визуального эффекта
+            // 2. Внутренняя линия (внутри окна)
             windowGroup += `
-                <line x1="${x + innerOffset}" y1="${y}" x2="${x + innerOffset}" y2="${y + length}" 
-                      stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
-                <line x1="${x + depth - innerOffset}" y1="${y}" x2="${x + depth - innerOffset}" y2="${y + length}" 
-                      stroke="${lineColor}" stroke-width="${innerLineThickness}" stroke-linecap="square"/>
+                <line x1="${x + depth}" y1="${y}" x2="${x + depth}" y2="${y + length}" 
+                      stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 3. Горизонтальные перегородки (создают квадраты)
-            const mullionCount = Math.max(2, Math.min(3, Math.floor(length / 80))); // 2-3 квадрата
-            const mullionSpacing = length / (mullionCount + 1);
-            
-            for (let i = 1; i <= mullionCount; i++) {
-                const mullionY = y + i * mullionSpacing;
-                windowGroup += `
-                    <line x1="${x + innerOffset}" y1="${mullionY}" x2="${x + depth - innerOffset}" y2="${mullionY}" 
-                          stroke="${lineColor}" stroke-width="${mullionLineThickness}" stroke-linecap="square"/>
-                `;
-            }
+            // 3. Средняя линия (по центру окна)
+            const middleX = x + depth / 2;
+            windowGroup += `
+                <line x1="${middleX}" y1="${y}" x2="${middleX}" y2="${y + length}" 
+                      stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
+            `;
         }
         
         windowGroup += `</g>`;
