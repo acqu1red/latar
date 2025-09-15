@@ -751,12 +751,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на верхней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY; // Окно начинается точно на стене
+                const y = pixelY; // Окно начинается точно на уровне стены
                 
                 // Прорезаем стену - делаем стену точно такой же ширины, как окно
                 svgContent += `\n<line x1="${startX}" y1="${pixelY}" x2="${startX + winLength}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается точно на стене
+                // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
                     startX, y, winLength, windowDepth, 'horizontal'
                 );
@@ -766,12 +766,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на нижней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY + pixelHeight; // Окно начинается точно на стене
+                const y = pixelY + pixelHeight; // Окно начинается точно на уровне стены
                 
                 // Прорезаем стену
                 svgContent += `\n<line x1="${startX}" y1="${pixelY + pixelHeight}" x2="${startX + winLength}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается точно на стене
+                // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
                     startX, y, winLength, windowDepth, 'horizontal'
                 );
@@ -781,12 +781,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на левой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX; // Окно начинается точно на стене
+                const x = pixelX; // Окно начинается точно на уровне стены
                 
                 // Прорезаем стену
                 svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается точно на стене
+                // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 'vertical'
                 );
@@ -796,12 +796,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на правой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth; // Окно начинается точно на стене
+                const x = pixelX + pixelWidth; // Окно начинается точно на уровне стены
                 
                 // Прорезаем стену
                 svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается точно на стене
+                // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 'vertical'
                 );
