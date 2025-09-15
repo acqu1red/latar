@@ -38,11 +38,11 @@ export async function generateSvgFromData(rooms, totalSqm) {
             // Горизонтальное окно (top/bottom стены)
             // Все линии помещаются строго внутри WINDOW_WIDTH
             
-            // 1. Внешние границы окна (точно по краям)
+            // 1. Внешние границы окна (сдвинуты на 1px внутрь)
             windowGroup += `
-                <line x1="${x}" y1="${y}" x2="${x + length}" y2="${y}" 
+                <line x1="${x + 1}" y1="${y + 1}" x2="${x + length - 1}" y2="${y + 1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
-                <line x1="${x}" y1="${y + WINDOW_WIDTH}" x2="${x + length}" y2="${y + WINDOW_WIDTH}" 
+                <line x1="${x + 1}" y1="${y + WINDOW_WIDTH - 1}" x2="${x + length - 1}" y2="${y + WINDOW_WIDTH - 1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
@@ -74,11 +74,11 @@ export async function generateSvgFromData(rooms, totalSqm) {
             // Вертикальное окно (left/right стены)
             // Все линии помещаются строго внутри WINDOW_WIDTH
             
-            // 1. Внешние границы окна (точно по краям)
+            // 1. Внешние границы окна (сдвинуты на 1px внутрь)
             windowGroup += `
-                <line x1="${x}" y1="${y}" x2="${x}" y2="${y + length}" 
+                <line x1="${x + 1}" y1="${y + 1}" x2="${x + 1}" y2="${y + length - 1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
-                <line x1="${x + WINDOW_WIDTH}" y1="${y}" x2="${x + WINDOW_WIDTH}" y2="${y + length}" 
+                <line x1="${x + WINDOW_WIDTH - 1}" y1="${y + 1}" x2="${x + WINDOW_WIDTH - 1}" y2="${y + length - 1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
