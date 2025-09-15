@@ -718,7 +718,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Прорезаем стену
                 svgContent += `\n<line x1="${startX}" y1="${pixelY}" x2="${startX + winLength}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается точно на стене и идет внутрь комнаты
+                // Создаем окно - начинается точно на стене
                 const windowGroup = createLayeredWindow(
                     startX, y, winLength, windowDepth, 'horizontal'
                 );
@@ -733,7 +733,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Прорезаем стену
                 svgContent += `\n<line x1="${startX}" y1="${pixelY + pixelHeight}" x2="${startX + winLength}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается точно на стене и идет внутрь комнаты
+                // Создаем окно - начинается точно на стене
                 const windowGroup = createLayeredWindow(
                     startX, y, winLength, windowDepth, 'horizontal'
                 );
@@ -748,7 +748,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Прорезаем стену
                 svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается точно на стене и идет внутрь комнаты
+                // Создаем окно - начинается точно на стене
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 'vertical'
                 );
@@ -763,7 +763,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Прорезаем стену
                 svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается точно на стене и идет внутрь комнаты
+                // Создаем окно - начинается точно на стене
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 'vertical'
                 );
