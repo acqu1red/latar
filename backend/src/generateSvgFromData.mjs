@@ -23,7 +23,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
     // Функция для создания двери по образцу JSON кода
     function createDoorFromJson(doorX, doorY, doorLength, doorSide, wallThickness) {
-        const doorGroup = `<g>`;
+        let doorGroup = `<g>`;
         
         // Определяем параметры в зависимости от стороны стены
         let wallLine, arcCenter, arcRadius, hinge1, hinge2, arcStartAngle, arcEndAngle, clockwise;
