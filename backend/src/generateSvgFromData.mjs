@@ -569,8 +569,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
             }
         }
         
-        // Если это внешняя часть стены и нет балкона/лоджии, используем толстую стену
-        return (isExternalPart && !hasBalconyRoom) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+        // Фиксированные толщины стен
+        if (isExternalPart && !hasBalconyRoom) {
+            return 30; // Внешние стены - 30px
+        } else {
+            return 12; // Межкомнатные стены - 12px
+        }
     };
 
     // Собираем информацию об окнах для исключения их из рисования стен
@@ -633,7 +637,24 @@ export async function generateSvgFromData(rooms, totalSqm) {
         }
     });
 
-    // Убираем дорисовку стен - она работает неудачно
+    // Дорисовываем стены до окон - добавляем сегменты стены вплотную к окнам
+    windowSegments.forEach(ws => {
+        const wallThickness = getWallThickness({ o: ws.orientation, c: ws.coord }, ws.start, ws.end);
+        
+        if (ws.orientation === 'h') {
+            // Горизонтальная стена - дорисовываем слева и справа от окна
+            // Левый сегмент: от начала стены до начала окна
+            svgContent += `\n<line x1="${ws.start - 10}" y1="${ws.coord}" x2="${ws.start}" y2="${ws.coord}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+            // Правый сегмент: от конца окна до конца стены
+            svgContent += `\n<line x1="${ws.end}" y1="${ws.coord}" x2="${ws.end + 10}" y2="${ws.coord}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+        } else {
+            // Вертикальная стена - дорисовываем сверху и снизу от окна
+            // Верхний сегмент: от начала стены до начала окна
+            svgContent += `\n<line x1="${ws.coord}" y1="${ws.start - 10}" x2="${ws.coord}" y2="${ws.start}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+            // Нижний сегмент: от конца окна до конца стены
+            svgContent += `\n<line x1="${ws.coord}" y1="${ws.end}" x2="${ws.coord}" y2="${ws.end + 10}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
+        }
+    });
 
 
     // Draw doors (детализация: косяки, петля, ровная дуга)
