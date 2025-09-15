@@ -15,9 +15,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const CANVAS_HEIGHT = CONSTRUCTOR_HEIGHT * SVG_SCALE;
     const MARGIN = 20 * SVG_SCALE;
     
-    // Разная толщина стен для внешних и внутренних стен
-    const EXTERNAL_WALL_THICKNESS = 30; // 30px для внешних стен (как окна)
-    const INTERNAL_WALL_THICKNESS = 20; // 20px для внутренних стен (как окна)
+    // Единая толщина стен для внешних и внутренних стен
+    const WALL_THICKNESS = 6 * SVG_SCALE;
     const ICON_STROKE = 2 * SVG_SCALE;
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
@@ -568,7 +567,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         }
         
         // Если это внешняя часть стены и нет балкона/лоджии, используем толстую стену
-        return (isExternalPart && !hasBalconyRoom) ? EXTERNAL_WALL_THICKNESS : INTERNAL_WALL_THICKNESS;
+        return (isExternalPart && !hasBalconyRoom) ? 8 : 5;
     };
 
     // Рисуем стены с разной толщиной для внешних и внутренних частей
@@ -616,7 +615,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
             
             // Определяем толщину стены
-            const wallThickness = (isExternalWall && !isBalconyWall) ? EXTERNAL_WALL_THICKNESS : INTERNAL_WALL_THICKNESS;
+            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
             
             const gapStroke = wallThickness + 2; // разрез по толщине стены
             const jambStroke = Math.max(2, Math.floor(wallThickness * 0.25));
@@ -699,105 +698,91 @@ export async function generateSvgFromData(rooms, totalSqm) {
             }
             
             const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
-            const wallThickness = (isExternalWall && !isBalconyWall) ? EXTERNAL_WALL_THICKNESS : INTERNAL_WALL_THICKNESS;
+            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
             
             
             // Параметры объемного окна - адаптируем к типу стены
-            const windowDepth = wallThickness; // глубина окна = толщина стены
+            const windowDepth = 30; // фиксированная глубина окна (30px)
             
             // Разные размеры для внешних и внутренних стен
-            let outerLineThickness, innerLineThickness, mullionLineThickness;
+            let outerLineThickness, innerLineThickness, mullionLineThickness, wallThicknessForWindow;
             if (isExternalWall && !isBalconyWall) {
                 // Внешние стены - толстые линии
                 outerLineThickness = 8;
                 innerLineThickness = 5;
                 mullionLineThickness = 3;
+                wallThicknessForWindow = 8; // толщина стены = толщина внешних линий окна
             } else {
                 // Межкомнатные стены - тонкие линии
                 outerLineThickness = 5;
                 innerLineThickness = 3;
                 mullionLineThickness = 2;
+                wallThicknessForWindow = 5; // толщина стены = толщина внешних линий окна
             }
 
             if (window.side === 'top') {
                 // Окно на верхней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY - wallThickness / 2; // Окно начинается на стене
+                const y = pixelY; // Окно начинается точно на стене
                 
                 // Прорезаем стену
-                svgContent += `\n<line x1="${startX}" y1="${pixelY}" x2="${startX + winLength}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${pixelY}" x2="${startX + winLength}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${wallThicknessForWindow + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается на стене и идет внутрь комнаты
+                // Создаем окно - начинается точно на стене
                 const windowGroup = createLayeredWindow(
                     startX, y, winLength, windowDepth, 'horizontal', 
                     outerLineThickness, innerLineThickness, mullionLineThickness
                 );
                 svgContent += windowGroup;
-                
-                // Дорисовываем стену в щель между стеной и окном
-                const gapY = pixelY - wallThickness / 2;
-                svgContent += `\n<line x1="${startX}" y1="${gapY}" x2="${startX + winLength}" y2="${gapY}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
                 
             } else if (window.side === 'bottom') {
                 // Окно на нижней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY + pixelHeight - wallThickness / 2; // Окно начинается на стене
+                const y = pixelY + pixelHeight; // Окно начинается точно на стене
                 
                 // Прорезаем стену
-                svgContent += `\n<line x1="${startX}" y1="${pixelY + pixelHeight}" x2="${startX + winLength}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${startX}" y1="${pixelY + pixelHeight}" x2="${startX + winLength}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${wallThicknessForWindow + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается на стене и идет внутрь комнаты
+                // Создаем окно - начинается точно на стене
                 const windowGroup = createLayeredWindow(
                     startX, y, winLength, windowDepth, 'horizontal', 
                     outerLineThickness, innerLineThickness, mullionLineThickness
                 );
                 svgContent += windowGroup;
                 
-                // Дорисовываем стену в щель между стеной и окном
-                const gapY = pixelY + pixelHeight - wallThickness / 2;
-                svgContent += `\n<line x1="${startX}" y1="${gapY}" x2="${startX + winLength}" y2="${gapY}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
-                
             } else if (window.side === 'left') {
                 // Окно на левой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX - wallThickness / 2; // Окно начинается на стене
+                const x = pixelX; // Окно начинается точно на стене
                 
                 // Прорезаем стену
-                svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThicknessForWindow + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается на стене и идет внутрь комнаты
+                // Создаем окно - начинается точно на стене
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 'vertical',
                     outerLineThickness, innerLineThickness, mullionLineThickness
                 );
                 svgContent += windowGroup;
-                
-                // Дорисовываем стену в щель между стеной и окном
-                const gapX = pixelX - wallThickness / 2;
-                svgContent += `\n<line x1="${gapX}" y1="${startY}" x2="${gapX}" y2="${startY + winLength}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
                 
             } else if (window.side === 'right') {
                 // Окно на правой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth - wallThickness / 2; // Окно начинается на стене
+                const x = pixelX + pixelWidth; // Окно начинается точно на стене
                 
                 // Прорезаем стену
-                svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThicknessForWindow + 2}" stroke-linecap="square"/>`;
                 
-                // Создаем окно - начинается на стене и идет внутрь комнаты
+                // Создаем окно - начинается точно на стене
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 'vertical',
                     outerLineThickness, innerLineThickness, mullionLineThickness
                 );
                 svgContent += windowGroup;
-                
-                // Дорисовываем стену в щель между стеной и окном
-                const gapX = pixelX + pixelWidth - wallThickness / 2;
-                svgContent += `\n<line x1="${gapX}" y1="${startY}" x2="${gapX}" y2="${startY + winLength}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square"/>`;
             }
         });
     });
@@ -866,7 +851,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         const windowX = pixelX + window.pos * pixelWidth;
                         const windowY = pixelY + window.pos * pixelHeight;
                         const windowLength = window.len * (window.side === 'left' || window.side === 'right' ? pixelHeight : pixelWidth);
-                        const windowDepth = INTERNAL_WALL_THICKNESS * 0.8;
+                        const windowDepth = WALL_THICKNESS * 0.8;
                         
                         let windowLeft, windowRight, windowTop, windowBottom;
                         if (window.side === 'top' || window.side === 'bottom') {
