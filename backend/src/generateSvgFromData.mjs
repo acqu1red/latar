@@ -23,158 +23,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
-    // Функция для создания полигона помещения на основе формы
-    function createRoomPolygon(room, pixelX, pixelY, pixelWidth, pixelHeight) {
-        const { shape } = room;
-        if (!shape || !shape.corners || shape.corners.length < 3) {
-            // Fallback к прямоугольнику
-            return `<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" 
-                    fill="#FFFFFF" stroke="#333333" stroke-width="2"/>`;
-        }
-        
-        // Конвертируем относительные координаты в абсолютные
-        const points = shape.corners.map(corner => {
-            const x = pixelX + corner.x * pixelWidth;
-            const y = pixelY + corner.y * pixelHeight;
-            return `${x},${y}`;
-        }).join(' ');
-        
-        return `<polygon points="${points}" 
-                fill="#FFFFFF" stroke="#333333" stroke-width="2"/>`;
-    }
-
-    // Функция для создания мебели
-    function createFurniture(x, y, width, height, type, rotation = 0) {
-        const scale = 0.6; // Масштаб мебели относительно комнаты (уменьшен для более схематичного вида)
-        const scaledWidth = width * scale;
-        const scaledHeight = height * scale;
-        const offsetX = (width - scaledWidth) / 2;
-        const offsetY = (height - scaledHeight) / 2;
-        
-        const centerX = x + offsetX + scaledWidth / 2;
-        const centerY = y + offsetY + scaledHeight / 2;
-        
-        let furnitureSvg = '';
-        
-        // Единый цвет для всей мебели - светло-серый
-        const color = '#E8E8E8';
-        
-        if (rotation === 90 || rotation === 270) {
-            [scaledWidth, scaledHeight] = [scaledHeight, scaledWidth];
-        }
-        
-        // Создаем прямоугольник мебели
-        furnitureSvg += `
-            <rect x="${x + offsetX}" y="${y + offsetY}" 
-                  width="${scaledWidth}" height="${scaledHeight}" 
-                  fill="${color}" stroke="#2F2F2F" stroke-width="1" 
-                  rx="2" ry="2"/>
-        `;
-        
-        // Добавляем простые иконки для разных типов мебели
-        const iconSize = Math.min(scaledWidth, scaledHeight) * 0.4;
-        const iconX = centerX - iconSize / 2;
-        const iconY = centerY - iconSize / 2;
-        
-        switch (type) {
-            case 'bed':
-                furnitureSvg += `
-                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.5}" 
-                          x2="${iconX + iconSize * 0.8}" y2="${iconY + iconSize * 0.5}" 
-                          stroke="#666666" stroke-width="1"/>
-                `;
-                break;
-            case 'sofa':
-                furnitureSvg += `
-                    <rect x="${iconX + iconSize * 0.1}" y="${iconY + iconSize * 0.1}" 
-                          width="${iconSize * 0.8}" height="${iconSize * 0.8}" 
-                          fill="none" stroke="#666666" stroke-width="0.5" rx="1"/>
-                `;
-                break;
-            case 'table':
-                furnitureSvg += `
-                    <line x1="${iconX + iconSize * 0.3}" y1="${iconY + iconSize * 0.5}" 
-                          x2="${iconX + iconSize * 0.7}" y2="${iconY + iconSize * 0.5}" 
-                          stroke="#666666" stroke-width="1"/>
-                `;
-                break;
-            case 'wardrobe':
-                furnitureSvg += `
-                    <line x1="${iconX + iconSize * 0.5}" y1="${iconY}" 
-                          x2="${iconX + iconSize * 0.5}" y2="${iconY + iconSize}" 
-                          stroke="#666666" stroke-width="1"/>
-                `;
-                break;
-            case 'toilet':
-                furnitureSvg += `
-                    <ellipse cx="${centerX}" cy="${centerY}" 
-                             rx="${iconSize * 0.3}" ry="${iconSize * 0.2}" 
-                             fill="none" stroke="#666666" stroke-width="0.5"/>
-                `;
-                break;
-            case 'bathtub':
-                furnitureSvg += `
-                    <rect x="${iconX + iconSize * 0.1}" y="${iconY + iconSize * 0.1}" 
-                          width="${iconSize * 0.8}" height="${iconSize * 0.8}" 
-                          fill="none" stroke="#666666" stroke-width="0.5" rx="1"/>
-                `;
-                break;
-            case 'shower':
-                furnitureSvg += `
-                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.2}" 
-                          x2="${iconX + iconSize * 0.8}" y2="${iconY + iconSize * 0.8}" 
-                          stroke="#666666" stroke-width="0.5"/>
-                `;
-                break;
-            case 'fridge':
-                furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY}" width="${iconSize * 0.6}" height="${iconSize}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                    <line x1="${iconX + iconSize * 0.3}" y1="${iconY}" 
-                          x2="${iconX + iconSize * 0.3}" y2="${iconY + iconSize}" 
-                          stroke="#2F2F2F" stroke-width="1"/>
-                `;
-                break;
-            case 'stove':
-                furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                    <circle cx="${iconX + iconSize * 0.25}" cy="${iconY + iconSize * 0.3}" r="${iconSize * 0.1}" 
-                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                    <circle cx="${iconX + iconSize * 0.75}" cy="${iconY + iconSize * 0.3}" r="${iconSize * 0.1}" 
-                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                `;
-                break;
-            case 'sink':
-                furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                    <circle cx="${centerX}" cy="${centerY}" r="${iconSize * 0.2}" 
-                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                `;
-                break;
-            case 'washing_machine':
-                furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY}" width="${iconSize * 0.6}" height="${iconSize}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                    <circle cx="${centerX}" cy="${centerY}" r="${iconSize * 0.2}" 
-                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                `;
-                break;
-            case 'kitchen_block':
-                furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.2}" 
-                          x2="${iconX + iconSize * 0.8}" y2="${iconY + iconSize * 0.2}" 
-                          stroke="#2F2F2F" stroke-width="1"/>
-                `;
-                break;
-        }
-        
-        return `<g>${furnitureSvg}</g>`;
-    }
-
     // Функция для создания схематичного окна с 4 линиями и перегородками
     function createLayeredWindow(x, y, length, depth, orientation) {
         const isHorizontal = orientation === 'horizontal';
@@ -533,41 +381,16 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
     // Рисуем полы комнат (без стен) с учетом наложений и окон
     pixelRooms.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm, windows = [], objects = [] } = room;
+        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm, windows = [] } = room;
         const overlappingRooms = getRoomOverlaps(room);
         const hasOverlaps = overlappingRooms.length > 0;
         
-        // Основной полигон помещения или прямоугольник как fallback
+        // Основной прямоугольник помещения
         const fillColor = hasOverlaps ? 'rgba(232, 244, 253, 0.6)' : '#FFFFFF';
         const strokeColor = hasOverlaps ? '#1976d2' : 'none';
         const strokeWidth = hasOverlaps ? '3' : '0';
         
-        if (room.shape && room.shape.corners && room.shape.corners.length >= 3) {
-            // Используем полигон для нестандартной формы
-            const points = room.shape.corners.map(corner => {
-                const x = pixelX + corner.x * pixelWidth;
-                const y = pixelY + corner.y * pixelHeight;
-                return `${x},${y}`;
-            }).join(' ');
-            
-            svgContent += `\n<polygon points="${points}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
-        } else {
-            // Fallback к прямоугольнику
-            svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
-        }
-        
-        // Рендерим мебель в комнате
-        if (objects && objects.length > 0) {
-            objects.forEach(obj => {
-                const objX = pixelX + obj.x * pixelWidth;
-                const objY = pixelY + obj.y * pixelHeight;
-                const objWidth = obj.w * pixelWidth;
-                const objHeight = obj.h * pixelHeight;
-                
-                const furnitureSvg = createFurniture(objX, objY, objWidth, objHeight, obj.type, obj.rotation || 0);
-                svgContent += furnitureSvg;
-            });
-        }
+        svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
         
         // Дополнительные прямоугольники для окон - расширяем фон помещения
         windows.forEach(window => {

@@ -1,33 +1,6 @@
 import { API_BASE_URL } from '../config';
 
 // Defining shared types for the application
-export interface RoomObject {
-    type: 'bed' | 'sofa' | 'chair' | 'table' | 'wardrobe' | 'stove' | 'fridge' | 'sink' | 'toilet' | 'bathtub' | 'shower' | 'washing_machine' | 'kitchen_block';
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    rotation?: number;
-    confidence?: number;
-}
-
-export interface RoomDimensions {
-  width: number;
-  height: number;
-}
-
-export interface RoomShape {
-  type: 'rectangular' | 'l_shaped' | 'u_shaped' | 'irregular' | 'circular' | 'trapezoidal';
-  description: string;
-  corners: Array<{ x: number; y: number }>;
-}
-
-export interface RoomConnection {
-  connectedTo: string;
-  connectionType: 'door' | 'archway' | 'open_space';
-  position: 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest';
-}
-
 export interface RoomState {
     key: string;
     name: string;
@@ -37,13 +10,49 @@ export interface RoomState {
     layout?: { x: number; y: number; width: number; height: number } | null; // coordinates in pixels
     entrySide?: 'left' | 'right' | 'top' | 'bottom' | null; // external entry for hallway
     rotation?: 0 | 90 | null; // визуальный поворот комнаты в конструкторе
-    dimensions?: RoomDimensions; // реальные размеры комнаты в метрах
-    shape?: RoomShape; // форма помещения
-    connections?: RoomConnection[]; // соединения с другими помещениями
-    objects?: RoomObject[]; // мебель в комнате
     windows?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]; // окна для svg
     doors?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]; // двери для svg
     description?: string; // Room description for UI
+    connectedRooms?: string[]; // ключи комнат, с которыми соединена данная комната
+}
+
+// Новые типы для детального анализа
+export interface WallPoint {
+    x: number; // относительная позиция на стене (0-1)
+    y: number; // относительная позиция на стене (0-1)
+}
+
+export interface Wall {
+    side: 'left' | 'right' | 'top' | 'bottom';
+    startPoint: WallPoint;
+    endPoint: WallPoint;
+    hasWindow: boolean;
+    windowPosition?: number; // позиция окна на стене (0-1)
+    windowLength?: number; // длина окна относительно стены (0-1)
+    hasDoor: boolean;
+    doorPosition?: number; // позиция двери на стене (0-1)
+    doorLength?: number; // длина двери относительно стены (0-1)
+    doorType?: 'entrance' | 'interior';
+    connectedRoom?: string; // ключ комнаты, к которой ведет дверь
+}
+
+export interface RoomShape {
+    type: 'rectangle' | 'l_shape' | 'u_shape' | 'irregular';
+    corners: WallPoint[]; // контрольные точки формы комнаты (минимум 3)
+    mainDimensions: {
+        width: number; // ширина в метрах
+        height: number; // высота в метрах
+    };
+}
+
+export interface DetailedRoomAnalysis {
+    key: string;
+    name: string;
+    sqm: number;
+    shape: RoomShape;
+    walls: Wall[];
+    objects: any[]; // мебель
+    roomConnections: string[]; // ключи комнат, с которыми соединена данная комната
 }
 
 export type BathroomType = 'combined' | 'separate';
@@ -60,7 +69,7 @@ export interface ApiResponse {
     svgDataUrl?: string;
     pngDataUrl?: string;
     totalSqm?: number;
-    rooms?: RoomState[];
+    rooms?: any[];
     error?: string;
 }
 

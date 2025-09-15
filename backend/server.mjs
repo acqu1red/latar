@@ -3,8 +3,9 @@ import cors from 'cors';
 import multer from 'multer';
 import dotenv from 'dotenv';
 
-import { analyzeRoomVision } from './src/analyzeRoomVision.mjs';
+import { analyzeRoomVision, analyzeDetailedRoomVision } from './src/analyzeRoomVision.mjs';
 import { generateSvgFromData } from './src/generateSvgFromData.mjs';
+import { generateDetailedSvgFromAnalysis } from './src/generateDetailedSvg.mjs';
 // DALL·E стилизация отключена — работаем только с точным SVG
 
 dotenv.config();
@@ -109,7 +110,7 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
 
     // --- Always use hybrid approach: SVG + DALL-E styling ---
     {
-      // First analyze photos to get furniture/doors data
+      // First analyze photos to get detailed room data
       let analyzedRooms;
       try {
         const analysisPromises = enabledRooms.map(async (room) => {
@@ -117,16 +118,18 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
           if (!files) return null;
 
           console.log(`Analyzing room: ${room.name} (${room.key}) with ${files.length} photos`);
-          const result = await analyzeRoomVision({
+          const result = await analyzeDetailedRoomVision({
             photoBuffers: files.map(f => f.buffer),
             key: room.key,
             name: room.name,
             sqm: room.sqm,
+            availableRooms: enabledRooms.filter(r => r.key !== room.key),
           });
           console.log(`Analysis result for ${room.key}:`, { 
+            shape: result.shape?.type || 'unknown',
+            walls: result.walls?.length || 0,
             objects: result.objects?.length || 0, 
-            doors: result.doors?.length || 0, 
-            windows: result.windows?.length || 0,
+            connections: result.roomConnections?.length || 0,
             objectTypes: result.objects?.map(o => o.type) || []
           });
           return result;
@@ -144,21 +147,10 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
           key: room.key,
           name: room.name,
           sqm: room.sqm,
-          dimensions: { width: 3, height: 3 },
-          shape: {
-            type: 'rectangular',
-            description: 'Прямоугольное помещение',
-            corners: [
-              { x: 0, y: 0 },
-              { x: 1, y: 0 },
-              { x: 1, y: 1 },
-              { x: 0, y: 1 }
-            ]
-          },
-          connections: [],
+          shape: { type: 'rectangle', corners: [{x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}, {x: 0, y: 1}], mainDimensions: { width: Math.sqrt(room.sqm), height: Math.sqrt(room.sqm) }},
+          walls: [],
           objects: [],
-          windows: [],
-          doors: []
+          roomConnections: []
         }));
       }
 
@@ -169,12 +161,8 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
           ...room, 
           layout: src.layout,
           entrySide: src.entrySide || null,
-          // Use analyzed windows and doors if available, otherwise use manual ones
-          windows: room.windows && room.windows.length > 0 ? room.windows : (src.windows || []),
-          doors: room.doors && room.doors.length > 0 ? room.doors : (src.doors || []),
-          // Pass through shape and connections from analysis
-          shape: room.shape,
-          connections: room.connections
+          windows: src.windows || [],
+          doors: src.doors || []
         };
       });
 
@@ -187,8 +175,8 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
         doors: r.doors?.length || 0
       })));
 
-      // Генерируем точный SVG и производную PNG без стилизации DALL·E
-      const { svgDataUrl, pngDataUrl: svgPngDataUrl } = await generateSvgFromData(roomsWithAnalysis, totalSqm);
+      // Генерируем детальный SVG на основе анализа GPT
+      const { svgDataUrl, pngDataUrl: svgPngDataUrl } = await generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm);
 
       // Validate data URLs before sending
       if (!svgDataUrl || !svgDataUrl.startsWith('data:image/svg+xml;base64,')) {
