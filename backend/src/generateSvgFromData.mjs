@@ -379,12 +379,11 @@ export async function generateSvgFromData(rooms, totalSqm) {
         );
     };
 
-    // Рисуем полы комнат (без стен) с учетом наложений
+    // Рисуем полы комнат (без стен) с учетом наложений и окон
     pixelRooms.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm } = room;
+        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm, windows = [] } = room;
         const overlappingRooms = getRoomOverlaps(room);
         const hasOverlaps = overlappingRooms.length > 0;
-        
         
         // Основной прямоугольник помещения
         const fillColor = hasOverlaps ? 'rgba(232, 244, 253, 0.6)' : '#FFFFFF';
@@ -392,6 +391,35 @@ export async function generateSvgFromData(rooms, totalSqm) {
         const strokeWidth = hasOverlaps ? '3' : '0';
         
         svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
+        
+        // Дополнительные прямоугольники для окон - расширяем фон помещения
+        windows.forEach(window => {
+            const pos = typeof window.pos === 'number' ? window.pos : 0.5;
+            const len = typeof window.len === 'number' ? window.len : 0.2;
+            const WINDOW_WIDTH = 40; // Используем максимальную ширину для фона
+            
+            if (window.side === 'top') {
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                const y = pixelY - WINDOW_WIDTH / 2;
+                svgContent += `\n<rect x="${startX}" y="${y}" width="${winLength}" height="${WINDOW_WIDTH}" fill="${fillColor}" stroke="none"/>`;
+            } else if (window.side === 'bottom') {
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                const y = pixelY + pixelHeight + WINDOW_WIDTH / 2;
+                svgContent += `\n<rect x="${startX}" y="${y - WINDOW_WIDTH}" width="${winLength}" height="${WINDOW_WIDTH}" fill="${fillColor}" stroke="none"/>`;
+            } else if (window.side === 'left') {
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                const x = pixelX - WINDOW_WIDTH / 2;
+                svgContent += `\n<rect x="${x}" y="${startY}" width="${WINDOW_WIDTH}" height="${winLength}" fill="${fillColor}" stroke="none"/>`;
+            } else if (window.side === 'right') {
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                const x = pixelX + pixelWidth + WINDOW_WIDTH / 2;
+                svgContent += `\n<rect x="${x - WINDOW_WIDTH}" y="${startY}" width="${WINDOW_WIDTH}" height="${winLength}" fill="${fillColor}" stroke="none"/>`;
+            }
+        });
         
         // Дополнительная обводка для наложенных помещений
         if (hasOverlaps) {
@@ -646,24 +674,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         }
     });
 
-    // Дорисовываем стены до окон - используем правильную ширину в зависимости от типа стены
-    windowSegments.forEach(ws => {
-        const wallThickness = getWallThickness({ o: ws.orientation, c: ws.coord }, ws.start, ws.end);
-        
-        if (ws.orientation === 'h') {
-            // Горизонтальная стена - дорисовываем слева и справа от окна
-            // Левый сегмент: от начала стены до начала окна
-            svgContent += `\n<line x1="${ws.start - 10}" y1="${ws.coord}" x2="${ws.start}" y2="${ws.coord}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-            // Правый сегмент: от конца окна до конца стены
-            svgContent += `\n<line x1="${ws.end}" y1="${ws.coord}" x2="${ws.end + 10}" y2="${ws.coord}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-        } else {
-            // Вертикальная стена - дорисовываем сверху и снизу от окна
-            // Верхний сегмент: от начала стены до начала окна
-            svgContent += `\n<line x1="${ws.coord}" y1="${ws.start - 10}" x2="${ws.coord}" y2="${ws.start}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-            // Нижний сегмент: от конца окна до конца стены
-            svgContent += `\n<line x1="${ws.coord}" y1="${ws.end}" x2="${ws.coord}" y2="${ws.end + 10}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-        }
-    });
+    // Временно убираем дорисовывание стен до окон
 
 
     // Draw doors (детализация: косяки, петля, ровная дуга)

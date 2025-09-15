@@ -15,6 +15,7 @@ const GRID_SIZE = 20;
 const WINDOW_MIN_LENGTH = 60;
 const WINDOW_MAX_LENGTH = 200;
 const SNAP_DISTANCE = 15;
+const WINDOW_WALL_MARGIN = 40; // Отступ от краев стены для окон
 
 type WindowElement = {
   id: number;
@@ -277,12 +278,16 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             // Вертикальная стена
             const wallLength = wall.height;
             const relativeY = door.y - wall.y;
-            position = Math.max(0, Math.min(1, relativeY / wallLength));
+            // Ограничиваем позицию отступами от краев
+            const marginRatio = WINDOW_WALL_MARGIN / wallLength;
+            position = Math.max(marginRatio, Math.min(1 - marginRatio, relativeY / wallLength));
           } else {
             // Горизонтальная стена
             const wallLength = wall.width;
             const relativeX = door.x - wall.x;
-            position = Math.max(0, Math.min(1, relativeX / wallLength));
+            // Ограничиваем позицию отступами от краев
+            const marginRatio = WINDOW_WALL_MARGIN / wallLength;
+            position = Math.max(marginRatio, Math.min(1 - marginRatio, relativeX / wallLength));
           }
 
           bestAttachment = {
@@ -330,19 +335,23 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         if (distance < minDistance && distance <= SNAP_DISTANCE) {
           minDistance = distance;
           
-          // Вычисляем позицию на стене
+          // Вычисляем позицию на стене с учетом отступов
           let position: number;
           
           if (wall.side === 'left' || wall.side === 'right') {
             // Вертикальная стена
             const wallLength = wall.height;
             const relativeY = window.y - wall.y;
-            position = Math.max(0, Math.min(1, relativeY / wallLength));
+            // Ограничиваем позицию отступами от краев
+            const marginRatio = WINDOW_WALL_MARGIN / wallLength;
+            position = Math.max(marginRatio, Math.min(1 - marginRatio, relativeY / wallLength));
           } else {
             // Горизонтальная стена
             const wallLength = wall.width;
             const relativeX = window.x - wall.x;
-            position = Math.max(0, Math.min(1, relativeX / wallLength));
+            // Ограничиваем позицию отступами от краев
+            const marginRatio = WINDOW_WALL_MARGIN / wallLength;
+            position = Math.max(marginRatio, Math.min(1 - marginRatio, relativeX / wallLength));
           }
 
           bestAttachment = {
@@ -526,8 +535,9 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             const wallLength = drag.item.attachedTo.side === 'left' || drag.item.attachedTo.side === 'right' 
               ? roomPixels.height 
               : roomPixels.width;
-            // Ограничиваем длину размером стены, но позволяем растягивать в пределах стены
-            newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(newLength, wallLength));
+            // Ограничиваем длину размером стены с отступами от краев
+            const availableLength = wallLength - (WINDOW_WALL_MARGIN * 2); // Учитываем отступы с обеих сторон
+            newLength = Math.max(WINDOW_MIN_LENGTH, Math.min(newLength, availableLength));
           }
         } else {
           // Для свободных окон используем стандартные ограничения
