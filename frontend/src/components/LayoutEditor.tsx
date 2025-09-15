@@ -181,15 +181,11 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   }, [doors, enabledRooms, onDoorsUpdate]);
 
   // Функции для работы с дверями
-  const addDoor = (type: 'entrance' | 'interior', clickX?: number, clickY?: number) => {
-    // Используем координаты клика или центр канвы по умолчанию
-    const doorX = clickX !== undefined ? clickX - 40 : CANVAS_WIDTH / 2 - 40;
-    const doorY = clickY !== undefined ? clickY - 10 : CANVAS_HEIGHT / 2 - 10;
-    
+  const addDoor = (type: 'entrance' | 'interior') => {
     const newDoor: Door = {
       id: Date.now(),
-      x: doorX,
-      y: doorY,
+      x: CANVAS_WIDTH / 2 - 50,
+      y: CANVAS_HEIGHT / 2 - 50,
       length: 80,
       rotation: 0,
       type,
@@ -252,13 +248,21 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       
       console.log(`Checking room ${room.name}:`, roomPixels);
       
-      // Проверяем все стены комнаты (не только в зависимости от поворота двери)
-      const walls = [
-        { side: 'top' as const, x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: 0 },
-        { side: 'bottom' as const, x: roomPixels.x, y: roomPixels.y + roomPixels.height, width: roomPixels.width, height: 0 },
-        { side: 'left' as const, x: roomPixels.x, y: roomPixels.y, width: 0, height: roomPixels.height },
-        { side: 'right' as const, x: roomPixels.x + roomPixels.width, y: roomPixels.y, width: 0, height: roomPixels.height }
-      ];
+      // Проверяем стены в зависимости от поворота двери
+      let walls;
+      if (door.rotation === 0) {
+        // Горизонтальная дверь - может привязываться к верхним и нижним стенам
+        walls = [
+          { side: 'top' as const, x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: 0 },
+          { side: 'bottom' as const, x: roomPixels.x, y: roomPixels.y + roomPixels.height, width: roomPixels.width, height: 0 }
+        ];
+      } else {
+        // Вертикальная дверь - может привязываться к левым и правым стенам
+        walls = [
+          { side: 'left' as const, x: roomPixels.x, y: roomPixels.y, width: 0, height: roomPixels.height },
+          { side: 'right' as const, x: roomPixels.x + roomPixels.width, y: roomPixels.y, width: 0, height: roomPixels.height }
+        ];
+      }
 
       for (const wall of walls) {
         const distance = calculateDistanceToWall({ x: door.x, y: door.y, length: door.length, rotation: door.rotation } as WindowElement, wall);
@@ -975,16 +979,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
           if (e.target === canvasRef.current) {
             setDrag(null);
             setSelectedWindow(null);
-            
-            // Если включен режим создания двери, создаем дверь в месте клика
-            if (doorCreationMode === 'entrance' || doorCreationMode === 'interior') {
-              const rect = canvasRef.current?.getBoundingClientRect();
-              if (rect) {
-                const clickX = e.clientX - rect.left;
-                const clickY = e.clientY - rect.top;
-                addDoor(doorCreationMode, clickX, clickY);
-              }
-            }
           }
         }}
       >
@@ -1139,7 +1133,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               top: door.y,
               width: door.rotation === 0 ? door.length : 8,
               height: door.rotation === 0 ? 8 : door.length,
-              backgroundColor: '#9c27b0',
+              backgroundColor: door.type === 'entrance' ? '#ff9800' : '#9c27b0',
               border: door.attachedTo ? '3px solid #4caf50' : '2px solid #673ab7',
               borderRadius: '4px',
               cursor: 'move',
@@ -1196,7 +1190,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             )}
             
             <div className="door-label">
-              🚪
+              {door.type === 'entrance' ? '🏠' : '🚪'}
             </div>
           </div>
         ))}
