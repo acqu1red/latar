@@ -30,6 +30,7 @@ type WindowElement = {
     roomKey: string;
     side: 'left' | 'right' | 'top' | 'bottom';
     position: number;
+    shouldCenter?: boolean;
   };
 };
 
@@ -305,8 +306,8 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
   };
 
   // Поиск ближайшей стены для привязки окна
-  const findNearestWallForWindowElement = (window: WindowElement): { roomKey: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number } | null => {
-    let bestAttachment: { roomKey: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number } | null = null;
+  const findNearestWallForWindowElement = (window: WindowElement): { roomKey: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number; shouldCenter?: boolean } | null => {
+    let bestAttachment: { roomKey: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number; shouldCenter?: boolean } | null = null;
     let minDistance = Infinity;
 
     for (const room of enabledRooms) {
@@ -335,29 +336,45 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         if (distance < minDistance && distance <= SNAP_DISTANCE) {
           minDistance = distance;
           
-          // Вычисляем позицию на стене с учетом отступов
+          // Вычисляем позицию на стене с автоматическим центрированием
           let position: number;
+          let shouldCenter = false;
           
           if (wall.side === 'left' || wall.side === 'right') {
             // Вертикальная стена
             const wallLength = wall.height;
             const relativeY = window.y - wall.y;
-            // Ограничиваем позицию отступами от краев
             const marginRatio = WINDOW_WALL_MARGIN / wallLength;
-            position = Math.max(marginRatio, Math.min(1 - marginRatio, relativeY / wallLength));
+            const rawPosition = relativeY / wallLength;
+            
+            // Проверяем, попадает ли окно в запретную зону
+            if (rawPosition < marginRatio || rawPosition > 1 - marginRatio) {
+              shouldCenter = true;
+              position = 0.5; // Центр стены
+            } else {
+              position = rawPosition;
+            }
           } else {
             // Горизонтальная стена
             const wallLength = wall.width;
             const relativeX = window.x - wall.x;
-            // Ограничиваем позицию отступами от краев
             const marginRatio = WINDOW_WALL_MARGIN / wallLength;
-            position = Math.max(marginRatio, Math.min(1 - marginRatio, relativeX / wallLength));
+            const rawPosition = relativeX / wallLength;
+            
+            // Проверяем, попадает ли окно в запретную зону
+            if (rawPosition < marginRatio || rawPosition > 1 - marginRatio) {
+              shouldCenter = true;
+              position = 0.5; // Центр стены
+            } else {
+              position = rawPosition;
+            }
           }
 
           bestAttachment = {
             roomKey: room.key,
             side: wall.side,
-            position
+            position,
+            shouldCenter
           };
         }
       }
@@ -563,11 +580,32 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         
         if (attachment) {
           // Автоматически прикрепляем окно к стене
-          setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => 
-            w.id === drag.item.id 
-              ? { ...w, attachedTo: attachment }
-              : w
-          ));
+          setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => {
+            if (w.id === drag.item.id) {
+              let finalX = newX;
+              let finalY = newY;
+              
+              // Если нужно центрировать окно, вычисляем новую позицию
+              if (attachment.shouldCenter) {
+                const room = enabledRooms.find(r => r.key === attachment.roomKey);
+                if (room) {
+                  const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+                  const roomPixels = toPixels(layout);
+                  
+                  if (attachment.side === 'left' || attachment.side === 'right') {
+                    // Вертикальная стена - центрируем по Y
+                    finalY = roomPixels.y + roomPixels.height / 2 - (w.rotation === 0 ? 4 : w.length / 2);
+                  } else {
+                    // Горизонтальная стена - центрируем по X
+                    finalX = roomPixels.x + roomPixels.width / 2 - (w.rotation === 0 ? w.length / 2 : 4);
+                  }
+                }
+              }
+              
+              return { ...w, x: finalX, y: finalY, attachedTo: attachment };
+            }
+            return w;
+          }));
         } else {
           // Открепляем окно от стены
           setWindows((prev: WindowElement[]) => prev.map((w: WindowElement) => 
@@ -800,6 +838,23 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     const attachment = findNearestWallForWindowElement(newWindow);
     if (attachment) {
       newWindow.attachedTo = attachment;
+      
+      // Если нужно центрировать окно, вычисляем новую позицию
+      if (attachment.shouldCenter) {
+        const room = enabledRooms.find(r => r.key === attachment.roomKey);
+        if (room) {
+          const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+          const roomPixels = toPixels(layout);
+          
+          if (attachment.side === 'left' || attachment.side === 'right') {
+            // Вертикальная стена - центрируем по Y
+            newWindow.y = roomPixels.y + roomPixels.height / 2 - (newWindow.rotation === 0 ? 4 : newWindow.length / 2);
+          } else {
+            // Горизонтальная стена - центрируем по X
+            newWindow.x = roomPixels.x + roomPixels.width / 2 - (newWindow.rotation === 0 ? newWindow.length / 2 : 4);
+          }
+        }
+      }
     }
     
     setWindows((prev: WindowElement[]) => [...prev, newWindow]);
