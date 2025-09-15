@@ -1926,13 +1926,13 @@ header p {
 }
 
 .add-entrance-door-btn {
-  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
   color: white;
 }
 
 .add-entrance-door-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(156, 39, 176, 0.4);
 }
 
 .add-interior-door-btn {
@@ -1967,8 +1967,8 @@ header p {
 }
 
 .door.entrance {
-  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-  border-color: #e65100;
+  background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+  border-color: #673ab7;
 }
 
 .door.attached {
