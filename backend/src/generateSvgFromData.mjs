@@ -33,49 +33,69 @@ export async function generateSvgFromData(rooms, totalSqm) {
         
         if (isHorizontal) {
             // Горизонтальное окно (top/bottom стены)
-            // Три линии: две на концах (внешняя и внутренняя) и одна по середине
             
-            // 1. Внешняя линия (на уровне стены)
+            // 1. Две линии на уровне стены (внешние границы окна)
             windowGroup += `
                 <line x1="${x}" y1="${y}" x2="${x + length}" y2="${y}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
-            `;
-            
-            // 2. Внутренняя линия (внутри окна)
-            windowGroup += `
                 <line x1="${x}" y1="${y + depth}" x2="${x + length}" y2="${y + depth}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 3. Средняя линия (по центру окна)
-            const middleY = y + depth / 2;
+            // 2. Две линии по середине (внутренние границы)
+            const middleY1 = y + depth * 0.25;
+            const middleY2 = y + depth * 0.75;
             windowGroup += `
-                <line x1="${x}" y1="${middleY}" x2="${x + length}" y2="${middleY}" 
+                <line x1="${x}" y1="${middleY1}" x2="${x + length}" y2="${middleY1}" 
+                      stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
+                <line x1="${x}" y1="${middleY2}" x2="${x + length}" y2="${middleY2}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
+            
+            // 3. Вертикальные перегородки между внутренними линиями
+            const mullionCount = Math.max(1, Math.min(2, Math.floor(length / 100))); // 1-2 перегородки
+            const mullionSpacing = length / (mullionCount + 1);
+            
+            for (let i = 1; i <= mullionCount; i++) {
+                const mullionX = x + i * mullionSpacing;
+                windowGroup += `
+                    <line x1="${mullionX}" y1="${middleY1}" x2="${mullionX}" y2="${middleY2}" 
+                          stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
+                `;
+            }
             
         } else {
             // Вертикальное окно (left/right стены)
-            // Три линии: две на концах (внешняя и внутренняя) и одна по середине
             
-            // 1. Внешняя линия (на уровне стены)
+            // 1. Две линии на уровне стены (внешние границы окна)
             windowGroup += `
                 <line x1="${x}" y1="${y}" x2="${x}" y2="${y + length}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
-            `;
-            
-            // 2. Внутренняя линия (внутри окна)
-            windowGroup += `
                 <line x1="${x + depth}" y1="${y}" x2="${x + depth}" y2="${y + length}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 3. Средняя линия (по центру окна)
-            const middleX = x + depth / 2;
+            // 2. Две линии по середине (внутренние границы)
+            const middleX1 = x + depth * 0.25;
+            const middleX2 = x + depth * 0.75;
             windowGroup += `
-                <line x1="${middleX}" y1="${y}" x2="${middleX}" y2="${y + length}" 
+                <line x1="${middleX1}" y1="${y}" x2="${middleX1}" y2="${y + length}" 
+                      stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
+                <line x1="${middleX2}" y1="${y}" x2="${middleX2}" y2="${y + length}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
+            
+            // 3. Горизонтальные перегородки между внутренними линиями
+            const mullionCount = Math.max(1, Math.min(2, Math.floor(length / 100))); // 1-2 перегородки
+            const mullionSpacing = length / (mullionCount + 1);
+            
+            for (let i = 1; i <= mullionCount; i++) {
+                const mullionY = y + i * mullionSpacing;
+                windowGroup += `
+                    <line x1="${middleX1}" y1="${mullionY}" x2="${middleX2}" y2="${mullionY}" 
+                          stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
+                `;
+            }
         }
         
         windowGroup += `</g>`;
@@ -729,7 +749,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на верхней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY; // Окно начинается точно на уровне стены
+                const y = pixelY - wallThickness / 2; // Окно на уровне стены (стена выше помещения)
                 
                 // Прорезаем стену - делаем стену точно такой же ширины, как окно
                 svgContent += `\n<line x1="${startX}" y1="${pixelY}" x2="${startX + winLength}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
@@ -744,7 +764,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на нижней стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY + pixelHeight; // Окно начинается точно на уровне стены
+                const y = pixelY + pixelHeight + wallThickness / 2; // Окно на уровне стены (стена ниже помещения)
                 
                 // Прорезаем стену
                 svgContent += `\n<line x1="${startX}" y1="${pixelY + pixelHeight}" x2="${startX + winLength}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
@@ -759,7 +779,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на левой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX; // Окно начинается точно на уровне стены
+                const x = pixelX - wallThickness / 2; // Окно на уровне стены (стена левее помещения)
                 
                 // Прорезаем стену
                 svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
@@ -774,7 +794,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на правой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth; // Окно начинается точно на уровне стены
+                const x = pixelX + pixelWidth + wallThickness / 2; // Окно на уровне стены (стена правее помещения)
                 
                 // Прорезаем стену
                 svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
