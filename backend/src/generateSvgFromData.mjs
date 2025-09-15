@@ -21,169 +21,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
-    // Функция для создания двери по новому дизайну
-    function createDoor(x, y, length, side, doorType = 'interior') {
-        const doorColor = '#2f2f2f';
-        const doorThickness = 4;
-        const hingeSize = 20;
-        const arcRadius = length * 0.8; // радиус дуги составляет 80% от длины двери
-        
-        let doorGroup = `<g>`;
-        
-        if (side === 'top') {
-            // Горизонтальная дверь на верхней стене
-            const doorStartX = x - length / 2;
-            const doorEndX = x + length / 2;
-            
-            // 1. top_line - прямая линия (часть стены)
-            doorGroup += `
-                <line x1="${doorStartX}" y1="${y}" x2="${doorEndX}" y2="${y}" 
-                      stroke="${doorColor}" stroke-width="6" stroke-linecap="square"/>
-            `;
-            
-            // 2. door_swing_arc - дуга открытия двери
-            const arcCenterX = doorStartX + length * 0.7; // центр дуги смещен к концу двери
-            const arcCenterY = y - arcRadius * 0.3; // центр дуги выше двери
-            const startAngle = 168.69; // начальный угол
-            const endAngle = 78.69; // конечный угол
-            
-            // Конвертируем углы в радианы и вычисляем точки
-            const startRad = (startAngle * Math.PI) / 180;
-            const endRad = (endAngle * Math.PI) / 180;
-            const startX = arcCenterX + arcRadius * Math.cos(startRad);
-            const startY = arcCenterY + arcRadius * Math.sin(startRad);
-            const endX = arcCenterX + arcRadius * Math.cos(endRad);
-            const endY = arcCenterY + arcRadius * Math.sin(endRad);
-            
-            doorGroup += `
-                <path d="M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 0 1 ${endX} ${endY}" 
-                      stroke="${doorColor}" stroke-width="${doorThickness}" fill="none"/>
-            `;
-            
-            // 3. Петли
-            doorGroup += `
-                <rect x="${doorStartX - hingeSize/2}" y="${y - hingeSize/2}" width="${hingeSize}" height="${hingeSize}" 
-                      fill="${doorColor}" stroke="${doorColor}"/>
-                <rect x="${doorEndX - hingeSize/2}" y="${y - hingeSize/2}" width="${hingeSize}" height="${hingeSize}" 
-                      fill="${doorColor}" stroke="${doorColor}"/>
-            `;
-            
-        } else if (side === 'bottom') {
-            // Горизонтальная дверь на нижней стене
-            const doorStartX = x - length / 2;
-            const doorEndX = x + length / 2;
-            
-            // 1. top_line - прямая линия (часть стены)
-            doorGroup += `
-                <line x1="${doorStartX}" y1="${y}" x2="${doorEndX}" y2="${y}" 
-                      stroke="${doorColor}" stroke-width="6" stroke-linecap="square"/>
-            `;
-            
-            // 2. door_swing_arc - дуга открытия двери (зеркально)
-            const arcCenterX = doorStartX + length * 0.7;
-            const arcCenterY = y + arcRadius * 0.3; // центр дуги ниже двери
-            const startAngle = -168.69; // зеркальные углы
-            const endAngle = -78.69;
-            
-            const startRad = (startAngle * Math.PI) / 180;
-            const endRad = (endAngle * Math.PI) / 180;
-            const startX = arcCenterX + arcRadius * Math.cos(startRad);
-            const startY = arcCenterY + arcRadius * Math.sin(startRad);
-            const endX = arcCenterX + arcRadius * Math.cos(endRad);
-            const endY = arcCenterY + arcRadius * Math.sin(endRad);
-            
-            doorGroup += `
-                <path d="M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 0 0 ${endX} ${endY}" 
-                      stroke="${doorColor}" stroke-width="${doorThickness}" fill="none"/>
-            `;
-            
-            // 3. Петли
-            doorGroup += `
-                <rect x="${doorStartX - hingeSize/2}" y="${y - hingeSize/2}" width="${hingeSize}" height="${hingeSize}" 
-                      fill="${doorColor}" stroke="${doorColor}"/>
-                <rect x="${doorEndX - hingeSize/2}" y="${y - hingeSize/2}" width="${hingeSize}" height="${hingeSize}" 
-                      fill="${doorColor}" stroke="${doorColor}"/>
-            `;
-            
-        } else if (side === 'left') {
-            // Вертикальная дверь на левой стене
-            const doorStartY = y - length / 2;
-            const doorEndY = y + length / 2;
-            
-            // 1. top_line - прямая линия (часть стены)
-            doorGroup += `
-                <line x1="${x}" y1="${doorStartY}" x2="${x}" y2="${doorEndY}" 
-                      stroke="${doorColor}" stroke-width="6" stroke-linecap="square"/>
-            `;
-            
-            // 2. door_swing_arc - дуга открытия двери (повернута на 90°)
-            const arcCenterX = x - arcRadius * 0.3; // центр дуги левее двери
-            const arcCenterY = doorStartY + length * 0.7;
-            const startAngle = 78.69; // углы повернуты
-            const endAngle = 168.69;
-            
-            const startRad = (startAngle * Math.PI) / 180;
-            const endRad = (endAngle * Math.PI) / 180;
-            const startX = arcCenterX + arcRadius * Math.cos(startRad);
-            const startY = arcCenterY + arcRadius * Math.sin(startRad);
-            const endX = arcCenterX + arcRadius * Math.cos(endRad);
-            const endY = arcCenterY + arcRadius * Math.sin(endRad);
-            
-            doorGroup += `
-                <path d="M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 0 1 ${endX} ${endY}" 
-                      stroke="${doorColor}" stroke-width="${doorThickness}" fill="none"/>
-            `;
-            
-            // 3. Петли
-            doorGroup += `
-                <rect x="${x - hingeSize/2}" y="${doorStartY - hingeSize/2}" width="${hingeSize}" height="${hingeSize}" 
-                      fill="${doorColor}" stroke="${doorColor}"/>
-                <rect x="${x - hingeSize/2}" y="${doorEndY - hingeSize/2}" width="${hingeSize}" height="${hingeSize}" 
-                      fill="${doorColor}" stroke="${doorColor}"/>
-            `;
-            
-        } else if (side === 'right') {
-            // Вертикальная дверь на правой стене
-            const doorStartY = y - length / 2;
-            const doorEndY = y + length / 2;
-            
-            // 1. top_line - прямая линия (часть стены)
-            doorGroup += `
-                <line x1="${x}" y1="${doorStartY}" x2="${x}" y2="${doorEndY}" 
-                      stroke="${doorColor}" stroke-width="6" stroke-linecap="square"/>
-            `;
-            
-            // 2. door_swing_arc - дуга открытия двери (повернута на 90° и зеркально)
-            const arcCenterX = x + arcRadius * 0.3; // центр дуги правее двери
-            const arcCenterY = doorStartY + length * 0.7;
-            const startAngle = -78.69; // зеркальные углы
-            const endAngle = -168.69;
-            
-            const startRad = (startAngle * Math.PI) / 180;
-            const endRad = (endAngle * Math.PI) / 180;
-            const startX = arcCenterX + arcRadius * Math.cos(startRad);
-            const startY = arcCenterY + arcRadius * Math.sin(startRad);
-            const endX = arcCenterX + arcRadius * Math.cos(endRad);
-            const endY = arcCenterY + arcRadius * Math.sin(endRad);
-            
-            doorGroup += `
-                <path d="M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 0 0 ${endX} ${endY}" 
-                      stroke="${doorColor}" stroke-width="${doorThickness}" fill="none"/>
-            `;
-            
-            // 3. Петли
-            doorGroup += `
-                <rect x="${x - hingeSize/2}" y="${doorStartY - hingeSize/2}" width="${hingeSize}" height="${hingeSize}" 
-                      fill="${doorColor}" stroke="${doorColor}"/>
-                <rect x="${x - hingeSize/2}" y="${doorEndY - hingeSize/2}" width="${hingeSize}" height="${hingeSize}" 
-                      fill="${doorColor}" stroke="${doorColor}"/>
-            `;
-        }
-        
-        doorGroup += `</g>`;
-        return doorGroup;
-    }
-
     // Функция для создания схематичного окна с 4 линиями и перегородками
     function createLayeredWindow(x, y, length, depth, orientation) {
         const isHorizontal = orientation === 'horizontal';
@@ -597,7 +434,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         }
     });
 
-    // Рисуем двери (если есть данные о дверях) - используем новый дизайн
+    // Рисуем двери (если есть данные о дверях)
     console.log('SVG Generation - Checking for doors in rooms:', rooms.map(r => ({ 
         key: r.key, 
         name: r.name, 
@@ -620,31 +457,59 @@ export async function generateSvgFromData(rooms, totalSqm) {
             };
 
             room.doors.forEach(door => {
+                const doorWidth = 8 * SVG_SCALE;
                 const doorLength = door.len * (door.side === 'left' || door.side === 'right' ? roomPixels.height : roomPixels.width);
                 
-                let doorX, doorY;
+                let doorX, doorY, doorRotation = 0;
                 
                 switch (door.side) {
                     case 'left':
-                        doorX = roomPixels.x;
+                        doorX = roomPixels.x - doorWidth / 2;
                         doorY = roomPixels.y + door.pos * roomPixels.height;
+                        doorRotation = 90;
                         break;
                     case 'right':
-                        doorX = roomPixels.x + roomPixels.width;
+                        doorX = roomPixels.x + roomPixels.width - doorWidth / 2;
                         doorY = roomPixels.y + door.pos * roomPixels.height;
+                        doorRotation = 90;
                         break;
                     case 'top':
                         doorX = roomPixels.x + door.pos * roomPixels.width;
-                        doorY = roomPixels.y;
+                        doorY = roomPixels.y - doorWidth / 2;
+                        doorRotation = 0;
                         break;
                     case 'bottom':
                         doorX = roomPixels.x + door.pos * roomPixels.width;
-                        doorY = roomPixels.y + roomPixels.height;
+                        doorY = roomPixels.y + roomPixels.height - doorWidth / 2;
+                        doorRotation = 0;
                         break;
                 }
 
-                // Используем новую функцию создания двери
-                const doorGroup = createDoor(doorX, doorY, doorLength, door.side, door.type);
+                // Создаем реалистичную дверь с объемом
+                const doorGroup = `
+                    <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})">
+                        <!-- Тень двери -->
+                        <rect x="2" y="2" width="${doorLength}" height="${doorWidth}" 
+                              fill="#8D6E63" opacity="0.3" rx="2"/>
+                        
+                        <!-- Основная дверь -->
+                        <rect x="0" y="0" width="${doorLength}" height="${doorWidth}" 
+                              fill="url(#doorGradient)" stroke="#5D4037" stroke-width="1" rx="2"/>
+                        
+                        <!-- Ручка двери -->
+                        <circle cx="${doorLength - 12}" cy="${doorWidth / 2}" r="3" 
+                                fill="#FFD700" stroke="#B8860B" stroke-width="0.5"/>
+                        
+                        <!-- Панели двери -->
+                        <rect x="8" y="2" width="${doorLength - 16}" height="2" fill="#8D6E63" opacity="0.6"/>
+                        <rect x="8" y="${doorWidth - 4}" width="${doorLength - 16}" height="2" fill="#8D6E63" opacity="0.6"/>
+                        
+                        <!-- Центральная панель -->
+                        <rect x="${doorLength / 2 - 8}" y="4" width="16" height="${doorWidth - 8}" 
+                              fill="#8D6E63" opacity="0.4" rx="1"/>
+                    </g>
+                `;
+                
                 svgContent += doorGroup;
             });
         });
@@ -808,7 +673,113 @@ export async function generateSvgFromData(rooms, totalSqm) {
     // Временно убираем дорисовывание стен до окон
 
 
-    // Draw doors using new design
+    // Функция для создания двери с новым дизайном
+    function createDoor(side, doorX, doorY, doorLength, wallThickness, doorType) {
+        const doorWidth = 8 * SVG_SCALE; // Ширина двери
+        const hingeRadius = 4 * SVG_SCALE; // Радиус петли
+        const doorColor = doorType === 'entrance' ? '#8B4513' : '#654321'; // Цвет двери
+        const hingeColor = '#2F2F2F'; // Цвет петель
+        
+        let doorGroup = `<g>`;
+        
+        if (side === 'top') {
+            // Горизонтальная дверь на верхней стене
+            const doorStartX = doorX - doorLength / 2;
+            const doorEndX = doorX + doorLength / 2;
+            
+            // 1. Убираем часть стены (создаем проем)
+            doorGroup += `\n<line x1="${doorStartX}" y1="${doorY}" x2="${doorEndX}" y2="${doorY}" stroke="#FFFFFF" stroke-width="${wallThickness + 4}" stroke-linecap="butt"/>`;
+            
+            // 2. Петли с двух сторон стены
+            // Левая петля (прямая линия - top_line)
+            doorGroup += `\n<line x1="${doorStartX}" y1="${doorY - wallThickness/2}" x2="${doorStartX}" y2="${doorY + wallThickness/2}" stroke="${hingeColor}" stroke-width="3" stroke-linecap="round"/>`;
+            doorGroup += `\n<circle cx="${doorStartX}" cy="${doorY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
+            
+            // Правая петля (дуга - door_swing_arc)
+            const arcRadius = doorLength * 0.8; // Радиус дуги
+            const arcStartX = doorEndX;
+            const arcStartY = doorY;
+            const arcEndX = doorStartX + arcRadius;
+            const arcEndY = doorY + arcRadius;
+            
+            doorGroup += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 1 ${arcEndX} ${arcEndY}" stroke="${hingeColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+            doorGroup += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
+            
+        } else if (side === 'bottom') {
+            // Горизонтальная дверь на нижней стене
+            const doorStartX = doorX - doorLength / 2;
+            const doorEndX = doorX + doorLength / 2;
+            
+            // 1. Убираем часть стены (создаем проем)
+            doorGroup += `\n<line x1="${doorStartX}" y1="${doorY}" x2="${doorEndX}" y2="${doorY}" stroke="#FFFFFF" stroke-width="${wallThickness + 4}" stroke-linecap="butt"/>`;
+            
+            // 2. Петли с двух сторон стены
+            // Левая петля (прямая линия - top_line)
+            doorGroup += `\n<line x1="${doorStartX}" y1="${doorY - wallThickness/2}" x2="${doorStartX}" y2="${doorY + wallThickness/2}" stroke="${hingeColor}" stroke-width="3" stroke-linecap="round"/>`;
+            doorGroup += `\n<circle cx="${doorStartX}" cy="${doorY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
+            
+            // Правая петля (дуга - door_swing_arc)
+            const arcRadius = doorLength * 0.8;
+            const arcStartX = doorEndX;
+            const arcStartY = doorY;
+            const arcEndX = doorStartX + arcRadius;
+            const arcEndY = doorY - arcRadius;
+            
+            doorGroup += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 0 ${arcEndX} ${arcEndY}" stroke="${hingeColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+            doorGroup += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
+            
+        } else if (side === 'left') {
+            // Вертикальная дверь на левой стене
+            const doorStartY = doorY - doorLength / 2;
+            const doorEndY = doorY + doorLength / 2;
+            
+            // 1. Убираем часть стены (создаем проем)
+            doorGroup += `\n<line x1="${doorX}" y1="${doorStartY}" x2="${doorX}" y2="${doorEndY}" stroke="#FFFFFF" stroke-width="${wallThickness + 4}" stroke-linecap="butt"/>`;
+            
+            // 2. Петли с двух сторон стены
+            // Верхняя петля (прямая линия - top_line)
+            doorGroup += `\n<line x1="${doorX - wallThickness/2}" y1="${doorStartY}" x2="${doorX + wallThickness/2}" y2="${doorStartY}" stroke="${hingeColor}" stroke-width="3" stroke-linecap="round"/>`;
+            doorGroup += `\n<circle cx="${doorX}" cy="${doorStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
+            
+            // Нижняя петля (дуга - door_swing_arc)
+            const arcRadius = doorLength * 0.8;
+            const arcStartX = doorX;
+            const arcStartY = doorEndY;
+            const arcEndX = doorX + arcRadius;
+            const arcEndY = doorStartY + arcRadius;
+            
+            doorGroup += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 1 ${arcEndX} ${arcEndY}" stroke="${hingeColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+            doorGroup += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
+            
+        } else if (side === 'right') {
+            // Вертикальная дверь на правой стене
+            const doorStartY = doorY - doorLength / 2;
+            const doorEndY = doorY + doorLength / 2;
+            
+            // 1. Убираем часть стены (создаем проем)
+            doorGroup += `\n<line x1="${doorX}" y1="${doorStartY}" x2="${doorX}" y2="${doorEndY}" stroke="#FFFFFF" stroke-width="${wallThickness + 4}" stroke-linecap="butt"/>`;
+            
+            // 2. Петли с двух сторон стены
+            // Верхняя петля (прямая линия - top_line)
+            doorGroup += `\n<line x1="${doorX - wallThickness/2}" y1="${doorStartY}" x2="${doorX + wallThickness/2}" y2="${doorStartY}" stroke="${hingeColor}" stroke-width="3" stroke-linecap="round"/>`;
+            doorGroup += `\n<circle cx="${doorX}" cy="${doorStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
+            
+            // Нижняя петля (дуга - door_swing_arc)
+            const arcRadius = doorLength * 0.8;
+            const arcStartX = doorX;
+            const arcStartY = doorEndY;
+            const arcEndX = doorX - arcRadius;
+            const arcEndY = doorStartY + arcRadius;
+            
+            doorGroup += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 0 ${arcEndX} ${arcEndY}" stroke="${hingeColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+            doorGroup += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
+        }
+        
+        doorGroup += `</g>`;
+        return doorGroup;
+    }
+
+    // Рисуем двери с новым дизайном
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, doors = [] } = room;
 
@@ -817,8 +788,22 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const doorCenterY = pixelY + door.pos * pixelHeight;
             const doorLength = door.len * (door.side === 'left' || door.side === 'right' ? pixelHeight : pixelWidth);
             
-            // Используем новую функцию создания двери
-            const doorGroup = createDoor(doorCenterX, doorCenterY, doorLength, door.side, door.type);
+            // Определяем, является ли стена внешней
+            let isExternalWall = false;
+            if (door.side === 'left' || door.side === 'right') {
+                isExternalWall = Math.abs(pixelX - planBounds.left) < EPS || Math.abs(pixelX + pixelWidth - planBounds.right) < EPS;
+            } else {
+                isExternalWall = Math.abs(pixelY - planBounds.top) < EPS || Math.abs(pixelY + pixelHeight - planBounds.bottom) < EPS;
+            }
+            
+            // Проверяем, не является ли это стеной балкона/лоджии
+            const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
+            
+            // Определяем толщину стены
+            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+            
+            // Создаем дверь с новым дизайном
+            const doorGroup = createDoor(door.side, doorCenterX, doorCenterY, doorLength, wallThickness, door.type);
             svgContent += doorGroup;
         });
     });
