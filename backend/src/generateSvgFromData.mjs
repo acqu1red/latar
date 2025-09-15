@@ -28,14 +28,17 @@ export async function generateSvgFromData(rooms, totalSqm) {
         // Используем переданную глубину как ширину окна
         const WINDOW_WIDTH = depth; // ширина окна = переданная глубина
         const lineColor = '#2F2F2F';
-        const lineThickness = 4;
+        
+        // Адаптивная толщина линий в зависимости от ширины окна
+        const lineThickness = Math.max(1, Math.min(3, WINDOW_WIDTH / 15)); // 1-3px в зависимости от ширины окна
         
         let windowGroup = `<g>`;
         
         if (isHorizontal) {
             // Горизонтальное окно (top/bottom стены)
+            // Все линии помещаются строго внутри WINDOW_WIDTH
             
-            // 1. Две линии на уровне стены (внешние границы окна)
+            // 1. Внешние границы окна (точно по краям)
             windowGroup += `
                 <line x1="${x}" y1="${y}" x2="${x + length}" y2="${y}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
@@ -43,9 +46,11 @@ export async function generateSvgFromData(rooms, totalSqm) {
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 2. Две линии по середине (внутренние границы)
-            const middleY1 = y + WINDOW_WIDTH * 0.25;
-            const middleY2 = y + WINDOW_WIDTH * 0.75;
+            // 2. Внутренние линии (строго внутри границ)
+            const innerOffset = lineThickness / 2; // отступ от краев на половину толщины линии
+            const middleY1 = y + innerOffset + (WINDOW_WIDTH - lineThickness) * 0.25;
+            const middleY2 = y + innerOffset + (WINDOW_WIDTH - lineThickness) * 0.75;
+            
             windowGroup += `
                 <line x1="${x}" y1="${middleY1}" x2="${x + length}" y2="${middleY1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
@@ -53,8 +58,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 3. Вертикальные перегородки между внутренними линиями
-            const mullionCount = Math.max(1, Math.min(2, Math.floor(length / 100))); // 1-2 перегородки
+            // 3. Вертикальные перегородки (строго внутри внутренних линий)
+            const mullionCount = Math.max(1, Math.min(2, Math.floor(length / 100)));
             const mullionSpacing = length / (mullionCount + 1);
             
             for (let i = 1; i <= mullionCount; i++) {
@@ -67,8 +72,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
             
         } else {
             // Вертикальное окно (left/right стены)
+            // Все линии помещаются строго внутри WINDOW_WIDTH
             
-            // 1. Две линии на уровне стены (внешние границы окна)
+            // 1. Внешние границы окна (точно по краям)
             windowGroup += `
                 <line x1="${x}" y1="${y}" x2="${x}" y2="${y + length}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
@@ -76,9 +82,11 @@ export async function generateSvgFromData(rooms, totalSqm) {
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 2. Две линии по середине (внутренние границы)
-            const middleX1 = x + WINDOW_WIDTH * 0.25;
-            const middleX2 = x + WINDOW_WIDTH * 0.75;
+            // 2. Внутренние линии (строго внутри границ)
+            const innerOffset = lineThickness / 2; // отступ от краев на половину толщины линии
+            const middleX1 = x + innerOffset + (WINDOW_WIDTH - lineThickness) * 0.25;
+            const middleX2 = x + innerOffset + (WINDOW_WIDTH - lineThickness) * 0.75;
+            
             windowGroup += `
                 <line x1="${middleX1}" y1="${y}" x2="${middleX1}" y2="${y + length}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
@@ -86,8 +94,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 3. Горизонтальные перегородки между внутренними линиями
-            const mullionCount = Math.max(1, Math.min(2, Math.floor(length / 100))); // 1-2 перегородки
+            // 3. Горизонтальные перегородки (строго внутри внутренних линий)
+            const mullionCount = Math.max(1, Math.min(2, Math.floor(length / 100)));
             const mullionSpacing = length / (mullionCount + 1);
             
             for (let i = 1; i <= mullionCount; i++) {
