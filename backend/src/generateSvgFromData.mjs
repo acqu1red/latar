@@ -1,3 +1,5 @@
+
+
 /**
  * Generates precise SVG floor plan from room data and layout coordinates
  * @param {Array} rooms - Array of room objects with layout, analysis, and connection data
@@ -21,6 +23,162 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
+    // Функция для создания мебели
+    function createFurniture(x, y, width, height, type, rotation = 0) {
+        const scale = 0.8; // Масштаб мебели относительно комнаты
+        const scaledWidth = width * scale;
+        const scaledHeight = height * scale;
+        const offsetX = (width - scaledWidth) / 2;
+        const offsetY = (height - scaledHeight) / 2;
+        
+        const centerX = x + offsetX + scaledWidth / 2;
+        const centerY = y + offsetY + scaledHeight / 2;
+        
+        let furnitureSvg = '';
+        
+        // Базовые цвета для разных типов мебели
+        const colors = {
+            bed: '#8B4513',
+            sofa: '#FF6347',
+            chair: '#DAA520',
+            table: '#CD853F',
+            wardrobe: '#2F4F4F',
+            stove: '#696969',
+            fridge: '#C0C0C0',
+            sink: '#708090',
+            toilet: '#F0F8FF',
+            bathtub: '#E0E0E0',
+            shower: '#B0C4DE',
+            washing_machine: '#D3D3D3',
+            kitchen_block: '#DEB887'
+        };
+        
+        const color = colors[type] || '#808080';
+        
+        if (rotation === 90 || rotation === 270) {
+            [scaledWidth, scaledHeight] = [scaledHeight, scaledWidth];
+        }
+        
+        // Создаем прямоугольник мебели
+        furnitureSvg += `
+            <rect x="${x + offsetX}" y="${y + offsetY}" 
+                  width="${scaledWidth}" height="${scaledHeight}" 
+                  fill="${color}" stroke="#2F2F2F" stroke-width="1" 
+                  rx="2" ry="2"/>
+        `;
+        
+        // Добавляем иконки для разных типов мебели
+        const iconSize = Math.min(scaledWidth, scaledHeight) * 0.3;
+        const iconX = centerX - iconSize / 2;
+        const iconY = centerY - iconSize / 2;
+        
+        switch (type) {
+            case 'bed':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.2}" 
+                          x2="${iconX + iconSize * 0.8}" y2="${iconY + iconSize * 0.2}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'sofa':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1" rx="2"/>
+                `;
+                break;
+            case 'table':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY + iconSize * 0.3}" width="${iconSize}" height="${iconSize * 0.4}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.3}" 
+                          x2="${iconX + iconSize * 0.2}" y2="${iconY + iconSize * 0.7}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.8}" y1="${iconY + iconSize * 0.3}" 
+                          x2="${iconX + iconSize * 0.8}" y2="${iconY + iconSize * 0.7}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'wardrobe':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.5}" y1="${iconY}" 
+                          x2="${iconX + iconSize * 0.5}" y2="${iconY + iconSize}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'toilet':
+                furnitureSvg += `
+                    <ellipse cx="${centerX}" cy="${centerY}" 
+                             rx="${iconSize * 0.4}" ry="${iconSize * 0.3}" 
+                             fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'bathtub':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1" rx="2"/>
+                `;
+                break;
+            case 'shower':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <circle cx="${centerX}" cy="${centerY}" r="${iconSize * 0.2}" 
+                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'fridge':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize * 0.6}" height="${iconSize}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.3}" y1="${iconY}" 
+                          x2="${iconX + iconSize * 0.3}" y2="${iconY + iconSize}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'stove':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <circle cx="${iconX + iconSize * 0.25}" cy="${iconY + iconSize * 0.3}" r="${iconSize * 0.1}" 
+                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <circle cx="${iconX + iconSize * 0.75}" cy="${iconY + iconSize * 0.3}" r="${iconSize * 0.1}" 
+                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'sink':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <circle cx="${centerX}" cy="${centerY}" r="${iconSize * 0.2}" 
+                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'washing_machine':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize * 0.6}" height="${iconSize}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <circle cx="${centerX}" cy="${centerY}" r="${iconSize * 0.2}" 
+                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'kitchen_block':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.2}" 
+                          x2="${iconX + iconSize * 0.8}" y2="${iconY + iconSize * 0.2}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+        }
+        
+        return `<g>${furnitureSvg}</g>`;
+    }
+
     // Функция для создания схематичного окна с 4 линиями и перегородками
     function createLayeredWindow(x, y, length, depth, orientation) {
         const isHorizontal = orientation === 'horizontal';
@@ -36,20 +194,19 @@ export async function generateSvgFromData(rooms, totalSqm) {
         
         if (isHorizontal) {
             // Горизонтальное окно (top/bottom стены)
-            // Все линии помещаются строго внутри WINDOW_WIDTH
+            // Линии должны полностью покрывать длину окна без щелей
             
-            // 1. Внешние границы окна (сдвинуты на 2px внутрь - только боковые линии)
+            // 1. Внешние границы окна (полная длина без отступов)
             windowGroup += `
-                <line x1="${x + 2}" y1="${y + 1}" x2="${x + length - 2}" y2="${y + 1}" 
+                <line x1="${x}" y1="${y + 1}" x2="${x + length}" y2="${y + 1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
-                <line x1="${x + 2}" y1="${y + WINDOW_WIDTH - 1}" x2="${x + length - 2}" y2="${y + WINDOW_WIDTH - 1}" 
+                <line x1="${x}" y1="${y + WINDOW_WIDTH - 1}" x2="${x + length}" y2="${y + WINDOW_WIDTH - 1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 2. Внутренние линии (строго внутри границ)
-            const innerOffset = lineThickness / 2; // отступ от краев на половину толщины линии
-            const middleY1 = y + innerOffset + (WINDOW_WIDTH - lineThickness) * 0.25;
-            const middleY2 = y + innerOffset + (WINDOW_WIDTH - lineThickness) * 0.75;
+            // 2. Внутренние линии (полная длина без отступов)
+            const middleY1 = y + (WINDOW_WIDTH * 0.25);
+            const middleY2 = y + (WINDOW_WIDTH * 0.75);
             
             windowGroup += `
                 <line x1="${x}" y1="${middleY1}" x2="${x + length}" y2="${middleY1}" 
@@ -72,20 +229,19 @@ export async function generateSvgFromData(rooms, totalSqm) {
             
         } else {
             // Вертикальное окно (left/right стены)
-            // Все линии помещаются строго внутри WINDOW_WIDTH
+            // Линии должны полностью покрывать длину окна без щелей
             
-            // 1. Внешние границы окна (сдвинуты на 2px внутрь - только боковые линии)
+            // 1. Внешние границы окна (полная длина без отступов)
             windowGroup += `
-                <line x1="${x + 1}" y1="${y + 2}" x2="${x + 1}" y2="${y + length - 2}" 
+                <line x1="${x + 1}" y1="${y}" x2="${x + 1}" y2="${y + length}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
-                <line x1="${x + WINDOW_WIDTH - 1}" y1="${y + 2}" x2="${x + WINDOW_WIDTH - 1}" y2="${y + length - 2}" 
+                <line x1="${x + WINDOW_WIDTH - 1}" y1="${y}" x2="${x + WINDOW_WIDTH - 1}" y2="${y + length}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
-            // 2. Внутренние линии (строго внутри границ)
-            const innerOffset = lineThickness / 2; // отступ от краев на половину толщины линии
-            const middleX1 = x + innerOffset + (WINDOW_WIDTH - lineThickness) * 0.25;
-            const middleX2 = x + innerOffset + (WINDOW_WIDTH - lineThickness) * 0.75;
+            // 2. Внутренние линии (полная длина без отступов)
+            const middleX1 = x + (WINDOW_WIDTH * 0.25);
+            const middleX2 = x + (WINDOW_WIDTH * 0.75);
             
             windowGroup += `
                 <line x1="${middleX1}" y1="${y}" x2="${middleX1}" y2="${y + length}" 
@@ -381,7 +537,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
 
     // Рисуем полы комнат (без стен) с учетом наложений и окон
     pixelRooms.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm, windows = [] } = room;
+        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm, windows = [], objects = [] } = room;
         const overlappingRooms = getRoomOverlaps(room);
         const hasOverlaps = overlappingRooms.length > 0;
         
@@ -391,6 +547,19 @@ export async function generateSvgFromData(rooms, totalSqm) {
         const strokeWidth = hasOverlaps ? '3' : '0';
         
         svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
+        
+        // Рендерим мебель в комнате
+        if (objects && objects.length > 0) {
+            objects.forEach(obj => {
+                const objX = pixelX + obj.x * pixelWidth;
+                const objY = pixelY + obj.y * pixelHeight;
+                const objWidth = obj.w * pixelWidth;
+                const objHeight = obj.h * pixelHeight;
+                
+                const furnitureSvg = createFurniture(objX, objY, objWidth, objHeight, obj.type, obj.rotation || 0);
+                svgContent += furnitureSvg;
+            });
+        }
         
         // Дополнительные прямоугольники для окон - расширяем фон помещения
         windows.forEach(window => {
@@ -614,14 +783,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
         }
     };
 
-    // Собираем информацию об окнах и дверях для исключения их из рисования стен
+    // Собираем информацию об окнах для исключения их из рисования стен
     const windowSegments = [];
-    const doorSegments = [];
-    
     pixelRooms.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [], doors = [] } = room;
-        
-        // Обрабатываем окна
+        const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [] } = room;
         windows.forEach(window => {
             const pos = typeof window.pos === 'number' ? window.pos : 0.5;
             const len = typeof window.len === 'number' ? window.len : 0.2;
@@ -644,149 +809,20 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 windowSegments.push({ orientation: 'v', coord: pixelX + pixelWidth, start: startY, end: startY + winLength });
             }
         });
-        
-        // Обрабатываем двери
-        doors.forEach(door => {
-            const pos = typeof door.pos === 'number' ? door.pos : 0.5;
-            const len = typeof door.len === 'number' ? door.len : 0.2;
-            
-            if (door.side === 'top') {
-                const startX = pixelX + pos * pixelWidth;
-                const doorLength = len * pixelWidth;
-                doorSegments.push({ orientation: 'h', coord: pixelY, start: startX, end: startX + doorLength });
-            } else if (door.side === 'bottom') {
-                const startX = pixelX + pos * pixelWidth;
-                const doorLength = len * pixelWidth;
-                doorSegments.push({ orientation: 'h', coord: pixelY + pixelHeight, start: startX, end: startX + doorLength });
-            } else if (door.side === 'left') {
-                const startY = pixelY + pos * pixelHeight;
-                const doorLength = len * pixelHeight;
-                doorSegments.push({ orientation: 'v', coord: pixelX, start: startY, end: startY + doorLength });
-            } else if (door.side === 'right') {
-                const startY = pixelY + pos * pixelHeight;
-                const doorLength = len * pixelHeight;
-                doorSegments.push({ orientation: 'v', coord: pixelX + pixelWidth, start: startY, end: startY + doorLength });
-            }
-        });
     });
 
     // Временно убираем дорисовывание стен до окон
 
 
-    // Функция для создания двери с новым дизайном
-    function createDoor(side, doorX, doorY, doorLength, wallThickness, doorType) {
-        const doorWidth = 8 * SVG_SCALE; // Ширина двери
-        const hingeRadius = 4 * SVG_SCALE; // Радиус петли
-        const doorColor = doorType === 'entrance' ? '#8B4513' : '#654321'; // Цвет двери
-        const hingeColor = '#2F2F2F'; // Цвет петель
-        
-        let doorGroup = `<g>`;
-        
-        if (side === 'top') {
-            // Горизонтальная дверь на верхней стене
-            const doorStartX = doorX - doorLength / 2;
-            const doorEndX = doorX + doorLength / 2;
-            
-            // 1. Убираем часть стены (создаем проем)
-            doorGroup += `\n<line x1="${doorStartX}" y1="${doorY}" x2="${doorEndX}" y2="${doorY}" stroke="#FFFFFF" stroke-width="${wallThickness + 4}" stroke-linecap="butt"/>`;
-            
-            // 2. Петли с двух сторон стены
-            // Левая петля (прямая линия - top_line)
-            doorGroup += `\n<line x1="${doorStartX}" y1="${doorY - wallThickness/2}" x2="${doorStartX}" y2="${doorY + wallThickness/2}" stroke="${hingeColor}" stroke-width="3" stroke-linecap="round"/>`;
-            doorGroup += `\n<circle cx="${doorStartX}" cy="${doorY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
-            
-            // Правая петля (дуга - door_swing_arc)
-            const arcRadius = doorLength * 0.8; // Радиус дуги
-            const arcStartX = doorEndX;
-            const arcStartY = doorY;
-            const arcEndX = doorStartX + arcRadius;
-            const arcEndY = doorY + arcRadius;
-            
-            doorGroup += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 1 ${arcEndX} ${arcEndY}" stroke="${hingeColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-            doorGroup += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
-            
-        } else if (side === 'bottom') {
-            // Горизонтальная дверь на нижней стене
-            const doorStartX = doorX - doorLength / 2;
-            const doorEndX = doorX + doorLength / 2;
-            
-            // 1. Убираем часть стены (создаем проем)
-            doorGroup += `\n<line x1="${doorStartX}" y1="${doorY}" x2="${doorEndX}" y2="${doorY}" stroke="#FFFFFF" stroke-width="${wallThickness + 4}" stroke-linecap="butt"/>`;
-            
-            // 2. Петли с двух сторон стены
-            // Левая петля (прямая линия - top_line)
-            doorGroup += `\n<line x1="${doorStartX}" y1="${doorY - wallThickness/2}" x2="${doorStartX}" y2="${doorY + wallThickness/2}" stroke="${hingeColor}" stroke-width="3" stroke-linecap="round"/>`;
-            doorGroup += `\n<circle cx="${doorStartX}" cy="${doorY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
-            
-            // Правая петля (дуга - door_swing_arc)
-            const arcRadius = doorLength * 0.8;
-            const arcStartX = doorEndX;
-            const arcStartY = doorY;
-            const arcEndX = doorStartX + arcRadius;
-            const arcEndY = doorY - arcRadius;
-            
-            doorGroup += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 0 ${arcEndX} ${arcEndY}" stroke="${hingeColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-            doorGroup += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
-            
-        } else if (side === 'left') {
-            // Вертикальная дверь на левой стене
-            const doorStartY = doorY - doorLength / 2;
-            const doorEndY = doorY + doorLength / 2;
-            
-            // 1. Убираем часть стены (создаем проем)
-            doorGroup += `\n<line x1="${doorX}" y1="${doorStartY}" x2="${doorX}" y2="${doorEndY}" stroke="#FFFFFF" stroke-width="${wallThickness + 4}" stroke-linecap="butt"/>`;
-            
-            // 2. Петли с двух сторон стены
-            // Верхняя петля (прямая линия - top_line)
-            doorGroup += `\n<line x1="${doorX - wallThickness/2}" y1="${doorStartY}" x2="${doorX + wallThickness/2}" y2="${doorStartY}" stroke="${hingeColor}" stroke-width="3" stroke-linecap="round"/>`;
-            doorGroup += `\n<circle cx="${doorX}" cy="${doorStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
-            
-            // Нижняя петля (дуга - door_swing_arc)
-            const arcRadius = doorLength * 0.8;
-            const arcStartX = doorX;
-            const arcStartY = doorEndY;
-            const arcEndX = doorX + arcRadius;
-            const arcEndY = doorStartY + arcRadius;
-            
-            doorGroup += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 1 ${arcEndX} ${arcEndY}" stroke="${hingeColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-            doorGroup += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
-            
-        } else if (side === 'right') {
-            // Вертикальная дверь на правой стене
-            const doorStartY = doorY - doorLength / 2;
-            const doorEndY = doorY + doorLength / 2;
-            
-            // 1. Убираем часть стены (создаем проем)
-            doorGroup += `\n<line x1="${doorX}" y1="${doorStartY}" x2="${doorX}" y2="${doorEndY}" stroke="#FFFFFF" stroke-width="${wallThickness + 4}" stroke-linecap="butt"/>`;
-            
-            // 2. Петли с двух сторон стены
-            // Верхняя петля (прямая линия - top_line)
-            doorGroup += `\n<line x1="${doorX - wallThickness/2}" y1="${doorStartY}" x2="${doorX + wallThickness/2}" y2="${doorStartY}" stroke="${hingeColor}" stroke-width="3" stroke-linecap="round"/>`;
-            doorGroup += `\n<circle cx="${doorX}" cy="${doorStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
-            
-            // Нижняя петля (дуга - door_swing_arc)
-            const arcRadius = doorLength * 0.8;
-            const arcStartX = doorX;
-            const arcStartY = doorEndY;
-            const arcEndX = doorX - arcRadius;
-            const arcEndY = doorStartY + arcRadius;
-            
-            doorGroup += `\n<path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 0 ${arcEndX} ${arcEndY}" stroke="${hingeColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-            doorGroup += `\n<circle cx="${arcStartX}" cy="${arcStartY}" r="${hingeRadius}" fill="${hingeColor}"/>`;
-        }
-        
-        doorGroup += `</g>`;
-        return doorGroup;
-    }
-
-    // Рисуем двери с новым дизайном
+    // Draw doors (детализация: косяки, петля, ровная дуга)
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, doors = [] } = room;
 
         doors.forEach(door => {
             const doorCenterX = pixelX + door.pos * pixelWidth;
             const doorCenterY = pixelY + door.pos * pixelHeight;
-            const doorLength = door.len * (door.side === 'left' || door.side === 'right' ? pixelHeight : pixelWidth);
+            const doorSpan = Math.min(130, Math.max(80, Math.min(pixelWidth, pixelHeight) * 0.28));
+            const arcRadius = doorSpan;
             
             // Определяем, является ли стена внешней
             let isExternalWall = false;
@@ -802,9 +838,55 @@ export async function generateSvgFromData(rooms, totalSqm) {
             // Определяем толщину стены
             const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
             
-            // Создаем дверь с новым дизайном
-            const doorGroup = createDoor(door.side, doorCenterX, doorCenterY, doorLength, wallThickness, door.type);
-            svgContent += doorGroup;
+            const gapStroke = wallThickness + 2; // разрез по толщине стены
+            const jambStroke = Math.max(2, Math.floor(wallThickness * 0.25));
+            const jambColor = '#1E1E1E';
+            const hingeRadius = Math.max(3, Math.floor(arcRadius * 0.08));
+
+            if (door.side === 'top') {
+                // gap
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
+                // jambs
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + wallThickness/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + wallThickness/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                // arc (hinge at left)
+                const hx = doorCenterX - doorSpan / 2;
+                const hy = pixelY;
+                const ex = hx + arcRadius;
+                const ey = hy + arcRadius;
+                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 1 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+            } else if (door.side === 'bottom') {
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
+                svgContent += `\n<line x1="${doorCenterX - doorSpan / 2}" y1="${pixelY + pixelHeight - wallThickness/2}" x2="${doorCenterX - doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${doorCenterX + doorSpan / 2}" y1="${pixelY + pixelHeight - wallThickness/2}" x2="${doorCenterX + doorSpan / 2}" y2="${pixelY + pixelHeight}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                const hx = doorCenterX - doorSpan / 2;
+                const hy = pixelY + pixelHeight;
+                const ex = hx + arcRadius;
+                const ey = hy - arcRadius;
+                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 0 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+            } else if (door.side === 'left') {
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="square"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + wallThickness/2}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${pixelX}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + wallThickness/2}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                const hx = pixelX;
+                const hy = doorCenterY - doorSpan / 2;
+                const ex = hx + arcRadius;
+                const ey = hy + arcRadius;
+                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 1 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+            } else if (door.side === 'right') {
+                svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${doorCenterY - doorSpan / 2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan / 2}" stroke="#FFFFFF" stroke-width="${gapStroke}" stroke-linecap="butt"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth - wallThickness/2}" y1="${doorCenterY - doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY - doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                svgContent += `\n<line x1="${pixelX + pixelWidth - wallThickness/2}" y1="${doorCenterY + doorSpan/2}" x2="${pixelX + pixelWidth}" y2="${doorCenterY + doorSpan/2}" stroke="${jambColor}" stroke-width="${jambStroke}"/>`;
+                const hx = pixelX + pixelWidth;
+                const hy = doorCenterY - doorSpan / 2;
+                const ex = hx - arcRadius;
+                const ey = hy + arcRadius;
+                svgContent += `\n<path d="M ${hx} ${hy} A ${arcRadius} ${arcRadius} 0 0 0 ${ex} ${ey}" stroke="#000000" stroke-width="${ICON_STROKE}" fill="none"/>`;
+                svgContent += `\n<circle cx="${hx}" cy="${hy}" r="${hingeRadius}" fill="#000000"/>`;
+            }
         });
     });
 
@@ -893,7 +975,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 // Окно на правой стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth + WINDOW_WIDTH / 2; // Окно на уровне стены (стена правее помещения)
+                const x = pixelX + pixelWidth - WINDOW_WIDTH / 2; // Окно точно на стене (стена правее помещения)
                 
                 // Убираем прорезание стены - оно создает белые пробелы
                 
@@ -919,7 +1001,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const segmentEnd = e.s + ((i + 1) * totalLength / segments);
             const segmentMid = (segmentStart + segmentEnd) / 2;
             
-            // Проверяем, не попадает ли этот сегмент в окно или дверь
+            // Проверяем, не попадает ли этот сегмент в окно
             const isInWindow = windowSegments.some(ws => {
                 if (ws.orientation === e.o && Math.abs(ws.coord - e.c) < 1) {
                     return segmentMid >= ws.start && segmentMid <= ws.end;
@@ -927,20 +1009,13 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 return false;
             });
             
-            const isInDoor = doorSegments.some(ds => {
-                if (ds.orientation === e.o && Math.abs(ds.coord - e.c) < 1) {
-                    return segmentMid >= ds.start && segmentMid <= ds.end;
-                }
-                return false;
-            });
-            
-            if (isInWindow || isInDoor) continue; // Пропускаем сегмент, если он в окне или двери
+            if (isInWindow) continue; // Пропускаем сегмент, если он в окне
             
             const wallThickness = getWallThickness(e, segmentStart, segmentEnd);
             
-            if (e.o === 'v') {
+                        if (e.o === 'v') {
                 svgContent += `\n<line x1="${e.c}" y1="${segmentStart}" x2="${e.c}" y2="${segmentEnd}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-            } else {
+                        } else {
                 svgContent += `\n<line x1="${segmentStart}" y1="${e.c}" x2="${segmentEnd}" y2="${e.c}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
             }
         }

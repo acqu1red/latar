@@ -29,7 +29,8 @@ function App() {
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const [editorOpen, setEditorOpen] = useState(true);
+  const [editorOpen, setEditorOpen] = useState(false); // Скрываем конструктор до генерации
+  const [planGenerated, setPlanGenerated] = useState(false);
 
 
   const recomputeLayoutsByArea = (nextRooms: RoomState[]): RoomState[] => {
@@ -51,12 +52,24 @@ function App() {
 
     const computed = nextRooms.map(r => {
       if (!r.enabled) return r;
-      const MIN_DIM = 80; // минимальная видимая величина в пикселях
-      const MAX_DIM = 300; // максимальная величина в пикселях
-      const sqm = r.sqm || 20; // если площадь не задана, используем 20 кв.м
-      let edge = Math.sqrt(Math.max(0, sqm) / referenceTotal) * USABLE_WIDTH;
-      let w = Math.max(MIN_DIM, Math.min(MAX_DIM, edge));
-      let h = w;
+      
+      // Используем реальные размеры из анализа GPT, если они есть
+      let w, h;
+      if (r.dimensions) {
+        // Конвертируем метры в пиксели (примерно 1м = 100px)
+        const scale = 100;
+        w = r.dimensions.width * scale;
+        h = r.dimensions.height * scale;
+      } else {
+        // Fallback к старому алгоритму
+        const MIN_DIM = 80; // минимальная видимая величина в пикселях
+        const MAX_DIM = 300; // максимальная величина в пикселях
+        const sqm = r.sqm || 20; // если площадь не задана, используем 20 кв.м
+        let edge = Math.sqrt(Math.max(0, sqm) / referenceTotal) * USABLE_WIDTH;
+        w = Math.max(MIN_DIM, Math.min(MAX_DIM, edge));
+        h = w;
+      }
+      
       // Предположительная ориентация
       const degree = (r.rotation ?? 0);
       if (degree === 90) [w, h] = [h, w];
@@ -267,8 +280,90 @@ function App() {
 
     if (apiResponse.ok) {
       setResult(apiResponse);
+      setPlanGenerated(true);
+      setEditorOpen(true); // Показываем конструктор после генерации
+      
+      // Обновляем комнаты с данными анализа GPT
+      if (apiResponse.rooms) {
+        setRooms((prevRooms: RoomState[]) => {
+          return prevRooms.map(room => {
+            const analyzedRoom = apiResponse.rooms?.find(r => r.key === room.key);
+            if (analyzedRoom) {
+              return {
+                ...room,
+                dimensions: analyzedRoom.dimensions,
+                objects: analyzedRoom.objects,
+                windows: analyzedRoom.windows,
+                doors: analyzedRoom.doors
+              };
+            }
+            return room;
+          });
+        });
+      }
     } else {
       setError(apiResponse.error || 'Произошла неизвестная ошибка.');
+    }
+  };
+
+  const handleUpdatePlan = async () => {
+    setLoading(true);
+    setError(null);
+
+    // Собираем все комнаты включая санузел
+    const allRooms = [...rooms];
+    
+    if (bathroomConfig.type === 'combined') {
+      // Заменяем обычную ванную на совмещенную
+      const bathroomIndex = allRooms.findIndex(r => r.key === 'bathroom');
+      if (bathroomIndex !== -1 && bathroomConfig.bathroom.enabled) {
+        allRooms[bathroomIndex] = { ...bathroomConfig.bathroom, key: 'bathroom', name: 'Уборная' };
+      }
+    } else {
+      // Убираем обычную ванную и добавляем раздельные
+      const filteredRooms = allRooms.filter(r => r.key !== 'bathroom');
+      const additionalRooms = [];
+      if (bathroomConfig.bathroom.enabled) additionalRooms.push(bathroomConfig.bathroom);
+      if (bathroomConfig.toilet.enabled) additionalRooms.push(bathroomConfig.toilet);
+      allRooms.splice(0, allRooms.length, ...filteredRooms, ...additionalRooms);
+    }
+
+    const enabledRooms = allRooms.filter(r => r.enabled);
+    if (enabledRooms.length === 0) {
+      setError("Включите хотя бы одну комнату для генерации плана.");
+      setLoading(false);
+      return;
+    }
+
+    // Добавляем данные окон и дверей к комнатам
+    const allRoomsWithWindowsAndDoors = allRooms.map(room => {
+      const roomWindows = globalWindows.filter((w: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }) => w.roomKey === room.key).map((w: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }) => ({
+        side: w.side,
+        pos: w.pos,
+        len: w.len
+      }));
+      const roomDoors = globalDoors.filter((d: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }) => d.roomKey === room.key).map((d: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }) => ({
+        side: d.side,
+        pos: d.pos,
+        len: d.len,
+        type: d.type
+      }));
+      
+      return {
+        ...room,
+        windows: roomWindows,
+        doors: roomDoors
+      };
+    });
+
+    // Генерируем только SVG без повторного анализа фото
+    const apiResponse = await generatePlan(allRoomsWithWindowsAndDoors, bathroomConfig);
+    setLoading(false);
+
+    if (apiResponse.ok) {
+      setResult(apiResponse);
+    } else {
+      setError(apiResponse.error || 'Произошла неизвестная ошибка при обновлении плана.');
     }
   };
 
@@ -356,37 +451,58 @@ function App() {
           )}
         </div>
 
-        {/* Collapsible Layout Editor — placed below rooms and above the Generate button */}
-        <div className={`constructor-wrapper ${editorOpen ? 'open' : 'closed'}`}>
-          <button
-            type="button"
-            className={`constructor-toggle ${editorOpen ? 'active' : ''}`}
-            onClick={() => setEditorOpen((o: boolean) => !o)}
-          >
-            {editorOpen ? 'Скрыть конструктор расположения' : 'Открыть конструктор расположения'}
-          </button>
-          <div className="constructor-panel" aria-hidden={!editorOpen}>
-            <div className="constructor-panel-inner">
-              <h3>Мини‑конструктор расположения комнат</h3>
-              <p className="constructor-hint">Перетаскивайте и меняйте размер. Размеры автоматически подстраиваются под площадь (м²), позиции — настраивайте вручную.</p>
-              <LayoutEditor 
-                rooms={rooms} 
-                onUpdate={handleRoomUpdate}
-                onWindowsUpdate={handleWindowsUpdate}
-                onDoorsUpdate={handleDoorsUpdate}
-              />
+        {/* Collapsible Layout Editor — показываем только после генерации плана */}
+        {planGenerated && (
+          <div className={`constructor-wrapper ${editorOpen ? 'open' : 'closed'}`}>
+            <button
+              type="button"
+              className={`constructor-toggle ${editorOpen ? 'active' : ''}`}
+              onClick={() => setEditorOpen((o: boolean) => !o)}
+            >
+              {editorOpen ? 'Скрыть конструктор расположения' : 'Открыть конструктор расположения'}
+            </button>
+            <div className="constructor-panel" aria-hidden={!editorOpen}>
+              <div className="constructor-panel-inner">
+                <h3>Конструктор плана</h3>
+                <p className="constructor-hint">Перетаскивайте и меняйте размер комнат, добавляйте окна и двери. Нажмите "Обновить план" для применения изменений.</p>
+                <LayoutEditor 
+                  rooms={rooms} 
+                  onUpdate={handleRoomUpdate}
+                  onWindowsUpdate={handleWindowsUpdate}
+                  onDoorsUpdate={handleDoorsUpdate}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="actions">
-          <button 
-            onClick={handleSubmit} 
-            disabled={!isGenerateButtonEnabled || loading}
-            className="generate-btn"
-          >
-            {loading ? 'Анализируем фото и генерируем план...' : 'Генерировать план'}
-          </button>
+          {!planGenerated ? (
+            <button 
+              onClick={handleSubmit} 
+              disabled={!isGenerateButtonEnabled || loading}
+              className="generate-btn"
+            >
+              {loading ? 'Анализируем фото и генерируем план...' : 'Генерировать план'}
+            </button>
+          ) : (
+            <div className="plan-actions">
+              <button 
+                onClick={handleUpdatePlan} 
+                disabled={loading}
+                className="update-btn"
+              >
+                {loading ? 'Обновляем план...' : 'Обновить план'}
+              </button>
+              <button 
+                onClick={handleSubmit} 
+                disabled={!isGenerateButtonEnabled || loading}
+                className="regenerate-btn"
+              >
+                Перегенерировать с фото
+              </button>
+            </div>
+          )}
         </div>
 
         {error && <div className="error-message">{error}</div>}

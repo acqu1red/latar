@@ -1,6 +1,21 @@
 import { API_BASE_URL } from '../config';
 
 // Defining shared types for the application
+export interface RoomObject {
+    type: 'bed' | 'sofa' | 'chair' | 'table' | 'wardrobe' | 'stove' | 'fridge' | 'sink' | 'toilet' | 'bathtub' | 'shower' | 'washing_machine' | 'kitchen_block';
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    rotation?: number;
+    confidence?: number;
+}
+
+export interface RoomDimensions {
+    width: number;
+    height: number;
+}
+
 export interface RoomState {
     key: string;
     name: string;
@@ -10,6 +25,8 @@ export interface RoomState {
     layout?: { x: number; y: number; width: number; height: number } | null; // coordinates in pixels
     entrySide?: 'left' | 'right' | 'top' | 'bottom' | null; // external entry for hallway
     rotation?: 0 | 90 | null; // визуальный поворот комнаты в конструкторе
+    dimensions?: RoomDimensions; // реальные размеры комнаты в метрах
+    objects?: RoomObject[]; // мебель в комнате
     windows?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]; // окна для svg
     doors?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]; // двери для svg
     description?: string; // Room description for UI
@@ -29,7 +46,7 @@ export interface ApiResponse {
     svgDataUrl?: string;
     pngDataUrl?: string;
     totalSqm?: number;
-    rooms?: any[];
+    rooms?: RoomState[];
     error?: string;
 }
 

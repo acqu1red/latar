@@ -144,7 +144,10 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
           key: room.key,
           name: room.name,
           sqm: room.sqm,
-          objects: []
+          dimensions: { width: 3, height: 3 },
+          objects: [],
+          windows: [],
+          doors: []
         }));
       }
 
@@ -155,8 +158,9 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
           ...room, 
           layout: src.layout,
           entrySide: src.entrySide || null,
-          windows: src.windows || [],
-          doors: src.doors || []
+          // Use analyzed windows and doors if available, otherwise use manual ones
+          windows: room.windows && room.windows.length > 0 ? room.windows : (src.windows || []),
+          doors: room.doors && room.doors.length > 0 ? room.doors : (src.doors || [])
         };
       });
 
