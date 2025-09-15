@@ -633,24 +633,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         }
     });
 
-    // Дорисовываем стены до окон - добавляем сегменты стены вплотную к окнам
-    windowSegments.forEach(ws => {
-        const wallThickness = WALL_THICKNESS; // Используем стандартную толщину для дорисовки
-        
-        if (ws.orientation === 'h') {
-            // Горизонтальная стена - дорисовываем слева и справа от окна
-            // Левый сегмент: от начала стены до начала окна
-            svgContent += `\n<line x1="${ws.start - 5}" y1="${ws.coord}" x2="${ws.start}" y2="${ws.coord}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-            // Правый сегмент: от конца окна до конца стены
-            svgContent += `\n<line x1="${ws.end}" y1="${ws.coord}" x2="${ws.end + 5}" y2="${ws.coord}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-        } else {
-            // Вертикальная стена - дорисовываем сверху и снизу от окна
-            // Верхний сегмент: от начала стены до начала окна
-            svgContent += `\n<line x1="${ws.coord}" y1="${ws.start - 5}" x2="${ws.coord}" y2="${ws.start}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-            // Нижний сегмент: от конца окна до конца стены
-            svgContent += `\n<line x1="${ws.coord}" y1="${ws.end}" x2="${ws.coord}" y2="${ws.end + 5}" stroke="url(#wallHatch)" stroke-width="${wallThickness}" stroke-linecap="square" stroke-linejoin="miter"/>`;
-        }
-    });
+    // Убираем дорисовку стен - она работает неудачно
 
 
     // Draw doors (детализация: косяки, петля, ровная дуга)
@@ -745,16 +728,24 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const pos = typeof window.pos === 'number' ? window.pos : 0.5;
             const len = typeof window.len === 'number' ? window.len : 0.2;
             
-            // Определяем толщину стены для окон
-            let isExternalWall = false;
+            // Определяем толщину стены для окон - используем ту же логику, что и для стен
+            const windowStartX = pixelX + pos * pixelWidth;
+            const windowEndX = windowStartX + len * pixelWidth;
+            const windowStartY = pixelY + pos * pixelHeight;
+            const windowEndY = windowStartY + len * pixelHeight;
+            
+            // Создаем фиктивный edge для определения толщины стены
+            let mockEdge;
             if (window.side === 'left' || window.side === 'right') {
-                isExternalWall = Math.abs(pixelX - planBounds.left) < EPS || Math.abs(pixelX + pixelWidth - planBounds.right) < EPS;
+                mockEdge = { o: 'v', c: window.side === 'left' ? pixelX : pixelX + pixelWidth };
             } else {
-                isExternalWall = Math.abs(pixelY - planBounds.top) < EPS || Math.abs(pixelY + pixelHeight - planBounds.bottom) < EPS;
+                mockEdge = { o: 'h', c: window.side === 'top' ? pixelY : pixelY + pixelHeight };
             }
             
-            const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
-            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+            const wallThickness = getWallThickness(mockEdge, 
+                window.side === 'left' || window.side === 'right' ? windowStartY : windowStartX,
+                window.side === 'left' || window.side === 'right' ? windowEndY : windowEndX
+            );
             
             // Параметры объемного окна - адаптируем к толщине стены
             const windowDepth = wallThickness; // глубина окна = толщина стены
