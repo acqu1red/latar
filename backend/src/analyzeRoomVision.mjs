@@ -10,7 +10,10 @@ const openai = new OpenAI({
 const RoomObjectType = z.enum([
   "bed", "sofa", "chair", "table", "wardrobe",
   "stove", "fridge", "sink", "toilet",
-  "bathtub", "shower", "washing_machine", "kitchen_block"
+  "bathtub", "shower", "washing_machine", "kitchen_block",
+  "tv", "bookshelf", "desk", "dresser", "nightstand", "coffee_table", 
+  "dining_table", "office_chair", "armchair", "ottoman", "mirror", 
+  "lamp", "plant", "artwork", "rug", "curtains", "blinds"
 ]);
 
 const RoomObjectSchema = z.object({
@@ -19,7 +22,10 @@ const RoomObjectSchema = z.object({
   y: z.number().min(0).max(1),
   w: z.number().min(0).max(1),
   h: z.number().min(0).max(1),
-  rotation: z.number().optional(),
+  rotation: z.number().min(0).max(360).optional(),
+  material: z.string().optional(),
+  color: z.string().optional(),
+  style: z.string().optional(),
   confidence: z.number().min(0).max(1).optional(),
 });
 
@@ -33,23 +39,54 @@ const WallSchema = z.object({
   side: z.enum(['left', 'right', 'top', 'bottom']),
   startPoint: WallPointSchema,
   endPoint: WallPointSchema,
+  material: z.string().optional(),
+  thickness: z.number().positive().optional(),
   hasWindow: z.boolean(),
   windowPosition: z.number().min(0).max(1).optional(), // позиция окна на стене (0-1)
   windowLength: z.number().min(0).max(1).optional(), // длина окна относительно стены (0-1)
+  windowType: z.string().optional(),
   hasDoor: z.boolean(),
   doorPosition: z.number().min(0).max(1).optional(), // позиция двери на стене (0-1)
   doorLength: z.number().min(0).max(1).optional(), // длина двери относительно стены (0-1)
-  doorType: z.enum(['entrance', 'interior']).optional(),
+  doorType: z.string().optional(),
+  doorMaterial: z.string().optional(),
   connectedRoom: z.string().optional(), // ключ комнаты, к которой ведет дверь
 });
 
 const RoomShapeSchema = z.object({
-  type: z.enum(['rectangle', 'l_shape', 'u_shape', 'irregular']),
+  type: z.enum(['rectangle', 'l_shape', 'u_shape', 'irregular', 'pentagon', 'hexagon', 'oval']),
   corners: z.array(WallPointSchema).min(3), // контрольные точки формы комнаты
   mainDimensions: z.object({
     width: z.number().positive(), // ширина в метрах
     height: z.number().positive(), // высота в метрах
   }),
+  ceilingHeight: z.number().positive().optional(),
+  floorType: z.string().optional(),
+});
+
+const ElectricalSchema = z.object({
+  type: z.enum(['outlet', 'switch', 'light', 'fan', 'ac_unit']),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  height: z.number().positive().optional(),
+  description: z.string().optional(),
+});
+
+const LightingSchema = z.object({
+  type: z.enum(['ceiling', 'wall', 'table', 'floor', 'pendant', 'recessed', 'track', 'chandelier']),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  height: z.number().positive().optional(),
+  style: z.string().optional(),
+});
+
+const SpecialFeatureSchema = z.object({
+  type: z.enum(['fireplace', 'balcony', 'bay_window', 'skylight', 'built_in', 'niche', 'column', 'arch', 'staircase']),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  w: z.number().min(0).max(1),
+  h: z.number().min(0).max(1),
+  description: z.string().optional(),
 });
 
 export const DetailedRoomVisionSchema = z.object({
@@ -59,6 +96,9 @@ export const DetailedRoomVisionSchema = z.object({
   shape: RoomShapeSchema,
   walls: z.array(WallSchema),
   objects: z.array(RoomObjectSchema),
+  electrical: z.array(ElectricalSchema).optional(),
+  lighting: z.array(LightingSchema).optional(),
+  specialFeatures: z.array(SpecialFeatureSchema).optional(),
   roomConnections: z.array(z.string()).optional(), // ключи комнат, с которыми соединена данная комната
 });
 
@@ -73,56 +113,111 @@ export const RoomVisionSchema = z.object({
 const getDetailedPrompt = (name, sqm, availableRooms = []) => {
     const roomList = availableRooms.map(r => `${r.key}: ${r.name}`).join(', ');
     
-    return `Проанализируй фотографию комнаты для создания детального 2D плана квартиры. Твоя задача — определить ВСЕ элементы комнаты: форму, размеры, стены, окна, двери, мебель.
+    return `Ты - эксперт-архитектор с 20-летним опытом. Проанализируй фотографию комнаты для создания МАКСИМАЛЬНО ДЕТАЛЬНОГО 2D плана квартиры. 
 
-ВАЖНО: Учитывай указанную площадь ${sqm} м² для расчета реальных размеров комнаты.
+ТВОЯ ЗАДАЧА: Определить ВСЕ аспекты помещения с максимальной точностью:
+- Точную форму и геометрию комнаты
+- Реальные размеры на основе площади ${sqm} м²
+- Все стены с точными координатами
+- Все окна с позицией, размером и типом
+- Все двери с типом и соединениями
+- Всю мебель и предметы интерьера
+- Электрические розетки и выключатели
+- Освещение и светильники
+- Отделочные материалы стен
+- Напольные покрытия
+- Высоту потолков
+- Вентиляцию и кондиционирование
+
+КРИТИЧЕСКИ ВАЖНО: 
+- Анализируй КАЖДУЮ деталь на фотографии
+- Учитывай перспективу и искажения
+- Рассчитывай точные пропорции
+- Определяй материалы и текстуры
+- Замечай все функциональные элементы
 
 Формат ответа (JSON):
 {
   "shape": {
-    "type": "rectangle|l_shape|u_shape|irregular",
-    "corners": [{"x": 0.0-1.0, "y": 0.0-1.0}], // контрольные точки формы (минимум 3)
+    "type": "rectangle|l_shape|u_shape|irregular|pentagon|hexagon|oval",
+    "corners": [{"x": 0.0-1.0, "y": 0.0-1.0}], // ТОЧНЫЕ контрольные точки формы
     "mainDimensions": {
-      "width": число_в_метрах, // ширина комнаты
-      "height": число_в_метрах  // высота комнаты
-    }
+      "width": число_в_метрах, // ТОЧНАЯ ширина комнаты
+      "height": число_в_метрах  // ТОЧНАЯ высота комнаты
+    },
+    "ceilingHeight": число_в_метрах, // высота потолка
+    "floorType": "parquet|tile|carpet|laminate|concrete|marble|wood"
   },
   "walls": [
     {
       "side": "left|right|top|bottom",
       "startPoint": {"x": 0.0-1.0, "y": 0.0-1.0},
       "endPoint": {"x": 0.0-1.0, "y": 0.0-1.0},
+      "material": "brick|concrete|drywall|wood|glass|stone",
+      "thickness": число_в_метрах,
       "hasWindow": true/false,
-      "windowPosition": 0.0-1.0, // если есть окно
-      "windowLength": 0.0-1.0,   // если есть окно
+      "windowPosition": 0.0-1.0, // ТОЧНАЯ позиция окна
+      "windowLength": 0.0-1.0,   // ТОЧНАЯ длина окна
+      "windowType": "single|double|triple|sliding|french|bay",
       "hasDoor": true/false,
-      "doorPosition": 0.0-1.0,   // если есть дверь
-      "doorLength": 0.0-1.0,     // если есть дверь
-      "doorType": "entrance|interior", // если есть дверь
+      "doorPosition": 0.0-1.0,   // ТОЧНАЯ позиция двери
+      "doorLength": 0.0-1.0,     // ТОЧНАЯ длина двери
+      "doorType": "entrance|interior|sliding|folding|glass",
+      "doorMaterial": "wood|glass|metal|composite",
       "connectedRoom": "ключ_комнаты"  // если есть дверь
     }
   ],
   "objects": [
     {
-      "type": "bed|sofa|chair|table|wardrobe|stove|fridge|sink|toilet|bathtub|shower|washing_machine|kitchen_block",
-      "x": 0.0-1.0, "y": 0.0-1.0, "w": 0.0-1.0, "h": 0.0-1.0
+      "type": "bed|sofa|chair|table|wardrobe|stove|fridge|sink|toilet|bathtub|shower|washing_machine|kitchen_block|tv|bookshelf|desk|dresser|nightstand|coffee_table|dining_table|office_chair|armchair|ottoman|mirror|lamp|plant|artwork|rug|curtains|blinds",
+      "x": 0.0-1.0, "y": 0.0-1.0, "w": 0.0-1.0, "h": 0.0-1.0,
+      "rotation": 0-360, // угол поворота в градусах
+      "material": "wood|metal|glass|fabric|leather|plastic|stone",
+      "color": "описание_цвета",
+      "style": "modern|classic|vintage|industrial|minimalist|rustic"
     }
   ],
-  "roomConnections": ["ключ1", "ключ2"] // ключи комнат, с которыми соединена данная комната
+  "electrical": [
+    {
+      "type": "outlet|switch|light|fan|ac_unit",
+      "x": 0.0-1.0, "y": 0.0-1.0,
+      "height": число_в_метрах, // высота от пола
+      "description": "описание"
+    }
+  ],
+  "lighting": [
+    {
+      "type": "ceiling|wall|table|floor|pendant|recessed|track|chandelier",
+      "x": 0.0-1.0, "y": 0.0-1.0,
+      "height": число_в_метрах,
+      "style": "modern|classic|industrial|minimalist"
+    }
+  ],
+  "roomConnections": ["ключ1", "ключ2"], // ключи комнат, с которыми соединена данная комната
+  "specialFeatures": [
+    {
+      "type": "fireplace|balcony|bay_window|skylight|built_in|niche|column|arch|staircase",
+      "x": 0.0-1.0, "y": 0.0-1.0, "w": 0.0-1.0, "h": 0.0-1.0,
+      "description": "описание"
+    }
+  ]
 }
 
-ПРАВИЛА АНАЛИЗА:
-1. ФОРМА КОМНАТЫ: Определи форму комнаты по стенам. Если комната прямоугольная - type: "rectangle", если Г-образная - "l_shape", если П-образная - "u_shape", иначе - "irregular"
-2. РАЗМЕРЫ: Рассчитай реальные размеры на основе площади ${sqm} м². Если комната прямоугольная, width * height должно быть близко к ${sqm}
-3. СТЕНЫ: Определи все 4 стены (left, right, top, bottom) с их точными координатами
-4. ОКНА: Найди все окна на стенах, определи их позицию и размер
-5. ДВЕРИ: Найди все двери, определи их тип (входная/межкомнатная) и к какой комнате ведут
-6. МЕБЕЛЬ: Определи всю мебель и предметы интерьера с их позициями
-7. СОЕДИНЕНИЯ: Укажи, с какими комнатами соединена данная комната через двери
+ПРАВИЛА МАКСИМАЛЬНО ДЕТАЛЬНОГО АНАЛИЗА:
+1. ФОРМА: Определи ТОЧНУЮ форму комнаты, включая все углы, выступы, ниши
+2. РАЗМЕРЫ: Рассчитай РЕАЛЬНЫЕ размеры на основе площади ${sqm} м² с учетом формы
+3. СТЕНЫ: Определи ВСЕ стены с точными координатами, материалом, толщиной
+4. ОКНА: Найди ВСЕ окна с точной позицией, размером, типом, материалом
+5. ДВЕРИ: Найди ВСЕ двери с типом, материалом, точными размерами
+6. МЕБЕЛЬ: Определи ВСЮ мебель с позицией, размером, материалом, стилем
+7. ЭЛЕКТРИКА: Найди розетки, выключатели, светильники
+8. ОСВЕЩЕНИЕ: Определи все источники света и их расположение
+9. ОТДЕЛКА: Определи материалы стен, пола, потолка
+10. ОСОБЕННОСТИ: Найди камины, балконы, ниши, колонны и другие элементы
 
 Доступные комнаты для соединений: ${roomList}
 
-Комната: ${name}, ${sqm} м². Верни только JSON.`;
+Комната: ${name}, ${sqm} м². Верни ТОЛЬКО JSON без дополнительного текста.`;
 };
 
 const getPrompt = (name, sqm) => {
@@ -325,6 +420,40 @@ export async function analyzeDetailedRoomVision({ photoBuffers, key, name, sqm, 
         };
     };
 
+    const sanitizeElectrical = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr.map(item => ({
+            type: item.type || 'outlet',
+            x: sanitizeNumber01(item.x) || 0,
+            y: sanitizeNumber01(item.y) || 0,
+            height: typeof item.height === 'number' ? Math.max(0.1, item.height) : 1.2,
+            description: item.description || ''
+        })).filter(Boolean);
+    };
+
+    const sanitizeLighting = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr.map(item => ({
+            type: item.type || 'ceiling',
+            x: sanitizeNumber01(item.x) || 0,
+            y: sanitizeNumber01(item.y) || 0,
+            height: typeof item.height === 'number' ? Math.max(0.1, item.height) : 2.5,
+            style: item.style || 'modern'
+        })).filter(Boolean);
+    };
+
+    const sanitizeSpecialFeatures = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr.map(item => ({
+            type: item.type || 'built_in',
+            x: sanitizeNumber01(item.x) || 0,
+            y: sanitizeNumber01(item.y) || 0,
+            w: sanitizeNumber01(item.w) || 0.1,
+            h: sanitizeNumber01(item.h) || 0.1,
+            description: item.description || ''
+        })).filter(Boolean);
+    };
+
     const sanitized = {
         key,
         name,
@@ -332,6 +461,9 @@ export async function analyzeDetailedRoomVision({ photoBuffers, key, name, sqm, 
         shape: sanitizeShape(jsonData.shape),
         walls: Array.isArray(jsonData.walls) ? jsonData.walls.map(sanitizeWall).filter(Boolean) : [],
         objects: sanitizeObjects(jsonData.objects),
+        electrical: sanitizeElectrical(jsonData.electrical),
+        lighting: sanitizeLighting(jsonData.lighting),
+        specialFeatures: sanitizeSpecialFeatures(jsonData.specialFeatures),
         roomConnections: Array.isArray(jsonData.roomConnections) ? jsonData.roomConnections.filter(r => typeof r === 'string') : [],
     };
 
@@ -345,6 +477,9 @@ export async function analyzeDetailedRoomVision({ photoBuffers, key, name, sqm, 
             shape: validationResult.data.shape || { type: 'rectangle', corners: [{x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}, {x: 0, y: 1}], mainDimensions: { width: Math.sqrt(sqm), height: Math.sqrt(sqm) }},
             walls: validationResult.data.walls || [],
             objects: validationResult.data.objects || [],
+            electrical: validationResult.data.electrical || [],
+            lighting: validationResult.data.lighting || [],
+            specialFeatures: validationResult.data.specialFeatures || [],
             roomConnections: validationResult.data.roomConnections || [],
         };
     }
@@ -366,6 +501,9 @@ export async function analyzeDetailedRoomVision({ photoBuffers, key, name, sqm, 
         shape: sanitizeShape(jsonData.shape),
         walls: Array.isArray(jsonData.walls) ? jsonData.walls.map(sanitizeWall).filter(Boolean) : [],
         objects: sanitizeObjects(jsonData.objects),
+        electrical: sanitizeElectrical(jsonData.electrical),
+        lighting: sanitizeLighting(jsonData.lighting),
+        specialFeatures: sanitizeSpecialFeatures(jsonData.specialFeatures),
         roomConnections: Array.isArray(jsonData.roomConnections) ? jsonData.roomConnections.filter(r => typeof r === 'string') : [],
     };
 
@@ -379,6 +517,9 @@ export async function analyzeDetailedRoomVision({ photoBuffers, key, name, sqm, 
             shape: validationResult.data.shape || { type: 'rectangle', corners: [{x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}, {x: 0, y: 1}], mainDimensions: { width: Math.sqrt(sqm), height: Math.sqrt(sqm) }},
             walls: validationResult.data.walls || [],
             objects: validationResult.data.objects || [],
+            electrical: validationResult.data.electrical || [],
+            lighting: validationResult.data.lighting || [],
+            specialFeatures: validationResult.data.specialFeatures || [],
             roomConnections: validationResult.data.roomConnections || [],
         };
     }

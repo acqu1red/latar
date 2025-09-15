@@ -7,13 +7,7 @@ export interface RoomState {
     sqm: number;
     enabled: boolean;
     file: File[];
-    layout?: { x: number; y: number; width: number; height: number } | null; // coordinates in pixels
-    entrySide?: 'left' | 'right' | 'top' | 'bottom' | null; // external entry for hallway
-    rotation?: 0 | 90 | null; // визуальный поворот комнаты в конструкторе
-    windows?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]; // окна для svg
-    doors?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]; // двери для svg
     description?: string; // Room description for UI
-    connectedRooms?: string[]; // ключи комнат, с которыми соединена данная комната
 }
 
 // Новые типы для детального анализа

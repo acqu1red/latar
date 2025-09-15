@@ -16,6 +16,21 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
+    // Функция для определения цвета материала
+    function getMaterialColor(material) {
+        const colors = {
+            'wood': '#D2B48C',
+            'metal': '#C0C0C0',
+            'glass': '#E6F3FF',
+            'fabric': '#F5F5DC',
+            'leather': '#8B4513',
+            'plastic': '#E8E8E8',
+            'stone': '#A9A9A9',
+            'default': '#E8E8E8'
+        };
+        return colors[material] || colors.default;
+    }
+
     // Функция для создания полигона помещения на основе формы
     function createRoomPolygon(room, pixelX, pixelY, pixelWidth, pixelHeight) {
         const { shape } = room;
@@ -36,8 +51,8 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
                 fill="#FFFFFF" stroke="#333333" stroke-width="2"/>`;
     }
 
-    // Функция для создания мебели
-    function createFurniture(x, y, width, height, type, rotation = 0) {
+    // Функция для создания мебели с детальными данными GPT
+    function createFurniture(x, y, width, height, obj, rotation = 0) {
         const scale = 0.6; // Масштаб мебели относительно комнаты
         const scaledWidth = width * scale;
         const scaledHeight = height * scale;
@@ -49,27 +64,33 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
         
         let furnitureSvg = '';
         
-        // Единый цвет для всей мебели - светло-серый
-        const color = '#E8E8E8';
+        // Определяем цвет на основе материала
+        const material = obj.material || 'wood';
+        const color = getMaterialColor(material);
         
-        if (rotation === 90 || rotation === 270) {
+        // Применяем поворот
+        const actualRotation = obj.rotation || rotation || 0;
+        if (actualRotation === 90 || actualRotation === 270) {
             [scaledWidth, scaledHeight] = [scaledHeight, scaledWidth];
         }
         
-        // Создаем прямоугольник мебели
+        // Создаем прямоугольник мебели с учетом стиля
+        const style = obj.style || 'modern';
+        const cornerRadius = style === 'modern' ? 3 : style === 'classic' ? 1 : 0;
+        
         furnitureSvg += `
             <rect x="${x + offsetX}" y="${y + offsetY}" 
                   width="${scaledWidth}" height="${scaledHeight}" 
                   fill="${color}" stroke="#2F2F2F" stroke-width="1" 
-                  rx="2" ry="2"/>
+                  rx="${cornerRadius}" ry="${cornerRadius}"/>
         `;
         
-        // Добавляем простые иконки для разных типов мебели
+        // Добавляем детальные иконки для разных типов мебели
         const iconSize = Math.min(scaledWidth, scaledHeight) * 0.4;
         const iconX = centerX - iconSize / 2;
         const iconY = centerY - iconSize / 2;
         
-        switch (type) {
+        switch (obj.type) {
             case 'bed':
                 furnitureSvg += `
                     <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.5}" 
@@ -163,9 +184,224 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
                           stroke="#2F2F2F" stroke-width="1"/>
                 `;
                 break;
+            case 'tv':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
+                          fill="#000000" stroke="#2F2F2F" stroke-width="1"/>
+                    <rect x="${iconX + iconSize * 0.1}" y="${iconY + iconSize * 0.1}" 
+                          width="${iconSize * 0.8}" height="${iconSize * 0.4}" 
+                          fill="#333333" stroke="none"/>
+                `;
+                break;
+            case 'bookshelf':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize * 0.6}" height="${iconSize}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY}" 
+                          x2="${iconX + iconSize * 0.2}" y2="${iconY + iconSize}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.4}" y1="${iconY}" 
+                          x2="${iconX + iconSize * 0.4}" y2="${iconY + iconSize}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'desk':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.1}" y1="${iconY + iconSize * 0.1}" 
+                          x2="${iconX + iconSize * 0.9}" y2="${iconY + iconSize * 0.1}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'mirror':
+                furnitureSvg += `
+                    <rect x="${iconX}" y="${iconY}" width="${iconSize * 0.8}" height="${iconSize}" 
+                          fill="none" stroke="#2F2F2F" stroke-width="2"/>
+                    <circle cx="${iconX + iconSize * 0.4}" cy="${iconY + iconSize * 0.3}" r="${iconSize * 0.1}" 
+                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'lamp':
+                furnitureSvg += `
+                    <circle cx="${centerX}" cy="${centerY}" r="${iconSize * 0.3}" 
+                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${centerX}" y1="${iconY}" 
+                          x2="${centerX}" y2="${iconY + iconSize * 0.4}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'plant':
+                furnitureSvg += `
+                    <circle cx="${centerX}" cy="${centerY}" r="${iconSize * 0.2}" 
+                            fill="#4CAF50" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${centerX}" y1="${iconY + iconSize * 0.2}" 
+                          x2="${centerX}" y2="${iconY + iconSize * 0.8}" 
+                          stroke="#8BC34A" stroke-width="2"/>
+                `;
+                break;
+            case 'rug':
+                furnitureSvg += `
+                    <ellipse cx="${centerX}" cy="${centerY}" 
+                             rx="${iconSize * 0.4}" ry="${iconSize * 0.2}" 
+                             fill="#D32F2F" stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
         }
         
         return `<g>${furnitureSvg}</g>`;
+    }
+
+    // Функция для создания электрических элементов
+    function createElectrical(x, y, type, height = 1.2) {
+        const size = 8;
+        let electricalSvg = '';
+        
+        switch (type) {
+            case 'outlet':
+                electricalSvg = `
+                    <rect x="${x - size/2}" y="${y - size/2}" width="${size}" height="${size}" 
+                          fill="#FFD700" stroke="#2F2F2F" stroke-width="1" rx="2"/>
+                    <circle cx="${x}" cy="${y}" r="${size/3}" fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'switch':
+                electricalSvg = `
+                    <rect x="${x - size/2}" y="${y - size/2}" width="${size}" height="${size}" 
+                          fill="#E0E0E0" stroke="#2F2F2F" stroke-width="1" rx="2"/>
+                    <line x1="${x - size/4}" y1="${y}" x2="${x + size/4}" y2="${y}" 
+                          stroke="#2F2F2F" stroke-width="2"/>
+                `;
+                break;
+            case 'light':
+                electricalSvg = `
+                    <circle cx="${x}" cy="${y}" r="${size/2}" 
+                            fill="#FFD700" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${x}" y1="${y - size/2}" x2="${x}" y2="${y + size/2}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'fan':
+                electricalSvg = `
+                    <circle cx="${x}" cy="${y}" r="${size/2}" 
+                            fill="none" stroke="#2F2F2F" stroke-width="2"/>
+                    <line x1="${x - size/3}" y1="${y}" x2="${x + size/3}" y2="${y}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${x}" y1="${y - size/3}" x2="${x}" y2="${y + size/3}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'ac_unit':
+                electricalSvg = `
+                    <rect x="${x - size/2}" y="${y - size/2}" width="${size}" height="${size}" 
+                          fill="#E3F2FD" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${x - size/3}" y1="${y}" x2="${x + size/3}" y2="${y}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+        }
+        
+        return `<g>${electricalSvg}</g>`;
+    }
+
+    // Функция для создания освещения
+    function createLighting(x, y, type, height = 2.5) {
+        const size = 12;
+        let lightingSvg = '';
+        
+        switch (type) {
+            case 'ceiling':
+                lightingSvg = `
+                    <circle cx="${x}" cy="${y}" r="${size/2}" 
+                            fill="#FFD700" stroke="#2F2F2F" stroke-width="2"/>
+                    <line x1="${x}" y1="${y - size/2}" x2="${x}" y2="${y + size/2}" 
+                          stroke="#2F2F2F" stroke-width="2"/>
+                `;
+                break;
+            case 'wall':
+                lightingSvg = `
+                    <rect x="${x - size/2}" y="${y - size/2}" width="${size}" height="${size}" 
+                          fill="#FFD700" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${x - size/3}" y1="${y}" x2="${x + size/3}" y2="${y}" 
+                          stroke="#2F2F2F" stroke-width="2"/>
+                `;
+                break;
+            case 'pendant':
+                lightingSvg = `
+                    <circle cx="${x}" cy="${y}" r="${size/3}" 
+                            fill="#FFD700" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${x}" y1="${y - size/3}" x2="${x}" y2="${y + size/2}" 
+                          stroke="#2F2F2F" stroke-width="2"/>
+                `;
+                break;
+            case 'chandelier':
+                lightingSvg = `
+                    <circle cx="${x}" cy="${y}" r="${size/2}" 
+                            fill="#FFD700" stroke="#2F2F2F" stroke-width="2"/>
+                    <line x1="${x - size/3}" y1="${y - size/3}" x2="${x + size/3}" y2="${y + size/3}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${x + size/3}" y1="${y - size/3}" x2="${x - size/3}" y2="${y + size/3}" 
+                          stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+        }
+        
+        return `<g>${lightingSvg}</g>`;
+    }
+
+    // Функция для создания специальных элементов
+    function createSpecialFeature(x, y, width, height, type) {
+        let featureSvg = '';
+        
+        switch (type) {
+            case 'fireplace':
+                featureSvg = `
+                    <rect x="${x}" y="${y}" width="${width}" height="${height}" 
+                          fill="#8D6E63" stroke="#2F2F2F" stroke-width="2"/>
+                    <rect x="${x + width/4}" y="${y + height/4}" width="${width/2}" height="${height/2}" 
+                          fill="#D32F2F" stroke="#2F2F2F" stroke-width="1"/>
+                `;
+                break;
+            case 'balcony':
+                featureSvg = `
+                    <rect x="${x}" y="${y}" width="${width}" height="${height}" 
+                          fill="#E8F5E8" stroke="#4CAF50" stroke-width="2"/>
+                    <line x1="${x}" y1="${y + height/2}" x2="${x + width}" y2="${y + height/2}" 
+                          stroke="#4CAF50" stroke-width="1"/>
+                `;
+                break;
+            case 'bay_window':
+                featureSvg = `
+                    <polygon points="${x},${y} ${x + width/2},${y - height/2} ${x + width},${y}" 
+                             fill="#E3F2FD" stroke="#2196F3" stroke-width="2"/>
+                `;
+                break;
+            case 'skylight':
+                featureSvg = `
+                    <ellipse cx="${x + width/2}" cy="${y + height/2}" 
+                             rx="${width/2}" ry="${height/2}" 
+                             fill="#E1F5FE" stroke="#03A9F4" stroke-width="2"/>
+                `;
+                break;
+            case 'built_in':
+                featureSvg = `
+                    <rect x="${x}" y="${y}" width="${width}" height="${height}" 
+                          fill="#F5F5F5" stroke="#757575" stroke-width="2"/>
+                    <line x1="${x + width/3}" y1="${y}" x2="${x + width/3}" y2="${y + height}" 
+                          stroke="#757575" stroke-width="1"/>
+                    <line x1="${x + 2*width/3}" y1="${y}" x2="${x + 2*width/3}" y2="${y + height}" 
+                          stroke="#757575" stroke-width="1"/>
+                `;
+                break;
+            case 'column':
+                featureSvg = `
+                    <circle cx="${x + width/2}" cy="${y + height/2}" r="${Math.min(width, height)/2}" 
+                            fill="#E0E0E0" stroke="#616161" stroke-width="2"/>
+                `;
+                break;
+        }
+        
+        return `<g>${featureSvg}</g>`;
     }
 
     // Функция для создания схематичного окна с 4 линиями и перегородками
@@ -343,7 +579,7 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
 
     // Рисуем комнаты
     roomsWithPositions.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm, shape, walls, objects } = room;
+        const { pixelX, pixelY, pixelWidth, pixelHeight, name, sqm, shape, walls, objects, electrical, lighting, specialFeatures } = room;
         
         // Основной полигон помещения
         svgContent += createRoomPolygon(room, pixelX, pixelY, pixelWidth, pixelHeight);
@@ -393,9 +629,41 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
             const objWidth = obj.w * pixelWidth;
             const objHeight = obj.h * pixelHeight;
             
-            const furnitureSvg = createFurniture(objX, objY, objWidth, objHeight, obj.type, obj.rotation || 0);
+            const furnitureSvg = createFurniture(objX, objY, objWidth, objHeight, obj, obj.rotation || 0);
             svgContent += furnitureSvg;
         });
+        
+        // Рисуем электрические элементы
+        if (electrical && electrical.length > 0) {
+            electrical.forEach(elem => {
+                const elemX = pixelX + elem.x * pixelWidth;
+                const elemY = pixelY + elem.y * pixelHeight;
+                const electricalSvg = createElectrical(elemX, elemY, elem.type, elem.height);
+                svgContent += electricalSvg;
+            });
+        }
+        
+        // Рисуем освещение
+        if (lighting && lighting.length > 0) {
+            lighting.forEach(light => {
+                const lightX = pixelX + light.x * pixelWidth;
+                const lightY = pixelY + light.y * pixelHeight;
+                const lightingSvg = createLighting(lightX, lightY, light.type, light.height);
+                svgContent += lightingSvg;
+            });
+        }
+        
+        // Рисуем специальные элементы
+        if (specialFeatures && specialFeatures.length > 0) {
+            specialFeatures.forEach(feature => {
+                const featureX = pixelX + feature.x * pixelWidth;
+                const featureY = pixelY + feature.y * pixelHeight;
+                const featureWidth = feature.w * pixelWidth;
+                const featureHeight = feature.h * pixelHeight;
+                const featureSvg = createSpecialFeature(featureX, featureY, featureWidth, featureHeight, feature.type);
+                svgContent += featureSvg;
+            });
+        }
         
         // Добавляем название и площадь комнаты
         const centerX = pixelX + pixelWidth / 2;
