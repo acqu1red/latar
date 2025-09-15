@@ -34,12 +34,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
         if (isHorizontal) {
             // Горизонтальное окно (top/bottom стены)
             
-            // 0. Черный прямоугольник-мост для заполнения щели между стеной и окном
-            windowGroup += `
-                <rect x="${x}" y="${y}" width="${length}" height="${depth}" 
-                      fill="${lineColor}" stroke="none"/>
-            `;
-            
             // 1. Две линии на уровне стены (внешние границы окна)
             windowGroup += `
                 <line x1="${x}" y1="${y}" x2="${x + length}" y2="${y}" 
@@ -72,12 +66,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
             
         } else {
             // Вертикальное окно (left/right стены)
-            
-            // 0. Черный прямоугольник-мост для заполнения щели между стеной и окном
-            windowGroup += `
-                <rect x="${x}" y="${y}" width="${depth}" height="${length}" 
-                      fill="${lineColor}" stroke="none"/>
-            `;
             
             // 1. Две линии на уровне стены (внешние границы окна)
             windowGroup += `
@@ -782,8 +770,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const winLength = len * pixelWidth;
                 const y = pixelY - wallThickness / 2; // Окно на уровне стены (стена выше помещения)
                 
-                // Прорезаем стену - делаем стену точно такой же ширины, как окно
-                svgContent += `\n<line x1="${startX}" y1="${pixelY}" x2="${startX + winLength}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                // Убираем прорезание стены - оно создает белые пробелы
                 
                 // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
@@ -797,8 +784,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const winLength = len * pixelWidth;
                 const y = pixelY + pixelHeight + wallThickness / 2; // Окно на уровне стены (стена ниже помещения)
                 
-                // Прорезаем стену
-                svgContent += `\n<line x1="${startX}" y1="${pixelY + pixelHeight}" x2="${startX + winLength}" y2="${pixelY + pixelHeight}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                // Убираем прорезание стены - оно создает белые пробелы
                 
                 // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
@@ -812,8 +798,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const winLength = len * pixelHeight;
                 const x = pixelX - wallThickness / 2; // Окно на уровне стены (стена левее помещения)
                 
-                // Прорезаем стену
-                svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                // Убираем прорезание стены - оно создает белые пробелы
                 
                 // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
@@ -827,8 +812,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const winLength = len * pixelHeight;
                 const x = pixelX + pixelWidth + wallThickness / 2; // Окно на уровне стены (стена правее помещения)
                 
-                // Прорезаем стену
-                svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
+                // Убираем прорезание стены - оно создает белые пробелы
                 
                 // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
