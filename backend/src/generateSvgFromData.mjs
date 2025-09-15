@@ -23,9 +23,29 @@ export async function generateSvgFromData(rooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
+    // Функция для создания полигона помещения на основе формы
+    function createRoomPolygon(room, pixelX, pixelY, pixelWidth, pixelHeight) {
+        const { shape } = room;
+        if (!shape || !shape.corners || shape.corners.length < 3) {
+            // Fallback к прямоугольнику
+            return `<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" 
+                    fill="#FFFFFF" stroke="#333333" stroke-width="2"/>`;
+        }
+        
+        // Конвертируем относительные координаты в абсолютные
+        const points = shape.corners.map(corner => {
+            const x = pixelX + corner.x * pixelWidth;
+            const y = pixelY + corner.y * pixelHeight;
+            return `${x},${y}`;
+        }).join(' ');
+        
+        return `<polygon points="${points}" 
+                fill="#FFFFFF" stroke="#333333" stroke-width="2"/>`;
+    }
+
     // Функция для создания мебели
     function createFurniture(x, y, width, height, type, rotation = 0) {
-        const scale = 0.8; // Масштаб мебели относительно комнаты
+        const scale = 0.6; // Масштаб мебели относительно комнаты (уменьшен для более схематичного вида)
         const scaledWidth = width * scale;
         const scaledHeight = height * scale;
         const offsetX = (width - scaledWidth) / 2;
@@ -36,24 +56,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
         
         let furnitureSvg = '';
         
-        // Базовые цвета для разных типов мебели
-        const colors = {
-            bed: '#8B4513',
-            sofa: '#FF6347',
-            chair: '#DAA520',
-            table: '#CD853F',
-            wardrobe: '#2F4F4F',
-            stove: '#696969',
-            fridge: '#C0C0C0',
-            sink: '#708090',
-            toilet: '#F0F8FF',
-            bathtub: '#E0E0E0',
-            shower: '#B0C4DE',
-            washing_machine: '#D3D3D3',
-            kitchen_block: '#DEB887'
-        };
-        
-        const color = colors[type] || '#808080';
+        // Единый цвет для всей мебели - светло-серый
+        const color = '#E8E8E8';
         
         if (rotation === 90 || rotation === 270) {
             [scaledWidth, scaledHeight] = [scaledHeight, scaledWidth];
@@ -67,67 +71,59 @@ export async function generateSvgFromData(rooms, totalSqm) {
                   rx="2" ry="2"/>
         `;
         
-        // Добавляем иконки для разных типов мебели
-        const iconSize = Math.min(scaledWidth, scaledHeight) * 0.3;
+        // Добавляем простые иконки для разных типов мебели
+        const iconSize = Math.min(scaledWidth, scaledHeight) * 0.4;
         const iconX = centerX - iconSize / 2;
         const iconY = centerY - iconSize / 2;
         
         switch (type) {
             case 'bed':
                 furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.2}" 
-                          x2="${iconX + iconSize * 0.8}" y2="${iconY + iconSize * 0.2}" 
-                          stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.5}" 
+                          x2="${iconX + iconSize * 0.8}" y2="${iconY + iconSize * 0.5}" 
+                          stroke="#666666" stroke-width="1"/>
                 `;
                 break;
             case 'sofa':
                 furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1" rx="2"/>
+                    <rect x="${iconX + iconSize * 0.1}" y="${iconY + iconSize * 0.1}" 
+                          width="${iconSize * 0.8}" height="${iconSize * 0.8}" 
+                          fill="none" stroke="#666666" stroke-width="0.5" rx="1"/>
                 `;
                 break;
             case 'table':
                 furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY + iconSize * 0.3}" width="${iconSize}" height="${iconSize * 0.4}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.3}" 
-                          x2="${iconX + iconSize * 0.2}" y2="${iconY + iconSize * 0.7}" 
-                          stroke="#2F2F2F" stroke-width="1"/>
-                    <line x1="${iconX + iconSize * 0.8}" y1="${iconY + iconSize * 0.3}" 
-                          x2="${iconX + iconSize * 0.8}" y2="${iconY + iconSize * 0.7}" 
-                          stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.3}" y1="${iconY + iconSize * 0.5}" 
+                          x2="${iconX + iconSize * 0.7}" y2="${iconY + iconSize * 0.5}" 
+                          stroke="#666666" stroke-width="1"/>
                 `;
                 break;
             case 'wardrobe':
                 furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
                     <line x1="${iconX + iconSize * 0.5}" y1="${iconY}" 
                           x2="${iconX + iconSize * 0.5}" y2="${iconY + iconSize}" 
-                          stroke="#2F2F2F" stroke-width="1"/>
+                          stroke="#666666" stroke-width="1"/>
                 `;
                 break;
             case 'toilet':
                 furnitureSvg += `
                     <ellipse cx="${centerX}" cy="${centerY}" 
-                             rx="${iconSize * 0.4}" ry="${iconSize * 0.3}" 
-                             fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                             rx="${iconSize * 0.3}" ry="${iconSize * 0.2}" 
+                             fill="none" stroke="#666666" stroke-width="0.5"/>
                 `;
                 break;
             case 'bathtub':
                 furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize * 0.6}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1" rx="2"/>
+                    <rect x="${iconX + iconSize * 0.1}" y="${iconY + iconSize * 0.1}" 
+                          width="${iconSize * 0.8}" height="${iconSize * 0.8}" 
+                          fill="none" stroke="#666666" stroke-width="0.5" rx="1"/>
                 `;
                 break;
             case 'shower':
                 furnitureSvg += `
-                    <rect x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize}" 
-                          fill="none" stroke="#2F2F2F" stroke-width="1"/>
-                    <circle cx="${centerX}" cy="${centerY}" r="${iconSize * 0.2}" 
-                            fill="none" stroke="#2F2F2F" stroke-width="1"/>
+                    <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.2}" 
+                          x2="${iconX + iconSize * 0.8}" y2="${iconY + iconSize * 0.8}" 
+                          stroke="#666666" stroke-width="0.5"/>
                 `;
                 break;
             case 'fridge':
@@ -541,12 +537,24 @@ export async function generateSvgFromData(rooms, totalSqm) {
         const overlappingRooms = getRoomOverlaps(room);
         const hasOverlaps = overlappingRooms.length > 0;
         
-        // Основной прямоугольник помещения
+        // Основной полигон помещения или прямоугольник как fallback
         const fillColor = hasOverlaps ? 'rgba(232, 244, 253, 0.6)' : '#FFFFFF';
         const strokeColor = hasOverlaps ? '#1976d2' : 'none';
         const strokeWidth = hasOverlaps ? '3' : '0';
         
-        svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
+        if (room.shape && room.shape.corners && room.shape.corners.length >= 3) {
+            // Используем полигон для нестандартной формы
+            const points = room.shape.corners.map(corner => {
+                const x = pixelX + corner.x * pixelWidth;
+                const y = pixelY + corner.y * pixelHeight;
+                return `${x},${y}`;
+            }).join(' ');
+            
+            svgContent += `\n<polygon points="${points}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
+        } else {
+            // Fallback к прямоугольнику
+            svgContent += `\n<rect x="${pixelX}" y="${pixelY}" width="${pixelWidth}" height="${pixelHeight}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
+        }
         
         // Рендерим мебель в комнате
         if (objects && objects.length > 0) {

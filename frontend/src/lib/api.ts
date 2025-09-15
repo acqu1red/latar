@@ -12,8 +12,20 @@ export interface RoomObject {
 }
 
 export interface RoomDimensions {
-    width: number;
-    height: number;
+  width: number;
+  height: number;
+}
+
+export interface RoomShape {
+  type: 'rectangular' | 'l_shaped' | 'u_shaped' | 'irregular' | 'circular' | 'trapezoidal';
+  description: string;
+  corners: Array<{ x: number; y: number }>;
+}
+
+export interface RoomConnection {
+  connectedTo: string;
+  connectionType: 'door' | 'archway' | 'open_space';
+  position: 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest';
 }
 
 export interface RoomState {
@@ -26,6 +38,8 @@ export interface RoomState {
     entrySide?: 'left' | 'right' | 'top' | 'bottom' | null; // external entry for hallway
     rotation?: 0 | 90 | null; // визуальный поворот комнаты в конструкторе
     dimensions?: RoomDimensions; // реальные размеры комнаты в метрах
+    shape?: RoomShape; // форма помещения
+    connections?: RoomConnection[]; // соединения с другими помещениями
     objects?: RoomObject[]; // мебель в комнате
     windows?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]; // окна для svg
     doors?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]; // двери для svg

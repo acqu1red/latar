@@ -145,6 +145,17 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
           name: room.name,
           sqm: room.sqm,
           dimensions: { width: 3, height: 3 },
+          shape: {
+            type: 'rectangular',
+            description: 'Прямоугольное помещение',
+            corners: [
+              { x: 0, y: 0 },
+              { x: 1, y: 0 },
+              { x: 1, y: 1 },
+              { x: 0, y: 1 }
+            ]
+          },
+          connections: [],
           objects: [],
           windows: [],
           doors: []
@@ -160,7 +171,10 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
           entrySide: src.entrySide || null,
           // Use analyzed windows and doors if available, otherwise use manual ones
           windows: room.windows && room.windows.length > 0 ? room.windows : (src.windows || []),
-          doors: room.doors && room.doors.length > 0 ? room.doors : (src.doors || [])
+          doors: room.doors && room.doors.length > 0 ? room.doors : (src.doors || []),
+          // Pass through shape and connections from analysis
+          shape: room.shape,
+          connections: room.connections
         };
       });
 

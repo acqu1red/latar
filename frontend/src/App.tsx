@@ -40,13 +40,6 @@ function App() {
     // Размеры канвы в пикселях (соответствуют LayoutEditor)
     const CANVAS_WIDTH = 1000;
     const CANVAS_HEIGHT = 700;
-    const USABLE_WIDTH = CANVAS_WIDTH * 0.9;
-
-    // Грубая сеточная авто-раскладка без пересечений
-    const total = enabled.reduce((s: number, x: RoomState) => s + (x.sqm || 20), 0);
-    const BASE_MIN = 100;
-    const BASE_MAX = 200;
-    const referenceTotal = Math.max(BASE_MIN, Math.min(BASE_MAX, total));
     let cursorX = 20, cursorY = 20, rowH = 0;
     const GAP = 10;
 
@@ -55,19 +48,30 @@ function App() {
       
       // Используем реальные размеры из анализа GPT, если они есть
       let w, h;
-      if (r.dimensions) {
+      if (r.dimensions && r.dimensions.width && r.dimensions.height) {
         // Конвертируем метры в пиксели (примерно 1м = 100px)
         const scale = 100;
         w = r.dimensions.width * scale;
         h = r.dimensions.height * scale;
-      } else {
-        // Fallback к старому алгоритму
+      } else if (r.sqm && r.sqm > 0) {
+        // Рассчитываем размеры на основе площади
         const MIN_DIM = 80; // минимальная видимая величина в пикселях
-        const MAX_DIM = 300; // максимальная величина в пикселях
-        const sqm = r.sqm || 20; // если площадь не задана, используем 20 кв.м
-        let edge = Math.sqrt(Math.max(0, sqm) / referenceTotal) * USABLE_WIDTH;
-        w = Math.max(MIN_DIM, Math.min(MAX_DIM, edge));
-        h = w;
+        const MAX_DIM = 400; // максимальная величина в пикселях
+        const sqm = r.sqm;
+        
+        // Предполагаем прямоугольную форму с соотношением сторон 4:3
+        const aspectRatio = 4/3;
+        const areaInPixels = sqm * 100; // примерный масштаб
+        h = Math.sqrt(areaInPixels / aspectRatio);
+        w = h * aspectRatio;
+        
+        // Ограничиваем размеры
+        w = Math.max(MIN_DIM, Math.min(MAX_DIM, w));
+        h = Math.max(MIN_DIM, Math.min(MAX_DIM, h));
+      } else {
+        // Дефолтные размеры
+        w = 200;
+        h = 150;
       }
       
       // Предположительная ориентация
@@ -292,6 +296,8 @@ function App() {
               return {
                 ...room,
                 dimensions: analyzedRoom.dimensions,
+                shape: analyzedRoom.shape,
+                connections: analyzedRoom.connections || [],
                 objects: analyzedRoom.objects,
                 windows: analyzedRoom.windows,
                 doors: analyzedRoom.doors

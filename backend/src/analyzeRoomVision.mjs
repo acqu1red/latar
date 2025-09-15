@@ -41,11 +41,30 @@ const RoomDimensionsSchema = z.object({
   height: z.number().positive(),
 });
 
+// Схема для формы помещения
+const RoomShapeSchema = z.object({
+  type: z.enum(['rectangular', 'l_shaped', 'u_shaped', 'irregular', 'circular', 'trapezoidal']),
+  description: z.string(),
+  corners: z.array(z.object({
+    x: z.number(),
+    y: z.number()
+  })).min(3).max(8) // 3-8 углов для описания формы
+});
+
+// Схема для соединений между помещениями
+const RoomConnectionSchema = z.object({
+  connectedTo: z.string(), // название другого помещения
+  connectionType: z.enum(['door', 'archway', 'open_space']),
+  position: z.enum(['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest'])
+});
+
 export const RoomVisionSchema = z.object({
   key: z.string(),
   name: z.string(),
   sqm: z.number(),
   dimensions: RoomDimensionsSchema,
+  shape: RoomShapeSchema,
+  connections: z.array(RoomConnectionSchema),
   objects: z.array(RoomObjectSchema),
   windows: z.array(WindowSchema),
   doors: z.array(DoorSchema),
@@ -83,11 +102,21 @@ const getPrompt = (name, sqm) => {
 - Шкафчики или полки`;
     }
 
-    return `Проанализируй фото комнаты для создания полного 2D плана квартиры. Твоя задача — определить ВСЕ элементы: мебель, окна, двери и рассчитать размеры комнаты и планировку помещения.
+    return `Проанализируй фото комнаты для создания полного 2D плана квартиры. Твоя задача — определить ВСЕ элементы: мебель, окна, двери, форму помещения, соединения с другими комнатами и рассчитать размеры комнаты.
 
 Формат ответа (JSON):
 {
   "dimensions": { "width": число_в_метрах, "height": число_в_метрах },
+  "shape": { 
+    "type": "rectangular|l_shaped|u_shaped|irregular|circular|trapezoidal", 
+    "description": "описание формы помещения",
+    "corners": [{ "x": 0.0-1.0, "y": 0.0-1.0 }]
+  },
+  "connections": [{ 
+    "connectedTo": "название_другого_помещения", 
+    "connectionType": "door|archway|open_space", 
+    "position": "north|south|east|west|northeast|northwest|southeast|southwest" 
+  }],
   "objects": [{ "type": "bed|sofa|chair|table|wardrobe|stove|fridge|sink|toilet|bathtub|shower|washing_machine|kitchen_block", "x": 0.0-1.0, "y": 0.0-1.0, "w": 0.0-1.0, "h": 0.0-1.0 }],
   "windows": [{ "side": "left|right|top|bottom", "pos": 0.0-1.0, "len": 0.1-1.0 }],
   "doors": [{ "side": "left|right|top|bottom", "pos": 0.0-1.0, "len": 0.1-1.0, "type": "entrance|interior" }]
@@ -95,6 +124,14 @@ const getPrompt = (name, sqm) => {
 
 Пояснения:
 - dimensions: реальные размеры комнаты в метрах (ширина и высота)
+- shape: форма помещения
+  - type — тип формы (rectangular, l_shaped, u_shaped, irregular, circular, trapezoidal)
+  - description — текстовое описание формы
+  - corners — массив углов помещения (3-8 точек) в координатах 0-1
+- connections: соединения с другими помещениями
+  - connectedTo — название другого помещения
+  - connectionType — тип соединения (door, archway, open_space)
+  - position — направление соединения (north, south, east, west, etc.)
 - objects: мебель и предметы интерьера
   - type — тип мебели/предмета
   - x, y — позиция левого верхнего угла (0-1)
@@ -271,11 +308,72 @@ export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
         };
     };
 
+    const sanitizeShape = (shape) => {
+        if (!shape || typeof shape !== 'object') {
+            return {
+                type: 'rectangular',
+                description: 'Прямоугольное помещение',
+                corners: [
+                    { x: 0, y: 0 },
+                    { x: 1, y: 0 },
+                    { x: 1, y: 1 },
+                    { x: 0, y: 1 }
+                ]
+            };
+        }
+        
+        const allowedTypes = ['rectangular', 'l_shaped', 'u_shaped', 'irregular', 'circular', 'trapezoidal'];
+        const type = allowedTypes.includes(shape.type) ? shape.type : 'rectangular';
+        const description = typeof shape.description === 'string' ? shape.description : 'Помещение';
+        
+        let corners = [];
+        if (Array.isArray(shape.corners) && shape.corners.length >= 3) {
+            corners = shape.corners
+                .slice(0, 8) // максимум 8 углов
+                .map(corner => ({
+                    x: sanitizeNumber01(corner.x) || 0,
+                    y: sanitizeNumber01(corner.y) || 0
+                }))
+                .filter(corner => corner.x !== null && corner.y !== null);
+        }
+        
+        if (corners.length < 3) {
+            corners = [
+                { x: 0, y: 0 },
+                { x: 1, y: 0 },
+                { x: 1, y: 1 },
+                { x: 0, y: 1 }
+            ];
+        }
+        
+        return { type, description, corners };
+    };
+
+    const sanitizeConnections = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr
+            .map((conn) => {
+                const connectedTo = typeof conn.connectedTo === 'string' ? conn.connectedTo : '';
+                const connectionType = typeof conn.connectionType === 'string' ? conn.connectionType : '';
+                const position = typeof conn.position === 'string' ? conn.position : '';
+                
+                if (!connectedTo || !['door', 'archway', 'open_space'].includes(connectionType) || 
+                    !['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest'].includes(position)) {
+                    return null;
+                }
+                
+                return { connectedTo, connectionType, position };
+            })
+            .filter(Boolean);
+    };
+
     const sanitized = {
         key,
         name,
         sqm: typeof sqm === 'string' ? Number(sqm) : sqm,
         dimensions: sanitizeDimensions(jsonData.dimensions),
+        shape: sanitizeShape(jsonData.shape),
+        connections: sanitizeConnections(jsonData.connections || []),
         objects: sanitizeObjects(jsonData.objects || []),
         windows: sanitizeWindows(jsonData.windows || []),
         doors: sanitizeDoors(jsonData.doors || []),
@@ -291,6 +389,17 @@ export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
             name,
             sqm,
             dimensions: validationResult.data.dimensions || { width: 3, height: 3 },
+            shape: validationResult.data.shape || {
+                type: 'rectangular',
+                description: 'Прямоугольное помещение',
+                corners: [
+                    { x: 0, y: 0 },
+                    { x: 1, y: 0 },
+                    { x: 1, y: 1 },
+                    { x: 0, y: 1 }
+                ]
+            },
+            connections: validationResult.data.connections || [],
             objects: validationResult.data.objects || [],
             windows: validationResult.data.windows || [],
             doors: validationResult.data.doors || [],
@@ -325,6 +434,17 @@ export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
             name,
             sqm,
             dimensions: validationResult.data.dimensions || { width: 3, height: 3 },
+            shape: validationResult.data.shape || {
+                type: 'rectangular',
+                description: 'Прямоугольное помещение',
+                corners: [
+                    { x: 0, y: 0 },
+                    { x: 1, y: 0 },
+                    { x: 1, y: 1 },
+                    { x: 0, y: 1 }
+                ]
+            },
+            connections: validationResult.data.connections || [],
             objects: validationResult.data.objects || [],
             windows: validationResult.data.windows || [],
             doors: validationResult.data.doors || [],
