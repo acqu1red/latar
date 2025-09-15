@@ -616,7 +616,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const isBalconyWall = room.key === 'balcony' || room.name.toLowerCase().includes('балкон') || room.name.toLowerCase().includes('лоджия');
             
             // Определяем толщину стены
-            const wallThickness = (isExternalWall && !isBalconyWall) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
+            const wallThickness = (isExternalWall && !isBalconyWall) ? EXTERNAL_WALL_THICKNESS : INTERNAL_WALL_THICKNESS;
             
             const gapStroke = wallThickness + 2; // разрез по толщине стены
             const jambStroke = Math.max(2, Math.floor(wallThickness * 0.25));
@@ -866,7 +866,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         const windowX = pixelX + window.pos * pixelWidth;
                         const windowY = pixelY + window.pos * pixelHeight;
                         const windowLength = window.len * (window.side === 'left' || window.side === 'right' ? pixelHeight : pixelWidth);
-                        const windowDepth = WALL_THICKNESS * 0.8;
+                        const windowDepth = INTERNAL_WALL_THICKNESS * 0.8;
                         
                         let windowLeft, windowRight, windowTop, windowBottom;
                         if (window.side === 'top' || window.side === 'bottom') {
