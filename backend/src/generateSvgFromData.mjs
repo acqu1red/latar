@@ -575,7 +575,35 @@ export async function generateSvgFromData(rooms, totalSqm) {
         return (isExternalPart && !hasBalconyRoom) ? WALL_THICKNESS * 2.5 : WALL_THICKNESS;
     };
 
-    // Рисуем стены с разной толщиной для внешних и внутренних частей
+    // Собираем информацию об окнах для исключения их из рисования стен
+    const windowSegments = [];
+    pixelRooms.forEach(room => {
+        const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [] } = room;
+        windows.forEach(window => {
+            const pos = typeof window.pos === 'number' ? window.pos : 0.5;
+            const len = typeof window.len === 'number' ? window.len : 0.2;
+            
+            if (window.side === 'top') {
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                windowSegments.push({ orientation: 'h', coord: pixelY, start: startX, end: startX + winLength });
+            } else if (window.side === 'bottom') {
+                const startX = pixelX + pos * pixelWidth;
+                const winLength = len * pixelWidth;
+                windowSegments.push({ orientation: 'h', coord: pixelY + pixelHeight, start: startX, end: startX + winLength });
+            } else if (window.side === 'left') {
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                windowSegments.push({ orientation: 'v', coord: pixelX, start: startY, end: startY + winLength });
+            } else if (window.side === 'right') {
+                const startY = pixelY + pos * pixelHeight;
+                const winLength = len * pixelHeight;
+                windowSegments.push({ orientation: 'v', coord: pixelX + pixelWidth, start: startY, end: startY + winLength });
+            }
+        });
+    });
+
+    // Рисуем стены с разной толщиной для внешних и внутренних частей, исключая окна
     edges.forEach(e => {
         // Разбиваем стену на сегменты и анализируем каждый сегмент
         const segmentLength = 50; // Длина сегмента для анализа
@@ -586,6 +614,16 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const segmentStart = e.s + (i * totalLength / segments);
             const segmentEnd = e.s + ((i + 1) * totalLength / segments);
             const segmentMid = (segmentStart + segmentEnd) / 2;
+            
+            // Проверяем, не попадает ли этот сегмент в окно
+            const isInWindow = windowSegments.some(ws => {
+                if (ws.orientation === e.o && Math.abs(ws.coord - e.c) < 1) {
+                    return segmentMid >= ws.start && segmentMid <= ws.end;
+                }
+                return false;
+            });
+            
+            if (isInWindow) continue; // Пропускаем сегмент, если он в окне
             
             const wallThickness = getWallThickness(e, segmentStart, segmentEnd);
             
@@ -715,7 +753,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const winLength = len * pixelWidth;
                 const y = pixelY; // Окно начинается точно на стене
                 
-                // Прорезаем стену
+                // Прорезаем стену - делаем стену точно такой же ширины, как окно
                 svgContent += `\n<line x1="${startX}" y1="${pixelY}" x2="${startX + winLength}" y2="${pixelY}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="square"/>`;
                 
                 // Создаем окно - начинается точно на стене
