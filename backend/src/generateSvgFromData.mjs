@@ -666,15 +666,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += windowGroup;
                 
             } else if (window.side === 'left') {
-                // Окно на левой стене - начинается на стене
+                // Окно на левой стене - позиционируем точно на стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
                 const x = pixelX - WINDOW_WIDTH; // Окно начинается на стене и идет наружу
                 
-                // Создаем проход в стене (белая линия)
-                svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="butt"/>`;
-                
-                // Создаем окно - начинается на стене и идет наружу
+                // Создаем окно - начинается точно на стене
                 // Для вертикальных окон: x, y, length (по Y), depth (по X), orientation
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 'vertical'
@@ -682,15 +679,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += windowGroup;
                 
             } else if (window.side === 'right') {
-                // Окно на правой стене - начинается на стене
+                // Окно на правой стене - позиционируем точно на стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth; // Окно начинается на стене и идет наружу
+                const x = pixelX + pixelWidth; // Окно начинается точно на стене
                 
-                // Создаем проход в стене (белая линия)
-                svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="butt"/>`;
-                
-                // Создаем окно - начинается на стене и идет наружу
+                // Создаем окно - начинается точно на стене
                 // Для вертикальных окон: x, y, length (по Y), depth (по X), orientation
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 'vertical'
@@ -699,6 +693,56 @@ export async function generateSvgFromData(rooms, totalSqm) {
             }
         });
     });
+
+    // Функция для проверки пересечения двери с окном
+    const checkDoorWindowOverlap = (door, room) => {
+        const pos = typeof door.pos === 'number' ? door.pos : 0.5;
+        const len = typeof door.len === 'number' ? door.len : 0.2;
+        
+        // Вычисляем позицию и размеры двери
+        let doorStart, doorEnd, doorCoord;
+        if (door.side === 'left' || door.side === 'right') {
+            doorStart = room.pixelY + pos * room.pixelHeight;
+            doorEnd = doorStart + len * room.pixelHeight;
+            doorCoord = door.side === 'left' ? room.pixelX : room.pixelX + room.pixelWidth;
+        } else {
+            doorStart = room.pixelX + pos * room.pixelWidth;
+            doorEnd = doorStart + len * room.pixelWidth;
+            doorCoord = door.side === 'top' ? room.pixelY : room.pixelY + room.pixelHeight;
+        }
+        
+        // Проверяем пересечение с окнами в этой комнате
+        for (const window of room.windows || []) {
+            const winPos = typeof window.pos === 'number' ? window.pos : 0.5;
+            const winLen = typeof window.len === 'number' ? window.len : 0.2;
+            
+            let windowStart, windowEnd, windowCoord;
+            if (window.side === 'left' || window.side === 'right') {
+                windowStart = room.pixelY + winPos * room.pixelHeight;
+                windowEnd = windowStart + winLen * room.pixelHeight;
+                windowCoord = window.side === 'left' ? room.pixelX : room.pixelX + room.pixelWidth;
+            } else {
+                windowStart = room.pixelX + winPos * room.pixelWidth;
+                windowEnd = windowStart + winLen * room.pixelWidth;
+                windowCoord = window.side === 'top' ? room.pixelY : room.pixelY + room.pixelHeight;
+            }
+            
+            // Проверяем, находятся ли дверь и окно на одной стене и пересекаются ли они
+            if (Math.abs(doorCoord - windowCoord) < 1 && 
+                !(doorEnd <= windowStart || doorStart >= windowEnd)) {
+                return {
+                    hasOverlap: true,
+                    windowStart,
+                    windowEnd,
+                    windowCoord,
+                    overlapStart: Math.max(doorStart, windowStart),
+                    overlapEnd: Math.min(doorEnd, windowEnd)
+                };
+            }
+        }
+        
+        return { hasOverlap: false };
+    };
 
     // Генерация дверей - новый код с нуля
     pixelRooms.forEach(room => {
@@ -714,28 +758,37 @@ export async function generateSvgFromData(rooms, totalSqm) {
             if (door.side === 'left' || door.side === 'right') {
                 // Вертикальная дверь
                 doorLength = len * pixelHeight * 0.8; // Уменьшаем на 20%
+                // Позиционируем дверь точно на стене
                 doorX = door.side === 'left' ? pixelX : pixelX + pixelWidth;
                 doorY = pixelY + pos * pixelHeight;
                 doorRotation = 90;
             } else {
                 // Горизонтальная дверь
                 doorLength = len * pixelWidth * 0.8; // Уменьшаем на 20%
+                // Позиционируем дверь точно на стене
                 doorX = pixelX + pos * pixelWidth;
                 doorY = door.side === 'top' ? pixelY : pixelY + pixelHeight;
                 doorRotation = 0;
             }
+            
+            // Проверяем пересечение с окнами
+            const overlapInfo = checkDoorWindowOverlap(door, room);
             
             // Создаем проход в стене (белая линия) - убираем линию стены
             const wallThickness = 20; // Толщина стены
             const gapWidth = doorLength;
             
             if (door.side === 'top') {
+                // Горизонтальная дверь на верхней стене
                 svgContent += `\n<line x1="${doorX - gapWidth/2}" y1="${doorY}" x2="${doorX + gapWidth/2}" y2="${doorY}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="butt"/>`;
             } else if (door.side === 'bottom') {
+                // Горизонтальная дверь на нижней стене
                 svgContent += `\n<line x1="${doorX - gapWidth/2}" y1="${doorY}" x2="${doorX + gapWidth/2}" y2="${doorY}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="butt"/>`;
             } else if (door.side === 'left') {
+                // Вертикальная дверь на левой стене
                 svgContent += `\n<line x1="${doorX}" y1="${doorY - gapWidth/2}" x2="${doorX}" y2="${doorY + gapWidth/2}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="butt"/>`;
             } else if (door.side === 'right') {
+                // Вертикальная дверь на правой стене
                 svgContent += `\n<line x1="${doorX}" y1="${doorY - gapWidth/2}" x2="${doorX}" y2="${doorY + gapWidth/2}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="butt"/>`;
             }
             
@@ -750,24 +803,35 @@ export async function generateSvgFromData(rooms, totalSqm) {
             }
             
             // Создаем дизайн двери в стиле 2D схем
-            const doorGroup = `
-                <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})">
-                    <!-- Основная линия двери -->
-                    <line x1="0" y1="0" x2="${doorLength}" y2="0" 
-                          stroke="#2c3e50" stroke-width="3" stroke-linecap="round"/>
-                    
+            let doorGroup = `
+                <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})">`;
+            
+            if (overlapInfo.hasOverlap) {
+                // Если дверь накладывается на окно, делаем петли шириной окна
+                const windowWidth = 40; // Ширина окна
+                const hingeWidth = windowWidth; // Ширина петли = ширина окна
+                
+                doorGroup += `
+                    <!-- Петли (точки крепления) с шириной окна для плавного перехода -->
+                    <rect x="-${hingeWidth/2}" y="-2" width="${hingeWidth}" height="4" fill="#34495e" stroke="#2c3e50" stroke-width="1"/>
+                    <rect x="${doorLength - hingeWidth/2}" y="-2" width="${hingeWidth}" height="4" fill="#34495e" stroke="#2c3e50" stroke-width="1"/>`;
+            } else {
+                // Обычные петли
+                doorGroup += `
                     <!-- Петли (точки крепления) -->
                     <circle cx="0" cy="0" r="2" fill="#34495e" stroke="#2c3e50" stroke-width="1"/>
-                    <circle cx="${doorLength}" cy="0" r="2" fill="#34495e" stroke="#2c3e50" stroke-width="1"/>
-                    
-                    <!-- Дуга открытия двери -->
+                    <circle cx="${doorLength}" cy="0" r="2" fill="#34495e" stroke="#2c3e50" stroke-width="1"/>`;
+            }
+            
+            doorGroup += `
+                    <!-- Дуга открытия двери (толще) -->
                     <path d="M 0 0 A ${doorLength} ${doorLength} 0 0 ${arcDirection} ${doorLength * 0.7} ${doorLength * 0.7}" 
-                          stroke="#2F2F2F" stroke-width="3" fill="none"/>
+                          stroke="#2F2F2F" stroke-width="5" fill="none"/>
                     
-                    <!-- Соединительная линия от конца дуги -->
+                    <!-- Соединительная линия от конца дуги (толще) -->
                     <line x1="${doorLength * 0.7}" y1="${doorLength * 0.7}" 
                           x2="${doorLength}" y2="0" 
-                          stroke="#2F2F2F" stroke-width="3"/>
+                          stroke="#2F2F2F" stroke-width="5"/>
                     
                     <!-- Ручка двери -->
                     <circle cx="${doorLength - 8}" cy="0" r="1.5" 
