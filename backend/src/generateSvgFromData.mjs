@@ -485,23 +485,29 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         break;
                 }
 
-                // Создаем простой и правильный дизайн двери
+                // Создаем дизайн двери согласно примеру
+                const arcRadius = doorLength / 2.5; // Дуга в 2.5 раза короче длины двери
                 const doorGroup = `
                     <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})">
                         <!-- Основная линия двери -->
                         <line x1="0" y1="0" x2="${doorLength}" y2="0" 
-                              stroke="#2F2F2F" stroke-width="2" stroke-linecap="round"/>
+                              stroke="#2F2F2F" stroke-width="4" stroke-linecap="round"/>
                         
                         <!-- Петли (точки крепления) -->
-                        <circle cx="0" cy="0" r="1.5" fill="#2F2F2F"/>
-                        <circle cx="${doorLength}" cy="0" r="1.5" fill="#2F2F2F"/>
+                        <circle cx="0" cy="0" r="2" fill="#2F2F2F"/>
+                        <circle cx="${doorLength}" cy="0" r="2" fill="#2F2F2F"/>
                         
-                        <!-- Дуга открытия двери (90 градусов) -->
-                        <path d="M 0 0 A ${doorLength} ${doorLength} 0 0 1 ${doorLength} ${doorLength}" 
-                              stroke="#2F2F2F" stroke-width="1.5" fill="none"/>
+                        <!-- Дуга открытия двери (как в примере) -->
+                        <path d="M 0 0 A ${arcRadius} ${arcRadius} 0 0 1 ${arcRadius} ${arcRadius}" 
+                              stroke="#2F2F2F" stroke-width="3" fill="none"/>
+                        
+                        <!-- Соединительная линия (вертикальная для горизонтальной двери) -->
+                        <line x1="${arcRadius}" y1="${arcRadius}" 
+                              x2="${arcRadius}" y2="0" 
+                              stroke="#2F2F2F" stroke-width="3"/>
                         
                         <!-- Ручка двери -->
-                        <circle cx="${doorLength - 6}" cy="0" r="1" 
+                        <circle cx="${doorLength - 8}" cy="0" r="1.5" 
                                 fill="#2F2F2F"/>
                     </g>
                 `;
