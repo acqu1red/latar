@@ -442,87 +442,52 @@ export async function generateSvgFromData(rooms, totalSqm) {
         doorsData: r.doors 
     })));
     
-    // Обработка дверей с абсолютными координатами
     if (rooms.some(room => room.doors && room.doors.length > 0)) {
         console.log('SVG Generation - Found doors, processing...');
         rooms.forEach(room => {
             if (!room.doors || room.doors.length === 0) return;
             console.log(`SVG Generation - Processing doors for room ${room.name}:`, room.doors);
+            
+            const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+            const roomPixels = {
+                x: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
+                y: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
+                width: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
+                height: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE
+            };
 
             room.doors.forEach(door => {
-                // Конвертируем координаты из конструктора в SVG координаты
-                const doorX = MARGIN + door.x * SVG_SCALE;
-                const doorY = MARGIN + door.y * SVG_SCALE;
-                const doorLength = door.length * SVG_SCALE;
                 const doorWidth = 8 * SVG_SCALE;
+                const doorLength = door.len * (door.side === 'left' || door.side === 'right' ? roomPixels.height : roomPixels.width);
                 
-                // Функция для проверки и сдвига двери от стыков стен
-                const adjustDoorPosition = (x, y, length, rotation) => {
-                    const wallThickness = 4 * SVG_SCALE; // Толщина стены
-                    const minOffset = wallThickness + 2; // Минимальное расстояние от стыка
-                    
-                    let adjustedX = x;
-                    let adjustedY = y;
-                    
-                    // Проверяем все комнаты на пересечение с их стенами
-                    for (const room of rooms) {
-                        const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-                        const roomPixels = {
-                            x: MARGIN + layout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
-                            y: MARGIN + layout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
-                            width: layout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
-                            height: layout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE
-                        };
-                        
-                        // Проверяем пересечение с каждой стеной комнаты
-                        const walls = [
-                            { x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: wallThickness }, // верх
-                            { x: roomPixels.x, y: roomPixels.y + roomPixels.height - wallThickness, width: roomPixels.width, height: wallThickness }, // низ
-                            { x: roomPixels.x, y: roomPixels.y, width: wallThickness, height: roomPixels.height }, // лево
-                            { x: roomPixels.x + roomPixels.width - wallThickness, y: roomPixels.y, width: wallThickness, height: roomPixels.height } // право
-                        ];
-                        
-                        for (const wall of walls) {
-                            // Проверяем пересечение двери со стеной
-                            const doorRect = {
-                                x: rotation === 0 ? adjustedX : adjustedX - doorWidth/2,
-                                y: rotation === 0 ? adjustedY - doorWidth/2 : adjustedY,
-                                width: rotation === 0 ? length : doorWidth,
-                                height: rotation === 0 ? doorWidth : length
-                            };
-                            
-                            if (doorRect.x < wall.x + wall.width && 
-                                doorRect.x + doorRect.width > wall.x &&
-                                doorRect.y < wall.y + wall.height && 
-                                doorRect.y + doorRect.height > wall.y) {
-                                
-                                // Сдвигаем дверь в сторону от стены
-                                if (wall.width > wall.height) { // горизонтальная стена
-                                    if (doorRect.y < wall.y + wall.height/2) {
-                                        adjustedY = wall.y - doorWidth/2 - minOffset;
-                                    } else {
-                                        adjustedY = wall.y + wall.height + doorWidth/2 + minOffset;
-                                    }
-                                } else { // вертикальная стена
-                                    if (doorRect.x < wall.x + wall.width/2) {
-                                        adjustedX = wall.x - (rotation === 0 ? 0 : doorWidth/2) - minOffset;
-                                    } else {
-                                        adjustedX = wall.x + wall.width + (rotation === 0 ? length : doorWidth/2) + minOffset;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    return { x: adjustedX, y: adjustedY };
-                };
+                let doorX, doorY, doorRotation = 0;
                 
-                // Применяем сдвиг для избежания наложения на стыки
-                const adjustedPos = adjustDoorPosition(doorX, doorY, doorLength, door.rotation);
-                
-                // Создаем новый дизайн двери в стиле 2D схем
+                switch (door.side) {
+                    case 'left':
+                        doorX = roomPixels.x - doorWidth / 2;
+                        doorY = roomPixels.y + door.pos * roomPixels.height;
+                        doorRotation = 90;
+                        break;
+                    case 'right':
+                        doorX = roomPixels.x + roomPixels.width - doorWidth / 2;
+                        doorY = roomPixels.y + door.pos * roomPixels.height;
+                        doorRotation = 90;
+                        break;
+                    case 'top':
+                        doorX = roomPixels.x + door.pos * roomPixels.width;
+                        doorY = roomPixels.y - doorWidth / 2;
+                        doorRotation = 0;
+                        break;
+                    case 'bottom':
+                        doorX = roomPixels.x + door.pos * roomPixels.width;
+                        doorY = roomPixels.y + roomPixels.height - doorWidth / 2;
+                        doorRotation = 0;
+                        break;
+                }
+
+                // Создаем дизайн двери в стиле 2D схем
                 const doorGroup = `
-                    <g transform="translate(${adjustedPos.x}, ${adjustedPos.y}) rotate(${door.rotation})">
+                    <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})">
                         <!-- Основная линия двери -->
                         <line x1="0" y1="0" x2="${doorLength}" y2="0" 
                               stroke="#2c3e50" stroke-width="3" stroke-linecap="round"/>
@@ -533,12 +498,12 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         
                         <!-- Дуга открытия двери -->
                         <path d="M 0 0 A ${doorLength} ${doorLength} 0 0 1 ${doorLength * 0.7} ${doorLength * 0.7}" 
-                              stroke="#e74c3c" stroke-width="2" fill="none" stroke-dasharray="3,2" opacity="0.7"/>
+                              stroke="#2F2F2F" stroke-width="2" fill="none"/>
                         
                         <!-- Соединительная линия от конца дуги -->
                         <line x1="${doorLength * 0.7}" y1="${doorLength * 0.7}" 
                               x2="${doorLength}" y2="0" 
-                              stroke="#e74c3c" stroke-width="1" stroke-dasharray="2,1" opacity="0.5"/>
+                              stroke="#2F2F2F" stroke-width="1"/>
                         
                         <!-- Ручка двери -->
                         <circle cx="${doorLength - 8}" cy="0" r="1.5" 
@@ -650,10 +615,14 @@ export async function generateSvgFromData(rooms, totalSqm) {
         }
     };
 
-    // Собираем информацию об окнах для исключения их из рисования стен
+    // Собираем информацию об окнах и дверях для исключения их из рисования стен
     const windowSegments = [];
+    const doorSegments = [];
+    
     pixelRooms.forEach(room => {
-        const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [] } = room;
+        const { pixelX, pixelY, pixelWidth, pixelHeight, windows = [], doors = [] } = room;
+        
+        // Обрабатываем окна
         windows.forEach(window => {
             const pos = typeof window.pos === 'number' ? window.pos : 0.5;
             const len = typeof window.len === 'number' ? window.len : 0.2;
@@ -674,6 +643,30 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
                 windowSegments.push({ orientation: 'v', coord: pixelX + pixelWidth, start: startY, end: startY + winLength });
+            }
+        });
+        
+        // Обрабатываем двери
+        doors.forEach(door => {
+            const pos = typeof door.pos === 'number' ? door.pos : 0.5;
+            const len = typeof door.len === 'number' ? door.len : 0.2;
+            
+            if (door.side === 'top') {
+                const startX = pixelX + pos * pixelWidth;
+                const doorLength = len * pixelWidth;
+                doorSegments.push({ orientation: 'h', coord: pixelY, start: startX, end: startX + doorLength });
+            } else if (door.side === 'bottom') {
+                const startX = pixelX + pos * pixelWidth;
+                const doorLength = len * pixelWidth;
+                doorSegments.push({ orientation: 'h', coord: pixelY + pixelHeight, start: startX, end: startX + doorLength });
+            } else if (door.side === 'left') {
+                const startY = pixelY + pos * pixelHeight;
+                const doorLength = len * pixelHeight;
+                doorSegments.push({ orientation: 'v', coord: pixelX, start: startY, end: startY + doorLength });
+            } else if (door.side === 'right') {
+                const startY = pixelY + pos * pixelHeight;
+                const doorLength = len * pixelHeight;
+                doorSegments.push({ orientation: 'v', coord: pixelX + pixelWidth, start: startY, end: startY + doorLength });
             }
         });
     });
@@ -797,12 +790,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const windowDepth = WINDOW_WIDTH; // глубина окна = ширина окна
 
             if (window.side === 'top') {
-                // Окно на верхней стене
+                // Окно на верхней стене - центрировано на стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY - WINDOW_WIDTH / 2; // Окно на уровне стены (стена выше помещения)
-                
-                // Убираем прорезание стены - оно создает белые пробелы
+                const y = pixelY - WINDOW_WIDTH / 2; // Окно центрировано на стене
                 
                 // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
@@ -811,12 +802,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += windowGroup;
                 
             } else if (window.side === 'bottom') {
-                // Окно на нижней стене
+                // Окно на нижней стене - центрировано на стене
                 const startX = pixelX + pos * pixelWidth;
                 const winLength = len * pixelWidth;
-                const y = pixelY + pixelHeight + WINDOW_WIDTH / 2; // Окно на уровне стены (стена ниже помещения)
-                
-                // Убираем прорезание стены - оно создает белые пробелы
+                const y = pixelY + pixelHeight - WINDOW_WIDTH / 2; // Окно центрировано на стене
                 
                 // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
@@ -825,12 +814,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += windowGroup;
                 
             } else if (window.side === 'left') {
-                // Окно на левой стене
+                // Окно на левой стене - центрировано на стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX - WINDOW_WIDTH / 2; // Окно на уровне стены (стена левее помещения)
-                
-                // Убираем прорезание стены - оно создает белые пробелы
+                const x = pixelX - WINDOW_WIDTH / 2; // Окно центрировано на стене
                 
                 // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
@@ -839,12 +826,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += windowGroup;
                 
             } else if (window.side === 'right') {
-                // Окно на правой стене
+                // Окно на правой стене - центрировано на стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth - WINDOW_WIDTH / 2; // Окно точно на стене (стена правее помещения)
-                
-                // Убираем прорезание стены - оно создает белые пробелы
+                const x = pixelX + pixelWidth - WINDOW_WIDTH / 2; // Окно центрировано на стене
                 
                 // Создаем окно - начинается на стене и идет внутрь комнаты
                 const windowGroup = createLayeredWindow(
@@ -868,7 +853,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const segmentEnd = e.s + ((i + 1) * totalLength / segments);
             const segmentMid = (segmentStart + segmentEnd) / 2;
             
-            // Проверяем, не попадает ли этот сегмент в окно
+            // Проверяем, не попадает ли этот сегмент в окно или дверь
             const isInWindow = windowSegments.some(ws => {
                 if (ws.orientation === e.o && Math.abs(ws.coord - e.c) < 1) {
                     return segmentMid >= ws.start && segmentMid <= ws.end;
@@ -876,7 +861,14 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 return false;
             });
             
-            if (isInWindow) continue; // Пропускаем сегмент, если он в окне
+            const isInDoor = doorSegments.some(ds => {
+                if (ds.orientation === e.o && Math.abs(ds.coord - e.c) < 1) {
+                    return segmentMid >= ds.start && segmentMid <= ds.end;
+                }
+                return false;
+            });
+            
+            if (isInWindow || isInDoor) continue; // Пропускаем сегмент, если он в окне или двери
             
             const wallThickness = getWallThickness(e, segmentStart, segmentEnd);
             

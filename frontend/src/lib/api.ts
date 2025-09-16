@@ -11,7 +11,7 @@ export interface RoomState {
     entrySide?: 'left' | 'right' | 'top' | 'bottom' | null; // external entry for hallway
     rotation?: 0 | 90 | null; // визуальный поворот комнаты в конструкторе
     windows?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]; // окна для svg
-    doors?: { id: number; x: number; y: number; length: number; rotation: 0 | 90; type: 'entrance'|'interior' }[]; // двери для svg
+    doors?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]; // двери для svg
     description?: string; // Room description for UI
 }
 
