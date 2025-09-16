@@ -730,12 +730,6 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 <line x1="${length * 0.7}" y1="${length * 0.7}" 
                       x2="${length}" y2="0" 
                       stroke="${arcColor}" stroke-width="4" stroke-linecap="round"/>
-                
-                <!-- Ручка двери (красивая) -->
-                <circle cx="${length - 12}" cy="0" r="3" 
-                        fill="#f39c12" stroke="#e67e22" stroke-width="1"/>
-                <circle cx="${length - 12}" cy="0" r="1.5" 
-                        fill="#fff" opacity="0.8"/>
             </g>
         `;
     }
