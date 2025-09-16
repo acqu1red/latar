@@ -151,6 +151,7 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
             key: room.key,
             name: room.name,
             sqm: room.sqm,
+            layoutData: room.layout // Передаем данные макета из конструктора
           });
           console.log(`Analysis result for ${room.key}:`, { 
             objects: result.objects?.length || 0, 

@@ -1,17 +1,17 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { parseJson } from './utils/parseJson.mjs';
+import { getAllFurnitureTypes, getFurnitureByRoomType, generateFurnitureInstructions } from './furnitureDatabase.mjs';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'test-key-for-testing',
 });
 
-// Zod Schemas for validation
-const RoomObjectType = z.enum([
-  "bed", "sofa", "chair", "table", "wardrobe",
-  "stove", "fridge", "sink", "toilet",
-  "bathtub", "shower", "washing_machine", "kitchen_block"
-]);
+// Динамически получаем все типы мебели из базы данных
+const furnitureTypes = getAllFurnitureTypes();
+
+// Zod Schemas for validation - используем динамический список типов
+const RoomObjectType = z.enum(furnitureTypes.length > 0 ? furnitureTypes : ["bed"]);
 
 const RoomObjectSchema = z.object({
   type: RoomObjectType,
@@ -30,53 +30,61 @@ export const RoomVisionSchema = z.object({
   objects: z.array(RoomObjectSchema),
 });
 
-const getPrompt = (name, sqm) => {
-    // Специальные промпты для разных типов комнат
-    let roomSpecificInstructions = "";
+const getPrompt = (name, sqm, layoutData = null) => {
+    // Получаем релевантную мебель для данного типа помещения
+    const furnitureInstructions = generateFurnitureInstructions(name);
     
-    if (name.toLowerCase().includes('ванная') && !name.toLowerCase().includes('санузел')) {
-        // Только ванная комната
-        roomSpecificInstructions = `
-ВАЖНО: Это только ванная комната (без туалета). Ищи только:
-- Ванну (bathtub) или душевую кабину (shower)
-- Раковину (sink)
-- Стиральную машину (washing_machine) если есть
-- Шкафчики или полки
-НЕ ищи унитаз (toilet) - его здесь быть не должно.`;
-    } else if (name.toLowerCase().includes('санузел') && !name.toLowerCase().includes('ванная')) {
-        // Только санузел
-        roomSpecificInstructions = `
-ВАЖНО: Это только санузел (туалет без ванны). Ищи только:
-- Унитаз (toilet)
-- Раковину (sink) если есть
-- Полки или шкафчики
-НЕ ищи ванну (bathtub) или душевую кабину (shower) - их здесь быть не должно.`;
-    } else if (name.toLowerCase().includes('ванная') && name.toLowerCase().includes('санузел')) {
-        // Совмещенный санузел
-        roomSpecificInstructions = `
-ВАЖНО: Это совмещенный санузел (ванная + туалет). Ищи:
-- Ванну (bathtub) или душевую кабину (shower)
-- Унитаз (toilet)
-- Раковину (sink)
-- Стиральную машину (washing_machine) если есть
-- Шкафчики или полки`;
+    // Инструкции по анализу стен и координатам
+    let wallAnalysisInstructions = "";
+    
+    if (layoutData) {
+        wallAnalysisInstructions = `
+ВАЖНО - АНАЛИЗ СТЕН И КООРДИНАТ:
+1. Внимательно изучи геометрию помещения из конструктора:
+   - Помещение расположено по координатам: x=${layoutData.x}, y=${layoutData.y}
+   - Размеры помещения: ширина=${layoutData.width}, высота=${layoutData.height}
+   - Двери: ${JSON.stringify(layoutData.doors || [])}
+   - Окна: ${JSON.stringify(layoutData.windows || [])}
+
+2. Анализируй фотографии относительно этой геометрии:
+   - Определи, где находится каждая стена на фото по отношению к схеме из конструктора
+   - Размещай мебель строго в пределах координат помещения
+   - Учитывай расположение дверей и окон при размещении мебели
+
+3. Координаты объектов:
+   - x, y должны быть в диапазоне 0.0-1.0 относительно ЭТОГО помещения
+   - x=0.0 - левая стена помещения, x=1.0 - правая стена
+   - y=0.0 - верхняя стена помещения, y=1.0 - нижняя стена
+   - Размещай мебель так, чтобы она не блокировала двери и окна`;
     }
 
-    return `Проанализируй фото комнаты для создания 2D плана квартиры. Твоя задача — определить только мебель и предметы интерьера. Окна и двери НЕ анализируй и НЕ возвращай.
+    return `Проанализируй фотографии помещения для создания точного 2D плана. 
+
+ЗАДАЧА: Найди ТОЛЬКО мебель и объекты из разрешенного списка. НЕ придумывай объекты, которых нет в списке.
+
+${furnitureInstructions}
+
+${wallAnalysisInstructions}
+
+ПРАВИЛА АНАЛИЗА:
+1. Ищи ТОЛЬКО реальные объекты мебели, которые четко видны на фотографиях
+2. НЕ обязательно находить все возможные объекты - если чего-то нет на фото, не добавляй
+3. Если объект частично виден или неясен - НЕ включай его в результат
+4. Размещай объекты логично относительно стен и проходов
 
 Формат ответа (JSON):
 {
-  "objects": [{ "type": "bed|sofa|chair|table|wardrobe|stove|fridge|sink|toilet|bathtub|shower|washing_machine|kitchen_block", "x": 0.0-1.0, "y": 0.0-1.0, "w": 0.0-1.0, "h": 0.0-1.0 }]
+  "objects": [{ "type": "тип_из_списка", "x": 0.0-1.0, "y": 0.0-1.0, "w": 0.0-1.0, "h": 0.0-1.0 }]
 }
 
-Пояснения:
-- type — тип мебели/предмета
-- x, y — позиция левого верхнего угла (0-1)
-- w, h — ширина и высота (0-1)
+Пояснения координат:
+- type — тип мебели/предмета СТРОГО из разрешенного списка выше
+- x, y — позиция центра объекта (0.0-1.0 относительно помещения)
+- w, h — ширина и высота объекта (0.0-1.0 относительно помещения)
 
-${roomSpecificInstructions}
+Помещение: ${name}, ${sqm} м².
 
-Верни только JSON. Комната: ${name}, ${sqm} м².`;
+Верни только JSON, без дополнительного текста.`;
 };
 
 
@@ -144,11 +152,12 @@ async function callOpenAI(base64Images, promptText, isRepair = false) {
  * @param {string} params.key - The unique key for the room.
  * @param {string} params.name - The name of the room.
  * @param {number} params.sqm - The square meters of the room.
+ * @param {object} [params.layoutData] - Layout data from constructor (coordinates, doors, windows).
  * @returns {Promise<z.infer<typeof RoomVisionSchema>>} The analyzed room data.
  */
-export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
+export async function analyzeRoomVision({ photoBuffers, key, name, sqm, layoutData = null }) {
     const base64Images = photoBuffers.map(buffer => buffer.toString('base64'));
-    const promptText = getPrompt(name, sqm);
+    const promptText = getPrompt(name, sqm, layoutData);
 
     // First attempt
     let responseText = await callOpenAI(base64Images, promptText);
@@ -165,7 +174,7 @@ export async function analyzeRoomVision({ photoBuffers, key, name, sqm }) {
         return Math.min(1, Math.max(0, n));
     };
 
-    const allowedTypes = RoomObjectType.options;
+    const allowedTypes = furnitureTypes;
     const sanitizeObjects = (arr) => {
         if (!Array.isArray(arr)) return [];
         return arr
