@@ -16,21 +16,6 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
     const ICON_STROKE_COLOR = '#2F2F2F';
     const ICON_FILL_LIGHT = '#F5F6F9';
 
-    // Функция для определения цвета материала
-    function getMaterialColor(material) {
-        const colors = {
-            'wood': '#D2B48C',
-            'metal': '#C0C0C0',
-            'glass': '#E6F3FF',
-            'fabric': '#F5F5DC',
-            'leather': '#8B4513',
-            'plastic': '#E8E8E8',
-            'stone': '#A9A9A9',
-            'default': '#E8E8E8'
-        };
-        return colors[material] || colors.default;
-    }
-
     // Функция для создания полигона помещения на основе формы
     function createRoomPolygon(room, pixelX, pixelY, pixelWidth, pixelHeight) {
         const { shape } = room;
@@ -51,8 +36,8 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
                 fill="#FFFFFF" stroke="#333333" stroke-width="2"/>`;
     }
 
-    // Функция для создания мебели с детальными данными GPT
-    function createFurniture(x, y, width, height, obj, rotation = 0) {
+    // Функция для создания мебели
+    function createFurniture(x, y, width, height, type, rotation = 0) {
         const scale = 0.6; // Масштаб мебели относительно комнаты
         const scaledWidth = width * scale;
         const scaledHeight = height * scale;
@@ -64,33 +49,27 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
         
         let furnitureSvg = '';
         
-        // Определяем цвет на основе материала
-        const material = obj.material || 'wood';
-        const color = getMaterialColor(material);
+        // Единый цвет для всей мебели - светло-серый
+        const color = '#E8E8E8';
         
-        // Применяем поворот
-        const actualRotation = obj.rotation || rotation || 0;
-        if (actualRotation === 90 || actualRotation === 270) {
+        if (rotation === 90 || rotation === 270) {
             [scaledWidth, scaledHeight] = [scaledHeight, scaledWidth];
         }
         
-        // Создаем прямоугольник мебели с учетом стиля
-        const style = obj.style || 'modern';
-        const cornerRadius = style === 'modern' ? 3 : style === 'classic' ? 1 : 0;
-        
+        // Создаем прямоугольник мебели
         furnitureSvg += `
             <rect x="${x + offsetX}" y="${y + offsetY}" 
                   width="${scaledWidth}" height="${scaledHeight}" 
                   fill="${color}" stroke="#2F2F2F" stroke-width="1" 
-                  rx="${cornerRadius}" ry="${cornerRadius}"/>
+                  rx="2" ry="2"/>
         `;
         
-        // Добавляем детальные иконки для разных типов мебели
+        // Добавляем простые иконки для разных типов мебели
         const iconSize = Math.min(scaledWidth, scaledHeight) * 0.4;
         const iconX = centerX - iconSize / 2;
         const iconY = centerY - iconSize / 2;
         
-        switch (obj.type) {
+        switch (type) {
             case 'bed':
                 furnitureSvg += `
                     <line x1="${iconX + iconSize * 0.2}" y1="${iconY + iconSize * 0.5}" 
@@ -492,30 +471,84 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
         return windowGroup;
     }
 
-    // Функция для создания двери
-    function createDoor(x, y, length, depth, orientation, doorType) {
+    // Функция для создания двери с новым дизайном
+    function createDoorSvg(x, y, length, depth, orientation, doorType, wallSide) {
         const isHorizontal = orientation === 'horizontal';
         const DOOR_WIDTH = depth;
         const doorColor = doorType === 'entrance' ? '#8D6E63' : '#5D4037';
-        const handleColor = '#FFD700';
+        const hingeColor = '#2F2F2F';
+        const arcColor = '#666666';
+        const lineColor = '#333333';
+        
+        // Размеры элементов двери
+        const hingeSize = 3;
+        const arcRadius = length * 0.8; // Радиус дуги составляет 80% от длины двери
+        const lineWidth = 1.5;
         
         let doorGroup = `<g>`;
         
         if (isHorizontal) {
             // Горизонтальная дверь
+            const centerX = x + length / 2;
+            const centerY = y + DOOR_WIDTH / 2;
+            
+            // Петли (маленькие круги)
             doorGroup += `
-                <rect x="${x}" y="${y}" width="${length}" height="${DOOR_WIDTH}" 
-                      fill="${doorColor}" stroke="#2F2F2F" stroke-width="1" rx="2"/>
-                <circle cx="${x + length - 12}" cy="${y + DOOR_WIDTH/2}" r="3" 
-                        fill="${handleColor}" stroke="#B8860B" stroke-width="0.5"/>
+                <circle cx="${x + 5}" cy="${centerY}" r="${hingeSize}" 
+                        fill="${hingeColor}" stroke="#000" stroke-width="0.5"/>
+                <circle cx="${x + length - 5}" cy="${centerY}" r="${hingeSize}" 
+                        fill="${hingeColor}" stroke="#000" stroke-width="0.5"/>
             `;
+            
+            // Дуга (обозначающая открытую дверь)
+            const arcStartX = x + length;
+            const arcStartY = y + DOOR_WIDTH / 2;
+            const arcEndX = x + length + arcRadius;
+            const arcEndY = y + DOOR_WIDTH / 2;
+            
+            doorGroup += `
+                <path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 1 ${arcEndX} ${arcEndY}" 
+                      fill="none" stroke="${arcColor}" stroke-width="${lineWidth}" 
+                      stroke-linecap="round"/>
+            `;
+            
+            // Линия, соединяющаяся с концом дуги
+            doorGroup += `
+                <line x1="${x + length}" y1="${y + DOOR_WIDTH / 2}" 
+                      x2="${x + length + arcRadius}" y2="${y + DOOR_WIDTH / 2}" 
+                      stroke="${lineColor}" stroke-width="${lineWidth}" stroke-linecap="round"/>
+            `;
+            
         } else {
             // Вертикальная дверь
+            const centerX = x + DOOR_WIDTH / 2;
+            const centerY = y + length / 2;
+            
+            // Петли (маленькие круги)
             doorGroup += `
-                <rect x="${x}" y="${y}" width="${DOOR_WIDTH}" height="${length}" 
-                      fill="${doorColor}" stroke="#2F2F2F" stroke-width="1" rx="2"/>
-                <circle cx="${x + DOOR_WIDTH/2}" cy="${y + length - 12}" r="3" 
-                        fill="${handleColor}" stroke="#B8860B" stroke-width="0.5"/>
+                <circle cx="${centerX}" cy="${y + 5}" r="${hingeSize}" 
+                        fill="${hingeColor}" stroke="#000" stroke-width="0.5"/>
+                <circle cx="${centerX}" cy="${y + length - 5}" r="${hingeSize}" 
+                        fill="${hingeColor}" stroke="#000" stroke-width="0.5"/>
+            `;
+            
+            // Дуга (обозначающая открытую дверь)
+            const arcStartX = x + DOOR_WIDTH / 2;
+            const arcStartY = y + length;
+            const arcEndX = x + DOOR_WIDTH / 2;
+            const arcEndY = y + length + arcRadius;
+            
+            doorGroup += `
+                <path d="M ${arcStartX} ${arcStartY} A ${arcRadius} ${arcRadius} 0 0 1 ${arcEndX} ${arcEndY}" 
+                      fill="none" stroke="${arcColor}" stroke-width="${lineWidth}" 
+                      stroke-linecap="round"/>
+            `;
+            
+            // Линия, соединяющаяся с концом дуги
+            doorGroup += `
+                <line x1="${x + DOOR_WIDTH / 2}" y1="${y + length}" 
+                      x2="${x + DOOR_WIDTH / 2}" y2="${y + length + arcRadius}" 
+                      stroke="${lineColor}" stroke-width="${lineWidth}" stroke-linecap="round"/>
             `;
         }
         
@@ -611,13 +644,51 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
             
             // Рисуем двери
             if (wall.hasDoor && wall.doorPosition !== undefined && wall.doorLength !== undefined) {
-                const doorX = wallX + wall.doorPosition * (wallEndX - wallX);
-                const doorY = wallY + wall.doorPosition * (wallEndY - wallY);
                 const doorLength = wall.doorLength * Math.sqrt((wallEndX - wallX) ** 2 + (wallEndY - wallY) ** 2);
                 const doorDepth = 20;
-                
                 const isHorizontal = wall.side === 'top' || wall.side === 'bottom';
-                const doorGroup = createDoor(doorX, doorY, doorLength, doorDepth, isHorizontal ? 'horizontal' : 'vertical', wall.doorType || 'interior');
+                
+                // Точное позиционирование двери на стене
+                let doorX, doorY;
+                
+                if (isHorizontal) {
+                    // Горизонтальная стена
+                    doorX = wallX + wall.doorPosition * (wallEndX - wallX) - doorLength / 2;
+                    doorY = wallY - doorDepth / 2;
+                } else {
+                    // Вертикальная стена
+                    doorX = wallX - doorDepth / 2;
+                    doorY = wallY + wall.doorPosition * (wallEndY - wallY) - doorLength / 2;
+                }
+                
+                // Проверяем, не накладывается ли дверь на стыки стен
+                const wallJunctionMargin = 10; // Отступ от стыков стен
+                let adjustedX = doorX;
+                let adjustedY = doorY;
+                
+                // Для горизонтальных стен проверяем стыки по X
+                if (isHorizontal) {
+                    // Проверяем левый стык
+                    if (doorX < wallX + wallJunctionMargin) {
+                        adjustedX = wallX + wallJunctionMargin;
+                    }
+                    // Проверяем правый стык
+                    if (doorX + doorLength > wallEndX - wallJunctionMargin) {
+                        adjustedX = wallEndX - wallJunctionMargin - doorLength;
+                    }
+                } else {
+                    // Для вертикальных стен проверяем стыки по Y
+                    // Проверяем верхний стык
+                    if (doorY < wallY + wallJunctionMargin) {
+                        adjustedY = wallY + wallJunctionMargin;
+                    }
+                    // Проверяем нижний стык
+                    if (doorY + doorLength > wallEndY - wallJunctionMargin) {
+                        adjustedY = wallEndY - wallJunctionMargin - doorLength;
+                    }
+                }
+                
+                const doorGroup = createDoorSvg(adjustedX, adjustedY, doorLength, doorDepth, isHorizontal ? 'horizontal' : 'vertical', wall.doorType || 'interior', wall.side);
                 svgContent += doorGroup;
             }
         });
@@ -629,7 +700,7 @@ export async function generateDetailedSvgFromAnalysis(analyzedRooms, totalSqm) {
             const objWidth = obj.w * pixelWidth;
             const objHeight = obj.h * pixelHeight;
             
-            const furnitureSvg = createFurniture(objX, objY, objWidth, objHeight, obj, obj.rotation || 0);
+            const furnitureSvg = createFurniture(objX, objY, objWidth, objHeight, obj.type, obj.rotation || 0);
             svgContent += furnitureSvg;
         });
         

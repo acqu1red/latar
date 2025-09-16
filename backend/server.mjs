@@ -4,6 +4,7 @@ import multer from 'multer';
 import dotenv from 'dotenv';
 
 import { analyzeRoomVision, analyzeDetailedRoomVision } from './src/analyzeRoomVision.mjs';
+import { generateSvgFromData } from './src/generateSvgFromData.mjs';
 import { generateDetailedSvgFromAnalysis } from './src/generateDetailedSvg.mjs';
 // DALL·E стилизация отключена — работаем только с точным SVG
 
@@ -153,12 +154,25 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
         }));
       }
 
-      console.log('Rooms with analysis going to SVG:', analyzedRooms.map(r => ({ 
+      // Combine analysis data with layout data
+      const roomsWithAnalysis = analyzedRooms.map(room => {
+        const src = enabledRooms.find(r => r.key === room.key) || {};
+        return { 
+          ...room, 
+          layout: src.layout,
+          entrySide: src.entrySide || null,
+          windows: src.windows || [],
+          doors: src.doors || []
+        };
+      });
+
+      console.log('Rooms with analysis going to SVG:', roomsWithAnalysis.map(r => ({ 
         key: r.key, 
         name: r.name, 
         objectCount: r.objects?.length || 0,
-        walls: r.walls?.length || 0,
-        specialFeatures: r.specialFeatures?.length || 0
+        layout: r.layout ? 'present' : 'missing',
+        windows: r.windows?.length || 0,
+        doors: r.doors?.length || 0
       })));
 
       // Генерируем детальный SVG на основе анализа GPT
@@ -176,7 +190,7 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
         svgDataUrl,
         pngDataUrl: svgPngDataUrl,
         totalSqm,
-        rooms: analyzedRooms,
+        rooms: roomsWithAnalysis,
       });
     }
 
