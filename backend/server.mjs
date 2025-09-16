@@ -64,6 +64,35 @@ app.get('/healthz', (req, res) => {
   res.status(200).send('OK');
 });
 
+// Тестовый эндпоинт для проверки исправленной системы дверей
+app.post('/api/test-doors', async (req, res) => {
+  try {
+    const { rooms, totalSqm } = req.body;
+    
+    if (!rooms || !Array.isArray(rooms)) {
+      return res.status(400).json({ ok: false, error: 'rooms array is required' });
+    }
+
+    console.log('Testing fixed door system with rooms:', rooms.map(r => ({ 
+      key: r.key, 
+      name: r.name, 
+      doors: r.doors?.length || 0 
+    })));
+
+    const result = await generateSvgFromData(rooms, totalSqm || 50);
+    
+    res.json({
+      ok: true,
+      svgDataUrl: result.svgDataUrl,
+      pngDataUrl: result.pngDataUrl
+    });
+  } catch (error) {
+    console.error('Door test error:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+
 app.post('/api/generate-plan', upload.any(), async (req, res) => {
   try {
     const { roomsJson, bathroomConfig } = req.body;
@@ -88,7 +117,7 @@ app.post('/api/generate-plan', upload.any(), async (req, res) => {
     }
 
     // Check if all enabled rooms have a corresponding file
-    const filesByRoomKey = req.files.reduce((acc, file) => {
+    const filesByRoomKey = (req.files || []).reduce((acc, file) => {
       const key = file.fieldname.replace('photo_', '');
       if (!acc[key]) {
         acc[key] = [];
