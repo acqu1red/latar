@@ -626,7 +626,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
     });
 
     // Функция для создания простой двери без петель - только дуга и линия
-    function createDoor(x, y, length, rotation, doorType = 'interior') {
+    function createDoor(x, y, length, rotation, doorType = 'interior', side = 'top') {
         // Единый темно-черный цвет для всех дверей
         const doorColor = '#2F2F2F';
         
@@ -635,8 +635,11 @@ export async function generateSvgFromData(rooms, totalSqm) {
         const arcEndX = length;
         const arcEndY = length;
         
+        // Для вертикальных дверей нужно повернуть на 90 градусов
+        const actualRotation = (side === 'left' || side === 'right') ? 90 : 0;
+        
         return `
-            <g transform="translate(${x}, ${y}) rotate(${rotation})">
+            <g transform="translate(${x}, ${y}) rotate(${actualRotation})">
                 <!-- Линия двери (основная линия) -->
                 <line x1="0" y1="0" 
                       x2="${length}" y2="0" 
@@ -768,6 +771,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
     pixelRooms.forEach(room => {
         const { pixelX, pixelY, pixelWidth, pixelHeight, doors = [] } = room;
 
+        if (doors.length > 0) {
+            console.log(`Drawing doors for room ${room.key} (${room.name}):`, doors.map(d => ({ side: d.side, pos: d.pos, len: d.len, type: d.type })));
+        }
+
         doors.forEach(door => {
             const pos = typeof door.pos === 'number' ? door.pos : 0.5;
             const len = typeof door.len === 'number' ? door.len : 0.2;
@@ -780,17 +787,19 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 doorLength = len * pixelHeight * 0.8;
                 doorX = door.side === 'left' ? pixelX : pixelX + pixelWidth;
                 doorY = pixelY + pos * pixelHeight;
-                doorRotation = 90;
+                doorRotation = 0; // Для вертикальных дверей не нужен поворот
+                console.log(`Vertical door (${door.side}): x=${doorX}, y=${doorY}, length=${doorLength}`);
             } else {
                 // Горизонтальная дверь
                 doorLength = len * pixelWidth * 0.8;
                 doorX = pixelX + pos * pixelWidth;
                 doorY = door.side === 'top' ? pixelY : pixelY + pixelHeight;
                 doorRotation = 0;
+                console.log(`Horizontal door (${door.side}): x=${doorX}, y=${doorY}, length=${doorLength}`);
             }
             
             // Создаем дверь с новым дизайном
-            const doorGroup = createDoor(doorX, doorY, doorLength, doorRotation, door.type);
+            const doorGroup = createDoor(doorX, doorY, doorLength, doorRotation, door.type, door.side);
             svgContent += doorGroup;
         });
     });
@@ -1070,6 +1079,10 @@ export async function generateSvgFromData(rooms, totalSqm) {
         console.error('Error converting SVG to PNG:', error);
         throw new Error(`Failed to convert SVG to PNG: ${error.message}`);
     }
+}
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
 }
 
 function escapeXml(unsafe) {
