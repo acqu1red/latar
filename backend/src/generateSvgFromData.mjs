@@ -630,49 +630,53 @@ export async function generateSvgFromData(rooms, totalSqm) {
         // Единый темно-черный цвет для всех дверей
         const doorColor = '#2F2F2F';
         
+        // Дуга ровно 90 градусов с идеально равномерным изгибом
+        // Используем четверть круга: от (0,0) до (length, length)
+        const arcEndX = length;
+        const arcEndY = length;
+        
         return `
             <g transform="translate(${x}, ${y}) rotate(${rotation})">
-                <!-- Линия двери (основная линия) - начинается на стене (0,0) -->
+                <!-- Линия двери (основная линия) -->
                 <line x1="0" y1="0" 
                       x2="${length}" y2="0" 
                       stroke="${doorColor}" stroke-width="4" stroke-linecap="round"/>
                 
-                <!-- Дуга открытия двери (90 градусов, направленная внутрь помещения) -->
-                <!-- Начинается на стене (0,0) и идет внутрь помещения -->
-                <path d="M 0 0 A ${length} ${length} 0 0 1 ${length} ${length}" 
+                <!-- Дуга открытия двери (90 градусов, вывернутая от линии, пунктир с большим расстоянием, тонкая линия) -->
+                <path d="M ${length} 0 A ${length} ${length} 0 0 1 0 ${length}" 
                       stroke="${doorColor}" stroke-width="1" fill="none" stroke-linecap="round" stroke-dasharray="8,4"/>
                 
                 <!-- Соединительная линия в конце дуги для закрытия двери -->
-                <line x1="${length}" y1="${length}" 
-                      x2="${length}" y2="0" 
+                <line x1="0" y1="${length}" 
+                      x2="0" y2="0" 
                       stroke="${doorColor}" stroke-width="4" stroke-linecap="round"/>
                 
                 <!-- Сложная соединительная линия с эффектом двери -->
                 <!-- Левая толстая линия -->
-                <line x1="-6" y1="0" 
-                      x2="-6" y2="${length}" 
+                <line x1="-6" y1="${length}" 
+                      x2="-6" y2="0" 
                       stroke="${doorColor}" stroke-width="3" stroke-linecap="round"/>
                 
                 <!-- Правая толстая линия -->
-                <line x1="6" y1="0" 
-                      x2="6" y2="${length}" 
+                <line x1="6" y1="${length}" 
+                      x2="6" y2="0" 
                       stroke="${doorColor}" stroke-width="3" stroke-linecap="round"/>
                 
                 <!-- Короткие поперечные линии (эффект двери) -->
-                <line x1="-6" y1="${length * 0.2}" 
-                      x2="6" y2="${length * 0.2}" 
-                      stroke="${doorColor}" stroke-width="2" stroke-linecap="round"/>
-                
-                <line x1="-6" y1="${length * 0.4}" 
-                      x2="6" y2="${length * 0.4}" 
+                <line x1="-6" y1="${length * 0.8}" 
+                      x2="6" y2="${length * 0.8}" 
                       stroke="${doorColor}" stroke-width="2" stroke-linecap="round"/>
                 
                 <line x1="-6" y1="${length * 0.6}" 
                       x2="6" y2="${length * 0.6}" 
                       stroke="${doorColor}" stroke-width="2" stroke-linecap="round"/>
                 
-                <line x1="-6" y1="${length * 0.8}" 
-                      x2="6" y2="${length * 0.8}" 
+                <line x1="-6" y1="${length * 0.4}" 
+                      x2="6" y2="${length * 0.4}" 
+                      stroke="${doorColor}" stroke-width="2" stroke-linecap="round"/>
+                
+                <line x1="-6" y1="${length * 0.2}" 
+                      x2="6" y2="${length * 0.2}" 
                       stroke="${doorColor}" stroke-width="2" stroke-linecap="round"/>
             </g>
         `;
