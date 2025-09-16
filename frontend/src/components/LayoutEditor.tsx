@@ -991,7 +991,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
                 top: roomPixels.y,
                 width: roomPixels.width,
                 height: roomPixels.height,
-                backgroundColor: hasOverlaps ? 'rgba(232, 244, 253, 0.6)' : '#e8f4fd',
+                backgroundColor: hasOverlaps ? 'rgba(232, 244, 253, 0.6)' : '#FFFFFF',
                 border: hasOverlaps ? '3px solid #1976d2' : '2px solid #4a90e2',
                 borderRadius: '6px',
                 cursor: 'move',

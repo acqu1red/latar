@@ -143,65 +143,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         bottom: Math.max(...pixelRooms.map(r => r.pixelY + r.pixelHeight))
     };
 
-    // Минимальная коррекция только для сглаживания углов (не более 3 пикселей)
-    const MINIMAL_CORRECTION = 3 * SVG_SCALE;
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
-    const applyMinimalCorrection = () => {
-        // Только легкое выравнивание стен для сглаживания углов
-        const vEdges = [];
-        const hEdges = [];
-        pixelRooms.forEach((r, idx) => {
-            vEdges.push({ idx, kind: 'left', value: r.pixelX });
-            vEdges.push({ idx, kind: 'right', value: r.pixelX + r.pixelWidth });
-            hEdges.push({ idx, kind: 'top', value: r.pixelY });
-            hEdges.push({ idx, kind: 'bottom', value: r.pixelY + r.pixelHeight });
-        });
-
-        const alignEdges = (edges, isVertical) => {
-            edges.sort((a, b) => a.value - b.value);
-            let group = [];
-            const applyGroup = (grp) => {
-                if (grp.length <= 1) return;
-                const first = grp[0].value;
-                const last = grp[grp.length - 1].value;
-                if (last - first > MINIMAL_CORRECTION) return;
-                const avg = grp.reduce((s, e) => s + e.value, 0) / grp.length;
-                grp.forEach(e => {
-                    const r = pixelRooms[e.idx];
-                    if (isVertical) {
-                        const shift = (e.kind === 'left') ? (avg - r.pixelX) : (avg - (r.pixelX + r.pixelWidth));
-                        // Ограничиваем сдвиг максимум 3 пикселями
-                        const limitedShift = Math.max(-MINIMAL_CORRECTION, Math.min(MINIMAL_CORRECTION, shift));
-                        r.pixelX += limitedShift;
-                    } else {
-                        const shift = (e.kind === 'top') ? (avg - r.pixelY) : (avg - (r.pixelY + r.pixelHeight));
-                        // Ограничиваем сдвиг максимум 3 пикселями
-                        const limitedShift = Math.max(-MINIMAL_CORRECTION, Math.min(MINIMAL_CORRECTION, shift));
-                        r.pixelY += limitedShift;
-                    }
-                });
-            };
-
-            for (let i = 0; i < edges.length; i++) {
-                if (group.length === 0) group.push(edges[i]);
-                else if (Math.abs(edges[i].value - group[0].value) <= MINIMAL_CORRECTION) group.push(edges[i]);
-                else { applyGroup(group); group = [edges[i]]; }
-            }
-            applyGroup(group);
-        };
-
-        alignEdges(vEdges, true);
-        alignEdges(hEdges, false);
-
-        // Клампим положения в рабочую область. Ширину/высоту НЕ ТРОГАЕМ!
-        pixelRooms.forEach(r => {
-            r.pixelX = clamp(r.pixelX, MARGIN, CANVAS_WIDTH - MARGIN - r.pixelWidth);
-            r.pixelY = clamp(r.pixelY, MARGIN, CANVAS_HEIGHT - MARGIN - r.pixelHeight);
-        });
-    };
-
-    applyMinimalCorrection();
+    // Убираем автоматическую коррекцию позиций - помещения должны оставаться точно там, где их разместил пользователь
 
     // Логирование данных для отладки
     console.log('Room data before SVG generation:');
@@ -684,14 +626,34 @@ export async function generateSvgFromData(rooms, totalSqm) {
     });
 
     // Функция для создания простой двери без петель - только дуга и линия
-    function createDoor(x, y, length, rotation, doorType = 'interior') {
+    function createDoor(x, y, length, rotation, doorType = 'interior', side = 'right') {
         // Единый темно-черный цвет для всех дверей
         const doorColor = '#2F2F2F';
         
-        // Дуга ровно 90 градусов с идеально равномерным изгибом
-        // Используем четверть круга: от (0,0) до (length, length)
-        const arcEndX = length;
-        const arcEndY = length;
+        // Определяем направление дуги в зависимости от стороны стены
+        let arcDirection, doorOffset;
+        
+        if (side === 'left') {
+            // Левая стена - дуга идет вправо (внутрь помещения)
+            arcDirection = `M 0 0 A ${length} ${length} 0 0 1 ${length} ${length}`;
+            doorOffset = 0;
+        } else if (side === 'right') {
+            // Правая стена - дуга идет влево (внутрь помещения)
+            arcDirection = `M ${length} 0 A ${length} ${length} 0 0 0 0 ${length}`;
+            doorOffset = 0;
+        } else if (side === 'top') {
+            // Верхняя стена - дуга идет вниз (внутрь помещения)
+            arcDirection = `M 0 0 A ${length} ${length} 0 0 1 ${length} ${length}`;
+            doorOffset = 0;
+        } else if (side === 'bottom') {
+            // Нижняя стена - дуга идет вверх (внутрь помещения)
+            arcDirection = `M 0 ${length} A ${length} ${length} 0 0 0 ${length} 0`;
+            doorOffset = 0;
+        } else {
+            // По умолчанию - как для правой стены
+            arcDirection = `M ${length} 0 A ${length} ${length} 0 0 0 0 ${length}`;
+            doorOffset = 0;
+        }
         
         return `
             <g transform="translate(${x}, ${y}) rotate(${rotation})">
@@ -700,8 +662,8 @@ export async function generateSvgFromData(rooms, totalSqm) {
                       x2="${length}" y2="0" 
                       stroke="${doorColor}" stroke-width="4" stroke-linecap="round"/>
                 
-                <!-- Дуга открытия двери (90 градусов, вывернутая от линии, пунктир с большим расстоянием, тонкая линия) -->
-                <path d="M ${length} 0 A ${length} ${length} 0 0 1 0 ${length}" 
+                <!-- Дуга открытия двери (90 градусов, направленная внутрь помещения) -->
+                <path d="${arcDirection}" 
                       stroke="${doorColor}" stroke-width="1" fill="none" stroke-linecap="round" stroke-dasharray="8,4"/>
                 
                 <!-- Соединительная линия в конце дуги для закрытия двери -->
@@ -848,7 +810,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             }
             
             // Создаем дверь с новым дизайном
-            const doorGroup = createDoor(doorX, doorY, doorLength, doorRotation, door.type);
+            const doorGroup = createDoor(doorX, doorY, doorLength, doorRotation, door.type, door.side);
             svgContent += doorGroup;
         });
     });
