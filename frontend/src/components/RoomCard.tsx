@@ -5,10 +5,9 @@ interface RoomCardProps {
   room: RoomState;
   onUpdate: (key: string, updates: Partial<RoomState>) => void;
   submitted: boolean;
-  availableRooms?: RoomState[]; // доступные комнаты для выбора соединений
 }
 
-const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availableRooms = [] }) => {
+const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted }) => {
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,19 +23,6 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
 
     const handleClearFiles = () => {
         onUpdate(room.key, { file: [] });
-    };
-
-    const handleRoomConnectionChange = (roomKey: string, checked: boolean) => {
-        const currentConnections = room.connectedRooms || [];
-        let newConnections;
-        
-        if (checked) {
-            newConnections = [...currentConnections, roomKey];
-        } else {
-            newConnections = currentConnections.filter(key => key !== roomKey);
-        }
-        
-        onUpdate(room.key, { connectedRooms: newConnections });
     };
 
     useEffect(() => {
@@ -125,33 +111,6 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onUpdate, submitted, availabl
                             )}
                             {submitted && room.file.length === 0 && <p className="error-text">Загрузите фото</p>}
                         </div>
-                        
-                        {/* Выбор комнат для дверей */}
-                        {room.file.length > 0 && availableRooms.length > 0 && (
-                            <div className="form-group">
-                                <label className="form-label">
-                                    Комнаты, с которыми соединена данная комната (через двери)
-                                </label>
-                                <div className="room-connections">
-                                    {availableRooms
-                                        .filter(r => r.key !== room.key && r.enabled)
-                                        .map(availableRoom => (
-                                            <label key={availableRoom.key} className="connection-checkbox">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={room.connectedRooms?.includes(availableRoom.key) || false}
-                                                    onChange={(e) => handleRoomConnectionChange(availableRoom.key, e.target.checked)}
-                                                />
-                                                <span className="connection-label">{availableRoom.name}</span>
-                                            </label>
-                                        ))
-                                    }
-                                </div>
-                                <p className="form-hint">
-                                    Отметьте комнаты, с которыми данная комната соединена дверями
-                                </p>
-                            </div>
-                        )}
                     </div>
                     
                     {previewUrls.length > 0 && (

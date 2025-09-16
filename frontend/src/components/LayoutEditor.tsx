@@ -5,7 +5,7 @@ interface LayoutEditorProps {
   rooms: RoomState[];
   onUpdate: (key: string, updates: Partial<RoomState>) => void;
   onWindowsUpdate?: (windows: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]) => void;
-  onDoorsUpdate?: (doors: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]) => void;
+  onDoorsUpdate?: (doors: { id: number; x: number; y: number; length: number; rotation: 0 | 90; type: 'entrance'|'interior' }[]) => void;
 }
 
 // Константы для пиксельной системы
@@ -42,12 +42,6 @@ type Door = {
   type: 'entrance' | 'interior';
   isDragging?: boolean;
   isResizing?: boolean;
-  attachedTo?: {
-    room1Key: string;
-    room2Key?: string;
-    side: 'left' | 'right' | 'top' | 'bottom';
-    position: number;
-  };
 };
 
 
@@ -139,28 +133,16 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
 
   const convertDoorsToSvgFormat = () => {
     return doors.map((door: Door) => {
-      const attachment = door.attachedTo;
-      if (!attachment) return null;
-      
-      // Находим комнату, к которой прикреплена дверь
-      const room = enabledRooms.find(r => r.key === attachment.room1Key);
-      if (!room) return null;
-      
-      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      const roomPixels = toPixels(layout);
-      
-      // Вычисляем длину относительно стены комнаты
-      const wallLength = attachment.side === 'left' || attachment.side === 'right' ? roomPixels.height : roomPixels.width;
-      const normalizedLength = Math.min(1, door.length / wallLength);
-      
+      // Используем абсолютные координаты двери
       return {
-        roomKey: room.key,
-        side: attachment.side,
-        pos: attachment.position,
-        len: normalizedLength,
+        id: door.id,
+        x: door.x,
+        y: door.y,
+        length: door.length,
+        rotation: door.rotation,
         type: door.type
       };
-    }).filter(Boolean);
+    });
   };
 
   // Обновляем данные при изменении окон и дверей
@@ -174,7 +156,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
 
   React.useEffect(() => {
     if (onDoorsUpdate) {
-      const doorsData = convertDoorsToSvgFormat().filter((item): item is NonNullable<typeof item> => item !== null);
+      const doorsData = convertDoorsToSvgFormat();
       console.log('Updating doors data:', doorsData);
       onDoorsUpdate(doorsData);
     }
@@ -193,12 +175,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
       isResizing: false
     };
     
-    // Автоматически прикрепляем к ближайшей стене
-    const attachment = findNearestWallForDoor(newDoor);
-    if (attachment) {
-      newDoor.attachedTo = attachment;
-    }
-    
     setDoors((prev: Door[]) => [...prev, newDoor]);
     setDoorCreationMode('none');
     
@@ -209,7 +185,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     // Принудительно обновляем данные
     setTimeout(() => {
       if (onDoorsUpdate) {
-        const doorsData = convertDoorsToSvgFormat().filter((item): item is NonNullable<typeof item> => item !== null);
+        const doorsData = convertDoorsToSvgFormat();
         console.log('Force updating doors data after add:', doorsData);
         onDoorsUpdate(doorsData);
       }
@@ -227,82 +203,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
     setSelectedDoor(null);
   };
 
-  const detachDoor = (doorId: number) => {
-    setDoors((prev: Door[]) => prev.map((door: Door) => 
-      door.id === doorId 
-        ? { ...door, attachedTo: undefined }
-        : door
-    ));
-  };
 
-  // Функция для поиска ближайшей стены для прикрепления двери
-  const findNearestWallForDoor = (door: Door): { room1Key: string; room2Key?: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number } | null => {
-    let bestAttachment: { room1Key: string; room2Key?: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number } | null = null;
-    let minDistance = Infinity;
-
-    console.log('Finding wall for door:', { x: door.x, y: door.y, length: door.length, rotation: door.rotation });
-
-    for (const room of enabledRooms) {
-      const layout = room.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
-      const roomPixels = toPixels(layout);
-      
-      console.log(`Checking room ${room.name}:`, roomPixels);
-      
-      // Проверяем стены в зависимости от поворота двери
-      let walls;
-      if (door.rotation === 0) {
-        // Горизонтальная дверь - может привязываться к верхним и нижним стенам
-        walls = [
-          { side: 'top' as const, x: roomPixels.x, y: roomPixels.y, width: roomPixels.width, height: 0 },
-          { side: 'bottom' as const, x: roomPixels.x, y: roomPixels.y + roomPixels.height, width: roomPixels.width, height: 0 }
-        ];
-      } else {
-        // Вертикальная дверь - может привязываться к левым и правым стенам
-        walls = [
-          { side: 'left' as const, x: roomPixels.x, y: roomPixels.y, width: 0, height: roomPixels.height },
-          { side: 'right' as const, x: roomPixels.x + roomPixels.width, y: roomPixels.y, width: 0, height: roomPixels.height }
-        ];
-      }
-
-      for (const wall of walls) {
-        const distance = calculateDistanceToWall({ x: door.x, y: door.y, length: door.length, rotation: door.rotation } as WindowElement, wall);
-        console.log(`Wall ${wall.side} distance:`, distance);
-        
-        if (distance < minDistance && distance <= SNAP_DISTANCE) {
-          minDistance = distance;
-          
-          // Вычисляем позицию на стене
-          let position: number;
-          
-          if (wall.side === 'left' || wall.side === 'right') {
-            // Вертикальная стена
-            const wallLength = wall.height;
-            const relativeY = door.y - wall.y;
-            // Ограничиваем позицию отступами от краев
-            const marginRatio = WINDOW_WALL_MARGIN / wallLength;
-            position = Math.max(marginRatio, Math.min(1 - marginRatio, relativeY / wallLength));
-          } else {
-            // Горизонтальная стена
-            const wallLength = wall.width;
-            const relativeX = door.x - wall.x;
-            // Ограничиваем позицию отступами от краев
-            const marginRatio = WINDOW_WALL_MARGIN / wallLength;
-            position = Math.max(marginRatio, Math.min(1 - marginRatio, relativeX / wallLength));
-          }
-
-          bestAttachment = {
-            room1Key: room.key,
-            side: wall.side,
-            position
-          };
-          console.log('Found attachment:', bestAttachment);
-        }
-      }
-    }
-
-    console.log('Final attachment:', bestAttachment);
-    return bestAttachment;
-  };
 
   // Поиск ближайшей стены для привязки окна
   const findNearestWallForWindowElement = (window: WindowElement): { roomKey: string; side: 'left' | 'right' | 'top' | 'bottom'; position: number } | null => {
@@ -643,25 +544,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             : d
         ));
 
-        // Проверяем возможность привязки двери к стене
-        const updatedDoor = { ...drag.item, x: newX, y: newY, length: newLength };
-        const attachment = findNearestWallForDoor(updatedDoor);
-        
-        if (attachment) {
-          // Автоматически прикрепляем дверь к стене
-          setDoors((prev: Door[]) => prev.map((d: Door) => 
-            d.id === drag.item.id 
-              ? { ...d, attachedTo: attachment }
-              : d
-          ));
-        } else {
-          // Открепляем дверь от стены
-          setDoors((prev: Door[]) => prev.map((d: Door) => 
-            d.id === drag.item.id 
-              ? { ...d, attachedTo: undefined }
-              : d
-          ));
-        }
       }
     } else {
       // Перетаскивание комнаты
@@ -1126,7 +1008,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
         {doors.map((door: Door) => (
           <div
             key={door.id}
-            className={`door ${door.isDragging ? 'dragging' : ''} ${door.isResizing ? 'resizing' : ''} ${door.attachedTo ? 'attached' : ''} ${selectedDoor === door.id ? 'selected' : ''}`}
+            className={`door ${door.isDragging ? 'dragging' : ''} ${door.isResizing ? 'resizing' : ''} ${selectedDoor === door.id ? 'selected' : ''}`}
             style={{
               position: 'absolute',
               left: door.x,
@@ -1134,13 +1016,11 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
               width: door.rotation === 0 ? door.length : 8,
               height: door.rotation === 0 ? 8 : door.length,
               backgroundColor: door.type === 'entrance' ? '#ff9800' : '#9c27b0',
-              border: door.attachedTo ? '3px solid #4caf50' : '2px solid #673ab7',
+              border: '2px solid #673ab7',
               borderRadius: '4px',
               cursor: 'move',
               transition: door.isDragging || door.isResizing ? 'none' : 'all 0.3s ease',
-              boxShadow: door.attachedTo 
-                ? '0 0 0 2px #4caf50, 0 4px 16px rgba(76, 175, 80, 0.4)'
-                : '0 4px 12px rgba(0,0,0,0.2)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
               zIndex: 25
             }}
             onPointerDown={(e: React.PointerEvent) => handlePointerDown(e, door, 'move')}
@@ -1207,14 +1087,6 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
                 >
                   🗑️ Удалить
                 </button>
-                {doors.find((d: Door) => d.id === selectedDoor)?.attachedTo && (
-                  <button 
-                    className="detach-door-btn"
-                    onClick={() => detachDoor(selectedDoor)}
-                  >
-                    🔗 Открепить
-                  </button>
-                )}
               </div>
             </div>
           </div>

@@ -25,7 +25,7 @@ function App() {
   const [bathroomConfig, setBathroomConfig] = useState<BathroomConfig>(initialBathroomConfig);
   const [loading, setLoading] = useState(false);
   const [globalWindows, setGlobalWindows] = useState<{ roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]>([]);
-  const [globalDoors, setGlobalDoors] = useState<{ roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]>([]);
+  const [globalDoors, setGlobalDoors] = useState<{ id: number; x: number; y: number; length: number; rotation: 0 | 90; type: 'entrance'|'interior' }[]>([]);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -130,7 +130,7 @@ function App() {
     setGlobalWindows(windows);
   };
 
-  const handleDoorsUpdate = (doors: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]) => {
+  const handleDoorsUpdate = (doors: { id: number; x: number; y: number; length: number; rotation: 0 | 90; type: 'entrance'|'interior' }[]) => {
     console.log('App: Received doors update:', doors);
     setGlobalDoors(doors);
   };
@@ -229,32 +229,25 @@ function App() {
     }
 
     setLoading(true);
-    // Добавляем данные окон и дверей к комнатам
-    // Окна и двери привязываются к конкретным комнатам через roomKey
-    const allRoomsWithWindowsAndDoors = allRooms.map(room => {
-      // Фильтруем окна и двери по привязке к конкретной комнате
+    // Добавляем данные окон к комнатам (окна привязаны к комнатам)
+    const allRoomsWithWindows = allRooms.map(room => {
+      // Фильтруем окна по привязке к конкретной комнате
       const roomWindows = globalWindows.filter((w: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }) => w.roomKey === room.key).map((w: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }) => ({
         side: w.side,
         pos: w.pos,
         len: w.len
       }));
-      const roomDoors = globalDoors.filter((d: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }) => d.roomKey === room.key).map((d: { roomKey: string; side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }) => ({
-        side: d.side,
-        pos: d.pos,
-        len: d.len,
-        type: d.type
-      }));
       
       return {
         ...room,
         windows: roomWindows,
-        doors: roomDoors
+        doors: globalDoors // Двери теперь глобальные, не привязанные к комнатам
       };
     });
 
     console.log('Sending to API - Global windows:', globalWindows);
     console.log('Sending to API - Global doors:', globalDoors);
-    console.log('Sending to API - Rooms with windows/doors:', allRoomsWithWindowsAndDoors.map(r => ({ 
+    console.log('Sending to API - Rooms with windows/doors:', allRoomsWithWindows.map(r => ({ 
       key: r.key, 
       name: r.name, 
       windows: r.windows?.length || 0, 
@@ -262,7 +255,7 @@ function App() {
     })));
 
     // Always use the new hybrid approach (SVG + DALL-E styling)
-    const apiResponse = await generatePlan(allRoomsWithWindowsAndDoors, bathroomConfig);
+    const apiResponse = await generatePlan(allRoomsWithWindows, bathroomConfig);
     setLoading(false);
 
     if (apiResponse.ok) {
@@ -336,7 +329,6 @@ function App() {
                 room={room}
                 onUpdate={handleRoomUpdate}
                 submitted={submitted}
-                availableRooms={rooms}
               />
             </div>
           ))}
@@ -347,13 +339,11 @@ function App() {
                 room={bathroomConfig.bathroom}
                 onUpdate={(_key, updates) => handleBathroomUpdate('bathroom', updates)}
                 submitted={submitted}
-                availableRooms={rooms}
               />
               <RoomCard
                 room={bathroomConfig.toilet}
                 onUpdate={(_key, updates) => handleBathroomUpdate('toilet', updates)}
                 submitted={submitted}
-                availableRooms={rooms}
               />
             </>
           )}

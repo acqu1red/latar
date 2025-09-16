@@ -11,48 +11,8 @@ export interface RoomState {
     entrySide?: 'left' | 'right' | 'top' | 'bottom' | null; // external entry for hallway
     rotation?: 0 | 90 | null; // визуальный поворот комнаты в конструкторе
     windows?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number }[]; // окна для svg
-    doors?: { side: 'left'|'right'|'top'|'bottom'; pos: number; len: number; type: 'entrance'|'interior' }[]; // двери для svg
+    doors?: { id: number; x: number; y: number; length: number; rotation: 0 | 90; type: 'entrance'|'interior' }[]; // двери для svg
     description?: string; // Room description for UI
-    connectedRooms?: string[]; // ключи комнат, с которыми соединена данная комната
-}
-
-// Новые типы для детального анализа
-export interface WallPoint {
-    x: number; // относительная позиция на стене (0-1)
-    y: number; // относительная позиция на стене (0-1)
-}
-
-export interface Wall {
-    side: 'left' | 'right' | 'top' | 'bottom';
-    startPoint: WallPoint;
-    endPoint: WallPoint;
-    hasWindow: boolean;
-    windowPosition?: number; // позиция окна на стене (0-1)
-    windowLength?: number; // длина окна относительно стены (0-1)
-    hasDoor: boolean;
-    doorPosition?: number; // позиция двери на стене (0-1)
-    doorLength?: number; // длина двери относительно стены (0-1)
-    doorType?: 'entrance' | 'interior';
-    connectedRoom?: string; // ключ комнаты, к которой ведет дверь
-}
-
-export interface RoomShape {
-    type: 'rectangle' | 'l_shape' | 'u_shape' | 'irregular';
-    corners: WallPoint[]; // контрольные точки формы комнаты (минимум 3)
-    mainDimensions: {
-        width: number; // ширина в метрах
-        height: number; // высота в метрах
-    };
-}
-
-export interface DetailedRoomAnalysis {
-    key: string;
-    name: string;
-    sqm: number;
-    shape: RoomShape;
-    walls: Wall[];
-    objects: any[]; // мебель
-    roomConnections: string[]; // ключи комнат, с которыми соединена данная комната
 }
 
 export type BathroomType = 'combined' | 'separate';
