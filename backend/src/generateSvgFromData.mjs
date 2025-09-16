@@ -457,38 +457,80 @@ export async function generateSvgFromData(rooms, totalSqm) {
             };
 
             room.doors.forEach(door => {
-                const doorWidth = 8 * SVG_SCALE;
+                const doorThickness = 8 * SVG_SCALE;
                 const doorLength = door.len * (door.side === 'left' || door.side === 'right' ? roomPixels.height : roomPixels.width);
                 
                 let doorX, doorY, doorRotation = 0;
                 
                 switch (door.side) {
                     case 'left':
-                        doorX = roomPixels.x - doorWidth / 2;
+                        doorX = roomPixels.x - doorThickness / 2;
                         doorY = roomPixels.y + door.pos * roomPixels.height;
                         doorRotation = 90;
                         break;
                     case 'right':
-                        doorX = roomPixels.x + roomPixels.width - doorWidth / 2;
+                        doorX = roomPixels.x + roomPixels.width - doorThickness / 2;
                         doorY = roomPixels.y + door.pos * roomPixels.height;
                         doorRotation = 90;
                         break;
                     case 'top':
                         doorX = roomPixels.x + door.pos * roomPixels.width;
-                        doorY = roomPixels.y - doorWidth / 2;
+                        doorY = roomPixels.y - doorThickness / 2;
                         doorRotation = 0;
                         break;
                     case 'bottom':
                         doorX = roomPixels.x + door.pos * roomPixels.width;
-                        doorY = roomPixels.y + roomPixels.height - doorWidth / 2;
+                        doorY = roomPixels.y + roomPixels.height - doorThickness / 2;
                         doorRotation = 0;
                         break;
                 }
 
                 // Создаем дизайн двери согласно примеру
-                const arcRadius = doorLength / 2.5; // Дуга в 2.5 раза короче длины двери
+                const doorWidth = 80; // Фиксированная ширина двери
+                const arcRadius = doorWidth / 2; // Радиус дуги = половина ширины двери
+                
+                // Проверяем, не пересекается ли дверь с другими стенами
+                let adjustedPos = { x: doorX, y: doorY };
+                const doorRect = {
+                    x: doorRotation === 0 ? doorX : doorX - doorWidth/2,
+                    y: doorRotation === 0 ? doorY - doorWidth/2 : doorY,
+                    width: doorRotation === 0 ? doorLength : doorWidth,
+                    height: doorRotation === 0 ? doorWidth : doorLength
+                };
+                
+                // Проверяем пересечение с другими комнатами
+                for (const otherRoom of rooms) {
+                    if (otherRoom.key === room.key) continue;
+                    const otherLayout = otherRoom.layout || { x: 0.05, y: 0.05, width: 0.2, height: 0.2 };
+                    const otherRoomPixels = {
+                        x: MARGIN + otherLayout.x * CONSTRUCTOR_WIDTH * SVG_SCALE,
+                        y: MARGIN + otherLayout.y * CONSTRUCTOR_HEIGHT * SVG_SCALE,
+                        width: otherLayout.width * CONSTRUCTOR_WIDTH * SVG_SCALE,
+                        height: otherLayout.height * CONSTRUCTOR_HEIGHT * SVG_SCALE
+                    };
+                    
+                    // Проверяем пересечение
+                    if (doorRect.x < otherRoomPixels.x + otherRoomPixels.width &&
+                        doorRect.x + doorRect.width > otherRoomPixels.x &&
+                        doorRect.y < otherRoomPixels.y + otherRoomPixels.height &&
+                        doorRect.y + doorRect.height > otherRoomPixels.y) {
+                        
+                        // Сдвигаем дверь вдоль стены
+                        const shift = doorWidth + 20; // Сдвиг на ширину двери + отступ
+                        if (door.side === 'left' || door.side === 'right') {
+                            adjustedPos.y = Math.max(roomPixels.y + 20, 
+                                Math.min(roomPixels.y + roomPixels.height - doorLength - 20, 
+                                adjustedPos.y + shift));
+                        } else {
+                            adjustedPos.x = Math.max(roomPixels.x + 20, 
+                                Math.min(roomPixels.x + roomPixels.width - doorLength - 20, 
+                                adjustedPos.x + shift));
+                        }
+                    }
+                }
+                
                 const doorGroup = `
-                    <g transform="translate(${doorX}, ${doorY}) rotate(${doorRotation})">
+                    <g transform="translate(${adjustedPos.x}, ${adjustedPos.y}) rotate(${doorRotation})">
                         <!-- Основная линия двери -->
                         <line x1="0" y1="0" x2="${doorLength}" y2="0" 
                               stroke="#2F2F2F" stroke-width="4" stroke-linecap="round"/>
@@ -497,14 +539,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
                         <circle cx="0" cy="0" r="2" fill="#2F2F2F"/>
                         <circle cx="${doorLength}" cy="0" r="2" fill="#2F2F2F"/>
                         
-                        <!-- Дуга открытия двери (как в примере) -->
+                        <!-- Дуга открытия двери (отзеркаленная как в примере) -->
                         <path d="M 0 0 A ${arcRadius} ${arcRadius} 0 0 1 ${arcRadius} ${arcRadius}" 
                               stroke="#2F2F2F" stroke-width="3" fill="none"/>
-                        
-                        <!-- Соединительная линия (вертикальная для горизонтальной двери) -->
-                        <line x1="${arcRadius}" y1="${arcRadius}" 
-                              x2="${arcRadius}" y2="0" 
-                              stroke="#2F2F2F" stroke-width="3"/>
                         
                         <!-- Ручка двери -->
                         <circle cx="${doorLength - 8}" cy="0" r="1.5" 
