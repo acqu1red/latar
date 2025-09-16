@@ -283,7 +283,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
         // Не создаем автоматически входную дверь - только те, что добавлены в конструкторе
     }
 
-    let svgContent = `<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #ECECEC; shape-rendering: crispEdges;">
+    let svgContent = `<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" style="background-color: #FFFFFF; shape-rendering: crispEdges;">
 <defs>
   <pattern id="wallHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
     <rect width="12" height="12" fill="#2F2F2F"/>
@@ -299,7 +299,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
     <stop offset="100%" style="stop-color:#A1887F;stop-opacity:1" />
   </linearGradient>
 </defs>
-<rect width="100%" height="100%" fill="#ECECEC"/>`;
+<rect width="100%" height="100%" fill="#FFFFFF"/>`;
 
     // Функция для определения пересечения двух помещений
     // Комнаты считаются пересекающимися только если они действительно накладываются друг на друга
@@ -626,77 +626,53 @@ export async function generateSvgFromData(rooms, totalSqm) {
     });
 
     // Функция для создания простой двери без петель - только дуга и линия
-    function createDoor(x, y, length, rotation, doorType = 'interior', side = 'right') {
+    function createDoor(x, y, length, rotation, doorType = 'interior') {
         // Единый темно-черный цвет для всех дверей
         const doorColor = '#2F2F2F';
         
-        // Определяем направление дуги в зависимости от стороны стены
-        let arcDirection, doorOffset;
-        
-        if (side === 'left') {
-            // Левая стена - дуга идет вправо (внутрь помещения)
-            arcDirection = `M 0 0 A ${length} ${length} 0 0 1 ${length} ${length}`;
-            doorOffset = 0;
-        } else if (side === 'right') {
-            // Правая стена - дуга идет влево (внутрь помещения)
-            arcDirection = `M ${length} 0 A ${length} ${length} 0 0 0 0 ${length}`;
-            doorOffset = 0;
-        } else if (side === 'top') {
-            // Верхняя стена - дуга идет вниз (внутрь помещения)
-            arcDirection = `M 0 0 A ${length} ${length} 0 0 1 ${length} ${length}`;
-            doorOffset = 0;
-        } else if (side === 'bottom') {
-            // Нижняя стена - дуга идет вверх (внутрь помещения)
-            arcDirection = `M 0 ${length} A ${length} ${length} 0 0 0 ${length} 0`;
-            doorOffset = 0;
-        } else {
-            // По умолчанию - как для правой стены
-            arcDirection = `M ${length} 0 A ${length} ${length} 0 0 0 0 ${length}`;
-            doorOffset = 0;
-        }
-        
         return `
             <g transform="translate(${x}, ${y}) rotate(${rotation})">
-                <!-- Линия двери (основная линия) -->
+                <!-- Линия двери (основная линия) - начинается на стене (0,0) -->
                 <line x1="0" y1="0" 
                       x2="${length}" y2="0" 
                       stroke="${doorColor}" stroke-width="4" stroke-linecap="round"/>
                 
                 <!-- Дуга открытия двери (90 градусов, направленная внутрь помещения) -->
-                <path d="${arcDirection}" 
+                <!-- Начинается на стене (0,0) и идет внутрь помещения -->
+                <path d="M 0 0 A ${length} ${length} 0 0 1 ${length} ${length}" 
                       stroke="${doorColor}" stroke-width="1" fill="none" stroke-linecap="round" stroke-dasharray="8,4"/>
                 
                 <!-- Соединительная линия в конце дуги для закрытия двери -->
-                <line x1="0" y1="${length}" 
-                      x2="0" y2="0" 
+                <line x1="${length}" y1="${length}" 
+                      x2="${length}" y2="0" 
                       stroke="${doorColor}" stroke-width="4" stroke-linecap="round"/>
                 
                 <!-- Сложная соединительная линия с эффектом двери -->
                 <!-- Левая толстая линия -->
-                <line x1="-6" y1="${length}" 
-                      x2="-6" y2="0" 
+                <line x1="-6" y1="0" 
+                      x2="-6" y2="${length}" 
                       stroke="${doorColor}" stroke-width="3" stroke-linecap="round"/>
                 
                 <!-- Правая толстая линия -->
-                <line x1="6" y1="${length}" 
-                      x2="6" y2="0" 
+                <line x1="6" y1="0" 
+                      x2="6" y2="${length}" 
                       stroke="${doorColor}" stroke-width="3" stroke-linecap="round"/>
                 
                 <!-- Короткие поперечные линии (эффект двери) -->
-                <line x1="-6" y1="${length * 0.8}" 
-                      x2="6" y2="${length * 0.8}" 
-                      stroke="${doorColor}" stroke-width="2" stroke-linecap="round"/>
-                
-                <line x1="-6" y1="${length * 0.6}" 
-                      x2="6" y2="${length * 0.6}" 
+                <line x1="-6" y1="${length * 0.2}" 
+                      x2="6" y2="${length * 0.2}" 
                       stroke="${doorColor}" stroke-width="2" stroke-linecap="round"/>
                 
                 <line x1="-6" y1="${length * 0.4}" 
                       x2="6" y2="${length * 0.4}" 
                       stroke="${doorColor}" stroke-width="2" stroke-linecap="round"/>
                 
-                <line x1="-6" y1="${length * 0.2}" 
-                      x2="6" y2="${length * 0.2}" 
+                <line x1="-6" y1="${length * 0.6}" 
+                      x2="6" y2="${length * 0.6}" 
+                      stroke="${doorColor}" stroke-width="2" stroke-linecap="round"/>
+                
+                <line x1="-6" y1="${length * 0.8}" 
+                      x2="6" y2="${length * 0.8}" 
                       stroke="${doorColor}" stroke-width="2" stroke-linecap="round"/>
             </g>
         `;
@@ -810,7 +786,7 @@ export async function generateSvgFromData(rooms, totalSqm) {
             }
             
             // Создаем дверь с новым дизайном
-            const doorGroup = createDoor(doorX, doorY, doorLength, doorRotation, door.type, door.side);
+            const doorGroup = createDoor(doorX, doorY, doorLength, doorRotation, door.type);
             svgContent += doorGroup;
         });
     });
