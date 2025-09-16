@@ -270,15 +270,15 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ rooms, onUpdate, onWindowsU
             // Вертикальная стена
             const wallLength = wall.height;
             const relativeY = door.y - wall.y;
-            // Ограничиваем позицию отступами от краев
-            const marginRatio = WINDOW_WALL_MARGIN / wallLength;
+            // Ограничиваем позицию отступами от краев (меньше чем у окон)
+            const marginRatio = 0.05; // 5% от длины стены
             position = Math.max(marginRatio, Math.min(1 - marginRatio, relativeY / wallLength));
           } else {
             // Горизонтальная стена
             const wallLength = wall.width;
             const relativeX = door.x - wall.x;
-            // Ограничиваем позицию отступами от краев
-            const marginRatio = WINDOW_WALL_MARGIN / wallLength;
+            // Ограничиваем позицию отступами от краев (меньше чем у окон)
+            const marginRatio = 0.05; // 5% от длины стены
             position = Math.max(marginRatio, Math.min(1 - marginRatio, relativeX / wallLength));
           }
 

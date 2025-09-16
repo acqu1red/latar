@@ -77,9 +77,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
             
             // 1. Внешние границы окна (полная длина без отступов)
             windowGroup += `
-                <line x1="${x + 1}" y1="${y}" x2="${x + 1}" y2="${y + length}" 
+                <line x1="${x}" y1="${y + 1}" x2="${x}" y2="${y + length - 1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
-                <line x1="${x + WINDOW_WIDTH - 1}" y1="${y}" x2="${x + WINDOW_WIDTH - 1}" y2="${y + length}" 
+                <line x1="${x + WINDOW_WIDTH}" y1="${y + 1}" x2="${x + WINDOW_WIDTH}" y2="${y + length - 1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
@@ -88,9 +88,9 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const middleX2 = x + (WINDOW_WIDTH * 0.75);
             
             windowGroup += `
-                <line x1="${middleX1}" y1="${y}" x2="${middleX1}" y2="${y + length}" 
+                <line x1="${middleX1}" y1="${y + 1}" x2="${middleX1}" y2="${y + length - 1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
-                <line x1="${middleX2}" y1="${y}" x2="${middleX2}" y2="${y + length}" 
+                <line x1="${middleX2}" y1="${y + 1}" x2="${middleX2}" y2="${y + length - 1}" 
                       stroke="${lineColor}" stroke-width="${lineThickness}" stroke-linecap="square"/>
             `;
             
@@ -666,24 +666,32 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += windowGroup;
                 
             } else if (window.side === 'left') {
-                // Окно на левой стене - центрировано на стене
+                // Окно на левой стене - начинается на стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX - WINDOW_WIDTH / 2; // Окно центрировано на стене
+                const x = pixelX - WINDOW_WIDTH; // Окно начинается на стене и идет наружу
                 
-                // Создаем окно - начинается на стене и идет внутрь комнаты
+                // Создаем проход в стене (белая линия)
+                svgContent += `\n<line x1="${pixelX}" y1="${startY}" x2="${pixelX}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="butt"/>`;
+                
+                // Создаем окно - начинается на стене и идет наружу
+                // Для вертикальных окон: x, y, length (по Y), depth (по X), orientation
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 'vertical'
                 );
                 svgContent += windowGroup;
                 
             } else if (window.side === 'right') {
-                // Окно на правой стене - центрировано на стене
+                // Окно на правой стене - начинается на стене
                 const startY = pixelY + pos * pixelHeight;
                 const winLength = len * pixelHeight;
-                const x = pixelX + pixelWidth - WINDOW_WIDTH / 2; // Окно центрировано на стене
+                const x = pixelX + pixelWidth; // Окно начинается на стене и идет наружу
                 
-                // Создаем окно - начинается на стене и идет внутрь комнаты
+                // Создаем проход в стене (белая линия)
+                svgContent += `\n<line x1="${pixelX + pixelWidth}" y1="${startY}" x2="${pixelX + pixelWidth}" y2="${startY + winLength}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="butt"/>`;
+                
+                // Создаем окно - начинается на стене и идет наружу
+                // Для вертикальных окон: x, y, length (по Y), depth (по X), orientation
                 const windowGroup = createLayeredWindow(
                     x, startY, winLength, windowDepth, 'vertical'
                 );
@@ -700,24 +708,24 @@ export async function generateSvgFromData(rooms, totalSqm) {
             const pos = typeof door.pos === 'number' ? door.pos : 0.5;
             const len = typeof door.len === 'number' ? door.len : 0.2;
             
-            // Вычисляем размеры двери
+            // Вычисляем размеры двери (уменьшенные)
             let doorLength, doorX, doorY, doorRotation = 0;
             
             if (door.side === 'left' || door.side === 'right') {
                 // Вертикальная дверь
-                doorLength = len * pixelHeight;
+                doorLength = len * pixelHeight * 0.8; // Уменьшаем на 20%
                 doorX = door.side === 'left' ? pixelX : pixelX + pixelWidth;
                 doorY = pixelY + pos * pixelHeight;
                 doorRotation = 90;
             } else {
                 // Горизонтальная дверь
-                doorLength = len * pixelWidth;
+                doorLength = len * pixelWidth * 0.8; // Уменьшаем на 20%
                 doorX = pixelX + pos * pixelWidth;
                 doorY = door.side === 'top' ? pixelY : pixelY + pixelHeight;
                 doorRotation = 0;
             }
             
-            // Создаем проход в стене (белая линия)
+            // Создаем проход в стене (белая линия) - убираем линию стены
             const wallThickness = 20; // Толщина стены
             const gapWidth = doorLength;
             
@@ -729,6 +737,16 @@ export async function generateSvgFromData(rooms, totalSqm) {
                 svgContent += `\n<line x1="${doorX}" y1="${doorY - gapWidth/2}" x2="${doorX}" y2="${doorY + gapWidth/2}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="butt"/>`;
             } else if (door.side === 'right') {
                 svgContent += `\n<line x1="${doorX}" y1="${doorY - gapWidth/2}" x2="${doorX}" y2="${doorY + gapWidth/2}" stroke="#FFFFFF" stroke-width="${wallThickness + 2}" stroke-linecap="butt"/>`;
+            }
+            
+            // Определяем направление открытия двери
+            let arcDirection = 1; // По умолчанию внутрь
+            if (door.type === 'entrance') {
+                // Входная дверь всегда внутрь помещения
+                arcDirection = 1;
+            } else {
+                // Межкомнатная дверь - внутрь комнаты
+                arcDirection = 1;
             }
             
             // Создаем дизайн двери в стиле 2D схем
@@ -743,13 +761,13 @@ export async function generateSvgFromData(rooms, totalSqm) {
                     <circle cx="${doorLength}" cy="0" r="2" fill="#34495e" stroke="#2c3e50" stroke-width="1"/>
                     
                     <!-- Дуга открытия двери -->
-                    <path d="M 0 0 A ${doorLength} ${doorLength} 0 0 1 ${doorLength * 0.7} ${doorLength * 0.7}" 
-                          stroke="#2F2F2F" stroke-width="2" fill="none"/>
+                    <path d="M 0 0 A ${doorLength} ${doorLength} 0 0 ${arcDirection} ${doorLength * 0.7} ${doorLength * 0.7}" 
+                          stroke="#2F2F2F" stroke-width="3" fill="none"/>
                     
                     <!-- Соединительная линия от конца дуги -->
                     <line x1="${doorLength * 0.7}" y1="${doorLength * 0.7}" 
                           x2="${doorLength}" y2="0" 
-                          stroke="#2F2F2F" stroke-width="1"/>
+                          stroke="#2F2F2F" stroke-width="3"/>
                     
                     <!-- Ручка двери -->
                     <circle cx="${doorLength - 8}" cy="0" r="1.5" 
