@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import './App.css';
 import { API_BASE_URL } from './config';
 
-interface FurnitureItem {
-  name: string;
-  icon: string;
-  width: number;
-  height: number;
-  color: string;
-}
+// interface FurnitureItem {
+//   name: string;
+//   icon: string;
+//   width: number;
+//   height: number;
+//   color: string;
+// }
 
 const App: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
