@@ -102,9 +102,12 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
     
     console.log('✅ Размер изображения подходит для API:', imageBuffer.length, 'байт');
     
+    // Создаем File object из Buffer для API
+    const imageFile = new File([imageBuffer], 'image.jpg', { type: 'image/jpeg' });
+    
     const response = await openai.images.edit({
       model: "gpt-image-1",
-      image: imageBuffer,
+      image: imageFile,
       prompt: prompt,
       size: "1024x1024"
     });
