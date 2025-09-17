@@ -93,6 +93,15 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
       imageBuffer = cleanupData.buffer;
     }
     
+    // Проверяем размер изображения перед отправкой в API
+    if (imageBuffer.length > 16384) {
+      console.error('❌ Размер изображения превышает лимит API:', imageBuffer.length, 'байт');
+      console.error('Максимальный размер: 16,384 байт');
+      throw new Error(`Изображение слишком большое: ${imageBuffer.length} байт (лимит: 16,384 байт)`);
+    }
+    
+    console.log('✅ Размер изображения подходит для API:', imageBuffer.length, 'байт');
+    
     const response = await openai.images.edit({
       model: "gpt-image-1",
       image: imageBuffer,
@@ -174,20 +183,43 @@ async function compressImage(imagePath) {
     const originalBuffer = fs.readFileSync(imagePath);
     console.log('Размер исходного изображения:', originalBuffer.length, 'байт');
     
-    // Сжимаем изображение до 768x768 с оптимизацией
+    // Сжимаем изображение до очень маленького размера для API
+    // API ограничение: 16,384 байт, поэтому делаем ~128x128
     const compressedBuffer = await sharp(originalBuffer)
-      .resize(768, 768, {
+      .resize(128, 128, {
         fit: 'inside',
         withoutEnlargement: true
       })
-      .png({
-        quality: 90,
-        compressionLevel: 6
+      .jpeg({
+        quality: 80,
+        progressive: true
       })
       .toBuffer();
     
-    console.log('Сжатие завершено. Экономия памяти:', 
+    console.log('Сжатие завершено. Размер сжатого изображения:', compressedBuffer.length, 'байт');
+    console.log('Экономия памяти:', 
       Math.round((1 - compressedBuffer.length / originalBuffer.length) * 100) + '%');
+    
+    // Проверяем, что размер не превышает лимит API
+    if (compressedBuffer.length > 16384) {
+      console.warn('⚠️ Размер изображения всё ещё превышает лимит API (16KB)');
+      console.warn('Попробуем сжать ещё сильнее...');
+      
+      // Дополнительное сжатие до 64x64
+      const ultraCompressedBuffer = await sharp(originalBuffer)
+        .resize(64, 64, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .jpeg({
+          quality: 70,
+          progressive: true
+        })
+        .toBuffer();
+      
+      console.log('Ультра-сжатие завершено. Размер:', ultraCompressedBuffer.length, 'байт');
+      return ultraCompressedBuffer;
+    }
     
     return compressedBuffer;
   } catch (error) {
