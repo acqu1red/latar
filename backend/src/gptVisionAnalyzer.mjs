@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import { uploadImageToGitHub, deleteImageFromGitHub, generateTempFilename, isGitHubConfigured } from './githubUploader.mjs';
+import fetch from 'node-fetch';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,10 +77,13 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
     // Освобождаем память от сжатого буфера
     compressedImageBuffer.fill(0);
     
-    // Используем gpt-image-1 через images.edit с публичным URL
+    // Используем gpt-image-1 через images.edit с base64 данными
+    // Сначала загружаем изображение по URL и конвертируем в base64
+    const downloadedImageBase64 = await downloadImageAsBase64(imageUrl);
+    
     const response = await openai.images.edit({
       model: "gpt-image-1",
-      image_url: imageUrl,
+      image: Buffer.from(downloadedImageBase64, 'base64'),
       prompt: prompt,
       size: "1024x1024"
     });
@@ -90,16 +94,42 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
     await cleanupTempFiles(cleanupData);
     
     // Получаем base64 изображения из ответа
-    const imageBase64 = response.data[0].b64_json;
-    console.log('Base64 изображения получен, длина:', imageBase64.length);
+    const resultImageBase64 = response.data[0].b64_json;
+    console.log('Base64 изображения получен, длина:', resultImageBase64.length);
     
     // Конвертируем base64 в PNG
-    return convertBase64ToPng(imageBase64);
+    return convertBase64ToPng(resultImageBase64);
     
   } catch (error) {
     console.error('Ошибка генерации изображения с GPT Image:', error);
     // Возвращаем пример SVG в случае ошибки
     return createExampleSvg(furnitureData);
+  }
+}
+
+/**
+ * Загружает изображение по URL и возвращает base64
+ * @param {string} imageUrl - URL изображения
+ * @returns {Promise<string>} Base64 строка изображения
+ */
+async function downloadImageAsBase64(imageUrl) {
+  try {
+    console.log('Загружаем изображение по URL:', imageUrl);
+    
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const buffer = await response.buffer();
+    const base64 = buffer.toString('base64');
+    
+    console.log('Изображение загружено, размер:', buffer.length, 'байт');
+    return base64;
+    
+  } catch (error) {
+    console.error('Ошибка загрузки изображения по URL:', error);
+    throw error;
   }
 }
 
