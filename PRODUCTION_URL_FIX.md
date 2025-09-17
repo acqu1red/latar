@@ -45,7 +45,7 @@ if (baseUrl.includes('github.io')) {
 ```bash
 # .env файл
 BASE_URL=https://acqu1red.github.io/latar
-GITHUB_TOKEN=ghp_your-token-here  # Рекомендуется для стабильности
+GITHUB_TOKEN=your_github_token_here  # Рекомендуется для стабильности
 ```
 
 ### Локальная разработка

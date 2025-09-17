@@ -24,7 +24,7 @@
 OPENAI_API_KEY=sk-proj-your-openai-key-here
 
 # GitHub Configuration
-GITHUB_TOKEN=ghp_your-github-token-here
+GITHUB_TOKEN=your_github_token_here
 
 # Base URL для публичных ссылок
 BASE_URL=https://acqu1red.github.io/latar
