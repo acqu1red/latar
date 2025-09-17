@@ -37,16 +37,18 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
       model: "gpt-image-1",
       prompt: prompt,
       size: "1024x1024",
-      response_format: "b64_json",
       n: 1,
       referenced_image_ids: [base64Image]
     });
 
     console.log('GPT Image генерация завершена');
     
-    // Конвертируем base64 в SVG
-    const imageData = response.data[0].b64_json;
-    return convertBase64ToSvg(imageData);
+    // Получаем URL изображения
+    const imageUrl = response.data[0].url;
+    console.log('URL изображения получен:', imageUrl);
+    
+    // Конвертируем URL в SVG
+    return convertUrlToSvg(imageUrl);
     
   } catch (error) {
     console.error('Ошибка генерации изображения с GPT Image:', error);
@@ -62,11 +64,11 @@ function createAnalysisPrompt() {
 Сохрани все размеры, подписи и пропорции строго такими, как на исходной фотографии.`;
 }
 
-function convertBase64ToSvg(base64Data) {
-  // Создаем SVG с встроенным изображением
+function convertUrlToSvg(imageUrl) {
+  // Создаем SVG с внешним изображением
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <image href="data:image/png;base64,${base64Data}" width="1024" height="1024"/>
+  <image href="${imageUrl}" width="1024" height="1024"/>
 </svg>`;
 }
 
