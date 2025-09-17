@@ -23,7 +23,7 @@ OPENAI_API_KEY=YOUR_API_KEY_HERE
 # GitHub Configuration для загрузки временных изображений
 # Получите Personal Access Token на https://github.com/settings/tokens
 # Нужны права: repo (полный доступ к репозиторию)
-GITHUB_TOKEN=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
+GITHUB_TOKEN=YOUR_GITHUB_TOKEN_HERE
 
 # Base URL для публичных ссылок на изображения
 # Для продакшена: https://acqu1red.github.io/latar
