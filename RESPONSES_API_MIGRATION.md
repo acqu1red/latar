@@ -160,7 +160,7 @@ Base64 изображения получен, длина: 123456
 OPENAI_API_KEY=sk-proj-your-key-here
 
 # GitHub токен (опционально, для загрузки изображений)
-GITHUB_TOKEN=your_github_token_here
+GITHUB_TOKEN=ghp_your-token-here
 
 # Base URL (для локальной разработки)
 BASE_URL=http://localhost:8000

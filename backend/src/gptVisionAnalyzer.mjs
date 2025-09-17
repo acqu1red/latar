@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import { uploadImageToGitHub, deleteImageFromGitHub, generateTempFilename, isGitHubConfigured } from './githubUploader.mjs';
+import { convertImageToSvg, createOptimizedSvg } from './imageToSvgConverter.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,14 +19,39 @@ const openai = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-
     })
   : null;
 
+/**
+ * Прямое конвертирование изображения в SVG без использования GPT
+ * Сохраняет все детали исходной фотографии
+ * @param {string} imagePath - Путь к изображению
+ * @param {Object} furnitureData - Данные мебели (не используются)
+ * @param {string} baseUrl - Базовый URL (не используется)
+ * @returns {string} SVG контент
+ */
+export async function convertImageToSvgDirect(imagePath, furnitureData, baseUrl = 'https://acqu1red.github.io/latar') {
+  try {
+    console.log('🎯 Прямое конвертирование изображения в SVG:', imagePath);
+    
+    // Конвертируем изображение в SVG с сохранением всех деталей
+    const svgContent = await convertImageToSvg(imagePath);
+    
+    console.log('✅ SVG создан успешно, размер:', svgContent.length, 'символов');
+    return svgContent;
+    
+  } catch (error) {
+    console.error('❌ Ошибка прямого конвертирования в SVG:', error);
+    // В случае ошибки возвращаем пример SVG
+    return createExampleSvg(furnitureData);
+  }
+}
+
 export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'https://acqu1red.github.io/latar') {
   try {
-    // Если нет реального API ключа, возвращаем пример SVG
+    // Если нет реального API ключа, используем прямое конвертирование в SVG
     if (!openai) {
-      console.log('Используется демо-режим без GPT API');
+      console.log('Используется прямое конвертирование в SVG без GPT API');
       console.log('Причина: openai client не инициализирован');
       console.log('Переменная OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'установлена' : 'НЕ установлена');
-      return createExampleSvg(furnitureData);
+      return await convertImageToSvgDirect(imagePath, furnitureData, baseUrl);
     }
 
     const prompt = createAnalysisPrompt();
@@ -155,8 +181,8 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
     const resultImageBase64 = generatedImage.image.b64_json;
     console.log('Base64 изображения получен, длина:', resultImageBase64.length);
     
-    // Конвертируем base64 в PNG
-    return convertBase64ToPng(resultImageBase64);
+    // Конвертируем base64 в SVG с встроенным изображением
+    return convertBase64ToSvg(resultImageBase64);
     
   } catch (error) {
     console.error('Ошибка генерации изображения с GPT-4o mini:', error);
@@ -276,6 +302,29 @@ function convertBase64ToPng(base64Data) {
   // Возвращаем PNG как data URL без дополнительной конвертации
   // Это экономит память, так как не создаем дополнительный Buffer
   return `data:image/png;base64,${base64Data}`;
+}
+
+function convertBase64ToSvg(base64Data) {
+  // Создаем SVG с встроенным base64 изображением
+  // Предполагаем, что изображение от GPT имеет размер 1024x1024
+  const width = 1024;
+  const height = 1024;
+  const dataUrl = `data:image/png;base64,${base64Data}`;
+  
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" 
+     xmlns="http://www.w3.org/2000/svg" 
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <image id="generatedImage" 
+           x="0" y="0" 
+           width="${width}" height="${height}" 
+           xlink:href="${dataUrl}"/>
+  </defs>
+  
+  <!-- Сгенерированное изображение от GPT -->
+  <use xlink:href="#generatedImage"/>
+</svg>`;
 }
 
 

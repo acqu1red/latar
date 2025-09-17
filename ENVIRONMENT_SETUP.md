@@ -13,7 +13,7 @@
 OPENAI_API_KEY=ваш_openai_ключ_здесь
 
 # GitHub Configuration для загрузки временных изображений
-GITHUB_TOKEN=ваш_github_токен_здесь
+GITHUB_TOKEN=ghp_***ваш_токен_здесь***
 
 # Base URL для публичных ссылок на изображения
 BASE_URL=https://acqu1red.github.io/latar

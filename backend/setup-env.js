@@ -33,7 +33,7 @@ BASE_URL=https://acqu1red.github.io/latar
 # Замените YOUR_API_KEY_HERE на ваш реальный API ключ OpenAI
 # Пример: OPENAI_API_KEY=sk-proj-abc123def456...
 # Замените YOUR_GITHUB_TOKEN_HERE на ваш GitHub Personal Access Token
-# Пример: GITHUB_TOKEN=your_github_token_here
+# Пример: GITHUB_TOKEN=ghp_abc123def456...
 `;
 
 try {

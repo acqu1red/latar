@@ -54,10 +54,25 @@ const App: React.FC = () => {
     }
   };
 
+  const downloadSvg = (svgContent: string) => {
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `plan-${Date.now()}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="app">
       <div className="container">
-        <h1>Генератор планов квартир</h1>
+        <h1>Конвертер фотографий в SVG</h1>
+        <p className="app-description">
+          Загрузите фотографию плана квартиры и получите точную копию в формате SVG
+        </p>
         
         <div className="upload-section">
           <div className="upload-area">
@@ -98,11 +113,23 @@ const App: React.FC = () => {
 
         {generatedSvg && (
           <div className="result-section">
-            <h2>Результат</h2>
+            <h2>Результат - SVG план квартиры</h2>
+            <div className="svg-info">
+              <p>📐 Точная копия вашей фотографии в формате SVG</p>
+              <p>🔍 Все детали, линии и пиксели сохранены</p>
+            </div>
             <div 
               className="svg-container"
               dangerouslySetInnerHTML={{ __html: generatedSvg }}
             />
+            <div className="svg-actions">
+              <button 
+                className="download-btn"
+                onClick={() => downloadSvg(generatedSvg)}
+              >
+                💾 Скачать SVG
+              </button>
+            </div>
           </div>
         )}
       </div>

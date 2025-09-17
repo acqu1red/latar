@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { analyzeImageWithGPT } from './gptVisionAnalyzer.mjs';
+import { analyzeImageWithGPT, convertImageToSvgDirect } from './gptVisionAnalyzer.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,8 +13,9 @@ export async function generateSvgFromImage(imagePath, baseUrl = 'http://localhos
       fs.readFileSync(path.join(__dirname, '..', 'furniture.json'), 'utf8')
     );
 
-    // Анализируем изображение с помощью GPT Vision
-    const svgContent = await analyzeImageWithGPT(imagePath, furnitureData, baseUrl);
+    // Используем прямое конвертирование в SVG для точного копирования
+    console.log('🎯 Используем прямое конвертирование в SVG для точного копирования фотографии');
+    const svgContent = await convertImageToSvgDirect(imagePath, furnitureData, baseUrl);
     
     return svgContent;
   } catch (error) {

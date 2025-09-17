@@ -108,7 +108,7 @@ BASE_URL=http://localhost:8000
 ### Продакшен с GitHub
 ```bash
 # .env файл
-GITHUB_TOKEN=your_github_token_here
+GITHUB_TOKEN=ghp_your-token-here
 BASE_URL=https://acqu1red.github.io/latar
 ```
 

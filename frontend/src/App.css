@@ -34,9 +34,17 @@ body {
 h1 {
   text-align: center;
   color: #333;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
   font-size: 2.5rem;
   font-weight: 700;
+}
+
+.app-description {
+  text-align: center;
+  color: #666;
+  margin-bottom: 30px;
+  font-size: 1.1rem;
+  line-height: 1.5;
 }
 
 .upload-section {
@@ -169,6 +177,50 @@ h1 {
 .svg-container svg {
   max-width: 100%;
   height: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.svg-info {
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #e8f2ff;
+  border-radius: 10px;
+  border-left: 4px solid #667eea;
+}
+
+.svg-info p {
+  margin: 5px 0;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.svg-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  gap: 15px;
+}
+
+.download-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.download-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(40, 167, 69, 0.3);
 }
 
 @media (max-width: 768px) {

@@ -89,14 +89,14 @@ app.post('/api/generate-plan', upload.single('image'), async (req, res) => {
     const baseUrl = process.env.BASE_URL || 'https://acqu1red.github.io/latar';
     console.log('Base URL для публичных ссылок:', baseUrl);
 
-    // Генерируем PNG план
-    const pngContent = await generateSvgFromImage(imagePath, baseUrl);
+    // Генерируем SVG план
+    const svgContent = await generateSvgFromImage(imagePath, baseUrl);
     
     // Удаляем временный файл
     fs.unlinkSync(imagePath);
 
-    res.setHeader('Content-Type', 'image/png');
-    res.send(pngContent);
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.send(svgContent);
 
   } catch (error) {
     console.error('Ошибка генерации плана:', error);
