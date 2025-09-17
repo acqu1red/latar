@@ -6,7 +6,7 @@ import { analyzeImageWithGPT } from './gptVisionAnalyzer.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export async function generateSvgFromImage(imagePath) {
+export async function generateSvgFromImage(imagePath, baseUrl = 'http://localhost:3001') {
   try {
     // Читаем данные мебели
     const furnitureData = JSON.parse(
@@ -14,7 +14,7 @@ export async function generateSvgFromImage(imagePath) {
     );
 
     // Анализируем изображение с помощью GPT Vision
-    const svgContent = await analyzeImageWithGPT(imagePath, furnitureData);
+    const svgContent = await analyzeImageWithGPT(imagePath, furnitureData, baseUrl);
     
     return svgContent;
   } catch (error) {

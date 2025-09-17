@@ -42,6 +42,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public'));
 
+// Статический маршрут для временных изображений
+app.use('/temp-images', express.static(path.join(__dirname, 'uploads')));
+
 // Настройка multer для загрузки файлов
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -81,8 +84,12 @@ app.post('/api/generate-plan', upload.single('image'), async (req, res) => {
     const imagePath = req.file.path;
     console.log('Обработка изображения:', imagePath);
 
+    // Определяем baseUrl для публичных ссылок
+    const baseUrl = process.env.BASE_URL || 'https://acqu1red.github.io/latar';
+    console.log('Base URL для публичных ссылок:', baseUrl);
+
     // Генерируем PNG план
-    const pngContent = await generateSvgFromImage(imagePath);
+    const pngContent = await generateSvgFromImage(imagePath, baseUrl);
     
     // Удаляем временный файл
     fs.unlinkSync(imagePath);

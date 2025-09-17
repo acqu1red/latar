@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
+import { uploadImageToGitHub, deleteImageFromGitHub, generateTempFilename, isGitHubConfigured } from './githubUploader.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +18,7 @@ const openai = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-
     })
   : null;
 
-export async function analyzeImageWithGPT(imagePath, furnitureData) {
+export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'https://acqu1red.github.io/latar') {
   try {
     // Если нет реального API ключа, возвращаем пример SVG
     if (!openai) {
@@ -34,18 +35,59 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
     const compressedImageBuffer = await compressImage(imagePath);
     console.log('Размер сжатого изображения:', compressedImageBuffer.length, 'байт');
     
-    // Используем gpt-image-1 через images.edit для редактирования плана
+    let imageUrl;
+    let cleanupData = null;
+    
+    // Проверяем, настроен ли GitHub
+    if (isGitHubConfigured()) {
+      console.log('Используем GitHub для загрузки изображения');
+      
+      // Загружаем изображение на GitHub
+      const tempFileName = generateTempFilename();
+      const uploadResult = await uploadImageToGitHub(compressedImageBuffer, tempFileName);
+      imageUrl = uploadResult.url;
+      cleanupData = {
+        type: 'github',
+        path: uploadResult.path,
+        commitSha: uploadResult.commitSha
+      };
+      
+    } else {
+      console.log('GitHub не настроен, используем локальную загрузку');
+      
+      // Fallback на локальную загрузку
+      const tempFileName = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
+      const tempFilePath = path.join(path.dirname(imagePath), tempFileName);
+      
+      // Сохраняем сжатое изображение во временный файл
+      fs.writeFileSync(tempFilePath, compressedImageBuffer);
+      console.log('Временный файл создан:', tempFileName);
+      
+      // Создаем публичный URL для изображения
+      imageUrl = `${baseUrl}/temp-images/${tempFileName}`;
+      cleanupData = {
+        type: 'local',
+        path: tempFilePath
+      };
+    }
+    
+    console.log('Публичный URL изображения:', imageUrl);
+    
+    // Освобождаем память от сжатого буфера
+    compressedImageBuffer.fill(0);
+    
+    // Используем gpt-image-1 через images.edit с публичным URL
     const response = await openai.images.edit({
       model: "gpt-image-1",
-      image: compressedImageBuffer,
+      image_url: imageUrl,
       prompt: prompt,
       size: "1024x1024"
     });
 
     console.log('GPT Image генерация завершена');
     
-    // Освобождаем память от сжатого буфера
-    compressedImageBuffer.fill(0);
+    // Очищаем временные файлы
+    await cleanupTempFiles(cleanupData);
     
     // Получаем base64 изображения из ответа
     const imageBase64 = response.data[0].b64_json;
@@ -58,6 +100,26 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
     console.error('Ошибка генерации изображения с GPT Image:', error);
     // Возвращаем пример SVG в случае ошибки
     return createExampleSvg(furnitureData);
+  }
+}
+
+/**
+ * Очищает временные файлы (GitHub или локальные)
+ * @param {Object} cleanupData - Данные для очистки
+ */
+async function cleanupTempFiles(cleanupData) {
+  if (!cleanupData) return;
+  
+  try {
+    if (cleanupData.type === 'github') {
+      console.log('Удаляем временный файл с GitHub:', cleanupData.path);
+      await deleteImageFromGitHub(cleanupData.path, cleanupData.commitSha);
+    } else if (cleanupData.type === 'local') {
+      console.log('Удаляем локальный временный файл:', cleanupData.path);
+      fs.unlinkSync(cleanupData.path);
+    }
+  } catch (cleanupError) {
+    console.warn('Не удалось очистить временные файлы:', cleanupError.message);
   }
 }
 
