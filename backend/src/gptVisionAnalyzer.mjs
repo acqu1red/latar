@@ -28,19 +28,24 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
 
     const prompt = createAnalysisPrompt();
     
-    // Используем gpt-image-1 для генерации точной копии плана
-    const response = await openai.images.generate({
+    // Используем gpt-image-1 через responses.create для генерации точной копии плана
+    const response = await openai.responses.create({
       model: "gpt-image-1",
-      prompt: prompt,
-      size: "1024x1024",
-      image: fs.createReadStream(imagePath),
-      output_format: "b64_json"
+      input: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: prompt },
+            { type: "input_image", image: fs.createReadStream(imagePath) }
+          ]
+        }
+      ]
     });
 
     console.log('GPT Image генерация завершена');
     
-    // Получаем base64 изображения
-    const imageBase64 = response.data[0].b64_json;
+    // Получаем base64 изображения из ответа
+    const imageBase64 = response.output[0].content[0].image.base64;
     console.log('Base64 изображения получен, длина:', imageBase64.length);
     
     // Конвертируем base64 в PNG
