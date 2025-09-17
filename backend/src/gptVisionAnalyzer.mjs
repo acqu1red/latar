@@ -26,10 +26,6 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
       return createExampleSvg(furnitureData);
     }
 
-    // Читаем изображение как base64
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64Image = imageBuffer.toString('base64');
-    
     const prompt = createAnalysisPrompt();
     
     // Используем gpt-image-1 для генерации точной копии плана
@@ -37,18 +33,18 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
       model: "gpt-image-1",
       prompt: prompt,
       size: "1024x1024",
-      n: 1,
-      referenced_image_ids: [base64Image]
+      image: fs.createReadStream(imagePath),
+      output_format: "b64_json"
     });
 
     console.log('GPT Image генерация завершена');
     
-    // Получаем URL изображения
-    const imageUrl = response.data[0].url;
-    console.log('URL изображения получен:', imageUrl);
+    // Получаем base64 изображения
+    const imageBase64 = response.data[0].b64_json;
+    console.log('Base64 изображения получен, длина:', imageBase64.length);
     
-    // Конвертируем URL в SVG
-    return convertUrlToSvg(imageUrl);
+    // Конвертируем base64 в SVG
+    return convertBase64ToSvg(imageBase64);
     
   } catch (error) {
     console.error('Ошибка генерации изображения с GPT Image:', error);
@@ -64,11 +60,11 @@ function createAnalysisPrompt() {
 Сохрани все размеры, подписи и пропорции строго такими, как на исходной фотографии.`;
 }
 
-function convertUrlToSvg(imageUrl) {
-  // Создаем SVG с внешним изображением
+function convertBase64ToSvg(base64Data) {
+  // Создаем SVG с встроенным изображением
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <image href="${imageUrl}" width="1024" height="1024"/>
+  <image href="data:image/png;base64,${base64Data}" width="1024" height="1024"/>
 </svg>`;
 }
 
