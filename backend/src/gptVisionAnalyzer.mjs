@@ -84,6 +84,8 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
     compressedImageBuffer.fill(0);
     
     // Используем Responses API с GPT-4o mini
+    console.log('Отправляем запрос в GPT-4o mini с URL:', imageUrl);
+    
     const response = await openai.responses.create({
       model: "gpt-4o-mini",
       input: [
@@ -96,17 +98,58 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
         }
       ]
     });
+    
+    console.log('Получен ответ от GPT-4o mini, структура:', {
+      hasOutput: !!response.output,
+      outputLength: response.output?.length || 0,
+      firstOutput: response.output?.[0] ? 'exists' : 'missing'
+    });
 
     console.log('GPT-4o mini генерация завершена');
     
     // Очищаем временные файлы
     await cleanupTempFiles(cleanupData);
     
-    // Получаем сгенерированное изображение из ответа
-    const generatedImage = response.output[0].content.find(c => c.type === "output_image");
+    // Детальная диагностика ответа
+    console.log('Диагностика ответа от GPT-4o mini:');
+    console.log('Количество output элементов:', response.output?.length || 0);
     
-    if (!generatedImage || !generatedImage.image?.b64_json) {
-      throw new Error("Изображение не получено от GPT-4o mini");
+    if (response.output && response.output.length > 0) {
+      console.log('Первый output элемент:', JSON.stringify(response.output[0], null, 2));
+      
+      if (response.output[0].content) {
+        console.log('Количество content элементов:', response.output[0].content.length);
+        response.output[0].content.forEach((item, index) => {
+          console.log(`Content[${index}]:`, {
+            type: item.type,
+            hasImage: !!item.image,
+            hasB64Json: !!item.image?.b64_json
+          });
+        });
+      }
+    }
+    
+    // Получаем сгенерированное изображение из ответа
+    const generatedImage = response.output?.[0]?.content?.find(c => c.type === "output_image");
+    
+    if (!generatedImage) {
+      console.error('❌ Не найден элемент с типом "output_image"');
+      console.error('Доступные типы:', response.output?.[0]?.content?.map(c => c.type) || []);
+      
+      // Проверяем, есть ли текстовый ответ
+      const textContent = response.output?.[0]?.content?.find(c => c.type === "text");
+      if (textContent) {
+        console.log('Получен текстовый ответ от GPT-4o mini:', textContent.text);
+        console.log('GPT-4o mini не сгенерировал изображение, возможно, это не поддерживается');
+      }
+      
+      throw new Error("Изображение не получено от GPT-4o mini - не найден output_image");
+    }
+    
+    if (!generatedImage.image?.b64_json) {
+      console.error('❌ Не найден b64_json в изображении');
+      console.error('Структура изображения:', JSON.stringify(generatedImage, null, 2));
+      throw new Error("Изображение не получено от GPT-4o mini - не найден b64_json");
     }
     
     const resultImageBase64 = generatedImage.image.b64_json;
