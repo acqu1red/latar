@@ -10,10 +10,10 @@ services:
     env:
       - name: NODE_ENV
         value: production
-      - name: CORS_ORIGIN
-        value: https://acqu1red.github.io/latar/
+      - name: PORT
+        value: "3001"
     healthcheck:
-      path: /healthz
+      path: /api/furniture
       port: 3001
       initialDelaySeconds: 30
       periodSeconds: 10

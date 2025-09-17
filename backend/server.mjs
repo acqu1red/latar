@@ -74,6 +74,11 @@ app.post('/api/generate-plan', upload.single('image'), async (req, res) => {
   }
 });
 
+// Health check endpoint
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Маршрут для получения мебели
 app.get('/api/furniture', (req, res) => {
   try {
