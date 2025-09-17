@@ -81,14 +81,14 @@ app.post('/api/generate-plan', upload.single('image'), async (req, res) => {
     const imagePath = req.file.path;
     console.log('Обработка изображения:', imagePath);
 
-    // Генерируем SVG план
-    const svgContent = await generateSvgFromImage(imagePath);
+    // Генерируем PNG план
+    const pngContent = await generateSvgFromImage(imagePath);
     
     // Удаляем временный файл
     fs.unlinkSync(imagePath);
 
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.send(svgContent);
+    res.setHeader('Content-Type', 'image/png');
+    res.send(pngContent);
 
   } catch (error) {
     console.error('Ошибка генерации плана:', error);

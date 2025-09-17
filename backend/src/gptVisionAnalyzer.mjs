@@ -43,8 +43,8 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
     const imageBase64 = response.data[0].b64_json;
     console.log('Base64 изображения получен, длина:', imageBase64.length);
     
-    // Конвертируем base64 в SVG
-    return convertBase64ToSvg(imageBase64);
+    // Конвертируем base64 в PNG
+    return convertBase64ToPng(imageBase64);
     
   } catch (error) {
     console.error('Ошибка генерации изображения с GPT Image:', error);
@@ -60,12 +60,12 @@ function createAnalysisPrompt() {
 Сохрани все размеры, подписи и пропорции строго такими, как на исходной фотографии.`;
 }
 
-function convertBase64ToSvg(base64Data) {
-  // Создаем SVG с встроенным изображением
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <image href="data:image/png;base64,${base64Data}" width="1024" height="1024"/>
-</svg>`;
+function convertBase64ToPng(base64Data) {
+  // Конвертируем base64 в PNG buffer
+  const imageBuffer = Buffer.from(base64Data, 'base64');
+  
+  // Возвращаем PNG как data URL
+  return `data:image/png;base64,${base64Data}`;
 }
 
 
