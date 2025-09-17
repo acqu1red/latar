@@ -18,9 +18,9 @@ if (fs.existsSync(envPath)) {
 // Создаем .env файл
 const envContent = `# OpenAI API Configuration
 # Получите API ключ на https://platform.openai.com/api-keys
-OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_KEY=YOUR_API_KEY_HERE
 
-# Замените 'your_openai_api_key_here' на ваш реальный API ключ OpenAI
+# Замените YOUR_API_KEY_HERE на ваш реальный API ключ OpenAI
 # Пример: OPENAI_API_KEY=sk-proj-abc123def456...
 `;
 
