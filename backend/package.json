@@ -7,16 +7,23 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "node --watch server.mjs",
+    "setup": "node setup-env.js",
     "build": "echo 'No build step required for backend'",
     "heroku-postbuild": "echo 'Backend ready'"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",
-    "cors": "^2.8.5",
     "openai": "^4.20.1"
   },
-  "keywords": ["svg", "plan", "apartment", "generation"],
+  "keywords": [
+    "svg",
+    "plan",
+    "apartment",
+    "generation"
+  ],
   "author": "",
   "license": "MIT"
 }

@@ -6,11 +6,26 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { generateSvgFromImage } from './src/generateSvgFromImage.mjs';
 
+// Загружаем переменные окружения из .env файла
+import dotenv from 'dotenv';
+dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Проверяем наличие API ключа
+if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_api_key_here') {
+  console.warn('⚠️  ВНИМАНИЕ: OpenAI API ключ не настроен!');
+  console.warn('📝 Создайте файл .env в папке backend/ и добавьте:');
+  console.warn('   OPENAI_API_KEY=ваш_ключ_здесь');
+  console.warn('🔗 Получите ключ на: https://platform.openai.com/api-keys');
+  console.warn('🔄 Система будет работать в демо-режиме');
+} else {
+  console.log('✅ OpenAI API ключ настроен');
+}
 
 // Middleware
 app.use(cors({

@@ -23,15 +23,25 @@ cd backend
 npm install
 ```
 
-3. Создайте файл `.env` на основе `.env.example`:
+3. Настройте переменные окружения:
 ```bash
-cp .env.example .env
+cd backend
+npm run setup
 ```
 
 4. Добавьте ваш OpenAI API ключ в файл `.env`:
 ```
-OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_KEY=ваш_реальный_api_ключ_здесь
 ```
+
+**Как получить API ключ:**
+1. Зайдите на https://platform.openai.com/api-keys
+2. Войдите в свой аккаунт OpenAI
+3. Нажмите "Create new secret key"
+4. Скопируйте ключ (начинается с `sk-proj-` или `sk-`)
+5. Вставьте его в файл `.env`
+
+**Важно:** Без API ключа система будет работать в демо-режиме и показывать тестовый план вместо анализа вашего изображения!
 
 5. Запустите сервер:
 ```bash
