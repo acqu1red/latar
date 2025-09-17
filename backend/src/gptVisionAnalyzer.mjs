@@ -4,7 +4,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import { uploadImageToGitHub, deleteImageFromGitHub, generateTempFilename, isGitHubConfigured } from './githubUploader.mjs';
-import fetch from 'node-fetch';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,9 +30,9 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
 
     const prompt = createAnalysisPrompt();
     
-    // Читаем и сжимаем изображение для экономии памяти
+    // Сжимаем изображение для экономии памяти (но не так агрессивно)
     console.log('Сжимаем изображение для экономии памяти...');
-    const compressedImageBuffer = await compressImage(imagePath);
+    const compressedImageBuffer = await resizeImageForResponses(imagePath);
     console.log('Размер сжатого изображения:', compressedImageBuffer.length, 'байт');
     
     let imageUrl;
@@ -54,13 +53,21 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
       };
       
     } else {
-      console.log('GitHub не настроен, используем прямое сжатое изображение');
+      console.log('GitHub не настроен, используем локальную загрузку');
       
-      // Используем сжатое изображение напрямую без создания URL
-      imageUrl = null;
+      // Fallback на локальную загрузку
+      const tempFileName = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
+      const tempFilePath = path.join(path.dirname(imagePath), tempFileName);
+      
+      // Сохраняем сжатое изображение во временный файл
+      fs.writeFileSync(tempFilePath, compressedImageBuffer);
+      console.log('Временный файл создан:', tempFileName);
+      
+      // Создаем публичный URL для изображения
+      imageUrl = `${baseUrl}/temp-images/${tempFileName}`;
       cleanupData = {
-        type: 'direct',
-        buffer: compressedImageBuffer
+        type: 'local',
+        path: tempFilePath
       };
     }
     
@@ -69,93 +76,45 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
     // Освобождаем память от сжатого буфера
     compressedImageBuffer.fill(0);
     
-    // Используем gpt-image-1 через images.edit с base64 данными
-    let imageBuffer;
-    
-    if (imageUrl) {
-      try {
-        // Пытаемся загрузить изображение по URL
-        const downloadedImageBase64 = await downloadImageAsBase64(imageUrl);
-        imageBuffer = Buffer.from(downloadedImageBase64, 'base64');
-      } catch (urlError) {
-        console.warn('Не удалось загрузить изображение по URL, используем fallback:', urlError.message);
-        
-        // Fallback: используем сжатое изображение напрямую
-        if (cleanupData && cleanupData.type === 'local') {
-          imageBuffer = fs.readFileSync(cleanupData.path);
-        } else {
-          // Если нет локального файла, пересжимаем исходное изображение
-          imageBuffer = await compressImage(imagePath);
+    // Используем Responses API с GPT-4o mini
+    const response = await openai.responses.create({
+      model: "gpt-4o-mini",
+      input: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: prompt },
+            { type: "input_image", image_url: imageUrl }
+          ]
         }
-      }
-    } else {
-      // Используем сжатое изображение напрямую
-      imageBuffer = cleanupData.buffer;
-    }
-    
-    // Проверяем размер изображения перед отправкой в API
-    if (imageBuffer.length > 16384) {
-      console.error('❌ Размер изображения превышает лимит API:', imageBuffer.length, 'байт');
-      console.error('Максимальный размер: 16,384 байт');
-      throw new Error(`Изображение слишком большое: ${imageBuffer.length} байт (лимит: 16,384 байт)`);
-    }
-    
-    console.log('✅ Размер изображения подходит для API:', imageBuffer.length, 'байт');
-    
-    // Создаем File object из Buffer для API
-    const imageFile = new File([imageBuffer], 'image.jpg', { type: 'image/jpeg' });
-    
-    const response = await openai.images.edit({
-      model: "gpt-image-1",
-      image: imageFile,
-      prompt: prompt,
-      size: "1024x1024"
+      ]
     });
 
-    console.log('GPT Image генерация завершена');
+    console.log('GPT-4o mini генерация завершена');
     
     // Очищаем временные файлы
     await cleanupTempFiles(cleanupData);
     
-    // Получаем base64 изображения из ответа
-    const resultImageBase64 = response.data[0].b64_json;
+    // Получаем сгенерированное изображение из ответа
+    const generatedImage = response.output[0].content.find(c => c.type === "output_image");
+    
+    if (!generatedImage || !generatedImage.image?.b64_json) {
+      throw new Error("Изображение не получено от GPT-4o mini");
+    }
+    
+    const resultImageBase64 = generatedImage.image.b64_json;
     console.log('Base64 изображения получен, длина:', resultImageBase64.length);
     
     // Конвертируем base64 в PNG
     return convertBase64ToPng(resultImageBase64);
     
   } catch (error) {
-    console.error('Ошибка генерации изображения с GPT Image:', error);
+    console.error('Ошибка генерации изображения с GPT-4o mini:', error);
     // Возвращаем пример SVG в случае ошибки
     return createExampleSvg(furnitureData);
   }
 }
 
-/**
- * Загружает изображение по URL и возвращает base64
- * @param {string} imageUrl - URL изображения
- * @returns {Promise<string>} Base64 строка изображения
- */
-async function downloadImageAsBase64(imageUrl) {
-  try {
-    console.log('Загружаем изображение по URL:', imageUrl);
-    
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const buffer = await response.buffer();
-    const base64 = buffer.toString('base64');
-    
-    console.log('Изображение загружено, размер:', buffer.length, 'байт');
-    return base64;
-    
-  } catch (error) {
-    console.error('Ошибка загрузки изображения по URL:', error);
-    throw error;
-  }
-}
 
 /**
  * Очищает временные файлы (GitHub или локальные)
@@ -177,6 +136,30 @@ async function cleanupTempFiles(cleanupData) {
     }
   } catch (cleanupError) {
     console.warn('Не удалось очистить временные файлы:', cleanupError.message);
+  }
+}
+
+async function resizeImageForResponses(imagePath) {
+  try {
+    // Читаем исходное изображение
+    const originalBuffer = fs.readFileSync(imagePath);
+    console.log('Размер исходного изображения:', originalBuffer.length, 'байт');
+    
+    // Сжимаем изображение до 768px для Responses API (нет ограничений на размер)
+    const resizedBuffer = await sharp(originalBuffer)
+      .resize({ width: 768 })
+      .png()
+      .toBuffer();
+    
+    console.log('Сжатие завершено. Размер сжатого изображения:', resizedBuffer.length, 'байт');
+    console.log('Экономия памяти:', 
+      Math.round((1 - resizedBuffer.length / originalBuffer.length) * 100) + '%');
+    
+    return resizedBuffer;
+  } catch (error) {
+    console.error('Ошибка сжатия изображения:', error);
+    // В случае ошибки возвращаем исходное изображение
+    return fs.readFileSync(imagePath);
   }
 }
 
