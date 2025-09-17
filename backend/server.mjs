@@ -17,7 +17,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Проверяем наличие API ключа
-if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_api_key_here') {
+console.log('🔍 Проверка API ключа:');
+console.log('OPENAI_API_KEY установлен:', !!process.env.OPENAI_API_KEY);
+console.log('OPENAI_API_KEY значение:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 10) + '...' : 'НЕТ');
+
+if (!process.env.OPENAI_API_KEY || 
+    process.env.OPENAI_API_KEY === 'your_openai_api_key_here' || 
+    process.env.OPENAI_API_KEY === 'YOUR_API_KEY_HERE' ||
+    process.env.OPENAI_API_KEY === 'sk-test-key') {
   console.warn('⚠️  ВНИМАНИЕ: OpenAI API ключ не настроен!');
   console.warn('📝 Создайте файл .env в папке backend/ и добавьте:');
   console.warn('   OPENAI_API_KEY=ваш_ключ_здесь');

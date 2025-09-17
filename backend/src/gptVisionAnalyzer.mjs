@@ -6,7 +6,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const openai = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-test-key' 
+// Проверяем API ключ
+console.log('API ключ установлен:', !!process.env.OPENAI_API_KEY);
+console.log('API ключ начинается с:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 10) + '...' : 'НЕТ');
+
+const openai = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-test-key' && process.env.OPENAI_API_KEY !== 'YOUR_API_KEY_HERE'
   ? new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     })
@@ -17,6 +21,8 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
     // Если нет реального API ключа, возвращаем пример SVG
     if (!openai) {
       console.log('Используется демо-режим без GPT API');
+      console.log('Причина: openai client не инициализирован');
+      console.log('Переменная OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'установлена' : 'НЕ установлена');
       return createExampleSvg(furnitureData);
     }
 
