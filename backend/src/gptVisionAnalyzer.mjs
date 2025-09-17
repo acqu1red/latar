@@ -54,21 +54,13 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
       };
       
     } else {
-      console.log('GitHub не настроен, используем локальную загрузку');
+      console.log('GitHub не настроен, используем прямое сжатое изображение');
       
-      // Fallback на локальную загрузку
-      const tempFileName = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
-      const tempFilePath = path.join(path.dirname(imagePath), tempFileName);
-      
-      // Сохраняем сжатое изображение во временный файл
-      fs.writeFileSync(tempFilePath, compressedImageBuffer);
-      console.log('Временный файл создан:', tempFileName);
-      
-      // Создаем публичный URL для изображения
-      imageUrl = `${baseUrl}/temp-images/${tempFileName}`;
+      // Используем сжатое изображение напрямую без создания URL
+      imageUrl = null;
       cleanupData = {
-        type: 'local',
-        path: tempFilePath
+        type: 'direct',
+        buffer: compressedImageBuffer
       };
     }
     
@@ -78,12 +70,32 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
     compressedImageBuffer.fill(0);
     
     // Используем gpt-image-1 через images.edit с base64 данными
-    // Сначала загружаем изображение по URL и конвертируем в base64
-    const downloadedImageBase64 = await downloadImageAsBase64(imageUrl);
+    let imageBuffer;
+    
+    if (imageUrl) {
+      try {
+        // Пытаемся загрузить изображение по URL
+        const downloadedImageBase64 = await downloadImageAsBase64(imageUrl);
+        imageBuffer = Buffer.from(downloadedImageBase64, 'base64');
+      } catch (urlError) {
+        console.warn('Не удалось загрузить изображение по URL, используем fallback:', urlError.message);
+        
+        // Fallback: используем сжатое изображение напрямую
+        if (cleanupData && cleanupData.type === 'local') {
+          imageBuffer = fs.readFileSync(cleanupData.path);
+        } else {
+          // Если нет локального файла, пересжимаем исходное изображение
+          imageBuffer = await compressImage(imagePath);
+        }
+      }
+    } else {
+      // Используем сжатое изображение напрямую
+      imageBuffer = cleanupData.buffer;
+    }
     
     const response = await openai.images.edit({
       model: "gpt-image-1",
-      image: Buffer.from(downloadedImageBase64, 'base64'),
+      image: imageBuffer,
       prompt: prompt,
       size: "1024x1024"
     });
@@ -147,6 +159,9 @@ async function cleanupTempFiles(cleanupData) {
     } else if (cleanupData.type === 'local') {
       console.log('Удаляем локальный временный файл:', cleanupData.path);
       fs.unlinkSync(cleanupData.path);
+    } else if (cleanupData.type === 'direct') {
+      console.log('Очистка не требуется для прямого использования Buffer');
+      // Для прямого использования Buffer очистка не требуется
     }
   } catch (cleanupError) {
     console.warn('Не удалось очистить временные файлы:', cleanupError.message);
