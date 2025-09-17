@@ -31,11 +31,11 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
     // Читаем изображение как Buffer
     const imageBuffer = fs.readFileSync(imagePath);
     
-    // Используем gpt-image-1 через images.generate для генерации точной копии плана
-    const response = await openai.images.generate({
+    // Используем gpt-image-1 через images.edit для редактирования плана
+    const response = await openai.images.edit({
       model: "gpt-image-1",
-      prompt: prompt,
       image: imageBuffer,
+      prompt: prompt,
       size: "1024x1024"
     });
 
