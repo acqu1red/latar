@@ -55,6 +55,13 @@ export async function analyzeImageWithGPT(imagePath, furnitureData, baseUrl = 'h
     } else {
       console.log('GitHub не настроен, используем локальную загрузку');
       
+      // Проверяем, что мы не в продакшене без GitHub
+      if (baseUrl.includes('github.io')) {
+        console.warn('⚠️ ВНИМАНИЕ: GitHub не настроен, но используется продакшен URL');
+        console.warn('Это может привести к ошибкам загрузки изображений');
+        console.warn('Рекомендуется настроить GITHUB_TOKEN для стабильной работы');
+      }
+      
       // Fallback на локальную загрузку
       const tempFileName = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
       const tempFilePath = path.join(path.dirname(imagePath), tempFileName);

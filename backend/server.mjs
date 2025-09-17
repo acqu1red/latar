@@ -85,8 +85,8 @@ app.post('/api/generate-plan', upload.single('image'), async (req, res) => {
     console.log('Обработка изображения:', imagePath);
 
     // Определяем baseUrl для публичных ссылок
-    // Для локальной разработки используем localhost, для продакшена - GitHub Pages
-    const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
+    // Для продакшена используем GitHub Pages, для локальной разработки - localhost
+    const baseUrl = process.env.BASE_URL || 'https://acqu1red.github.io/latar';
     console.log('Base URL для публичных ссылок:', baseUrl);
 
     // Генерируем PNG план

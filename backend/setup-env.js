@@ -26,8 +26,8 @@ OPENAI_API_KEY=YOUR_API_KEY_HERE
 GITHUB_TOKEN=YOUR_GITHUB_TOKEN_HERE
 
 # Base URL для публичных ссылок на изображения
-# Для локальной разработки: http://localhost:3001
 # Для продакшена: https://acqu1red.github.io/latar
+# Для локальной разработки: http://localhost:8000
 BASE_URL=https://acqu1red.github.io/latar
 
 # Замените YOUR_API_KEY_HERE на ваш реальный API ключ OpenAI
