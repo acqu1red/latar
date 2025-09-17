@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,18 +29,23 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
 
     const prompt = createAnalysisPrompt();
     
-    // Читаем изображение как Buffer
-    const imageBuffer = fs.readFileSync(imagePath);
+    // Читаем и сжимаем изображение для экономии памяти
+    console.log('Сжимаем изображение для экономии памяти...');
+    const compressedImageBuffer = await compressImage(imagePath);
+    console.log('Размер сжатого изображения:', compressedImageBuffer.length, 'байт');
     
     // Используем gpt-image-1 через images.edit для редактирования плана
     const response = await openai.images.edit({
       model: "gpt-image-1",
-      image: imageBuffer,
+      image: compressedImageBuffer,
       prompt: prompt,
       size: "1024x1024"
     });
 
     console.log('GPT Image генерация завершена');
+    
+    // Освобождаем память от сжатого буфера
+    compressedImageBuffer.fill(0);
     
     // Получаем base64 изображения из ответа
     const imageBase64 = response.data[0].b64_json;
@@ -55,6 +61,35 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
   }
 }
 
+async function compressImage(imagePath) {
+  try {
+    // Читаем исходное изображение
+    const originalBuffer = fs.readFileSync(imagePath);
+    console.log('Размер исходного изображения:', originalBuffer.length, 'байт');
+    
+    // Сжимаем изображение до 768x768 с оптимизацией
+    const compressedBuffer = await sharp(originalBuffer)
+      .resize(768, 768, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .png({
+        quality: 90,
+        compressionLevel: 6
+      })
+      .toBuffer();
+    
+    console.log('Сжатие завершено. Экономия памяти:', 
+      Math.round((1 - compressedBuffer.length / originalBuffer.length) * 100) + '%');
+    
+    return compressedBuffer;
+  } catch (error) {
+    console.error('Ошибка сжатия изображения:', error);
+    // В случае ошибки возвращаем исходное изображение
+    return fs.readFileSync(imagePath);
+  }
+}
+
 function createAnalysisPrompt() {
   return `Скопируй предоставленный план квартиры в точности.
 Сделай чёрно-белую 2D-схему в виде архитектурного чертежа сверху.
@@ -63,10 +98,8 @@ function createAnalysisPrompt() {
 }
 
 function convertBase64ToPng(base64Data) {
-  // Конвертируем base64 в PNG buffer
-  const imageBuffer = Buffer.from(base64Data, 'base64');
-  
-  // Возвращаем PNG как data URL
+  // Возвращаем PNG как data URL без дополнительной конвертации
+  // Это экономит память, так как не создаем дополнительный Buffer
   return `data:image/png;base64,${base64Data}`;
 }
 
