@@ -28,6 +28,10 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
 
     const prompt = createAnalysisPrompt();
     
+    // Читаем изображение как base64
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString('base64');
+    
     // Используем gpt-image-1 через responses.create для генерации точной копии плана
     const response = await openai.responses.create({
       model: "gpt-image-1",
@@ -36,7 +40,7 @@ export async function analyzeImageWithGPT(imagePath, furnitureData) {
           role: "user",
           content: [
             { type: "input_text", text: prompt },
-            { type: "input_image", image: fs.createReadStream(imagePath) }
+            { type: "input_image", image: `data:image/png;base64,${base64Image}` }
           ]
         }
       ]
