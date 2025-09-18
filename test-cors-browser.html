@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест CORS</title>
+    <title>Тест CORS в браузере</title>
 </head>
 <body>
-    <h1>Тест CORS для генерации планов</h1>
+    <h1>Тест CORS в браузере</h1>
     
     <div>
         <h2>1. Проверка Health Check</h2>
@@ -30,10 +30,24 @@
             resultDiv.innerHTML = 'Проверяем...';
             
             try {
-                const response = await fetch(`${API_BASE_URL}/healthz`);
-                const data = await response.json();
-                resultDiv.innerHTML = `✅ Health Check: ${JSON.stringify(data)}`;
+                console.log('📤 Отправляем health check запрос...');
+                const response = await fetch(`${API_BASE_URL}/healthz`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    credentials: 'include'
+                });
+                
+                console.log('📥 Получен ответ:', response.status, response.statusText);
+                console.log('📥 Headers:', Object.fromEntries(response.headers.entries()));
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `✅ Health Check: ${JSON.stringify(data)}`;
+                } else {
+                    resultDiv.innerHTML = `❌ Ошибка: ${response.status} ${response.statusText}`;
+                }
             } catch (error) {
+                console.error('❌ Ошибка:', error);
                 resultDiv.innerHTML = `❌ Ошибка: ${error.message}`;
             }
         }
@@ -68,8 +82,6 @@
                 
                 console.log('📥 Получен ответ:', response.status, response.statusText);
                 console.log('📥 Headers:', Object.fromEntries(response.headers.entries()));
-                console.log('📥 Content-Type:', response.headers.get('content-type'));
-                console.log('📥 Access-Control-Allow-Origin:', response.headers.get('access-control-allow-origin'));
                 
                 if (response.ok) {
                     const blob = await response.blob();
@@ -80,18 +92,11 @@
                     resultDiv.innerHTML = `✅ Генерация успешна! Размер: ${blob.size} байт`;
                 } else {
                     const errorText = await response.text();
-                    console.error('❌ Ошибка ответа:', errorText);
-                    try {
-                        const errorData = JSON.parse(errorText);
-                        resultDiv.innerHTML = `❌ Ошибка: ${errorData.error}`;
-                    } catch (parseError) {
-                        resultDiv.innerHTML = `❌ Ошибка: ${errorText}`;
-                    }
+                    console.error('❌ Ошибка:', errorText);
+                    resultDiv.innerHTML = `❌ Ошибка: ${errorText}`;
                 }
             } catch (error) {
                 console.error('❌ Ошибка запроса:', error);
-                console.error('❌ Тип ошибки:', error.name);
-                console.error('❌ Сообщение:', error.message);
                 resultDiv.innerHTML = `❌ Ошибка запроса: ${error.message}`;
             }
         }

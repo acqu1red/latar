@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
+import sharp from 'sharp';
 import { generateLocalImage, createEnhancedSketch } from './localImageGenerator.mjs';
 import { generateLocalScribbleDiffusion, checkLocalServices } from './localScribbleDiffusion.mjs';
 
