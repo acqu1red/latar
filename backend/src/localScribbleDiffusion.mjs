@@ -234,8 +234,8 @@ async function createAdvancedPlan(sketchImage, metadata, prompt) {
   const planLines = await sketchImage
     .greyscale()
     .normalize()
-    .sharpen({ sigma: 1.5, m1: 0.5, m2: 3.0, x1: 2, y2: 10 })
-    .threshold(140)
+    .sharpen({ sigma: 2.0, m1: 0.5, m2: 3.0, x1: 2, y2: 10 })
+    .threshold(120)
     .png()
     .toBuffer();
   
@@ -288,8 +288,8 @@ async function createAdvancedFurniturePlan(sketchImage, metadata, prompt) {
   const planLines = await sketchImage
     .greyscale()
     .normalize()
-    .sharpen({ sigma: 1.5, m1: 0.5, m2: 3.0, x1: 2, y2: 10 })
-    .threshold(140)
+    .sharpen({ sigma: 2.0, m1: 0.5, m2: 3.0, x1: 2, y2: 10 })
+    .threshold(120)
     .png()
     .toBuffer();
   
@@ -331,35 +331,15 @@ async function createAdvancedFurniturePlan(sketchImage, metadata, prompt) {
  * @returns {Promise<Buffer>} Элементы плана
  */
 async function createPlanElements(width, height) {
-  // Создаем SVG с профессиональными элементами плана
+  // Создаем чистый белый фон без мелких элементов
   const svg = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="planElements" patternUnits="userSpaceOnUse" width="100" height="100">
-          <rect width="100" height="100" fill="white"/>
-          <!-- Профессиональные элементы плана -->
-          <line x1="10" y1="10" x2="90" y2="10" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="10" y1="20" x2="90" y2="20" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="10" y1="30" x2="90" y2="30" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="10" y1="40" x2="90" y2="40" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="10" y1="50" x2="90" y2="50" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="10" y1="60" x2="90" y2="60" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="10" y1="70" x2="90" y2="70" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="10" y1="80" x2="90" y2="80" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="10" y1="90" x2="90" y2="90" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          
-          <line x1="10" y1="10" x2="10" y2="90" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="20" y1="10" x2="20" y2="90" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="30" y1="10" x2="30" y2="90" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="40" y1="10" x2="40" y2="90" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="50" y1="10" x2="50" y2="90" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="60" y1="10" x2="60" y2="90" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="70" y1="10" x2="70" y2="90" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="80" y1="10" x2="80" y2="90" stroke="#000000" stroke-width="1" opacity="0.1"/>
-          <line x1="90" y1="10" x2="90" y2="90" stroke="#000000" stroke-width="1" opacity="0.1"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#planElements)" opacity="0.3"/>
+      <rect width="100%" height="100%" fill="white"/>
+      <!-- Только основные архитектурные элементы -->
+      <line x1="0" y1="0" x2="${width}" y2="0" stroke="#000000" stroke-width="2"/>
+      <line x1="0" y1="0" x2="0" y2="${height}" stroke="#000000" stroke-width="2"/>
+      <line x1="${width-1}" y1="0" x2="${width-1}" y2="${height}" stroke="#000000" stroke-width="2"/>
+      <line x1="0" y1="${height-1}" x2="${width}" y2="${height-1}" stroke="#000000" stroke-width="2"/>
     </svg>
   `;
   

@@ -7,11 +7,11 @@
  * Базовые промпты для разных типов генерации
  */
 const BASE_PROMPTS = {
-  // План без мебели - точная копия с центрированием
-  planOnly: "professional architectural floor plan, clean white background, black lines, perfectly centered layout, technical drawing style, precise measurements, no furniture, minimalist design, high contrast, detailed room layout, architectural blueprint, floor plan drawing, clean lines, professional CAD drawing style, exact replica of the uploaded plan, centered composition, symmetrical layout",
+  // План без мебели - создание нового плана на основе эскиза
+  planOnly: "professional architectural floor plan, clean white background, black lines, technical drawing style, precise measurements, no furniture, minimalist design, high contrast, detailed room layout, architectural blueprint, floor plan drawing, clean lines, professional CAD drawing style, modern apartment layout, well-proportioned rooms, logical room arrangement, functional space planning, architectural standards, technical precision, clear room boundaries, proper door placement, window locations, structural elements, professional architectural drawing",
   
-  // План с мебелью - добавляем схематичную мебель
-  planWithFurniture: "professional architectural floor plan with furniture, clean white background, black lines, perfectly centered layout, technical drawing style, precise measurements, schematic furniture symbols, high contrast, detailed room layout with furniture placement, architectural blueprint, floor plan drawing, clean lines, professional CAD drawing style, exact replica of the uploaded plan with added furniture, centered composition, furniture symbols in appropriate rooms"
+  // План с мебелью - создание нового плана с мебелью
+  planWithFurniture: "professional architectural floor plan with furniture, clean white background, black lines, technical drawing style, precise measurements, schematic furniture symbols, high contrast, detailed room layout with furniture placement, architectural blueprint, floor plan drawing, clean lines, professional CAD drawing style, modern apartment layout with furniture, well-proportioned rooms, logical room arrangement, functional space planning, furniture symbols in appropriate rooms, proper furniture placement, realistic furniture proportions, professional architectural drawing"
 };
 
 /**
@@ -99,5 +99,5 @@ export async function analyzeRoomType(imagePath) {
  * @returns {string} Улучшенный промпт
  */
 export function enhancePromptForCentering(basePrompt) {
-  return `${basePrompt}, perfectly centered on canvas, symmetrical composition, balanced layout, professional architectural standards, clean white background, high resolution, detailed technical drawing`;
+  return `${basePrompt}, perfectly centered on canvas, symmetrical composition, balanced layout, professional architectural standards, clean white background, high resolution, detailed technical drawing, architectural precision, clear line work, professional presentation, modern design principles`;
 }

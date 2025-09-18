@@ -89,8 +89,8 @@ async function convertToSketch(imagePath) {
   await sharp.default(imagePath)
     .greyscale() // Конвертируем в черно-белое
     .normalize() // Нормализуем контраст
-    .sharpen({ sigma: 1.0, m1: 0.5, m2: 3.0, x1: 2, y2: 10 }) // Увеличиваем резкость
-    .threshold(128) // Применяем пороговое значение для создания контуров
+    .sharpen({ sigma: 2.0, m1: 0.5, m2: 3.0, x1: 2, y2: 10 }) // Увеличиваем резкость
+    .threshold(120) // Применяем пороговое значение для создания контуров
     .png()
     .toFile(outputPath);
   
