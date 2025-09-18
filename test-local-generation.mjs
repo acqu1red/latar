@@ -1,93 +1,124 @@
-import { createEnhancedSketch, generateLocalImage } from './backend/src/localImageGenerator.mjs';
-import { createSketchFromImage, generatePhotoFromSketch } from './backend/src/scribbleDiffusionGenerator.mjs';
-import fs from 'fs';
-import sharp from 'sharp';
-
 /**
- * Тестирует локальную генерацию изображений
+ * Тестирование локальной генерации ScribbleDiffusion
+ * Запуск: node test-local-generation.mjs
  */
+
+import { generateLocalScribbleDiffusion, checkLocalServices } from './backend/src/localScribbleDiffusion.mjs';
+import { createEnhancedSketch } from './backend/src/localImageGenerator.mjs';
+import fs from 'fs';
+import path from 'path';
+
 async function testLocalGeneration() {
+  console.log('🧪 Тестирование локальной генерации ScribbleDiffusion\n');
+
+  // Проверяем доступность сервисов
+  console.log('1. Проверка доступности сервисов...');
+  const services = await checkLocalServices();
+  console.log('   Hugging Face:', services.huggingface ? '✅ Доступен' : '❌ Недоступен');
+  console.log('   Ollama:', services.ollama ? '✅ Доступен' : '❌ Недоступен');
+  console.log('   Улучшенная генерация:', services.enhanced ? '✅ Доступна' : '❌ Недоступна');
+  console.log('');
+
+  // Создаем тестовое изображение
+  console.log('2. Создание тестового эскиза...');
+  const testImagePath = await createTestImage();
+  console.log('   Тестовое изображение создано:', testImagePath);
+  console.log('');
+
+  // Тестируем генерацию без мебели
+  console.log('3. Тестирование генерации без мебели...');
   try {
-    console.log('🧪 Тестируем локальную генерацию изображений...');
+    const planPrompt = "professional architectural floor plan, clean white background, black lines, perfectly centered layout, technical drawing style, precise measurements, no furniture, minimalist design, high contrast, detailed room layout, architectural blueprint, floor plan drawing, clean lines, professional CAD drawing style, exact replica of the uploaded plan, centered composition, symmetrical layout, perfectly centered on canvas, symmetrical composition, balanced layout, professional architectural standards, clean white background, high resolution, detailed technical drawing";
     
-    // Создаем тестовое изображение
-    const testImagePath = await createTestImage();
-    console.log('✅ Тестовое изображение создано:', testImagePath);
-    
-    // Создаем эскиз
-    const sketchPath = await createSketchFromImage(testImagePath);
-    console.log('✅ Эскиз создан:', sketchPath);
-    
-    // Тестируем разные промпты
-    const prompts = [
-      'a modern living room with large windows and natural lighting',
-      'a beautiful sunset over the ocean',
-      'a cozy forest cabin in the woods',
-      'a minimalist bedroom with clean lines'
-    ];
-    
-    for (let i = 0; i < prompts.length; i++) {
-      const prompt = prompts[i];
-      console.log(`\n🎨 Тестируем промпт ${i + 1}: "${prompt}"`);
-      
-      // Генерируем изображение
-      const imageBuffer = await generateLocalImage(sketchPath, prompt);
-      
-      // Сохраняем результат
-      const outputPath = `test-local-output-${i + 1}.png`;
-      fs.writeFileSync(outputPath, imageBuffer);
-      console.log(`✅ Результат сохранен: ${outputPath}`);
-    }
-    
-    // Очищаем временные файлы
-    fs.unlinkSync(testImagePath);
-    fs.unlinkSync(sketchPath);
-    
-    console.log('\n🎉 Тест локальной генерации завершен успешно!');
-    
+    const planResult = await generateLocalScribbleDiffusion(testImagePath, planPrompt);
+    const planOutputPath = './test-plan-result.png';
+    fs.writeFileSync(planOutputPath, planResult);
+    console.log('   ✅ План без мебели сгенерирован:', planOutputPath);
   } catch (error) {
-    console.error('❌ Ошибка тестирования:', error);
+    console.log('   ❌ Ошибка генерации плана:', error.message);
   }
+  console.log('');
+
+  // Тестируем генерацию с мебелью
+  console.log('4. Тестирование генерации с мебелью...');
+  try {
+    const furniturePrompt = "professional architectural floor plan with furniture, clean white background, black lines, perfectly centered layout, technical drawing style, precise measurements, schematic furniture symbols, high contrast, detailed room layout with furniture placement, architectural blueprint, floor plan drawing, clean lines, professional CAD drawing style, exact replica of the uploaded plan with added furniture, centered composition, furniture symbols in appropriate rooms, bed, sofa, table, chair, wardrobe, kitchen appliances, bathroom fixtures, living room furniture, bedroom furniture, dining room furniture, office furniture, hallway furniture, perfectly centered on canvas, symmetrical composition, balanced layout, professional architectural standards, clean white background, high resolution, detailed technical drawing";
+    
+    const furnitureResult = await generateLocalScribbleDiffusion(testImagePath, furniturePrompt);
+    const furnitureOutputPath = './test-furniture-result.png';
+    fs.writeFileSync(furnitureOutputPath, furnitureResult);
+    console.log('   ✅ План с мебелью сгенерирован:', furnitureOutputPath);
+  } catch (error) {
+    console.log('   ❌ Ошибка генерации с мебелью:', error.message);
+  }
+  console.log('');
+
+  // Очистка
+  console.log('5. Очистка тестовых файлов...');
+  try {
+    if (fs.existsSync(testImagePath)) {
+      fs.unlinkSync(testImagePath);
+    }
+    console.log('   ✅ Тестовые файлы очищены');
+  } catch (error) {
+    console.log('   ⚠️ Ошибка очистки:', error.message);
+  }
+
+  console.log('\n🎉 Тестирование завершено!');
+  console.log('📁 Результаты сохранены в:');
+  console.log('   - test-plan-result.png (план без мебели)');
+  console.log('   - test-furniture-result.png (план с мебелью)');
 }
 
 /**
- * Создает простое тестовое изображение
+ * Создает тестовое изображение плана
+ * @returns {Promise<string>} Путь к тестовому изображению
  */
 async function createTestImage() {
-  const outputPath = 'test-image-local.png';
+  const sharp = await import('sharp');
   
-  // Создаем простое изображение с прямоугольником
-  await sharp({
-    create: {
-      width: 400,
-      height: 300,
-      channels: 3,
-      background: { r: 255, g: 255, b: 255 }
-    }
-  })
-  .composite([
-    {
-      input: Buffer.from(`
-        <svg width="400" height="300">
-          <rect x="50" y="50" width="300" height="200" 
-                fill="none" stroke="black" stroke-width="3"/>
-          <rect x="100" y="100" width="200" height="100" 
-                fill="lightblue" stroke="black" stroke-width="2"/>
-          <circle cx="200" cy="150" r="30" 
-                  fill="yellow" stroke="black" stroke-width="2"/>
-          <line x1="150" y1="120" x2="250" y2="180" 
-                stroke="red" stroke-width="2"/>
-        </svg>
-      `),
-      top: 0,
-      left: 0
-    }
-  ])
-  .png()
-  .toFile(outputPath);
+  // Создаем простое тестовое изображение плана
+  const svg = `
+    <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="300" fill="white" stroke="black" stroke-width="2"/>
+      
+      <!-- Внешние стены -->
+      <rect x="20" y="20" width="360" height="260" fill="none" stroke="black" stroke-width="3"/>
+      
+      <!-- Внутренние стены -->
+      <line x1="200" y1="20" x2="200" y2="280" stroke="black" stroke-width="2"/>
+      <line x1="20" y1="150" x2="380" y2="150" stroke="black" stroke-width="2"/>
+      
+      <!-- Двери -->
+      <line x1="200" y1="20" x2="200" y2="40" stroke="black" stroke-width="2"/>
+      <line x1="200" y1="260" x2="200" y2="280" stroke="black" stroke-width="2"/>
+      
+      <!-- Окна -->
+      <line x1="50" y1="20" x2="150" y2="20" stroke="black" stroke-width="1"/>
+      <line x1="250" y1="20" x2="350" y2="20" stroke="black" stroke-width="1"/>
+      
+      <!-- Комнаты -->
+      <text x="100" y="100" font-family="Arial" font-size="16" fill="black">Спальня</text>
+      <text x="300" y="100" font-family="Arial" font-size="16" fill="black">Гостиная</text>
+      <text x="100" y="200" font-family="Arial" font-size="16" fill="black">Кухня</text>
+      <text x="300" y="200" font-family="Arial" font-size="16" fill="black">Ванная</text>
+    </svg>
+  `;
   
-  return outputPath;
+  const testImagePath = './test-plan.svg';
+  fs.writeFileSync(testImagePath, svg);
+  
+  // Конвертируем SVG в PNG
+  const pngPath = './test-plan.png';
+  await sharp.default(Buffer.from(svg))
+    .png()
+    .toFile(pngPath);
+  
+  // Удаляем SVG
+  fs.unlinkSync(testImagePath);
+  
+  return pngPath;
 }
 
 // Запускаем тест
-testLocalGeneration();
+testLocalGeneration().catch(console.error);

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "cd backend && node server.mjs",
     "build": "cd backend && npm install",
-    "dev": "cd backend && npm run dev"
+    "dev": "cd backend && npm run dev",
+    "test-local": "node test-local-generation.mjs"
   },
   "engines": {
     "node": ">=20.0.0"

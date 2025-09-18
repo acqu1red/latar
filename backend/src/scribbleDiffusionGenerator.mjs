@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
 import { generateLocalImage, createEnhancedSketch } from './localImageGenerator.mjs';
+import { generateLocalScribbleDiffusion, checkLocalServices } from './localScribbleDiffusion.mjs';
 
 /**
  * Генерирует фотографию из эскиза используя ScribbleDiffusion через Replicate API
@@ -18,7 +19,7 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
     // Проверяем наличие API ключа
     if (!process.env.REPLICATE_API_TOKEN) {
       console.log('⚠️ Replicate API токен не найден, используем локальную генерацию');
-      return await generateLocalImage(sketchPath, prompt);
+      return await generateLocalScribbleDiffusion(sketchPath, prompt);
     }
 
     // Читаем файл эскиза
@@ -56,7 +57,7 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
         console.log('🔄 Ошибка API, переключаемся на локальную генерацию...');
       }
       
-      return await generateLocalImage(sketchPath, prompt);
+      return await generateLocalScribbleDiffusion(sketchPath, prompt);
     }
 
     const prediction = await response.json();
