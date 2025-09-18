@@ -4,9 +4,8 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { generateSvgFromImage } from './src/generateSvgFromImage.mjs';
-import { analyzeImageForPhoto } from './src/imageAnalyzer.mjs';
-import { generatePhotoFromSketch } from './src/scribbleDiffusionGenerator.mjs';
+import { generatePhotoFromSketch, createSketchFromImage } from './src/scribbleDiffusionGenerator.mjs';
+import { generatePlanOnlyPrompt, generatePlanWithFurniturePrompt, enhancePromptForCentering } from './src/promptGenerator.mjs';
 
 // Загружаем переменные окружения из .env файла
 import dotenv from 'dotenv';
@@ -21,19 +20,6 @@ const PORT = process.env.PORT || 3001;
 // Проверяем наличие API ключей
 console.log('🔍 Проверка API ключей:');
 console.log('REPLICATE_API_TOKEN установлен:', !!process.env.REPLICATE_API_TOKEN);
-
-if (!process.env.OPENAI_API_KEY || 
-    process.env.OPENAI_API_KEY === 'your_openai_api_key_here' || 
-    process.env.OPENAI_API_KEY === 'YOUR_API_KEY_HERE' ||
-    process.env.OPENAI_API_KEY === 'sk-test-key') {
-  console.warn('⚠️  ВНИМАНИЕ: OpenAI API ключ не настроен!');
-  console.warn('📝 Создайте файл .env в папке backend/ и добавьте:');
-  console.warn('   OPENAI_API_KEY=ваш_ключ_здесь');
-  console.warn('🔗 Получите ключ на: https://platform.openai.com/api-keys');
-  console.warn('🔄 Система будет работать в демо-режиме');
-} else {
-  console.log('✅ OpenAI API ключ настроен');
-}
 
 if (!process.env.REPLICATE_API_TOKEN || 
     process.env.REPLICATE_API_TOKEN === 'your_replicate_token_here' || 
@@ -87,67 +73,30 @@ const upload = multer({
   }
 });
 
-// Маршрут для генерации плана
-app.post('/api/generate-plan', upload.single('image'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Изображение не загружено' });
-    }
-
-    const imagePath = req.file.path;
-    console.log('Обработка изображения:', imagePath);
-
-    // Определяем baseUrl для публичных ссылок
-    // Для продакшена используем GitHub Pages, для локальной разработки - localhost
-    const baseUrl = process.env.BASE_URL || 'https://acqu1red.github.io/latar';
-    console.log('Base URL для публичных ссылок:', baseUrl);
-
-    // Генерируем SVG план
-    const svgContent = await generateSvgFromImage(imagePath, baseUrl);
-    
-    // Удаляем временный файл
-    fs.unlinkSync(imagePath);
-
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.send(svgContent);
-
-  } catch (error) {
-    console.error('Ошибка генерации плана:', error);
-    res.status(500).json({ error: 'Ошибка генерации плана: ' + error.message });
-  }
-});
-
-// Маршрут для генерации фотографии
+// Маршрут для генерации фотографии без мебели
 app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Изображение не загружено' });
     }
 
-    // Replicate API токен не обязателен - есть локальная генерация
-    if (!process.env.REPLICATE_API_TOKEN) {
-      console.log('⚠️ Replicate API токен не настроен, используем локальную генерацию');
-    }
-
     const imagePath = req.file.path;
-    const customPrompt = req.body.prompt || null; // Пользовательский промпт (опционально)
-    
     console.log('Обработка изображения для генерации фотографии:', imagePath);
-    console.log('Пользовательский промпт:', customPrompt);
 
-    // Анализируем изображение и создаем эскиз
-    const analysisData = await analyzeImageForPhoto(imagePath);
+    // Создаем эскиз из изображения
+    const sketchPath = await createSketchFromImage(imagePath);
     
-    // Используем пользовательский промпт или сгенерированный
-    const prompt = customPrompt || analysisData.prompt;
+    // Генерируем автоматический промпт для плана без мебели
+    const basePrompt = generatePlanOnlyPrompt();
+    const prompt = enhancePromptForCentering(basePrompt);
     
     // Генерируем фотографию из эскиза
-    const photoBuffer = await generatePhotoFromSketch(analysisData.sketchPath, prompt);
+    const photoBuffer = await generatePhotoFromSketch(sketchPath, prompt);
     
     // Удаляем временные файлы
     fs.unlinkSync(imagePath);
-    if (fs.existsSync(analysisData.sketchPath)) {
-      fs.unlinkSync(analysisData.sketchPath);
+    if (fs.existsSync(sketchPath)) {
+      fs.unlinkSync(sketchPath);
     }
 
     res.setHeader('Content-Type', 'image/png');
@@ -156,6 +105,41 @@ app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
   } catch (error) {
     console.error('Ошибка генерации фотографии:', error);
     res.status(500).json({ error: 'Ошибка генерации фотографии: ' + error.message });
+  }
+});
+
+// Маршрут для генерации плана с мебелью
+app.post('/api/generate-with-furniture', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Изображение не загружено' });
+    }
+
+    const imagePath = req.file.path;
+    console.log('Обработка изображения для генерации плана с мебелью:', imagePath);
+
+    // Создаем эскиз из изображения
+    const sketchPath = await createSketchFromImage(imagePath);
+    
+    // Генерируем автоматический промпт для плана с мебелью
+    const basePrompt = generatePlanWithFurniturePrompt();
+    const prompt = enhancePromptForCentering(basePrompt);
+    
+    // Генерируем фотографию из эскиза
+    const photoBuffer = await generatePhotoFromSketch(sketchPath, prompt);
+    
+    // Удаляем временные файлы
+    fs.unlinkSync(imagePath);
+    if (fs.existsSync(sketchPath)) {
+      fs.unlinkSync(sketchPath);
+    }
+
+    res.setHeader('Content-Type', 'image/png');
+    res.send(photoBuffer);
+
+  } catch (error) {
+    console.error('Ошибка генерации плана с мебелью:', error);
+    res.status(500).json({ error: 'Ошибка генерации плана с мебелью: ' + error.message });
   }
 });
 

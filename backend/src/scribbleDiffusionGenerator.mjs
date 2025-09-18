@@ -38,9 +38,9 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
         input: {
           image: sketchDataUrl,
           prompt: prompt,
-          num_inference_steps: 20,
-          guidance_scale: 7.5,
-          negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy, deformed"
+          num_inference_steps: 25,
+          guidance_scale: 8.0,
+          negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy, deformed, off-center, misaligned, crooked, tilted, uneven, asymmetrical, poor composition, amateur, unprofessional"
         }
       })
     });
@@ -48,7 +48,14 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`❌ Ошибка Replicate API: ${response.status} - ${errorText}`);
-      console.log('🔄 Переключаемся на локальную генерацию...');
+      
+      // Проверяем, если это ошибка с кредитами
+      if (response.status === 402) {
+        console.log('💳 Недостаточно кредитов на Replicate, переключаемся на локальную генерацию...');
+      } else {
+        console.log('🔄 Ошибка API, переключаемся на локальную генерацию...');
+      }
+      
       return await generateLocalImage(sketchPath, prompt);
     }
 
