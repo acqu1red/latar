@@ -24,7 +24,7 @@ const baseUrl = process.env.BASE_URL || 'https://acqu1red.github.io/latar';
 
 ### 2. Обновлены переменные окружения
 
-```bash
+```bashвпвыпвы
 # .env файл
 BASE_URL=https://acqu1red.github.io/latar
 ```
