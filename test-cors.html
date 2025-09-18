@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест CORS</title>
+</head>
+<body>
+    <h1>Тест CORS для генерации планов</h1>
+    
+    <div>
+        <h2>1. Проверка Health Check</h2>
+        <button onclick="testHealth()">Проверить Health Check</button>
+        <div id="health-result"></div>
+    </div>
+    
+    <div>
+        <h2>2. Тест генерации</h2>
+        <input type="file" id="imageInput" accept="image/*">
+        <button onclick="testGeneration()">Тест генерации</button>
+        <div id="generation-result"></div>
+        <div id="image-result"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://competitive-camellia-latar-a11ca532.koyeb.app';
+        
+        async function testHealth() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = 'Проверяем...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/healthz`);
+                const data = await response.json();
+                resultDiv.innerHTML = `✅ Health Check: ${JSON.stringify(data)}`;
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Ошибка: ${error.message}`;
+            }
+        }
+        
+        async function testGeneration() {
+            const fileInput = document.getElementById('imageInput');
+            const resultDiv = document.getElementById('generation-result');
+            const imageDiv = document.getElementById('image-result');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '❌ Выберите файл изображения';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Генерируем...';
+            imageDiv.innerHTML = '';
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', fileInput.files[0]);
+                
+                console.log('📤 Отправляем запрос на генерацию...');
+                const response = await fetch(`${API_BASE_URL}/api/generate-photo`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('📥 Получен ответ:', response.status, response.statusText);
+                console.log('📥 Content-Type:', response.headers.get('content-type'));
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    console.log('📷 Размер изображения:', blob.size, 'байт');
+                    
+                    const imageUrl = URL.createObjectURL(blob);
+                    imageDiv.innerHTML = `<img src="${imageUrl}" style="max-width: 500px; border: 1px solid #ccc;">`;
+                    resultDiv.innerHTML = `✅ Генерация успешна! Размер: ${blob.size} байт`;
+                } else {
+                    const errorData = await response.json();
+                    console.error('❌ Ошибка:', errorData);
+                    resultDiv.innerHTML = `❌ Ошибка: ${errorData.error}`;
+                }
+            } catch (error) {
+                console.error('❌ Ошибка запроса:', error);
+                resultDiv.innerHTML = `❌ Ошибка запроса: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

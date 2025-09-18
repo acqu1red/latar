@@ -44,18 +44,26 @@ const App: React.FC = () => {
         endpoint = '/api/generate-photo';
       }
 
+      console.log('📤 Отправляем запрос на:', `${API_BASE_URL}${endpoint}`);
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         body: formData,
       });
 
+      console.log('📥 Получен ответ:', response.status, response.statusText);
+      console.log('📥 Content-Type:', response.headers.get('content-type'));
+
       if (response.ok) {
+        console.log('✅ Ответ успешный, обрабатываем изображение...');
         const photoBlob = await response.blob();
+        console.log('📷 Размер изображения:', photoBlob.size, 'байт');
         const photoUrl = URL.createObjectURL(photoBlob);
         setGeneratedPhoto(photoUrl);
+        console.log('✅ Изображение установлено в состояние');
       } else {
+        console.error('❌ Ошибка ответа:', response.status, response.statusText);
         const errorData = await response.json();
-        console.error('Ошибка генерации:', errorData.error);
+        console.error('❌ Детали ошибки:', errorData);
         alert(`Ошибка: ${errorData.error}`);
       }
     } catch (error) {

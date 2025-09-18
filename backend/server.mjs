@@ -68,7 +68,12 @@ const upload = multer({
 // Маршрут для генерации фотографии без мебели
 app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
   try {
+    console.log('📥 Получен запрос на /api/generate-photo');
+    console.log('📥 Headers:', req.headers);
+    console.log('📥 File:', req.file ? 'загружен' : 'не загружен');
+    
     if (!req.file) {
+      console.log('❌ Изображение не загружено');
       return res.status(400).json({ error: 'Изображение не загружено' });
     }
 
@@ -91,8 +96,11 @@ app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
       fs.unlinkSync(sketchPath);
     }
 
+    console.log('📤 Отправляем ответ клиенту...');
     res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Length', photoBuffer.length);
     res.send(photoBuffer);
+    console.log('✅ Ответ отправлен успешно');
 
   } catch (error) {
     console.error('❌ Ошибка генерации фотографии:', error);
@@ -131,8 +139,11 @@ app.post('/api/generate-with-furniture', upload.single('image'), async (req, res
       fs.unlinkSync(sketchPath);
     }
 
+    console.log('📤 Отправляем ответ клиенту...');
     res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Length', photoBuffer.length);
     res.send(photoBuffer);
+    console.log('✅ Ответ отправлен успешно');
 
   } catch (error) {
     console.error('❌ Ошибка генерации плана с мебелью:', error);
