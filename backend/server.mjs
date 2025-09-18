@@ -17,25 +17,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Проверяем наличие API ключей
-console.log('🔍 Проверка API ключей:');
-console.log('REPLICATE_API_TOKEN установлен:', !!process.env.REPLICATE_API_TOKEN);
-
-if (!process.env.REPLICATE_API_TOKEN || 
-    process.env.REPLICATE_API_TOKEN === 'your_replicate_token_here' || 
-    process.env.REPLICATE_API_TOKEN === 'YOUR_TOKEN_HERE') {
-  console.warn('⚠️  ВНИМАНИЕ: Replicate API токен не настроен!');
-  console.warn('📝 Создайте файл .env в папке backend/ и добавьте:');
-  console.warn('   REPLICATE_API_TOKEN=ваш_токен_здесь');
-  console.warn('🔗 Получите токен на: https://replicate.com/account/api-tokens');
-  console.warn('🔄 Генерация фотографий будет недоступна');
-} else {
-  console.log('✅ Replicate API токен настроен');
-}
+// Локальная генерация без внешних API
+console.log('🏠 Локальная генерация планов квартир');
+console.log('✅ Все ИИ функции работают локально без внешних API');
+console.log('💡 Никаких кредитов или токенов не требуется');
 
 // Middleware
 app.use(cors({
-  origin: ['https://acqu1red.github.io'],
+  origin: [
+    'https://acqu1red.github.io',
+    'https://acqu1red.github.io/latar',
+    'https://competitive-camellia-latar-a11ca532.koyeb.app'
+  ],
   credentials: true
 }));
 app.use(express.json());
