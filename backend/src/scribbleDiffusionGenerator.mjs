@@ -146,8 +146,20 @@ export async function createSketchFromImage(imagePath) {
     
   } catch (error) {
     console.error('❌ Ошибка создания эскиза:', error);
-    // Fallback на простой алгоритм
-    return await convertToSketch(imagePath);
+    console.log('🔄 Переключаемся на простой алгоритм...');
+    try {
+      return await convertToSketch(imagePath);
+    } catch (fallbackError) {
+      console.error('❌ Ошибка простого алгоритма:', fallbackError);
+      // Создаем базовый эскиз
+      const outputPath = imagePath.replace(/\.[^/.]+$/, '_basic_sketch.png');
+      await sharp(imagePath)
+        .greyscale()
+        .threshold(128)
+        .png()
+        .toFile(outputPath);
+      return outputPath;
+    }
   }
 }
 

@@ -26,7 +26,26 @@ export async function generateLocalImage(sketchPath, prompt) {
 
   } catch (error) {
     console.error('❌ Ошибка локальной генерации:', error);
-    throw error;
+    console.log('🔄 Создаем простое изображение...');
+    
+    // Fallback - создаем простое изображение
+    try {
+      const sketchBuffer = fs.readFileSync(sketchPath);
+      const sketchImage = sharp(sketchBuffer);
+      const metadata = await sketchImage.metadata();
+      
+      // Простое цветное изображение
+      const simpleImage = await sketchImage
+        .greyscale()
+        .normalize()
+        .png()
+        .toBuffer();
+      
+      return simpleImage;
+    } catch (fallbackError) {
+      console.error('❌ Ошибка fallback генерации:', fallbackError);
+      throw error; // Возвращаем оригинальную ошибку
+    }
   }
 }
 
@@ -181,17 +200,33 @@ export async function createEnhancedSketch(imagePath) {
     
     const outputPath = imagePath.replace(/\.[^/.]+$/, '_enhanced_sketch.png');
     
-    await sharp(imagePath)
-      .greyscale() // Конвертируем в черно-белое
-      .normalize() // Нормализуем контраст
-      .sharpen({ sigma: 1.5, m1: 0.5, m2: 3.0, x1: 2, y2: 10 }) // Увеличиваем резкость
-      .threshold(140) // Применяем пороговое значение
-      .morphology({
-        operation: 'erode',
-        kernel: sharp.kernel.circle(1)
-      }) // Утончаем линии
-      .png()
-      .toFile(outputPath);
+    // Сначала пробуем с морфологией
+    try {
+      await sharp(imagePath)
+        .greyscale() // Конвертируем в черно-белое
+        .normalize() // Нормализуем контраст
+        .sharpen({ sigma: 1.5, m1: 0.5, m2: 3.0, x1: 2, y2: 10 }) // Увеличиваем резкость
+        .threshold(140) // Применяем пороговое значение
+        .morphology({
+          operation: 'erode',
+          kernel: {
+            name: 'circle',
+            size: 1
+          }
+        }) // Утончаем линии
+        .png()
+        .toFile(outputPath);
+    } catch (morphologyError) {
+      console.log('⚠️ Морфология не поддерживается, используем упрощенный алгоритм');
+      // Fallback без морфологии
+      await sharp(imagePath)
+        .greyscale() // Конвертируем в черно-белое
+        .normalize() // Нормализуем контраст
+        .sharpen({ sigma: 1.5, m1: 0.5, m2: 3.0, x1: 2, y2: 10 }) // Увеличиваем резкость
+        .threshold(140) // Применяем пороговое значение
+        .png()
+        .toFile(outputPath);
+    }
     
     console.log('✅ Улучшенный эскиз создан:', outputPath);
     return outputPath;
