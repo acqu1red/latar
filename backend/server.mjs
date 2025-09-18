@@ -20,7 +20,6 @@ const PORT = process.env.PORT || 3001;
 
 // Проверяем наличие API ключей
 console.log('🔍 Проверка API ключей:');
-
 console.log('REPLICATE_API_TOKEN установлен:', !!process.env.REPLICATE_API_TOKEN);
 
 if (!process.env.OPENAI_API_KEY || 
@@ -125,8 +124,9 @@ app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Изображение не загружено' });
     }
 
+    // Replicate API токен не обязателен - есть локальная генерация
     if (!process.env.REPLICATE_API_TOKEN) {
-      return res.status(500).json({ error: 'Replicate API токен не настроен' });
+      console.log('⚠️ Replicate API токен не настроен, используем локальную генерацию');
     }
 
     const imagePath = req.file.path;

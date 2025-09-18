@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
+import { generateLocalImage, createEnhancedSketch } from './localImageGenerator.mjs';
 
 /**
  * Генерирует фотографию из эскиза используя ScribbleDiffusion через Replicate API
@@ -10,13 +11,14 @@ import path from 'path';
  */
 export async function generatePhotoFromSketch(sketchPath, prompt) {
   try {
-    console.log('🎨 Генерируем фотографию из эскиза через ScribbleDiffusion');
+    console.log('🎨 Генерируем фотографию из эскиза');
     console.log('Эскиз:', sketchPath);
     console.log('Промпт:', prompt);
 
     // Проверяем наличие API ключа
     if (!process.env.REPLICATE_API_TOKEN) {
-      throw new Error('REPLICATE_API_TOKEN не установлен в переменных окружения');
+      console.log('⚠️ Replicate API токен не найден, используем локальную генерацию');
+      return await generateLocalImage(sketchPath, prompt);
     }
 
     // Читаем файл эскиза
@@ -32,20 +34,22 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: "435061a1b5a4c1e26740464bf786efdfa9cb3a3ac3882b8e0ef0cff82ae2df16", // ScribbleDiffusion model
+        version: "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4", // ControlNet Scribble model
         input: {
           image: sketchDataUrl,
           prompt: prompt,
           num_inference_steps: 20,
           guidance_scale: 7.5,
-          negative_prompt: "blurry, low quality, distorted, ugly"
+          negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy, deformed"
         }
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Ошибка Replicate API: ${response.status} - ${errorText}`);
+      console.error(`❌ Ошибка Replicate API: ${response.status} - ${errorText}`);
+      console.log('🔄 Переключаемся на локальную генерацию...');
+      return await generateLocalImage(sketchPath, prompt);
     }
 
     const prediction = await response.json();
@@ -134,16 +138,16 @@ export async function createSketchFromImage(imagePath) {
   try {
     console.log('✏️ Создаем эскиз из изображения:', imagePath);
     
-    // Используем простой алгоритм для создания эскиза
-    // В будущем можно улучшить с помощью более сложных алгоритмов
-    const sketchPath = await convertToSketch(imagePath);
+    // Используем улучшенный алгоритм для создания эскиза
+    const sketchPath = await createEnhancedSketch(imagePath);
     
     console.log('✅ Эскиз создан:', sketchPath);
     return sketchPath;
     
   } catch (error) {
     console.error('❌ Ошибка создания эскиза:', error);
-    throw error;
+    // Fallback на простой алгоритм
+    return await convertToSketch(imagePath);
   }
 }
 
