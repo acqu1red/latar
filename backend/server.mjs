@@ -5,6 +5,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { generateSvgFromImage } from './src/generateSvgFromImage.mjs';
+import { analyzeImageForPhoto } from './src/imageAnalyzer.mjs';
+import { generatePhotoFromSketch } from './src/scribbleDiffusionGenerator.mjs';
 
 // Загружаем переменные окружения из .env файла
 import dotenv from 'dotenv';
@@ -16,10 +18,10 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Проверяем наличие API ключа
-console.log('🔍 Проверка API ключа:');
-console.log('OPENAI_API_KEY установлен:', !!process.env.OPENAI_API_KEY);
-console.log('OPENAI_API_KEY значение:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 10) + '...' : 'НЕТ');
+// Проверяем наличие API ключей
+console.log('🔍 Проверка API ключей:');
+
+console.log('REPLICATE_API_TOKEN установлен:', !!process.env.REPLICATE_API_TOKEN);
 
 if (!process.env.OPENAI_API_KEY || 
     process.env.OPENAI_API_KEY === 'your_openai_api_key_here' || 
@@ -32,6 +34,18 @@ if (!process.env.OPENAI_API_KEY ||
   console.warn('🔄 Система будет работать в демо-режиме');
 } else {
   console.log('✅ OpenAI API ключ настроен');
+}
+
+if (!process.env.REPLICATE_API_TOKEN || 
+    process.env.REPLICATE_API_TOKEN === 'your_replicate_token_here' || 
+    process.env.REPLICATE_API_TOKEN === 'YOUR_TOKEN_HERE') {
+  console.warn('⚠️  ВНИМАНИЕ: Replicate API токен не настроен!');
+  console.warn('📝 Создайте файл .env в папке backend/ и добавьте:');
+  console.warn('   REPLICATE_API_TOKEN=ваш_токен_здесь');
+  console.warn('🔗 Получите токен на: https://replicate.com/account/api-tokens');
+  console.warn('🔄 Генерация фотографий будет недоступна');
+} else {
+  console.log('✅ Replicate API токен настроен');
 }
 
 // Middleware
@@ -101,6 +115,47 @@ app.post('/api/generate-plan', upload.single('image'), async (req, res) => {
   } catch (error) {
     console.error('Ошибка генерации плана:', error);
     res.status(500).json({ error: 'Ошибка генерации плана: ' + error.message });
+  }
+});
+
+// Маршрут для генерации фотографии
+app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Изображение не загружено' });
+    }
+
+    if (!process.env.REPLICATE_API_TOKEN) {
+      return res.status(500).json({ error: 'Replicate API токен не настроен' });
+    }
+
+    const imagePath = req.file.path;
+    const customPrompt = req.body.prompt || null; // Пользовательский промпт (опционально)
+    
+    console.log('Обработка изображения для генерации фотографии:', imagePath);
+    console.log('Пользовательский промпт:', customPrompt);
+
+    // Анализируем изображение и создаем эскиз
+    const analysisData = await analyzeImageForPhoto(imagePath);
+    
+    // Используем пользовательский промпт или сгенерированный
+    const prompt = customPrompt || analysisData.prompt;
+    
+    // Генерируем фотографию из эскиза
+    const photoBuffer = await generatePhotoFromSketch(analysisData.sketchPath, prompt);
+    
+    // Удаляем временные файлы
+    fs.unlinkSync(imagePath);
+    if (fs.existsSync(analysisData.sketchPath)) {
+      fs.unlinkSync(analysisData.sketchPath);
+    }
+
+    res.setHeader('Content-Type', 'image/png');
+    res.send(photoBuffer);
+
+  } catch (error) {
+    console.error('Ошибка генерации фотографии:', error);
+    res.status(500).json({ error: 'Ошибка генерации фотографии: ' + error.message });
   }
 });
 
