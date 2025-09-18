@@ -6,8 +6,7 @@
   "scripts": {
     "start": "cd backend && node server.mjs",
     "build": "cd backend && npm install",
-    "dev": "cd backend && npm run dev",
-    "test-local": "node test-local-generation.mjs"
+    "dev": "cd backend && npm run dev"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -16,9 +15,9 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "form-data": "^4.0.4",
     "multer": "^1.4.5-lts.1",
-    "node-fetch": "^3.3.2",
-    "sharp": "^0.33.5"
+    "openai": "^4.52.7",
+    "sharp": "^0.33.4",
+    "zod": "^3.23.8"
   }
 }

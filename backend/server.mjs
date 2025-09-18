@@ -4,8 +4,8 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { generatePhotoFromSketch, createSketchFromImage } from './src/scribbleDiffusionGenerator.mjs';
-import { generatePlanOnlyPrompt, generatePlanWithFurniturePrompt, enhancePromptForCentering } from './src/promptGenerator.mjs';
+import { controlNetGenerator } from './src/controlNetGenerator.mjs';
+import { roomAnalyzer } from './src/roomAnalyzer.mjs';
 
 // Загружаем переменные окружения из .env файла
 import dotenv from 'dotenv';
@@ -17,72 +17,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Локальная генерация без внешних API
-console.log('🏠 Локальная генерация планов квартир');
-console.log('✅ Все ИИ функции работают локально без внешних API');
-console.log('💡 Никаких кредитов или токенов не требуется');
+// Проверяем наличие ControlNet
+console.log('🔍 Проверка ControlNet:');
+console.log('✅ Используется локальная генерация через ControlNet');
+console.log('🎯 Полная независимость от внешних API');
 
-// CORS конфигурация
+// Middleware
 app.use(cors({
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'https://acqu1red.github.io',
-      'https://acqu1red.github.io/latar',
-      'https://competitive-camellia-latar-a11ca532.koyeb.app',
-      'http://localhost:3000',
-      'http://localhost:5173'
-    ];
-    
-    console.log('🌐 CORS Origin:', origin);
-    
-    // Разрешаем запросы без origin (например, Postman, curl)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      console.log('✅ CORS разрешен для:', origin);
-      return callback(null, true);
-    } else {
-      console.log('❌ CORS заблокирован для:', origin);
-      return callback(new Error('CORS не разрешен для этого origin'), false);
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
+  origin: ['https://acqu1red.github.io'],
+  credentials: true
 }));
-
 app.use(express.json());
 app.use(express.static('public'));
-
-// Дополнительный middleware для принудительной установки CORS заголовков
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    'https://acqu1red.github.io',
-    'https://acqu1red.github.io/latar',
-    'https://competitive-camellia-latar-a11ca532.koyeb.app',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ];
-  
-  console.log('🔧 Дополнительный CORS middleware - Origin:', origin);
-  
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    console.log('✅ Дополнительный CORS разрешен для:', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    console.log('⚠️ Дополнительный CORS с wildcard для:', origin);
-  }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  next();
-});
-
-// Preflight запросы обрабатываются автоматически CORS middleware
 
 // Статический маршрут для временных изображений
 app.use('/temp-images', express.static(path.join(__dirname, 'uploads')));
@@ -116,52 +62,37 @@ const upload = multer({
   }
 });
 
-// Маршрут для генерации фотографии без мебели
+
+// Маршрут для генерации простого плана
 app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
   try {
-    console.log('📥 Получен запрос на /api/generate-photo');
-    console.log('📥 Headers:', req.headers);
-    console.log('📥 File:', req.file ? 'загружен' : 'не загружен');
-    
     if (!req.file) {
-      console.log('❌ Изображение не загружено');
       return res.status(400).json({ error: 'Изображение не загружено' });
     }
 
     const imagePath = req.file.path;
-    console.log('Обработка изображения для генерации фотографии:', imagePath);
+    console.log('Обработка изображения для генерации простого плана:', imagePath);
 
-    // Создаем эскиз из изображения
-    const sketchPath = await createSketchFromImage(imagePath);
+    // Генерируем простой план без мебели через ControlNet
+    const prompt = 'a detailed architectural floor plan drawing, perfectly centered on a clean white background, showing room layouts with walls, doors, and windows. The plan should be drawn exactly as shown in the reference image with precise proportions. Clean, professional architectural drawing style with black lines on white background. The floor plan should be centered and clearly visible.';
     
-    // Генерируем автоматический промпт для плана без мебели
-    const basePrompt = generatePlanOnlyPrompt();
-    const prompt = enhancePromptForCentering(basePrompt);
+    const photoBuffer = await controlNetGenerator.generatePlanWithFurniture(imagePath, prompt);
     
-    // Генерируем фотографию из эскиза
-    const photoBuffer = await generatePhotoFromSketch(sketchPath, prompt);
-    
-    // Удаляем временные файлы
+    // Удаляем временный файл
     fs.unlinkSync(imagePath);
-    if (fs.existsSync(sketchPath)) {
-      fs.unlinkSync(sketchPath);
-    }
 
-    console.log('📤 Отправляем ответ клиенту...');
     res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Length', photoBuffer.length);
     res.send(photoBuffer);
-    console.log('✅ Ответ отправлен успешно');
 
   } catch (error) {
-    console.error('❌ Ошибка генерации фотографии:', error);
-    console.error('❌ Детали ошибки:', error.message);
-    console.error('❌ Стек ошибки:', error.stack);
-    res.status(500).json({ 
-      error: 'Ошибка генерации фотографии: ' + error.message,
-      details: error.stack
-    });
+    console.error('Ошибка генерации простого плана:', error);
+    res.status(500).json({ error: 'Ошибка генерации простого плана: ' + error.message });
   }
+});
+
+// Health check endpoint
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Маршрут для генерации плана с мебелью
@@ -174,42 +105,31 @@ app.post('/api/generate-with-furniture', upload.single('image'), async (req, res
     const imagePath = req.file.path;
     console.log('Обработка изображения для генерации плана с мебелью:', imagePath);
 
-    // Создаем эскиз из изображения
-    const sketchPath = await createSketchFromImage(imagePath);
-    
-    // Генерируем автоматический промпт для плана с мебелью
-    const basePrompt = generatePlanWithFurniturePrompt();
-    const prompt = enhancePromptForCentering(basePrompt);
-    
-    // Генерируем фотографию из эскиза
-    const photoBuffer = await generatePhotoFromSketch(sketchPath, prompt);
-    
-    // Удаляем временные файлы
-    fs.unlinkSync(imagePath);
-    if (fs.existsSync(sketchPath)) {
-      fs.unlinkSync(sketchPath);
-    }
+    // Анализируем тип помещения
+    const roomType = await roomAnalyzer.analyzeRoomType(imagePath);
+    console.log('Определен тип помещения:', roomType);
 
-    console.log('📤 Отправляем ответ клиенту...');
+    // Выбираем подходящую мебель
+    const selectedFurniture = roomAnalyzer.selectFurnitureForRoom(roomType);
+    console.log('Выбрана мебель:', selectedFurniture);
+
+    // Генерируем промпт с мебелью
+    const prompt = roomAnalyzer.generateFurniturePrompt(roomType, selectedFurniture);
+    console.log('Сгенерирован промпт:', prompt);
+
+    // Генерируем план с мебелью через ControlNet
+    const photoBuffer = await controlNetGenerator.generatePlanWithFurniture(imagePath, prompt);
+    
+    // Удаляем временный файл
+    fs.unlinkSync(imagePath);
+
     res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Length', photoBuffer.length);
     res.send(photoBuffer);
-    console.log('✅ Ответ отправлен успешно');
 
   } catch (error) {
-    console.error('❌ Ошибка генерации плана с мебелью:', error);
-    console.error('❌ Детали ошибки:', error.message);
-    console.error('❌ Стек ошибки:', error.stack);
-    res.status(500).json({ 
-      error: 'Ошибка генерации плана с мебелью: ' + error.message,
-      details: error.stack
-    });
+    console.error('Ошибка генерации плана с мебелью:', error);
+    res.status(500).json({ error: 'Ошибка генерации плана с мебелью: ' + error.message });
   }
-});
-
-// Health check endpoint
-app.get('/healthz', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Маршрут для получения мебели

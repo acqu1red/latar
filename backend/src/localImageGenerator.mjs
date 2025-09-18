@@ -18,21 +18,11 @@ export async function generateLocalImage(sketchPath, prompt) {
     const sketchImage = sharp(sketchBuffer);
     const metadata = await sketchImage.metadata();
 
-    // Проверяем, нужен ли план с мебелью
-    const isFurniturePlan = prompt.toLowerCase().includes('furniture') || 
-                           prompt.toLowerCase().includes('with furniture');
-
-    if (isFurniturePlan) {
-      // Создаем план с мебелью
-      const furnitureImage = await createFurniturePlan(sketchImage, metadata, prompt);
-      console.log('✅ Локальный план с мебелью сгенерирован');
-      return furnitureImage;
-    } else {
-      // Создаем обычный план
-      const coloredImage = await createColoredImage(sketchImage, metadata, prompt);
-      console.log('✅ Локальное изображение сгенерировано');
-      return coloredImage;
-    }
+    // Создаем цветную версию на основе эскиза
+    const coloredImage = await createColoredImage(sketchImage, metadata, prompt);
+    
+    console.log('✅ Локальное изображение сгенерировано');
+    return coloredImage;
 
   } catch (error) {
     console.error('❌ Ошибка локальной генерации:', error);
@@ -89,27 +79,8 @@ async function createColoredImage(sketchImage, metadata, prompt) {
 function getColorSchemeFromPrompt(prompt) {
   const lowerPrompt = prompt.toLowerCase();
   
-  // Специальная схема для архитектурных планов
-  if (lowerPrompt.includes('architectural') || lowerPrompt.includes('floor plan') || 
-      lowerPrompt.includes('blueprint') || lowerPrompt.includes('technical drawing')) {
-    return {
-      primary: '#000000',      // Черные линии плана
-      secondary: '#333333',    // Темно-серые элементы
-      accent: '#666666',       // Серые детали
-      background: '#FFFFFF',   // Белый фон
-      furniture: '#2C3E50',    // Темно-синий для мебели
-      walls: '#000000'         // Черные стены
-    };
-  } else if (lowerPrompt.includes('furniture') || lowerPrompt.includes('with furniture')) {
-    return {
-      primary: '#000000',      // Черные линии плана
-      secondary: '#2C3E50',    // Темно-синий для мебели
-      accent: '#34495E',       // Серо-синий для деталей
-      background: '#FFFFFF',   // Белый фон
-      furniture: '#2C3E50',    // Темно-синий для мебели
-      walls: '#000000'         // Черные стены
-    };
-  } else if (lowerPrompt.includes('sunset') || lowerPrompt.includes('sunrise')) {
+  // Определяем основные цвета на основе ключевых слов
+  if (lowerPrompt.includes('sunset') || lowerPrompt.includes('sunrise')) {
     return {
       primary: '#FF6B35',
       secondary: '#F7931E',
@@ -156,22 +127,7 @@ function getColorSchemeFromPrompt(prompt) {
  * @returns {Promise<Buffer>} Градиентное изображение
  */
 async function createBaseGradient(width, height, colorScheme) {
-  // Для архитектурных планов создаем чистый белый фон
-  if (colorScheme.background === '#FFFFFF') {
-    // Создаем чисто белое изображение
-    return await sharp({
-      create: {
-        width: width,
-        height: height,
-        channels: 3,
-        background: { r: 255, g: 255, b: 255 }
-      }
-    })
-    .png()
-    .toBuffer();
-  }
-  
-  // Для других типов изображений создаем градиент
+  // Создаем SVG с градиентом
   const svg = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -198,32 +154,7 @@ async function createBaseGradient(width, height, colorScheme) {
  * @returns {Promise<Buffer>} Результат
  */
 async function applySketchAsMask(baseImage, sketchImage, colorScheme) {
-  // Для архитектурных планов используем специальную обработку
-  if (colorScheme.background === '#FFFFFF') {
-    // Создаем черные линии на белом фоне
-    const blackLines = await sketchImage
-      .greyscale()
-      .normalize()
-      .threshold(140) // Более четкие линии
-      .png()
-      .toBuffer();
-    
-    // Применяем черные линии к белому фону
-    const result = await sharp(baseImage)
-      .composite([
-        {
-          input: blackLines,
-          blend: 'multiply',
-          opacity: 1.0 // Полная непрозрачность для четких линий
-        }
-      ])
-      .png()
-      .toBuffer();
-    
-    return result;
-  }
-  
-  // Для других типов изображений используем стандартную обработку
+  // Конвертируем эскиз в маску
   const mask = await sketchImage
     .greyscale()
     .normalize()
@@ -256,87 +187,6 @@ async function applySketchAsMask(baseImage, sketchImage, colorScheme) {
     .toBuffer();
   
   return result;
-}
-
-/**
- * Создает план с мебелью
- * @param {Object} sketchImage - Sharp объект эскиза
- * @param {Object} metadata - Метаданные изображения
- * @param {string} prompt - Промпт
- * @returns {Promise<Buffer>} План с мебелью
- */
-async function createFurniturePlan(sketchImage, metadata, prompt) {
-  const { width, height } = metadata;
-  
-  // Создаем белый фон
-  const whiteBackground = await sharp({
-    create: {
-      width: width,
-      height: height,
-      channels: 3,
-      background: { r: 255, g: 255, b: 255 }
-    }
-  })
-  .png()
-  .toBuffer();
-  
-  // Создаем черные линии плана
-  const planLines = await sketchImage
-    .greyscale()
-    .normalize()
-    .threshold(140)
-    .png()
-    .toBuffer();
-  
-  // Создаем простые символы мебели
-  const furnitureSymbols = await createFurnitureSymbols(width, height);
-  
-  // Объединяем все элементы
-  const result = await sharp(whiteBackground)
-    .composite([
-      {
-        input: planLines,
-        blend: 'multiply',
-        opacity: 1.0
-      },
-      {
-        input: furnitureSymbols,
-        blend: 'multiply',
-        opacity: 0.8
-      }
-    ])
-    .png()
-    .toBuffer();
-  
-  return result;
-}
-
-/**
- * Создает простые символы мебели
- * @param {number} width - Ширина
- * @param {number} height - Высота
- * @returns {Promise<Buffer>} Символы мебели
- */
-async function createFurnitureSymbols(width, height) {
-  // Создаем SVG с простыми символами мебели
-  const svg = `
-    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="furniture" patternUnits="userSpaceOnUse" width="50" height="50">
-          <rect width="50" height="50" fill="white"/>
-          <!-- Простые символы мебели -->
-          <rect x="10" y="10" width="30" height="20" fill="none" stroke="#2C3E50" stroke-width="2"/>
-          <rect x="15" y="15" width="20" height="10" fill="none" stroke="#2C3E50" stroke-width="1"/>
-          <circle cx="25" cy="25" r="3" fill="#2C3E50"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#furniture)" opacity="0.3"/>
-    </svg>
-  `;
-  
-  return await sharp(Buffer.from(svg))
-    .png()
-    .toBuffer();
 }
 
 /**

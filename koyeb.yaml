@@ -1,33 +1,19 @@
-# Koyeb конфигурация для деплоя backend
-name: latar-backend
 services:
   - name: latar-backend
     source:
-      type: git
-      git:
-        repository: https://github.com/acqu1red/latar
-        branch: main
-        working_directory: backend
+      repository: https://github.com/acqu1red/latar
+      subdirectory: backend
     ports:
       - port: 3001
+        targetPort: 3001
         protocol: http
     env:
       - name: NODE_ENV
         value: production
       - name: PORT
         value: "3001"
-    build:
-      type: dockerfile
-      dockerfile_path: backend/Dockerfile
-    run:
-      command: ["node", "--max-old-space-size=4096", "server.mjs"]
-      args: []
     healthcheck:
-      http:
-        path: /healthz
-        port: 3001
-        initial_delay: 30
-        interval: 10
-        timeout: 5
-        unhealthy_threshold: 3
-        healthy_threshold: 2
+      path: /api/furniture
+      port: 3001
+      initialDelaySeconds: 30
+      periodSeconds: 10

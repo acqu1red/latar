@@ -15,7 +15,7 @@ const App: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPhoto, setGeneratedPhoto] = useState<string | null>(null);
-  const [generationType, setGenerationType] = useState<'photo' | 'furniture'>('photo');
+  const [generationType, setGenerationType] = useState<'plan' | 'furniture'>('plan');
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -37,33 +37,22 @@ const App: React.FC = () => {
       const formData = new FormData();
       formData.append('image', selectedImage);
 
-      let endpoint = '';
-      if (generationType === 'furniture') {
-        endpoint = '/api/generate-with-furniture';
-      } else {
-        endpoint = '/api/generate-photo';
-      }
+      const endpoint = generationType === 'furniture' 
+        ? '/api/generate-with-furniture' 
+        : '/api/generate-photo';
 
-      console.log('📤 Отправляем запрос на:', `${API_BASE_URL}${endpoint}`);
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         body: formData,
       });
 
-      console.log('📥 Получен ответ:', response.status, response.statusText);
-      console.log('📥 Content-Type:', response.headers.get('content-type'));
-
       if (response.ok) {
-        console.log('✅ Ответ успешный, обрабатываем изображение...');
         const photoBlob = await response.blob();
-        console.log('📷 Размер изображения:', photoBlob.size, 'байт');
         const photoUrl = URL.createObjectURL(photoBlob);
         setGeneratedPhoto(photoUrl);
-        console.log('✅ Изображение установлено в состояние');
       } else {
-        console.error('❌ Ошибка ответа:', response.status, response.statusText);
         const errorData = await response.json();
-        console.error('❌ Детали ошибки:', errorData);
+        console.error('Ошибка генерации:', errorData.error);
         alert(`Ошибка: ${errorData.error}`);
       }
     } catch (error) {
@@ -78,9 +67,9 @@ const App: React.FC = () => {
   return (
     <div className="app">
       <div className="container">
-        <h1>Генератор планов квартир с AI</h1>
+        <h1>AI Генератор планов квартир</h1>
         <p className="app-description">
-          Загрузите фотографию плана квартиры и получите профессиональный план с помощью нейросети
+          Загрузите фотографию плана квартиры и получите профессионально нарисованный план с помощью ИИ
         </p>
         
         <div className="upload-section">
@@ -112,13 +101,13 @@ const App: React.FC = () => {
               <div className="option-item">
                 <input 
                   type="radio" 
-                  id="photo-generation" 
+                  id="plan-generation" 
                   name="generation-type" 
-                  value="photo"
-                  checked={generationType === 'photo'}
-                  onChange={(e) => setGenerationType(e.target.value as 'photo' | 'furniture')}
+                  value="plan" 
+                  checked={generationType === 'plan'}
+                  onChange={(e) => setGenerationType(e.target.value as 'plan' | 'furniture')}
                 />
-                <label htmlFor="photo-generation">Фотография (AI)</label>
+                <label htmlFor="plan-generation">Простой план</label>
               </div>
               <div className="option-item">
                 <input 
@@ -127,11 +116,30 @@ const App: React.FC = () => {
                   name="generation-type" 
                   value="furniture"
                   checked={generationType === 'furniture'}
-                  onChange={(e) => setGenerationType(e.target.value as 'photo' | 'furniture')}
+                  onChange={(e) => setGenerationType(e.target.value as 'plan' | 'furniture')}
                 />
-                <label htmlFor="furniture-generation">План с мебелью (AI)</label>
+                <label htmlFor="furniture-generation">С мебелью</label>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="info-section">
+          <div className="info-box">
+            <h3>🎯 Что делает ИИ:</h3>
+            <ul>
+              <li>Анализирует ваш план квартиры</li>
+              <li>Создает профессиональный архитектурный чертеж</li>
+              <li>Размещает план строго по центру</li>
+              <li>Сохраняет все детали и пропорции</li>
+              {generationType === 'furniture' && (
+                <>
+                  <li>Определяет тип помещения (спальня, кухня, ванная)</li>
+                  <li>Добавляет подходящую мебель в нужных местах</li>
+                  <li>Создает реалистичный план с обстановкой</li>
+                </>
+              )}
+            </ul>
           </div>
         </div>
 
@@ -140,22 +148,30 @@ const App: React.FC = () => {
           onClick={handleGenerate}
           disabled={!selectedImage || isGenerating}
         >
-          {isGenerating ? 'Генерация...' : 'Сгенерировать'}
+          {isGenerating ? 'Генерация...' : (generationType === 'furniture' ? 'Сгенерировать с мебелью' : 'Сгенерировать план')}
         </button>
 
         {generatedPhoto && (
           <div className="result-section">
             <h2>Результат</h2>
+            <div className="photo-info">
+              <p>🎨 Профессионально нарисованный план квартиры</p>
+              <p>📐 Точное воспроизведение всех деталей и пропорций</p>
+              <p>🎯 План размещен строго по центру</p>
+              {generationType === 'furniture' && (
+                <p>🪑 Добавлена подходящая мебель в логичных местах</p>
+              )}
+            </div>
             <div className="photo-container">
               <img 
                 src={generatedPhoto} 
-                alt="Сгенерированный план" 
+                alt="Сгенерированный план квартиры" 
                 className="generated-photo"
               />
               <div className="photo-actions">
                 <a 
                   href={generatedPhoto} 
-                  download="generated-plan.png"
+                  download="floor-plan.png"
                   className="download-btn"
                 >
                   💾 Скачать план
@@ -170,5 +186,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
-
