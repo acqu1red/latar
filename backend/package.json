@@ -9,6 +9,7 @@
     "dev": "node --max-old-space-size=4096 --watch server.mjs",
     "setup": "node setup-env.js",
     "build": "echo 'No build step required for backend'",
+    "postinstall": "npm rebuild sharp --platform=linux --arch=x64",
     "heroku-postbuild": "echo 'Backend ready'"
   },
   "dependencies": {
