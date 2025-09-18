@@ -9,7 +9,6 @@
     "dev": "node --max-old-space-size=4096 --watch server.mjs",
     "setup": "node setup-env.js",
     "build": "echo 'No build step required for backend'",
-    "postinstall": "npm rebuild sharp --platform=linux --arch=x64",
     "heroku-postbuild": "echo 'Backend ready'"
   },
   "dependencies": {
@@ -19,7 +18,7 @@
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
-    "sharp": "^0.34.3"
+    "sharp": "0.32.6"
   },
   "keywords": [
     "svg",

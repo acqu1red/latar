@@ -20,6 +20,9 @@ COPY package*.json ./
 # Устанавливаем Node.js зависимости
 RUN npm ci --only=production
 
+# Принудительно переустанавливаем Sharp для Linux
+RUN npm rebuild sharp --platform=linux --arch=x64 --force
+
 # Создаем виртуальное окружение Python
 RUN python3 -m venv controlnet_env
 
