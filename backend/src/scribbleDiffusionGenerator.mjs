@@ -16,12 +16,26 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
     console.log('Эскиз:', sketchPath);
     console.log('Промпт:', prompt);
 
+    // Проверяем существование файла эскиза
+    if (!fs.existsSync(sketchPath)) {
+      throw new Error(`Файл эскиза не найден: ${sketchPath}`);
+    }
+
     // Используем только локальную генерацию
     console.log('🏠 Используем локальную генерацию (Replicate API отключен)');
-    return await generateLocalScribbleDiffusion(sketchPath, prompt);
+    const result = await generateLocalScribbleDiffusion(sketchPath, prompt);
+    
+    if (!result || result.length === 0) {
+      throw new Error('Локальная генерация вернула пустой результат');
+    }
+    
+    console.log('✅ Локальная генерация завершена успешно, размер:', result.length, 'байт');
+    return result;
 
   } catch (error) {
     console.error('❌ Ошибка генерации фотографии:', error);
+    console.error('❌ Детали ошибки:', error.message);
+    console.error('❌ Стек ошибки:', error.stack);
     throw error;
   }
 }

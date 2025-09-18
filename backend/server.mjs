@@ -95,8 +95,13 @@ app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
     res.send(photoBuffer);
 
   } catch (error) {
-    console.error('Ошибка генерации фотографии:', error);
-    res.status(500).json({ error: 'Ошибка генерации фотографии: ' + error.message });
+    console.error('❌ Ошибка генерации фотографии:', error);
+    console.error('❌ Детали ошибки:', error.message);
+    console.error('❌ Стек ошибки:', error.stack);
+    res.status(500).json({ 
+      error: 'Ошибка генерации фотографии: ' + error.message,
+      details: error.stack
+    });
   }
 });
 
@@ -130,8 +135,13 @@ app.post('/api/generate-with-furniture', upload.single('image'), async (req, res
     res.send(photoBuffer);
 
   } catch (error) {
-    console.error('Ошибка генерации плана с мебелью:', error);
-    res.status(500).json({ error: 'Ошибка генерации плана с мебелью: ' + error.message });
+    console.error('❌ Ошибка генерации плана с мебелью:', error);
+    console.error('❌ Детали ошибки:', error.message);
+    console.error('❌ Стек ошибки:', error.stack);
+    res.status(500).json({ 
+      error: 'Ошибка генерации плана с мебелью: ' + error.message,
+      details: error.stack
+    });
   }
 });
 

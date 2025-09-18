@@ -35,34 +35,52 @@ export async function generateLocalScribbleDiffusion(sketchPath, prompt) {
     console.log('🎨 Локальная генерация ScribbleDiffusion:', sketchPath);
     console.log('Промпт:', prompt);
 
+    // Проверяем существование файла
+    if (!fs.existsSync(sketchPath)) {
+      throw new Error(`Файл эскиза не найден: ${sketchPath}`);
+    }
+
     // Пробуем разные методы локальной генерации
     if (LOCAL_CONFIG.USE_LOCAL_MODEL) {
       try {
         // Метод 1: Hugging Face API
+        console.log('🤗 Пробуем Hugging Face...');
         const result = await generateWithHuggingFace(sketchPath, prompt);
-        if (result) return result;
+        if (result) {
+          console.log('✅ Hugging Face генерация успешна');
+          return result;
+        }
       } catch (error) {
-        console.log('⚠️ Hugging Face недоступен, пробуем Ollama...');
+        console.log('⚠️ Hugging Face недоступен:', error.message);
       }
 
       try {
         // Метод 2: Ollama API
+        console.log('🦙 Пробуем Ollama...');
         const result = await generateWithOllama(sketchPath, prompt);
-        if (result) return result;
+        if (result) {
+          console.log('✅ Ollama генерация успешна');
+          return result;
+        }
       } catch (error) {
-        console.log('⚠️ Ollama недоступен, используем улучшенную локальную генерацию...');
+        console.log('⚠️ Ollama недоступен:', error.message);
       }
     }
 
     // Метод 3: Улучшенная локальная генерация (fallback)
     if (LOCAL_CONFIG.FALLBACK_TO_ENHANCED) {
-      return await generateEnhancedLocal(sketchPath, prompt);
+      console.log('🎨 Используем улучшенную локальную генерацию...');
+      const result = await generateEnhancedLocal(sketchPath, prompt);
+      console.log('✅ Улучшенная локальная генерация завершена');
+      return result;
     }
 
     throw new Error('Все методы локальной генерации недоступны');
 
   } catch (error) {
     console.error('❌ Ошибка локальной генерации ScribbleDiffusion:', error);
+    console.error('❌ Детали ошибки:', error.message);
+    console.error('❌ Стек ошибки:', error.stack);
     throw error;
   }
 }
