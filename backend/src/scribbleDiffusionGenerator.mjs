@@ -16,73 +16,9 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
     console.log('Эскиз:', sketchPath);
     console.log('Промпт:', prompt);
 
-    // Проверяем наличие API ключа
-    if (!process.env.REPLICATE_API_TOKEN) {
-      console.log('⚠️ Replicate API токен не найден, используем локальную генерацию');
-      return await generateLocalScribbleDiffusion(sketchPath, prompt);
-    }
-
-    // Читаем файл эскиза
-    const sketchBuffer = fs.readFileSync(sketchPath);
-    const sketchBase64 = sketchBuffer.toString('base64');
-    const sketchDataUrl = `data:image/png;base64,${sketchBase64}`;
-
-    // Создаем запрос к Replicate API
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        version: "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4", // ControlNet Scribble model
-        input: {
-          image: sketchDataUrl,
-          prompt: prompt,
-          num_inference_steps: 25,
-          guidance_scale: 8.0,
-          negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy, deformed, off-center, misaligned, crooked, tilted, uneven, asymmetrical, poor composition, amateur, unprofessional"
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Ошибка Replicate API: ${response.status} - ${errorText}`);
-      
-      // Проверяем, если это ошибка с кредитами
-      if (response.status === 402) {
-        console.log('💳 Недостаточно кредитов на Replicate, переключаемся на локальную генерацию...');
-      } else {
-        console.log('🔄 Ошибка API, переключаемся на локальную генерацию...');
-      }
-      
-      return await generateLocalScribbleDiffusion(sketchPath, prompt);
-    }
-
-    const prediction = await response.json();
-    console.log('✅ Запрос создан, ID:', prediction.id);
-
-    // Ждем завершения генерации
-    const result = await waitForCompletion(prediction.id);
-    
-    if (!result || !result.output || result.output.length === 0) {
-      throw new Error('Генерация не завершилась успешно');
-    }
-
-    // Скачиваем результат
-    const imageUrl = result.output[0];
-    console.log('📥 Скачиваем сгенерированное изображение:', imageUrl);
-    
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`Ошибка скачивания изображения: ${imageResponse.status}`);
-    }
-
-    const imageBuffer = await imageResponse.buffer();
-    console.log('✅ Фотография сгенерирована, размер:', imageBuffer.length, 'байт');
-    
-    return imageBuffer;
+    // Используем только локальную генерацию
+    console.log('🏠 Используем локальную генерацию (Replicate API отключен)');
+    return await generateLocalScribbleDiffusion(sketchPath, prompt);
 
   } catch (error) {
     console.error('❌ Ошибка генерации фотографии:', error);
@@ -90,52 +26,6 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
   }
 }
 
-/**
- * Ожидает завершения генерации
- * @param {string} predictionId - ID предсказания
- * @returns {Promise<Object>} Результат генерации
- */
-async function waitForCompletion(predictionId) {
-  const maxAttempts = 60; // 5 минут максимум
-  let attempts = 0;
-
-  while (attempts < maxAttempts) {
-    try {
-      const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-        headers: {
-          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ошибка проверки статуса: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log(`⏳ Статус генерации: ${result.status} (попытка ${attempts + 1}/${maxAttempts})`);
-
-      if (result.status === 'succeeded') {
-        console.log('✅ Генерация завершена успешно');
-        return result;
-      } else if (result.status === 'failed') {
-        throw new Error(`Генерация не удалась: ${result.error || 'Неизвестная ошибка'}`);
-      } else if (result.status === 'canceled') {
-        throw new Error('Генерация отменена');
-      }
-
-      // Ждем 5 секунд перед следующей проверкой
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      attempts++;
-
-    } catch (error) {
-      console.error('Ошибка проверки статуса:', error);
-      attempts++;
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-  }
-
-  throw new Error('Превышено время ожидания генерации');
-}
 
 /**
  * Создает эскиз из загруженного изображения для ScribbleDiffusion

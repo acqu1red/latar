@@ -25,7 +25,6 @@ console.log('💡 Никаких кредитов или токенов не т�
 // Middleware
 app.use(cors({
   origin: [
-    'https://acqu1red.github.io',
     'https://acqu1red.github.io/latar',
     'https://competitive-camellia-latar-a11ca532.koyeb.app'
   ],
