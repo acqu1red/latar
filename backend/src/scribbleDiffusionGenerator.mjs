@@ -4,10 +4,9 @@ import path from 'path';
 import { generateLocalImage, createEnhancedSketch } from './localImageGenerator.mjs';
 import { localStableDiffusion } from './localStableDiffusion.mjs';
 import { simpleLocalGenerator } from './simpleLocalGenerator.mjs';
-import { scribbleDiffusionAPI } from './scribbleDiffusionAPI.mjs';
 
 /**
- * Генерирует фотографию из эскиза используя ScribbleDiffusion через Replicate API
+ * Генерирует фотографию из эскиза используя ScribbleDiffusion API
  * @param {string} sketchPath - Путь к файлу эскиза
  * @param {string} prompt - Текстовое описание желаемого изображения
  * @returns {Promise<Buffer>} Сгенерированное изображение
@@ -18,21 +17,15 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
     console.log('Эскиз:', sketchPath);
     console.log('Промпт:', prompt);
 
-    // Сначала пробуем ваш ScribbleDiffusion API
-    if (scribbleDiffusionAPI.isAvailable) {
-      console.log('🚀 Используем ScribbleDiffusion API');
-      return await scribbleDiffusionAPI.generateImage(sketchPath, prompt);
-    }
-
-    // Затем пробуем локальную Stable Diffusion
+    // Сначала пробуем локальную Stable Diffusion
     if (localStableDiffusion.isAvailable) {
       console.log('🚀 Используем локальную Stable Diffusion + ControlNet');
       return await localStableDiffusion.generatePlan(sketchPath, prompt);
     }
 
-    // Проверяем наличие API ключа для Replicate
-    if (!process.env.REPLICATE_API_TOKEN) {
-      console.log('⚠️ Replicate API токен не найден, используем простую локальную генерацию');
+    // Проверяем наличие API ключа для Scribble Diffusion
+    if (!process.env.SCRIBBLE_DIFFUSION_API_KEY) {
+      console.log('⚠️ Scribble Diffusion API ключ не найден, используем простую локальную генерацию');
       return await simpleLocalGenerator.generatePlan(sketchPath, prompt);
     }
 
@@ -41,70 +34,81 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
     const sketchBase64 = sketchBuffer.toString('base64');
     const sketchDataUrl = `data:image/png;base64,${sketchBase64}`;
 
-    // Создаем запрос к Replicate API
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    // Создаем запрос к Scribble Diffusion API
+    const response = await fetch('https://api.scribblediffusion.com/v1/generate', {
       method: 'POST',
       headers: {
-        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+        'Authorization': `Bearer ${process.env.SCRIBBLE_DIFFUSION_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4", // ControlNet Scribble model
-        input: {
-          image: sketchDataUrl,
-          prompt: prompt,
-          num_inference_steps: 20,
-          guidance_scale: 7.5,
-          negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy, deformed"
-        }
+        image: sketchDataUrl,
+        prompt: prompt,
+        num_inference_steps: 20,
+        guidance_scale: 7.5,
+        negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy, deformed"
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Ошибка Replicate API: ${response.status} - ${errorText}`);
+      console.error(`❌ Ошибка Scribble Diffusion API: ${response.status} - ${errorText}`);
       
       // Проверяем, если это ошибка с кредитами
       if (response.status === 402) {
-        console.log('💳 Недостаточно кредитов на Replicate. Пробуем ScribbleDiffusion API...');
-        if (scribbleDiffusionAPI.isAvailable) {
-          return await scribbleDiffusionAPI.generateImage(sketchPath, prompt);
-        }
-        console.log('⚠️ ScribbleDiffusion API недоступен, используем простую локальную генерацию...');
+        console.log('💳 Недостаточно кредитов на Scribble Diffusion. Переключаемся на простую локальную генерацию...');
       } else {
-        console.log('🔄 Переключаемся на ScribbleDiffusion API...');
-        if (scribbleDiffusionAPI.isAvailable) {
-          return await scribbleDiffusionAPI.generateImage(sketchPath, prompt);
-        }
-        console.log('⚠️ ScribbleDiffusion API недоступен, используем простую локальную генерацию...');
+        console.log('🔄 Переключаемся на простую локальную генерацию...');
       }
       
       return await simpleLocalGenerator.generatePlan(sketchPath, prompt);
     }
 
-    const prediction = await response.json();
-    console.log('✅ Запрос создан, ID:', prediction.id);
-
-    // Ждем завершения генерации
-    const result = await waitForCompletion(prediction.id);
+    const result = await response.json();
     
-    if (!result || !result.output || result.output.length === 0) {
-      throw new Error('Генерация не завершилась успешно');
+    // Проверяем, если API возвращает изображение напрямую
+    if (result.image) {
+      console.log('✅ Изображение получено напрямую от API');
+      const imageBuffer = Buffer.from(result.image, 'base64');
+      console.log('✅ Фотография сгенерирована, размер:', imageBuffer.length, 'байт');
+      return imageBuffer;
     }
-
-    // Скачиваем результат
-    const imageUrl = result.output[0];
-    console.log('📥 Скачиваем сгенерированное изображение:', imageUrl);
     
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`Ошибка скачивания изображения: ${imageResponse.status}`);
+    // Если API возвращает URL изображения
+    if (result.imageUrl) {
+      console.log('📥 Скачиваем сгенерированное изображение:', result.imageUrl);
+      const imageResponse = await fetch(result.imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Ошибка скачивания изображения: ${imageResponse.status}`);
+      }
+      const imageBuffer = await imageResponse.buffer();
+      console.log('✅ Фотография сгенерирована, размер:', imageBuffer.length, 'байт');
+      return imageBuffer;
     }
-
-    const imageBuffer = await imageResponse.buffer();
-    console.log('✅ Фотография сгенерирована, размер:', imageBuffer.length, 'байт');
     
-    return imageBuffer;
+    // Если API возвращает ID для отслеживания (как Replicate)
+    if (result.id) {
+      console.log('✅ Запрос создан, ID:', result.id);
+      const finalResult = await waitForCompletion(result.id);
+      
+      if (!finalResult || !finalResult.output || finalResult.output.length === 0) {
+        throw new Error('Генерация не завершилась успешно');
+      }
+
+      const imageUrl = finalResult.output[0];
+      console.log('📥 Скачиваем сгенерированное изображение:', imageUrl);
+      
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Ошибка скачивания изображения: ${imageResponse.status}`);
+      }
+
+      const imageBuffer = await imageResponse.buffer();
+      console.log('✅ Фотография сгенерирована, размер:', imageBuffer.length, 'байт');
+      return imageBuffer;
+    }
+    
+    throw new Error('Неожиданный формат ответа от API');
 
   } catch (error) {
     console.error('❌ Ошибка генерации фотографии:', error);
@@ -123,9 +127,9 @@ async function waitForCompletion(predictionId) {
 
   while (attempts < maxAttempts) {
     try {
-      const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+      const response = await fetch(`https://api.scribblediffusion.com/v1/status/${predictionId}`, {
         headers: {
-          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+          'Authorization': `Bearer ${process.env.SCRIBBLE_DIFFUSION_API_KEY}`,
         }
       });
 
@@ -136,10 +140,10 @@ async function waitForCompletion(predictionId) {
       const result = await response.json();
       console.log(`⏳ Статус генерации: ${result.status} (попытка ${attempts + 1}/${maxAttempts})`);
 
-      if (result.status === 'succeeded') {
+      if (result.status === 'succeeded' || result.status === 'completed') {
         console.log('✅ Генерация завершена успешно');
         return result;
-      } else if (result.status === 'failed') {
+      } else if (result.status === 'failed' || result.status === 'error') {
         throw new Error(`Генерация не удалась: ${result.error || 'Неизвестная ошибка'}`);
       } else if (result.status === 'canceled') {
         throw new Error('Генерация отменена');
@@ -212,63 +216,5 @@ async function convertToSketch(imagePath) {
     .toFile(outputPath);
   
   return outputPath;
-}
-
-/**
- * Генерирует промпт на основе анализа изображения
- * @param {string} imagePath - Путь к изображению
- * @returns {Promise<string>} Сгенерированный промпт
- */
-export async function generatePromptFromImage(imagePath) {
-  try {
-    console.log('📝 Генерируем промпт для изображения:', imagePath);
-    
-    // Простой анализ изображения для создания промпта
-    const prompt = await analyzeImageForPrompt(imagePath);
-    
-    console.log('✅ Промпт сгенерирован:', prompt);
-    return prompt;
-    
-  } catch (error) {
-    console.error('❌ Ошибка генерации промпта:', error);
-    // Возвращаем базовый промпт в случае ошибки
-    return "a detailed, high-quality, professional photograph";
-  }
-}
-
-/**
- * Анализирует изображение и создает промпт
- * @param {string} imagePath - Путь к изображению
- * @returns {Promise<string>} Промпт
- */
-async function analyzeImageForPrompt(imagePath) {
-  const sharp = await import('sharp');
-  
-  // Получаем метаданные изображения
-  const metadata = await sharp.default(imagePath).metadata();
-  
-  // Анализируем основные характеристики
-  const isLandscape = metadata.width > metadata.height;
-  const aspectRatio = metadata.width / metadata.height;
-  
-  // Базовые промпты в зависимости от характеристик
-  let basePrompt = "a detailed, high-quality, professional photograph";
-  
-  if (isLandscape) {
-    basePrompt += ", landscape orientation";
-  } else {
-    basePrompt += ", portrait orientation";
-  }
-  
-  if (aspectRatio > 2) {
-    basePrompt += ", wide panoramic view";
-  } else if (aspectRatio < 0.5) {
-    basePrompt += ", tall vertical composition";
-  }
-  
-  // Добавляем общие улучшения качества
-  basePrompt += ", sharp focus, good lighting, vibrant colors, detailed textures";
-  
-  return basePrompt;
 }
 

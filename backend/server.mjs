@@ -19,32 +19,18 @@ const PORT = process.env.PORT || 3001;
 
 // Проверяем наличие API ключей
 console.log('🔍 Проверка API ключей:');
-console.log('OPENAI_API_KEY установлен:', !!process.env.OPENAI_API_KEY);
-console.log('REPLICATE_API_TOKEN установлен:', !!process.env.REPLICATE_API_TOKEN);
-console.log('SCRIBBLE_DIFFUSION_API_URL установлен:', !!process.env.SCRIBBLE_DIFFUSION_API_URL);
+console.log('SCRIBBLE_DIFFUSION_API_KEY установлен:', !!process.env.SCRIBBLE_DIFFUSION_API_KEY);
 
-if (!process.env.REPLICATE_API_TOKEN || 
-    process.env.REPLICATE_API_TOKEN === 'your_replicate_token_here' || 
-    process.env.REPLICATE_API_TOKEN === 'YOUR_TOKEN_HERE') {
-  console.warn('⚠️  ВНИМАНИЕ: Replicate API токен не настроен!');
+if (!process.env.SCRIBBLE_DIFFUSION_API_KEY || 
+    process.env.SCRIBBLE_DIFFUSION_API_KEY === 'YOUR_SCRIBBLE_DIFFUSION_API_KEY_HERE' || 
+    process.env.SCRIBBLE_DIFFUSION_API_KEY === 'your_scribble_diffusion_api_key_here') {
+  console.warn('⚠️  ВНИМАНИЕ: Scribble Diffusion API ключ не настроен!');
   console.warn('📝 Создайте файл .env в папке backend/ и добавьте:');
-  console.warn('   REPLICATE_API_TOKEN=ваш_токен_здесь');
-  console.warn('🔗 Получите токен на: https://replicate.com/account/api-tokens');
+  console.warn('   SCRIBBLE_DIFFUSION_API_KEY=ваш_ключ_здесь');
+  console.warn('🔗 Получите ключ на вашем API провайдере');
   console.warn('🔄 Будет использоваться локальная генерация');
 } else {
-  console.log('✅ Replicate API токен настроен');
-}
-
-if (!process.env.SCRIBBLE_DIFFUSION_API_URL || 
-    process.env.SCRIBBLE_DIFFUSION_API_URL === 'your_api_url_here' || 
-    process.env.SCRIBBLE_DIFFUSION_API_URL === 'YOUR_API_URL_HERE') {
-  console.warn('⚠️  ВНИМАНИЕ: ScribbleDiffusion API URL не настроен!');
-  console.warn('📝 Добавьте в переменные окружения:');
-  console.warn('   SCRIBBLE_DIFFUSION_API_URL=ваш_api_url_здесь');
-  console.warn('   SCRIBBLE_DIFFUSION_API_KEY=ваш_api_key_здесь (опционально)');
-  console.warn('🔄 Будет использоваться локальная генерация');
-} else {
-  console.log('✅ ScribbleDiffusion API URL настроен');
+  console.log('✅ Scribble Diffusion API ключ настроен');
 }
 
 // Middleware
@@ -95,9 +81,9 @@ app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Изображение не загружено' });
     }
 
-    // Replicate API токен не обязателен - есть локальная генерация
-    if (!process.env.REPLICATE_API_TOKEN) {
-      console.log('⚠️ Replicate API токен не настроен, используем локальную генерацию');
+    // Scribble Diffusion API ключ не обязателен - есть локальная генерация
+    if (!process.env.SCRIBBLE_DIFFUSION_API_KEY) {
+      console.log('⚠️ Scribble Diffusion API ключ не настроен, используем локальную генерацию');
     }
 
     const imagePath = req.file.path;
