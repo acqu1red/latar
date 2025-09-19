@@ -4,8 +4,8 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { controlNetGenerator } from './src/controlNetGenerator.mjs';
-import { roomAnalyzer } from './src/roomAnalyzer.mjs';
+import { analyzeImageForPhoto } from './src/imageAnalyzer.mjs';
+import { generatePhotoFromSketch } from './src/scribbleDiffusionGenerator.mjs';
 
 // Загружаем переменные окружения из .env файла
 import dotenv from 'dotenv';
@@ -17,10 +17,35 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Проверяем наличие ControlNet
-console.log('🔍 Проверка ControlNet:');
-console.log('✅ Используется локальная генерация через ControlNet');
-console.log('🎯 Полная независимость от внешних API');
+// Проверяем наличие API ключей
+console.log('🔍 Проверка API ключей:');
+console.log('OPENAI_API_KEY установлен:', !!process.env.OPENAI_API_KEY);
+console.log('REPLICATE_API_TOKEN установлен:', !!process.env.REPLICATE_API_TOKEN);
+console.log('SCRIBBLE_DIFFUSION_API_URL установлен:', !!process.env.SCRIBBLE_DIFFUSION_API_URL);
+
+if (!process.env.REPLICATE_API_TOKEN || 
+    process.env.REPLICATE_API_TOKEN === 'your_replicate_token_here' || 
+    process.env.REPLICATE_API_TOKEN === 'YOUR_TOKEN_HERE') {
+  console.warn('⚠️  ВНИМАНИЕ: Replicate API токен не настроен!');
+  console.warn('📝 Создайте файл .env в папке backend/ и добавьте:');
+  console.warn('   REPLICATE_API_TOKEN=ваш_токен_здесь');
+  console.warn('🔗 Получите токен на: https://replicate.com/account/api-tokens');
+  console.warn('🔄 Будет использоваться локальная генерация');
+} else {
+  console.log('✅ Replicate API токен настроен');
+}
+
+if (!process.env.SCRIBBLE_DIFFUSION_API_URL || 
+    process.env.SCRIBBLE_DIFFUSION_API_URL === 'your_api_url_here' || 
+    process.env.SCRIBBLE_DIFFUSION_API_URL === 'YOUR_API_URL_HERE') {
+  console.warn('⚠️  ВНИМАНИЕ: ScribbleDiffusion API URL не настроен!');
+  console.warn('📝 Добавьте в переменные окружения:');
+  console.warn('   SCRIBBLE_DIFFUSION_API_URL=ваш_api_url_здесь');
+  console.warn('   SCRIBBLE_DIFFUSION_API_KEY=ваш_api_key_здесь (опционально)');
+  console.warn('🔄 Будет использоваться локальная генерация');
+} else {
+  console.log('✅ ScribbleDiffusion API URL настроен');
+}
 
 // Middleware
 app.use(cors({
@@ -63,73 +88,49 @@ const upload = multer({
 });
 
 
-// Маршрут для генерации простого плана
+// Маршрут для генерации фотографии
 app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Изображение не загружено' });
     }
 
-    const imagePath = req.file.path;
-    console.log('Обработка изображения для генерации простого плана:', imagePath);
+    // Replicate API токен не обязателен - есть локальная генерация
+    if (!process.env.REPLICATE_API_TOKEN) {
+      console.log('⚠️ Replicate API токен не настроен, используем локальную генерацию');
+    }
 
-    // Генерируем простой план без мебели через ControlNet
-    const prompt = 'a detailed architectural floor plan drawing, perfectly centered on a clean white background, showing room layouts with walls, doors, and windows. The plan should be drawn exactly as shown in the reference image with precise proportions. Clean, professional architectural drawing style with black lines on white background. The floor plan should be centered and clearly visible.';
+    const imagePath = req.file.path;
     
-    const photoBuffer = await controlNetGenerator.generatePlanWithFurniture(imagePath, prompt);
+    console.log('Обработка изображения для генерации фотографии:', imagePath);
+
+    // Анализируем изображение и создаем эскиз
+    const analysisData = await analyzeImageForPhoto(imagePath);
     
-    // Удаляем временный файл
+    // Используем автоматически сгенерированный промпт для точного воспроизведения плана
+    const prompt = analysisData.prompt;
+    
+    // Генерируем фотографию из эскиза
+    const photoBuffer = await generatePhotoFromSketch(analysisData.sketchPath, prompt);
+    
+    // Удаляем временные файлы
     fs.unlinkSync(imagePath);
+    if (fs.existsSync(analysisData.sketchPath)) {
+      fs.unlinkSync(analysisData.sketchPath);
+    }
 
     res.setHeader('Content-Type', 'image/png');
     res.send(photoBuffer);
 
   } catch (error) {
-    console.error('Ошибка генерации простого плана:', error);
-    res.status(500).json({ error: 'Ошибка генерации простого плана: ' + error.message });
+    console.error('Ошибка генерации фотографии:', error);
+    res.status(500).json({ error: 'Ошибка генерации фотографии: ' + error.message });
   }
 });
 
 // Health check endpoint
 app.get('/healthz', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Маршрут для генерации плана с мебелью
-app.post('/api/generate-with-furniture', upload.single('image'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Изображение не загружено' });
-    }
-
-    const imagePath = req.file.path;
-    console.log('Обработка изображения для генерации плана с мебелью:', imagePath);
-
-    // Анализируем тип помещения
-    const roomType = await roomAnalyzer.analyzeRoomType(imagePath);
-    console.log('Определен тип помещения:', roomType);
-
-    // Выбираем подходящую мебель
-    const selectedFurniture = roomAnalyzer.selectFurnitureForRoom(roomType);
-    console.log('Выбрана мебель:', selectedFurniture);
-
-    // Генерируем промпт с мебелью
-    const prompt = roomAnalyzer.generateFurniturePrompt(roomType, selectedFurniture);
-    console.log('Сгенерирован промпт:', prompt);
-
-    // Генерируем план с мебелью через ControlNet
-    const photoBuffer = await controlNetGenerator.generatePlanWithFurniture(imagePath, prompt);
-    
-    // Удаляем временный файл
-    fs.unlinkSync(imagePath);
-
-    res.setHeader('Content-Type', 'image/png');
-    res.send(photoBuffer);
-
-  } catch (error) {
-    console.error('Ошибка генерации плана с мебелью:', error);
-    res.status(500).json({ error: 'Ошибка генерации плана с мебелью: ' + error.message });
-  }
 });
 
 // Маршрут для получения мебели

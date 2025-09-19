@@ -13,8 +13,7 @@ services:
       - name: PORT
         value: "3001"
     healthcheck:
-      path: /healthz
+      path: /api/furniture
       port: 3001
-      initialDelaySeconds: 120
-      periodSeconds: 30
-    dockerfile: Dockerfile
+      initialDelaySeconds: 30
+      periodSeconds: 10
