@@ -8,13 +8,18 @@ cd backend && npm install --only=production
 ```
 
 **Зависимости:**
-- Node.js 20+
+- Node.js 20+ (обязательно!)
 - npm
 
 **Команда запуска:**
 ```bash
-cd backend && npm start
+cd backend && node server.mjs
 ```
+
+**Важно:** 
+- Timeweb использует Node.js v12 по умолчанию, но нам нужен Node.js 20+ для работы с Sharp
+- API ключ Scribble Diffusion обязателен! Без него приложение не запустится
+- Убедитесь, что в настройках приложения указана версия Node.js 20+
 
 ## Переменные окружения (Environment Variables)
 
@@ -73,6 +78,14 @@ SCRIBBLE_DIFFUSION_API_KEY=ваш_scribble_diffusion_api_ключ_здесь
 
 ## Troubleshooting
 
+**Ошибка "Unsupported engine" (Node.js v12):**
+- В настройках приложения Timeweb установите Node.js версии 20+
+- Или используйте Dockerfile.timeweb для принудительной установки Node.js 20
+
+**Ошибка "exec: cd: executable file not found":**
+- Используйте команду запуска: `node server.mjs` вместо `npm start`
+- Убедитесь, что рабочая директория установлена как `backend`
+
 **Ошибка "Module not found":**
 - Убедитесь, что корневая папка установлена как `backend`
 - Проверьте, что все зависимости установлены
@@ -81,9 +94,9 @@ SCRIBBLE_DIFFUSION_API_KEY=ваш_scribble_diffusion_api_ключ_здесь
 - Убедитесь, что используется `process.env.PORT` вместо фиксированного порта
 
 **Ошибка "Memory limit exceeded":**
-- Увеличьте лимит памяти в настройках приложения
+- Увеличьте лимит памяти в настройках приложения до 1024MB
 - Оптимизируйте обработку изображений
 
 **Ошибка "API key not found":**
 - Проверьте, что переменная `SCRIBBLE_DIFFUSION_API_KEY` установлена
-- Приложение будет работать с локальной генерацией без API ключа
+- API ключ обязателен! Без него приложение не запустится

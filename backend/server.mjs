@@ -17,18 +17,19 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Проверяем наличие API ключей
-console.log('🔍 Проверка API ключей:');
+// Проверяем наличие API ключа
+console.log('🔍 Проверка API ключа:');
 console.log('SCRIBBLE_DIFFUSION_API_KEY установлен:', !!process.env.SCRIBBLE_DIFFUSION_API_KEY);
 
 if (!process.env.SCRIBBLE_DIFFUSION_API_KEY || 
     process.env.SCRIBBLE_DIFFUSION_API_KEY === 'YOUR_SCRIBBLE_DIFFUSION_API_KEY_HERE' || 
     process.env.SCRIBBLE_DIFFUSION_API_KEY === 'your_scribble_diffusion_api_key_here') {
-  console.warn('⚠️  ВНИМАНИЕ: Scribble Diffusion API ключ не настроен!');
-  console.warn('📝 Создайте файл .env в папке backend/ и добавьте:');
-  console.warn('   SCRIBBLE_DIFFUSION_API_KEY=ваш_ключ_здесь');
-  console.warn('🔗 Получите ключ на вашем API провайдере');
-  console.warn('🔄 Будет использоваться локальная генерация');
+  console.error('❌ ОШИБКА: Scribble Diffusion API ключ не настроен!');
+  console.error('📝 Создайте файл .env в папке backend/ и добавьте:');
+  console.error('   SCRIBBLE_DIFFUSION_API_KEY=ваш_ключ_здесь');
+  console.error('🔗 Получите ключ на вашем API провайдере');
+  console.error('⚠️  Приложение не будет работать без API ключа!');
+  process.exit(1);
 } else {
   console.log('✅ Scribble Diffusion API ключ настроен');
 }
@@ -81,9 +82,9 @@ app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Изображение не загружено' });
     }
 
-    // Scribble Diffusion API ключ не обязателен - есть локальная генерация
+    // Scribble Diffusion API ключ обязателен
     if (!process.env.SCRIBBLE_DIFFUSION_API_KEY) {
-      console.log('⚠️ Scribble Diffusion API ключ не настроен, используем локальную генерацию');
+      return res.status(500).json({ error: 'API ключ не настроен. Обратитесь к администратору.' });
     }
 
     const imagePath = req.file.path;

@@ -3,7 +3,7 @@
 Создайте файл `.env` в папке `backend/` и добавьте следующие переменные:
 
 ```env
-# Scribble Diffusion API Configuration
+# Scribble Diffusion API Configuration (ОБЯЗАТЕЛЬНО!)
 # Получите ваш API ключ у провайдера Scribble Diffusion
 SCRIBBLE_DIFFUSION_API_KEY=your_scribble_diffusion_api_key_here
 
@@ -17,4 +17,6 @@ PORT=3001
 
 ## Настройка для продакшена
 
-Для деплоя на Koyeb, добавьте переменную `SCRIBBLE_DIFFUSION_API_KEY` в настройки сервиса с вашим реальным API ключом.
+Для деплоя на Timeweb или Koyeb, добавьте переменную `SCRIBBLE_DIFFUSION_API_KEY` в настройки сервиса с вашим реальным API ключом.
+
+**Важно:** API ключ обязателен! Без него приложение не запустится.

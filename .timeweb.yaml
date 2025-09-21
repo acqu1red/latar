@@ -21,8 +21,8 @@ server:
 
 # Настройки ресурсов
 resources:
-  memory: 512MB
-  cpu: 0.5
+  memory: 1024MB
+  cpu: 1.0
 
 # Настройки сети
 network:

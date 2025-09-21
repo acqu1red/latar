@@ -22,4 +22,4 @@ EXPOSE 3001
 WORKDIR /app/backend
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["node", "server.mjs"]

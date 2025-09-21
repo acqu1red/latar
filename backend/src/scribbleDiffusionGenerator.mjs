@@ -1,9 +1,7 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
-import { generateLocalImage, createEnhancedSketch } from './localImageGenerator.mjs';
-import { localStableDiffusion } from './localStableDiffusion.mjs';
-import { simpleLocalGenerator } from './simpleLocalGenerator.mjs';
+import { createEnhancedSketch } from './localImageGenerator.mjs';
 
 /**
  * Генерирует фотографию из эскиза используя ScribbleDiffusion API
@@ -13,20 +11,13 @@ import { simpleLocalGenerator } from './simpleLocalGenerator.mjs';
  */
 export async function generatePhotoFromSketch(sketchPath, prompt) {
   try {
-    console.log('🎨 Генерируем фотографию из эскиза');
+    console.log('🎨 Генерируем фотографию из эскиза через Scribble Diffusion API');
     console.log('Эскиз:', sketchPath);
     console.log('Промпт:', prompt);
 
-    // Сначала пробуем локальную Stable Diffusion
-    if (localStableDiffusion.isAvailable) {
-      console.log('🚀 Используем локальную Stable Diffusion + ControlNet');
-      return await localStableDiffusion.generatePlan(sketchPath, prompt);
-    }
-
     // Проверяем наличие API ключа для Scribble Diffusion
     if (!process.env.SCRIBBLE_DIFFUSION_API_KEY) {
-      console.log('⚠️ Scribble Diffusion API ключ не найден, используем простую локальную генерацию');
-      return await simpleLocalGenerator.generatePlan(sketchPath, prompt);
+      throw new Error('SCRIBBLE_DIFFUSION_API_KEY не установлен. Добавьте API ключ в переменные окружения.');
     }
 
     // Читаем файл эскиза
@@ -54,14 +45,15 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
       const errorText = await response.text();
       console.error(`❌ Ошибка Scribble Diffusion API: ${response.status} - ${errorText}`);
       
-      // Проверяем, если это ошибка с кредитами
-      if (response.status === 402) {
-        console.log('💳 Недостаточно кредитов на Scribble Diffusion. Переключаемся на простую локальную генерацию...');
+      if (response.status === 401) {
+        throw new Error('Неверный API ключ Scribble Diffusion. Проверьте правильность ключа.');
+      } else if (response.status === 402) {
+        throw new Error('Недостаточно кредитов на Scribble Diffusion. Пополните баланс.');
+      } else if (response.status === 429) {
+        throw new Error('Превышен лимит запросов. Попробуйте позже.');
       } else {
-        console.log('🔄 Переключаемся на простую локальную генерацию...');
+        throw new Error(`Ошибка API: ${response.status} - ${errorText}`);
       }
-      
-      return await simpleLocalGenerator.generatePlan(sketchPath, prompt);
     }
 
     const result = await response.json();
