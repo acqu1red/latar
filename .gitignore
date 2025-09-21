@@ -89,3 +89,10 @@ node_modules 2/
 *_FIX.md
 *_SETUP.md
 *_SOLUTION.md
+
+# API Keys and Secrets (additional protection)
+*api*key*
+*secret*
+*password*
+*token*
+*credential*

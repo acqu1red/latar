@@ -4,8 +4,7 @@
   "dockerfile": "Dockerfile",
   "environment": {
     "NODE_ENV": "production",
-    "PORT": "3001",
-    "SCRIBBLE_DIFFUSION_API_KEY": "r8_HsprWTaqhhBtQaI1tww0M76W1vd0EBW3MN7Qh"
+    "PORT": "3001"
   },
   "server": {
     "port": 3001,
