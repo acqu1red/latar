@@ -5,7 +5,7 @@ version: 22
 
 # Настройки приложения
 build:
-  command: "npm install --only=production"
+  command: "yarn install --production"
   working_directory: "."
 
 # Переменные окружения

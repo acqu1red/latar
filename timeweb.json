@@ -3,7 +3,7 @@
   "type": "nodejs",
   "version": "22",
   "build": {
-    "command": "npm install --only=production",
+    "command": "yarn install --production",
     "working_directory": "."
   },
   "environment": {
