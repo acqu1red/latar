@@ -1,1 +1,1 @@
-web: cd backend && node server.mjs
+web: node server.mjs

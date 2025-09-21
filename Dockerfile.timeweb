@@ -1,26 +1,26 @@
 FROM node:20-alpine
 
-# Устанавливаем рабочую директорию
+# Set working directory
 WORKDIR /app
 
-# Копируем package.json файлы
+# Copy package files
 COPY package.json ./
 COPY backend/package*.json ./backend/
 
-# Устанавливаем зависимости
+# Install dependencies
 RUN cd backend && npm install --only=production
 
-# Копируем исходный код backend
+# Copy backend source code
 COPY backend/ ./backend/
 
-# Создаем папку для загрузок
+# Create uploads directory
 RUN mkdir -p backend/uploads
 
-# Открываем порт
+# Expose port
 EXPOSE 3001
 
-# Устанавливаем рабочую директорию на backend
+# Set working directory to backend
 WORKDIR /app/backend
 
-# Запускаем приложение
+# Start the application
 CMD ["node", "server.mjs"]

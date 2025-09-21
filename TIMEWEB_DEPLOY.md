@@ -50,11 +50,12 @@ SCRIBBLE_DIFFUSION_API_KEY=ваш_scribble_diffusion_api_ключ_здесь
    - `PORT=3001`
    - `SCRIBBLE_DIFFUSION_API_KEY=ваш_ключ_здесь`
 
-### Вариант 2: Через Docker
+### Вариант 2: Через Docker (рекомендуется)
 
-1. **Создайте Dockerfile** (уже создан в корне проекта)
+1. **Используйте Dockerfile.timeweb** (уже создан в корне проекта)
 2. **Подключите репозиторий** с Dockerfile
-3. **Настройте переменные окружения** как указано выше
+3. **Установите корневую папку как `backend`**
+4. **Настройте переменные окружения** как указано выше
 
 ### Вариант 3: Загрузка архива
 
@@ -83,7 +84,8 @@ SCRIBBLE_DIFFUSION_API_KEY=ваш_scribble_diffusion_api_ключ_здесь
 - Или используйте Dockerfile.timeweb для принудительной установки Node.js 20
 
 **Ошибка "exec: cd: executable file not found":**
-- Используйте команду запуска: `node server.mjs` вместо `npm start`
+- Используйте Docker вместо Procfile
+- Или исправьте Procfile: `web: node server.mjs`
 - Убедитесь, что рабочая директория установлена как `backend`
 
 **Ошибка "Module not found":**
