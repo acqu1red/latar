@@ -1,11 +1,7 @@
 {
   "name": "latar-backend",
-  "type": "nodejs",
-  "version": "22",
-  "build": {
-    "command": "npm install --production && node test-start.mjs",
-    "working_directory": "."
-  },
+  "type": "docker",
+  "dockerfile": "Dockerfile",
   "environment": {
     "NODE_ENV": "production",
     "PORT": "3001",
@@ -13,9 +9,7 @@
   },
   "server": {
     "port": 3001,
-    "health_check": "/healthz",
-    "start_command": "node --max-old-space-size=4096 server.mjs",
-    "build_command": "npm install --production"
+    "health_check": "/healthz"
   },
   "resources": {
     "memory": "1024MB",
