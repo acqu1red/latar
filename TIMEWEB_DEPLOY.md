@@ -41,21 +41,25 @@ SCRIBBLE_DIFFUSION_API_KEY=ваш_scribble_diffusion_api_ключ_здесь
    - Укажите URL вашего репозитория: `https://github.com/acqu1red/latar`
 
 2. **Настройте сборку:**
+   - **Окружение:** Node.js
+   - **Версия:** 20+
    - **Корневая папка:** `backend`
-   - **Команда сборки:** `npm install --only=production`
-   - **Команда запуска:** `npm start`
+   - **Команда сборки:** `cd backend && npm install --only=production`
+   - **Команда запуска:** `cd backend && node server.mjs`
 
 3. **Добавьте переменные окружения:**
    - `NODE_ENV=production`
    - `PORT=3001`
    - `SCRIBBLE_DIFFUSION_API_KEY=ваш_ключ_здесь`
 
-### Вариант 2: Через Docker (рекомендуется)
+### Вариант 2: Через Docker
 
-1. **Используйте Dockerfile.timeweb** (уже создан в корне проекта)
+1. **Используйте наш Dockerfile** (уже создан в корне проекта)
 2. **Подключите репозиторий** с Dockerfile
 3. **Установите корневую папку как `backend`**
 4. **Настройте переменные окружения** как указано выше
+
+**⚠️ Внимание:** Если Timeweb автоматически создает свой Dockerfile, используйте Вариант 1 (Git) вместо Docker.
 
 ### Вариант 3: Загрузка архива
 
@@ -98,6 +102,11 @@ SCRIBBLE_DIFFUSION_API_KEY=ваш_scribble_diffusion_api_ключ_здесь
 **Ошибка "Memory limit exceeded":**
 - Увеличьте лимит памяти в настройках приложения до 1024MB
 - Оптимизируйте обработку изображений
+
+**Ошибка "Unable to correct problems, you have held broken packages":**
+- Timeweb автоматически создает Dockerfile, который конфликтует с нашим
+- **Решение:** Используйте Git вместо Docker
+- Или убедитесь, что используется наш Dockerfile
 
 **Ошибка "API key not found":**
 - Проверьте, что переменная `SCRIBBLE_DIFFUSION_API_KEY` установлена
