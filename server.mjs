@@ -37,9 +37,15 @@ if (!isApiKeyValid) {
 
 // Middleware
 app.use(cors({
-  origin: ['https://acqu1red.github.io'],
+  origin: ['https://acqu1red.github.io', 'https://acqu1red.github.io/latar'],
   credentials: true
 }));
+
+// Логирование CORS запросов для отладки
+app.use((req, res, next) => {
+  console.log(`🌐 ${req.method} ${req.path} - Origin: ${req.get('Origin') || 'не указан'}`);
+  next();
+});
 app.use(express.json());
 app.use(express.static('public'));
 
@@ -114,8 +120,16 @@ app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
     res.send(photoBuffer);
 
   } catch (error) {
-    console.error('Ошибка генерации фотографии:', error);
-    res.status(500).json({ error: 'Ошибка генерации фотографии: ' + error.message });
+    console.error('❌ Ошибка генерации фотографии:', error);
+    console.error('📊 Детали ошибки:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({ 
+      error: 'Ошибка генерации фотографии: ' + error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
