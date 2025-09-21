@@ -1,7 +1,12 @@
 # Timeweb конфигурация для деплоя
 name: latar-backend
-type: docker
-dockerfile: Dockerfile
+type: nodejs
+version: 22
+
+# Настройки приложения
+build:
+  command: "npm install --production"
+  working_directory: "."
 
 # Переменные окружения
 environment:
@@ -13,6 +18,7 @@ environment:
 server:
   port: 3001
   health_check: "/healthz"
+  start_command: "node --max-old-space-size=4096 server.mjs"
 
 # Настройки ресурсов
 resources:
