@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
+import sharp from 'sharp';
 import { createEnhancedSketch } from './localImageGenerator.mjs';
 
 /**
@@ -195,11 +196,9 @@ export async function createSketchFromImage(imagePath) {
  * @returns {Promise<string>} Путь к эскизу
  */
 async function convertToSketch(imagePath) {
-  const sharp = await import('sharp');
-  
   const outputPath = imagePath.replace(/\.[^/.]+$/, '_sketch.png');
   
-  await sharp.default(imagePath)
+  await sharp(imagePath)
     .greyscale() // Конвертируем в черно-белое
     .normalize() // Нормализуем контраст
     .sharpen({ sigma: 1.0, m1: 0.5, m2: 3.0, x1: 2, y2: 10 }) // Увеличиваем резкость

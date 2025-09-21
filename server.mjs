@@ -4,6 +4,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 import { analyzeImageForPhoto } from './src/imageAnalyzer.mjs';
 import { generatePhotoFromSketch } from './src/scribbleDiffusionGenerator.mjs';
 
@@ -13,6 +14,13 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Создаем папку uploads если её нет
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('📁 Создана папка uploads');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -159,6 +167,35 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: error.message });
 });
 
+// Обработка необработанных исключений
+process.on('uncaughtException', (error) => {
+  console.error('❌ Необработанное исключение:', error);
+  console.error('📊 Детали ошибки:', {
+    message: error.message,
+    stack: error.stack,
+    name: error.name
+  });
+  process.exit(1);
+});
+
+// Обработка необработанных промисов
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Необработанное отклонение промиса:', reason);
+  console.error('📊 Промис:', promise);
+  process.exit(1);
+});
+
+// Обработка сигналов завершения
+process.on('SIGTERM', () => {
+  console.log('🛑 Получен сигнал SIGTERM, завершаем работу...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 Получен сигнал SIGINT, завершаем работу...');
+  process.exit(0);
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Сервер запущен на порту ${PORT}`);
   console.log(`🌐 Health check доступен по адресу: http://localhost:${PORT}/healthz`);
@@ -171,4 +208,8 @@ app.listen(PORT, () => {
   console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'не установлено'}`);
   console.log(`   PORT: ${PORT}`);
   console.log(`   API ключ настроен: ${isApiKeyValid ? 'Да' : 'Нет'}`);
+  console.log(`🔍 Проверка модулей:`);
+  console.log(`   sharp: ${typeof sharp !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
+  console.log(`   express: ${typeof express !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
+  console.log(`   multer: ${typeof multer !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
 });
