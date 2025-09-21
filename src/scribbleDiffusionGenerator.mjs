@@ -5,7 +5,7 @@ import sharp from 'sharp';
 import { createEnhancedSketch } from './localImageGenerator.mjs';
 
 /**
- * Генерирует фотографию из эскиза используя ScribbleDiffusion API
+ * Генерирует фотографию из эскиза используя Replicate API (ScribbleDiffusion модель)
  * @param {string} sketchPath - Путь к файлу эскиза
  * @param {string} prompt - Текстовое описание желаемого изображения
  * @returns {Promise<Buffer>} Сгенерированное изображение
@@ -16,9 +16,9 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
     console.log('Эскиз:', sketchPath);
     console.log('Промпт:', prompt);
 
-    // Проверяем наличие API ключа для Scribble Diffusion
+    // Проверяем наличие API ключа для Replicate
     if (!process.env.SCRIBBLE_DIFFUSION_API_KEY) {
-      throw new Error('SCRIBBLE_DIFFUSION_API_KEY не установлен. Добавьте API ключ в переменные окружения.');
+      throw new Error('SCRIBBLE_DIFFUSION_API_KEY не установлен. Добавьте Replicate API ключ в переменные окружения.');
     }
 
     // Читаем файл эскиза
@@ -26,30 +26,33 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
     const sketchBase64 = sketchBuffer.toString('base64');
     const sketchDataUrl = `data:image/png;base64,${sketchBase64}`;
 
-    // Создаем запрос к Scribble Diffusion API
-    const response = await fetch('https://api.scribblediffusion.com/v1/generate', {
+    // Создаем запрос к Replicate API для Scribble Diffusion
+    const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.SCRIBBLE_DIFFUSION_API_KEY}`,
+        'Authorization': `Token ${process.env.SCRIBBLE_DIFFUSION_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        image: sketchDataUrl,
-        prompt: prompt,
-        num_inference_steps: 20,
-        guidance_scale: 7.5,
-        negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy, deformed"
+        version: "f178fa1a9d43f2e10c5263cde5b90bb5c05b550288acf8b376bd2f5b8f2b7f95",
+        input: {
+          image: sketchDataUrl,
+          prompt: prompt,
+          num_inference_steps: 20,
+          guidance_scale: 7.5,
+          negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy, deformed"
+        }
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Ошибка Scribble Diffusion API: ${response.status} - ${errorText}`);
+      console.error(`❌ Ошибка Replicate API: ${response.status} - ${errorText}`);
       
       if (response.status === 401) {
-        throw new Error('Неверный API ключ Scribble Diffusion. Проверьте правильность ключа.');
+        throw new Error('Неверный Replicate API ключ. Проверьте правильность ключа.');
       } else if (response.status === 402) {
-        throw new Error('Недостаточно кредитов на Scribble Diffusion. Пополните баланс.');
+        throw new Error('Недостаточно кредитов на Replicate. Пополните баланс.');
       } else if (response.status === 429) {
         throw new Error('Превышен лимит запросов. Попробуйте позже.');
       } else {
@@ -59,27 +62,7 @@ export async function generatePhotoFromSketch(sketchPath, prompt) {
 
     const result = await response.json();
     
-    // Проверяем, если API возвращает изображение напрямую
-    if (result.image) {
-      console.log('✅ Изображение получено напрямую от API');
-      const imageBuffer = Buffer.from(result.image, 'base64');
-      console.log('✅ Фотография сгенерирована, размер:', imageBuffer.length, 'байт');
-      return imageBuffer;
-    }
-    
-    // Если API возвращает URL изображения
-    if (result.imageUrl) {
-      console.log('📥 Скачиваем сгенерированное изображение:', result.imageUrl);
-      const imageResponse = await fetch(result.imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error(`Ошибка скачивания изображения: ${imageResponse.status}`);
-      }
-      const imageBuffer = await imageResponse.buffer();
-      console.log('✅ Фотография сгенерирована, размер:', imageBuffer.length, 'байт');
-      return imageBuffer;
-    }
-    
-    // Если API возвращает ID для отслеживания (как Replicate)
+    // Replicate API всегда возвращает ID для отслеживания
     if (result.id) {
       console.log('✅ Запрос создан, ID:', result.id);
       const finalResult = await waitForCompletion(result.id);
@@ -120,9 +103,9 @@ async function waitForCompletion(predictionId) {
 
   while (attempts < maxAttempts) {
     try {
-      const response = await fetch(`https://api.scribblediffusion.com/v1/status/${predictionId}`, {
+      const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
         headers: {
-          'Authorization': `Bearer ${process.env.SCRIBBLE_DIFFUSION_API_KEY}`,
+          'Authorization': `Token ${process.env.SCRIBBLE_DIFFUSION_API_KEY}`,
         }
       });
 

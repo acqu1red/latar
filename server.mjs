@@ -53,7 +53,7 @@ console.log('Существует ли папка uploads:', fs.existsSync('uplo
 
 // Проверяем наличие API ключа
 console.log('🔍 Проверка API ключа:');
-console.log('SCRIBBLE_DIFFUSION_API_KEY установлен:', !!process.env.SCRIBBLE_DIFFUSION_API_KEY);
+console.log('SCRIBBLE_DIFFUSION_API_KEY (Replicate) установлен:', !!process.env.SCRIBBLE_DIFFUSION_API_KEY);
 console.log('SCRIBBLE_DIFFUSION_API_KEY значение:', process.env.SCRIBBLE_DIFFUSION_API_KEY ? '***скрыто***' : 'не установлено');
 console.log('Все переменные окружения:', Object.keys(process.env).filter(key => key.includes('SCRIBBLE') || key.includes('NODE') || key.includes('PORT')));
 
@@ -73,13 +73,13 @@ const isApiKeyValid = process.env.SCRIBBLE_DIFFUSION_API_KEY &&
     process.env.SCRIBBLE_DIFFUSION_API_KEY !== 'your_scribble_diffusion_api_key_here';
 
 if (!isApiKeyValid) {
-  console.warn('⚠️  ВНИМАНИЕ: Scribble Diffusion API ключ не настроен!');
+  console.warn('⚠️  ВНИМАНИЕ: Replicate API ключ не настроен!');
   console.warn('📝 Для работы генерации фотографий добавьте переменную окружения:');
-  console.warn('   SCRIBBLE_DIFFUSION_API_KEY=ваш_ключ_здесь');
-  console.warn('🔗 Получите ключ на вашем API провайдере');
+  console.warn('   SCRIBBLE_DIFFUSION_API_KEY=ваш_replicate_ключ_здесь');
+  console.warn('🔗 Получите ключ на https://replicate.com');
   console.warn('⚠️  Приложение запустится, но генерация фотографий будет недоступна!');
 } else {
-  console.log('✅ Scribble Diffusion API ключ настроен');
+  console.log('✅ Replicate API ключ настроен');
 }
 
 // Middleware
