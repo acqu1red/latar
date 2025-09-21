@@ -1,2 +1,15 @@
-# Игнорировать все файлы, чтобы предотвратить автоматическое создание Dockerfile
-*
+# Игнорировать ненужные файлы
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+*.md
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+frontend
+assets
+.DS_Store
