@@ -8,7 +8,7 @@
     "start": "node --max-old-space-size=4096 server.mjs",
     "dev": "node --max-old-space-size=4096 --watch server.mjs",
     "setup": "node setup-env.js",
-    "build": "yarn install --production",
+    "build": "yarn install --prod",
     "heroku-postbuild": "echo 'Backend ready'"
   },
   "engines": {
