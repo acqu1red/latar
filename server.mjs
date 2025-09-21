@@ -21,15 +21,16 @@ const PORT = process.env.PORT || 3001;
 console.log('🔍 Проверка API ключа:');
 console.log('SCRIBBLE_DIFFUSION_API_KEY установлен:', !!process.env.SCRIBBLE_DIFFUSION_API_KEY);
 
-if (!process.env.SCRIBBLE_DIFFUSION_API_KEY || 
-    process.env.SCRIBBLE_DIFFUSION_API_KEY === 'YOUR_SCRIBBLE_DIFFUSION_API_KEY_HERE' || 
-    process.env.SCRIBBLE_DIFFUSION_API_KEY === 'your_scribble_diffusion_api_key_here') {
-  console.error('❌ ОШИБКА: Scribble Diffusion API ключ не настроен!');
-  console.error('📝 Создайте файл .env в папке backend/ и добавьте:');
-  console.error('   SCRIBBLE_DIFFUSION_API_KEY=ваш_ключ_здесь');
-  console.error('🔗 Получите ключ на вашем API провайдере');
-  console.error('⚠️  Приложение не будет работать без API ключа!');
-  process.exit(1);
+const isApiKeyValid = process.env.SCRIBBLE_DIFFUSION_API_KEY && 
+    process.env.SCRIBBLE_DIFFUSION_API_KEY !== 'YOUR_SCRIBBLE_DIFFUSION_API_KEY_HERE' && 
+    process.env.SCRIBBLE_DIFFUSION_API_KEY !== 'your_scribble_diffusion_api_key_here';
+
+if (!isApiKeyValid) {
+  console.warn('⚠️  ВНИМАНИЕ: Scribble Diffusion API ключ не настроен!');
+  console.warn('📝 Для работы генерации фотографий добавьте переменную окружения:');
+  console.warn('   SCRIBBLE_DIFFUSION_API_KEY=ваш_ключ_здесь');
+  console.warn('🔗 Получите ключ на вашем API провайдере');
+  console.warn('⚠️  Приложение запустится, но генерация фотографий будет недоступна!');
 } else {
   console.log('✅ Scribble Diffusion API ключ настроен');
 }
@@ -83,8 +84,11 @@ app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
     }
 
     // Scribble Diffusion API ключ обязателен
-    if (!process.env.SCRIBBLE_DIFFUSION_API_KEY) {
-      return res.status(500).json({ error: 'API ключ не настроен. Обратитесь к администратору.' });
+    if (!isApiKeyValid) {
+      return res.status(503).json({ 
+        error: 'Сервис генерации фотографий временно недоступен. API ключ не настроен.',
+        code: 'API_KEY_MISSING'
+      });
     }
 
     const imagePath = req.file.path;
@@ -149,4 +153,8 @@ app.listen(PORT, () => {
   console.log(`   GET  /api/furniture - получение данных мебели`);
   console.log(`   GET  /healthz - проверка здоровья сервера`);
   console.log(`✅ Приложение готово к работе!`);
+  console.log(`🔧 Переменные окружения:`);
+  console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'не установлено'}`);
+  console.log(`   PORT: ${PORT}`);
+  console.log(`   API ключ настроен: ${isApiKeyValid ? 'Да' : 'Нет'}`);
 });
