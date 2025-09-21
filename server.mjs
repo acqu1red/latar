@@ -22,12 +22,32 @@ if (!fs.existsSync(uploadsDir)) {
   console.log('📁 Создана папка uploads');
 }
 
+// Проверяем существование необходимых файлов
+console.log('🔍 Проверка файлов:');
+const requiredFiles = [
+  'furniture.json',
+  'src/imageAnalyzer.mjs',
+  'src/scribbleDiffusionGenerator.mjs',
+  'src/localImageGenerator.mjs'
+];
+
+requiredFiles.forEach(file => {
+  const filePath = path.join(__dirname, file);
+  const exists = fs.existsSync(filePath);
+  console.log(`   ${file}: ${exists ? '✅' : '❌'}`);
+  if (!exists) {
+    console.error(`❌ Критический файл отсутствует: ${file}`);
+  }
+});
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Проверяем наличие API ключа
 console.log('🔍 Проверка API ключа:');
 console.log('SCRIBBLE_DIFFUSION_API_KEY установлен:', !!process.env.SCRIBBLE_DIFFUSION_API_KEY);
+console.log('SCRIBBLE_DIFFUSION_API_KEY значение:', process.env.SCRIBBLE_DIFFUSION_API_KEY ? '***скрыто***' : 'не установлено');
+console.log('Все переменные окружения:', Object.keys(process.env).filter(key => key.includes('SCRIBBLE') || key.includes('NODE') || key.includes('PORT')));
 
 const isApiKeyValid = process.env.SCRIBBLE_DIFFUSION_API_KEY && 
     process.env.SCRIBBLE_DIFFUSION_API_KEY !== 'YOUR_SCRIBBLE_DIFFUSION_API_KEY_HERE' && 
@@ -45,11 +65,16 @@ if (!isApiKeyValid) {
 
 // Middleware
 app.use(cors({
-  origin: ['https://acqu1red.github.io', 'https://acqu1red.github.io/latar'],
+  origin: [
+    'https://acqu1red.github.io',
+    'https://acqu1red.github.io/latar',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ],
   credentials: true
 }));
 
-// Логирование CORS запросов для отладки
+// Логирование CORS запросов
 app.use((req, res, next) => {
   console.log(`🌐 ${req.method} ${req.path} - Origin: ${req.get('Origin') || 'не указан'}`);
   next();
@@ -128,16 +153,8 @@ app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
     res.send(photoBuffer);
 
   } catch (error) {
-    console.error('❌ Ошибка генерации фотографии:', error);
-    console.error('📊 Детали ошибки:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-    res.status(500).json({ 
-      error: 'Ошибка генерации фотографии: ' + error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    console.error('Ошибка генерации фотографии:', error);
+    res.status(500).json({ error: 'Ошибка генерации фотографии: ' + error.message });
   }
 });
 
@@ -196,7 +213,7 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Сервер запущен на порту ${PORT}`);
   console.log(`🌐 Health check доступен по адресу: http://localhost:${PORT}/healthz`);
   console.log(`📊 API endpoints:`);
@@ -212,4 +229,22 @@ app.listen(PORT, () => {
   console.log(`   sharp: ${typeof sharp !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
   console.log(`   express: ${typeof express !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
   console.log(`   multer: ${typeof multer !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
+  console.log(`🎯 Сервер успешно запущен и слушает порт ${PORT}`);
+});
+
+// Обработка ошибок сервера
+server.on('error', (error) => {
+  console.error('❌ Ошибка сервера:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Порт ${PORT} уже используется`);
+  } else if (error.code === 'EACCES') {
+    console.error(`❌ Нет прав для использования порта ${PORT}`);
+  }
+  process.exit(1);
+});
+
+// Проверяем, что сервер действительно слушает
+server.on('listening', () => {
+  const address = server.address();
+  console.log(`🎯 Сервер слушает на ${address.address}:${address.port}`);
 });
