@@ -43,11 +43,30 @@ requiredFiles.forEach(file => {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Проверяем файловую систему
+console.log('🔍 Проверка файловой системы:');
+console.log('Текущая директория:', process.cwd());
+console.log('Содержимое директории:', fs.readdirSync(process.cwd()));
+console.log('Существует ли server.mjs:', fs.existsSync('server.mjs'));
+console.log('Существует ли package.json:', fs.existsSync('package.json'));
+console.log('Существует ли папка uploads:', fs.existsSync('uploads'));
+
 // Проверяем наличие API ключа
 console.log('🔍 Проверка API ключа:');
 console.log('SCRIBBLE_DIFFUSION_API_KEY установлен:', !!process.env.SCRIBBLE_DIFFUSION_API_KEY);
 console.log('SCRIBBLE_DIFFUSION_API_KEY значение:', process.env.SCRIBBLE_DIFFUSION_API_KEY ? '***скрыто***' : 'не установлено');
 console.log('Все переменные окружения:', Object.keys(process.env).filter(key => key.includes('SCRIBBLE') || key.includes('NODE') || key.includes('PORT')));
+
+// Проверяем системные зависимости
+console.log('🔍 Проверка системных зависимостей:');
+try {
+  const sharp = await import('sharp');
+  console.log('✅ Sharp загружен успешно');
+  console.log('Sharp версия:', sharp.default.versions);
+} catch (error) {
+  console.error('❌ Ошибка загрузки Sharp:', error.message);
+  console.error('Это может быть связано с отсутствием системных библиотек');
+}
 
 const isApiKeyValid = process.env.SCRIBBLE_DIFFUSION_API_KEY && 
     process.env.SCRIBBLE_DIFFUSION_API_KEY !== 'YOUR_SCRIBBLE_DIFFUSION_API_KEY_HERE' && 

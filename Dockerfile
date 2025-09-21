@@ -1,6 +1,13 @@
 # Используем официальный Node.js образ
 FROM node:22-alpine
 
+# Устанавливаем системные зависимости для Sharp
+RUN apk add --no-cache \
+    vips-dev \
+    python3 \
+    make \
+    g++
+
 # Устанавливаем рабочую директорию
 WORKDIR /opt/build
 
@@ -12,6 +19,9 @@ RUN npm install --production
 
 # Копируем остальные файлы
 COPY . .
+
+# Создаем папку для загрузок
+RUN mkdir -p uploads
 
 # Создаем пользователя для безопасности
 RUN addgroup -g 1001 -S nodejs
