@@ -67,5 +67,25 @@ ehthumbs.db
 Thumbs.db
 
 # Uploads
-backend/uploads/*
-!backend/uploads/.gitkeep
+uploads/*
+!uploads/.gitkeep
+
+# Python virtual environments
+controlnet_env/
+venv/
+env/
+
+# Stable Diffusion WebUI (too large for git)
+stable-diffusion-webui/
+
+# Duplicate node_modules
+node_modules 2/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Documentation drafts
+*_FIX.md
+*_SETUP.md
+*_SOLUTION.md
