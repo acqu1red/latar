@@ -8,8 +8,9 @@
     "start": "node --max-old-space-size=4096 server.mjs",
     "dev": "node --max-old-space-size=4096 --watch server.mjs",
     "setup": "node setup-env.js",
-    "build": "yarn install --prod",
-    "heroku-postbuild": "echo 'Backend ready'"
+    "build": "npm install --production",
+    "heroku-postbuild": "echo 'Backend ready'",
+    "health": "curl -f http://localhost:3001/healthz || exit 1"
   },
   "engines": {
     "node": ">=22.0.0"

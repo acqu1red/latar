@@ -5,7 +5,7 @@ version: 22
 
 # Настройки приложения
 build:
-  command: "yarn install --prod"
+  command: "npm install --production && node test-start.mjs"
   working_directory: "."
 
 # Переменные окружения

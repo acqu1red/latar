@@ -142,5 +142,11 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
+  console.log(`🚀 Сервер запущен на порту ${PORT}`);
+  console.log(`🌐 Health check доступен по адресу: http://localhost:${PORT}/healthz`);
+  console.log(`📊 API endpoints:`);
+  console.log(`   POST /api/generate-photo - генерация фотографии`);
+  console.log(`   GET  /api/furniture - получение данных мебели`);
+  console.log(`   GET  /healthz - проверка здоровья сервера`);
+  console.log(`✅ Приложение готово к работе!`);
 });

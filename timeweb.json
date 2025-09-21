@@ -3,7 +3,7 @@
   "type": "nodejs",
   "version": "22",
   "build": {
-    "command": "yarn install --prod",
+    "command": "npm install --production && node test-start.mjs",
     "working_directory": "."
   },
   "environment": {
@@ -14,7 +14,8 @@
   "server": {
     "port": 3001,
     "health_check": "/healthz",
-    "start_command": "node --max-old-space-size=4096 server.mjs"
+    "start_command": "node --max-old-space-size=4096 server.mjs",
+    "build_command": "npm install --production"
   },
   "resources": {
     "memory": "1024MB",
