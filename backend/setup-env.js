@@ -16,31 +16,26 @@ if (fs.existsSync(envPath)) {
 }
 
 // Создаем .env файл
-const envContent = `# OpenAI API Configuration
-# Получите API ключ на https://platform.openai.com/api-keys
-OPENAI_API_KEY=YOUR_API_KEY_HERE
+const envContent = `# Scribble Diffusion API Configuration
+# Получите API ключ у вашего провайдера Scribble Diffusion
+SCRIBBLE_DIFFUSION_API_KEY=YOUR_SCRIBBLE_DIFFUSION_API_KEY_HERE
 
-# GitHub Configuration для загрузки временных изображений
-# Получите Personal Access Token на https://github.com/settings/tokens
-# Нужны права: repo (полный доступ к репозиторию)
-GITHUB_TOKEN=YOUR_GITHUB_TOKEN_HERE
+# Server Configuration
+NODE_ENV=development
+PORT=3001
 
-# Base URL для публичных ссылок на изображения
-# Для продакшена: https://acqu1red.github.io/latar
-# Для локальной разработки: http://localhost:8000
-BASE_URL=https://acqu1red.github.io/latar
+# CORS Configuration (опционально)
+# CORS_ORIGIN=https://your-frontend-domain.com
 
-# Замените YOUR_API_KEY_HERE на ваш реальный API ключ OpenAI
-# Пример: OPENAI_API_KEY=sk-proj-abc123def456...
-# Замените YOUR_GITHUB_TOKEN_HERE на ваш GitHub Personal Access Token
-# Пример: GITHUB_TOKEN=ghp_abc123def456...
+# Замените YOUR_SCRIBBLE_DIFFUSION_API_KEY_HERE на ваш реальный API ключ
+# Пример: SCRIBBLE_DIFFUSION_API_KEY=sk-abc123def456...
 `;
 
 try {
   fs.writeFileSync(envPath, envContent);
   console.log('✅ Файл .env создан успешно!');
-  console.log('📝 Теперь отредактируйте файл .env и добавьте ваш OpenAI API ключ');
-  console.log('🔗 Получите ключ на: https://platform.openai.com/api-keys');
+  console.log('📝 Теперь отредактируйте файл .env и добавьте ваш Scribble Diffusion API ключ');
+  console.log('🔗 Получите ключ у вашего провайдера Scribble Diffusion API');
 } catch (error) {
   console.error('❌ Ошибка создания файла .env:', error.message);
   process.exit(1);

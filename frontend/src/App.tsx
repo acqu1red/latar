@@ -1,124 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import './App.css';
 import { API_BASE_URL } from './config.js';
 
-interface MouseInput {
-  left: boolean;
-  middle: boolean;
-  right: boolean;
-  x: number;
-  y: number;
-}
-
-interface InteractiveState {
-  isDragging: boolean;
-  dragStart: { x: number; y: number } | null;
-  mousePosition: { x: number; y: number };
-  clickCount: number;
-}
+// interface FurnitureItem {
+//   name: string;
+//   icon: string;
+//   width: number;
+//   height: number;
+//   color: string;
+// }
 
 const App: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPhoto, setGeneratedPhoto] = useState<string | null>(null);
-  
-  // Состояние для интерактивности
-  const [mouseInput, setMouseInput] = useState<MouseInput>({
-    left: false,
-    middle: false,
-    right: false,
-    x: 0,
-    y: 0
-  });
-  
-  const [interactiveState, setInteractiveState] = useState<InteractiveState>({
-    isDragging: false,
-    dragStart: null,
-    mousePosition: { x: 0, y: 0 },
-    clickCount: 0
-  });
-  
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Обработчики событий мыши
-  const handleMouseDown = (event: React.MouseEvent) => {
-    event.preventDefault();
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    setMouseInput(prev => ({
-      ...prev,
-      left: event.button === 0,
-      middle: event.button === 1,
-      right: event.button === 2,
-      x,
-      y
-    }));
-
-    if (event.button === 0) {
-      setInteractiveState(prev => ({
-        ...prev,
-        isDragging: true,
-        dragStart: { x, y },
-        clickCount: prev.clickCount + 1
-      }));
-    }
-  };
-
-  const handleMouseUp = () => {
-    setMouseInput(prev => ({
-      ...prev,
-      left: false,
-      middle: false,
-      right: false
-    }));
-
-    setInteractiveState(prev => ({
-      ...prev,
-      isDragging: false,
-      dragStart: null
-    }));
-  };
-
-  const handleMouseMove = (event: React.MouseEvent) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    setMouseInput(prev => ({ ...prev, x, y }));
-    setInteractiveState(prev => ({ ...prev, mousePosition: { x, y } }));
-  };
-
-  const handleContextMenu = (event: React.MouseEvent) => {
-    event.preventDefault();
-    // Дополнительная логика для правой кнопки мыши
-  };
-
-  // Эффект для отслеживания глобальных событий мыши
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      setMouseInput(prev => ({
-        ...prev,
-        left: false,
-        middle: false,
-        right: false
-      }));
-      setInteractiveState(prev => ({
-        ...prev,
-        isDragging: false,
-        dragStart: null
-      }));
-    };
-
-    document.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, []);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -165,32 +61,11 @@ const App: React.FC = () => {
 
   return (
     <div className="app">
-      <div 
-        ref={containerRef}
-        className={`container ${interactiveState.isDragging ? 'dragging' : ''}`}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-        onContextMenu={handleContextMenu}
-      >
+      <div className="container">
         <h1>AI Генератор планов квартир</h1>
         <p className="app-description">
           Загрузите фотографию плана квартиры и получите профессионально нарисованный план с помощью ИИ
         </p>
-        
-        {/* Индикатор мыши */}
-        <div className="mouse-indicator">
-          <div className="mouse-info">
-            <span>🖱️ X: {Math.round(mouseInput.x)} Y: {Math.round(mouseInput.y)}</span>
-            {mouseInput.left && <span className="mouse-button left">ЛКМ</span>}
-            {mouseInput.middle && <span className="mouse-button middle">СКМ</span>}
-            {mouseInput.right && <span className="mouse-button right">ПКМ</span>}
-            {interactiveState.isDragging && <span className="drag-indicator">Перетаскивание</span>}
-          </div>
-          <div className="click-counter">
-            Кликов: {interactiveState.clickCount}
-          </div>
-        </div>
         
         <div className="upload-section">
           <div className="upload-area">
