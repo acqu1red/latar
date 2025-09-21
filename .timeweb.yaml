@@ -1,7 +1,7 @@
 # Timeweb конфигурация для деплоя
 name: latar-backend
 type: nodejs
-version: 20
+version: 22
 
 # Настройки приложения
 build:
