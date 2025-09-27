@@ -83,7 +83,17 @@
     "legendWallInner": "Inner Wall",
     "legendDoor": "Door",
     "legendWindow": "Window",
-    "legendFurniture": "Furniture Placeholder"
+    "legendFurniture": "Furniture Placeholder",
+    "noFileSelectedError": "Please select a file before generating a plan.",
+    "generatePlanButton": "Generate 2D Plan",
+    "generating": "Generating...",
+    "processing": "Processing your plan...",
+    "planDetailsTitle": "Plan Details",
+    "planDetailsOuterWalls": "Outer Walls",
+    "planDetailsInnerWalls": "Inner Walls",
+    "planDetailsDoors": "Doors",
+    "planDetailsWindows": "Windows",
+    "planDetailsFurniture": "Furniture Items"
   },
   "PricingPage": {
     "title": "Free for Authorized Users",

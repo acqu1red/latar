@@ -83,7 +83,17 @@
     "legendWallInner": "Внутренняя стена",
     "legendDoor": "Дверь",
     "legendWindow": "Окно",
-    "legendFurniture": "Мебель (заглушка)"
+    "legendFurniture": "Мебель (заглушка)",
+    "noFileSelectedError": "Пожалуйста, выберите файл перед генерацией плана.",
+    "generatePlanButton": "Сгенерировать 2D-план",
+    "generating": "Генерация...",
+    "processing": "Обработка вашего плана...",
+    "planDetailsTitle": "Детали плана",
+    "planDetailsOuterWalls": "Внешние стены",
+    "planDetailsInnerWalls": "Внутренние стены",
+    "planDetailsDoors": "Двери",
+    "planDetailsWindows": "Окна",
+    "planDetailsFurniture": "Предметы мебели"
   },
   "PricingPage": {
     "title": "Бесплатно для авторизованных пользователей",

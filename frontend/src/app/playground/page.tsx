@@ -5,21 +5,48 @@ import { useTranslations } from 'next-intl';
 import { UploadDropzone } from '@/components/upload-dropzone';
 import { SpecLegend } from '@/components/spec-legend';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { generatePlanFromImage } from '@/lib/ai'; // Импортируем реальную функцию API
 
 const PlaygroundPage = () => {
   const t = useTranslations('PlaygroundPage');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [processedImage, setProcessedImage] = useState<string | null>(null); // Заглушка для результата ИИ
+  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
+  const [planDetails, setPlanDetails] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFilesAccepted = useCallback((files: File[]) => {
     if (files.length > 0) {
       setUploadedFile(files[0]);
-      // Здесь будет логика для отправки файла на сервер и получения результата ИИ
-      // Для демонстрации, просто покажем заглушку обработанного изображения
-      setProcessedImage("/uploads/processed_plan_placeholder.png"); // Замените на реальный путь
+      setProcessedImageUrl(null);
+      setPlanDetails(null);
+      setError(null);
     }
   }, []);
+
+  const handleGeneratePlan = useCallback(async () => {
+    if (!uploadedFile) {
+      setError(t('noFileSelectedError'));
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setProcessedImageUrl(null);
+    setPlanDetails(null);
+
+    const result = await generatePlanFromImage(uploadedFile);
+
+    if (result.data) {
+      setProcessedImageUrl(result.data.imageUrl);
+      setPlanDetails(result.data.details);
+    } else if (result.error) {
+      setError(result.error);
+    }
+    setIsLoading(false);
+  }, [uploadedFile, t]);
 
   const legendItems = [
     { label: t('legendWallOuter'), color: '#111214', type: 'line' },
@@ -41,9 +68,15 @@ const PlaygroundPage = () => {
             <CardTitle className="text-2xl font-semibold mb-4">{t('uploadSectionTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <UploadDropzone onFilesAccepted={handleFilesAccepted} className="mb-6" />
+            <UploadDropzone onFilesAccepted={handleFilesAccepted} className="mb-6" disabled={isLoading} />
             {uploadedFile && (
-              <p className="text-muted-foreground">{t('uploadedFile')}: {uploadedFile.name}</p>
+              <p className="text-muted-foreground mb-4">{t('uploadedFile')}: {uploadedFile.name}</p>
+            )}
+            <Button onClick={handleGeneratePlan} disabled={!uploadedFile || isLoading} className="w-full">
+              {isLoading ? t('generating') : t('generatePlanButton')}
+            </Button>
+            {error && (
+              <p className="text-destructive text-sm mt-4">{error}</p>
             )}
           </CardContent>
         </Card>
@@ -54,13 +87,27 @@ const PlaygroundPage = () => {
             <CardTitle className="text-2xl font-semibold mb-4">{t('resultsSectionTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
-            {processedImage ? (
+            {isLoading ? (
+              <div className="w-full h-80 bg-muted rounded-lg flex items-center justify-center text-primary-foreground animate-pulse">
+                <p>{t('processing')}</p>
+              </div>
+            ) : processedImageUrl ? (
               <div className="relative w-full h-80 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                <Image src={processedImage} alt="Processed Plan" layout="fill" objectFit="contain" />
+                <Image src={processedImageUrl} alt="Processed Plan" layout="fill" objectFit="contain" />
               </div>
             ) : (
               <div className="w-full h-80 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
                 <p>{t('noResultsMessage')}</p>
+              </div>
+            )}
+            {planDetails && (
+              <div className="mt-8 space-y-2 text-muted-foreground">
+                <h3 className="text-xl font-semibold text-foreground mb-2">{t('planDetailsTitle')}</h3>
+                <p>{t('planDetailsOuterWalls')}: {planDetails.wallOuter}</p>
+                <p>{t('planDetailsInnerWalls')}: {planDetails.wallInner}</p>
+                <p>{t('planDetailsDoors')}: {planDetails.doors}</p>
+                <p>{t('planDetailsWindows')}: {planDetails.windows}</p>
+                <p>{t('planDetailsFurniture')}: {planDetails.furnitureItems}</p>
               </div>
             )}
             <div className="mt-8">
