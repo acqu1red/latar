@@ -26,7 +26,7 @@ export default function RootLayout({ children }: Props) {
     <html lang="ru" suppressHydrationWarning>
       <body
         className={cn(
-          "min-h-screen bg-white font-sans antialiased",
+          "min-h-screen bg-background font-sans antialiased",
           fontSans.variable
         )}
       >

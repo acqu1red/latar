@@ -5,7 +5,7 @@ import { ThemeToggle } from './theme-toggle'; // Импортируем ThemeTog
 
 const Header = () => {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link href="/" className="text-xl font-bold text-foreground">
