@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { API_BASE_URL } from './config';
+import { useAuth } from './AuthContext'; // Импортируем useAuth
 import './TexSchemePage.css';
 
 const TexSchemePage: React.FC = () => {
@@ -10,16 +11,13 @@ const TexSchemePage: React.FC = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth(); // Используем хук useAuth
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-      }
-    };
-    checkAuth();
-  }, [navigate]);
+    if (!isLoading && !user) {
+      navigate('/login'); // Если AuthContext загрузился и пользователь не авторизован, перенаправляем на логин
+    }
+  }, [isLoading, user, navigate]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,6 +62,17 @@ const TexSchemePage: React.FC = () => {
   const goToDashboard = () => {
     navigate('/dashboard');
   };
+
+  if (isLoading || !user) { // Показываем загрузку, пока AuthContext загружается или если нет пользователя
+    return (
+      <div className="texscheme-page">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="texscheme-page">

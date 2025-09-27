@@ -7,6 +7,7 @@ import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import DashboardPage from './DashboardPage';
 import './index.css';
+import { AuthProvider } from './AuthContext'; // Импорт AuthProvider
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -35,7 +36,9 @@ const App: React.FC = () => {
 const AppWrapper: React.FC = () => {
   return (
     <Router basename="/latar">
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </Router>
   );
 };

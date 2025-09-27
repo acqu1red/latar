@@ -1,19 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import { useAuth } from './AuthContext'; // Импортируем useAuth
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(false); // Изменено имя во избежание конфликтов
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth(); // Используем хук useAuth
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate('/dashboard'); // Если пользователь уже авторизован, перенаправляем на дашборд
+    }
+  }, [isLoading, user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsLoading(true);
+    setIsLoadingAuth(true);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -25,15 +33,26 @@ const LoginPage: React.FC = () => {
         setError(error.message);
       } else {
         console.log('Login successful');
-        navigate('/dashboard');
+        // Перенаправление будет обработано useEffect после обновления состояния AuthContext
       }
     } catch (err: any) {
       setError(err.message || 'Произошла ошибка при входе');
       console.error(err);
     } finally {
-      setIsLoading(false);
+      setIsLoadingAuth(false);
     }
   };
+
+  if (isLoading || (user && !isLoadingAuth)) { // Показываем загрузку, если AuthContext загружается или пользователь уже есть
+    return (
+      <div className="login-page">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="login-page">
@@ -82,8 +101,8 @@ const LoginPage: React.FC = () => {
           
           {error && <div className="error-message">{error}</div>}
           
-          <button type="submit" className="login-button" disabled={isLoading}>
-            {isLoading ? 'Вход...' : 'Войти'}
+          <button type="submit" className="login-button" disabled={isLoadingAuth}>
+            {isLoadingAuth ? 'Вход...' : 'Войти'}
           </button>
         </form>
         

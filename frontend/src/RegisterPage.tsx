@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import { useAuth } from './AuthContext'; // Импортируем useAuth
 import './RegisterPage.css';
 
 const RegisterPage: React.FC = () => {
@@ -8,17 +9,24 @@ const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(false); // Изменено имя во избежание конфликтов
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth(); // Используем хук useAuth
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate('/dashboard'); // Если пользователь уже авторизован, перенаправляем на дашборд
+    }
+  }, [isLoading, user, navigate]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsLoading(true);
+    setIsLoadingAuth(true);
 
     if (password !== confirmPassword) {
       setError('Пароли не совпадают');
-      setIsLoading(false);
+      setIsLoadingAuth(false);
       return;
     }
 
@@ -33,15 +41,26 @@ const RegisterPage: React.FC = () => {
       } else {
         console.log('Registration successful');
         alert('Регистрация успешна! Проверьте свою почту для подтверждения.');
-        navigate('/login');
+        navigate('/login'); // Перенаправить на страницу входа после успешной регистрации
       }
     } catch (err: any) {
       setError(err.message || 'Произошла ошибка при регистрации');
       console.error(err);
     } finally {
-      setIsLoading(false);
+      setIsLoadingAuth(false);
     }
   };
+
+  if (isLoading || (user && !isLoadingAuth)) { // Показываем загрузку, если AuthContext загружается или пользователь уже есть
+    return (
+      <div className="register-page">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="register-page">
@@ -103,8 +122,8 @@ const RegisterPage: React.FC = () => {
           
           {error && <div className="error-message">{error}</div>}
           
-          <button type="submit" className="register-button" disabled={isLoading}>
-            {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
+          <button type="submit" className="register-button" disabled={isLoadingAuth}>
+            {isLoadingAuth ? 'Регистрация...' : 'Зарегистрироваться'}
           </button>
         </form>
         
