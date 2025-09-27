@@ -1,9 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
 
+// Импортируем изображения для карусели
+import image1 from './assets/carousel/image1.jpg'; // Замените на ваши пути
+import image2 from './assets/carousel/image2.jpg';
+import image3 from './assets/carousel/image3.jpg';
+import image4 from './assets/carousel/image4.jpg';
+
+const images = [image1, image2, image3, image4];
+
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isFinalImage, setIsFinalImage] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex(prevIndex => {
+        if (prevIndex === images.length - 1) {
+          setIsFinalImage(true);
+          clearInterval(interval);
+          return prevIndex;
+        } else {
+          return prevIndex + 1;
+        }
+      });
+    }, 3000); // Смена изображения каждые 3 секунды
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleAuthRedirect = () => {
     navigate('/login');
@@ -13,6 +39,18 @@ const HomePage: React.FC = () => {
     <div className="home-page">
       {/* Глобальный фон с более сложной анимацией */}
       <div className="background-animation"></div>
+
+      {/* Контейнер для анимации фотографий */}
+      <div className="image-carousel-container">
+        {images.map((imgSrc, index) => (
+          <img
+            key={index}
+            src={imgSrc}
+            alt={`Interior ${index + 1}`}
+            className={`carousel-image ${index === currentImageIndex ? 'active' : ''} ${isFinalImage && index === images.length - 1 ? 'final-stretch' : ''}`}
+          />
+        ))}
+      </div>
 
       {/* Главная навигация */}
       <nav className="main-navbar">
@@ -46,28 +84,6 @@ const HomePage: React.FC = () => {
             Начать создание планов
             <span className="cta-arrow">→</span>
           </button>
-        </div>
-
-        <div className="hero-visual">
-          <div className="room-builder-3d">
-            <div className="room-glow-effect"></div> {/* Голографическое свечение */}
-            <div className="room-plane room-floor"></div>
-            <div className="room-grid"></div> {/* Сетка на полу */}
-
-            {/* Стены с анимацией появления */}
-            <div className="room-plane room-wall room-wall-back"></div>
-            <div className="room-plane room-wall room-wall-left"></div>
-            <div className="room-plane room-wall room-wall-right"></div>
-            <div className="room-plane room-wall room-wall-front"></div>
-
-            {/* Детализированные линии построения */}
-            <div className="room-detail-line line-h-1"></div>
-            <div className="room-detail-line line-v-1"></div>
-
-            {/* Мебель-плейсхолдеры */}
-            <div className="room-furniture-placeholder furniture-bed"></div>
-            <div className="room-furniture-placeholder furniture-table"></div>
-          </div>
         </div>
       </main>
 

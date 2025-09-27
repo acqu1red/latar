@@ -5,7 +5,7 @@
   background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 50%, #f8f8f8 100%); /* Светло-бежевый/светло-серый фон */
   color: #2a2a2a; /* Очень темный, почти черный текст */
   position: relative;
-  overflow-x: hidden;
+  overflow: hidden; /* Убираем overflow-x для лучшей работы с изображениями */
   display: flex;
   flex-direction: column;
   font-family: 'Roboto', sans-serif; /* Более универсальный шрифт */
@@ -18,11 +18,11 @@
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -2; /* Ниже 3D модели */
+  z-index: -2;
   pointer-events: none;
   background: radial-gradient(circle at 10% 40%, rgba(220, 220, 220, 0.3) 0%, rgba(240, 240, 240, 0) 60%),
               radial-gradient(circle at 90% 60%, rgba(200, 200, 200, 0.2) 0%, rgba(240, 240, 240, 0) 60%),
-              linear-gradient(180deg, rgba(0,0,0,0.05) 1px, transparent 1px) 0 0, /* Сетка */
+              linear-gradient(180deg, rgba(0,0,0,0.05) 1px, transparent 1px) 0 0,
               linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px) 0 0;
   background-size: 50px 50px;
   animation: subtleZoom 60s infinite alternate linear;
@@ -31,6 +31,51 @@
 @keyframes subtleZoom {
   0% { background-size: 50px 50px; background-position: 0 0; }
   100% { background-size: 60px 60px; background-position: 100px 100px; }
+}
+
+/* Контейнер для анимации фотографий */
+.image-carousel-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1; /* Под контентом, но выше фона */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.carousel-image {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.1); /* Начальное небольшое увеличение */
+  transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+}
+
+.carousel-image.active {
+  opacity: 1;
+  transform: scale(1); /* Возвращение к нормальному размеру */
+  animation: fadeInZoom 3s forwards; /* Анимация появления и небольшого зума */
+}
+
+.carousel-image.final-stretch {
+  animation: stretchToFull 5s forwards; /* Анимация растягивания на всю страницу */
+  z-index: -1;
+}
+
+@keyframes fadeInZoom {
+  0% { opacity: 0; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes stretchToFull {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.2); /* Немного больше, чем 100% для эффекта */}
 }
 
 /* Главная навигация */
@@ -113,6 +158,7 @@
   gap: 6rem; /* Увеличиваем отступ */
   position: relative;
   min-height: calc(100vh - 100px); /* С учетом навигации */
+  z-index: 10;
 }
 
 .hero-content {
@@ -194,132 +240,9 @@
   transform: translateX(8px); /* Более выраженное движение */
 }
 
-/* Визуальная часть - сложная 3D модель создания комнаты */
+/* Визуальная часть (убираем 3D модель) */
 .hero-visual {
-  flex: 1; /* Оставим 1 для баланса */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  width: 600px; /* Увеличиваем размер контейнера */
-  height: 600px;
-  perspective: 2000px; /* Более глубокая перспектива */
-  z-index: 5;
-}
-
-.room-builder-3d {
-  position: relative;
-  width: 350px; /* Увеличиваем базовый размер */
-  height: 350px;
-  transform-style: preserve-3d;
-  animation: roomBuildComplex 30s infinite linear;
-  transform: rotateX(30deg) rotateY(60deg) rotateZ(0deg); /* Более интересное начальное положение */
-  box-shadow: 0 0 80px rgba(0, 0, 0, 0.2); /* Общая тень для модели */
-  border-radius: 10px;
-}
-
-/* Базовые элементы, которые будут появляться */
-.room-plane {
-  position: absolute;
-  background: rgba(200, 200, 200, 0.05); /* Очень светлый, почти прозрачный */
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.02);
-  opacity: 0;
-  animation: fadeInOutPlane 4s forwards;
-}
-
-.room-floor {
-  width: 350px;
-  height: 350px;
-  transform: rotateX(90deg) translateZ(-175px);
-  background: repeating-linear-gradient(45deg, #e5e5e5, #e5e5e5 15px, #d8d8d8 15px, #d8d8d8 30px); /* Светлый пол с более крупной сеткой */
-  animation-delay: 0s;
-  opacity: 0.8; /* Всегда виден */
-  animation: none; /* Не анимируем его появление, всегда на месте */
-}
-
-.room-grid {
-  position: absolute;
-  width: 350px;
-  height: 350px;
-  transform: rotateX(90deg) translateZ(-176px);
-  background: 
-    linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px) 0 0,
-    linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px) 0 0;
-  background-size: 20px 20px;
-  opacity: 0;
-  animation: fadeIn 1s forwards;
-  animation-delay: 0.5s;
-}
-
-.room-wall {
-  position: absolute;
-  width: 350px;
-  height: 200px; /* Увеличиваем высоту */
-  background: rgba(220, 220, 220, 0.1); /* Полупрозрачные стены */
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
-  opacity: 0;
-  animation: fadeInWallComplex 2s forwards;
-  transform-origin: bottom; /* Анимация будет от низа */
-}
-
-.room-wall-back { transform: translateZ(-175px); animation-delay: 1s; }
-.room-wall-left { transform: rotateY(90deg) translateZ(-175px); animation-delay: 1.5s; }
-.room-wall-right { transform: rotateY(-90deg) translateZ(-175px); animation-delay: 2s; }
-.room-wall-front { transform: rotateY(180deg) translateZ(-175px); animation-delay: 2.5s; }
-
-/* Детализированные элементы */
-.room-detail-line {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.2); /* Темные линии */
-  opacity: 0;
-  animation: drawLine 1s forwards;
-  animation-delay: 3s;
-}
-
-.line-h-1 { width: 100px; height: 1px; top: 50px; left: 50px; transform: translateZ(-174px); animation-delay: 3s; }
-.line-v-1 { width: 1px; height: 100px; top: 50px; left: 50px; transform: translateZ(-174px); animation-delay: 3.2s; }
-
-.room-furniture-placeholder {
-  position: absolute;
-  background: linear-gradient(135deg, #4a4a4a, #2a2a2a); /* Темная мебель */
-  border: 1px solid rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
-  opacity: 0;
-  animation: fadeInScale 1.5s forwards;
-}
-
-.furniture-bed {
-  width: 80px;
-  height: 100px;
-  top: 70px;
-  left: 30px;
-  transform: translateZ(-170px); 
-  animation-delay: 4s;
-}
-
-.furniture-table {
-  width: 60px;
-  height: 60px;
-  top: 150px;
-  left: 200px;
-  transform: translateZ(-170px); 
-  animation-delay: 4.5s;
-  border-radius: 50%;
-}
-
-/* Голографический эффект */
-.room-glow-effect {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(0, 0, 0, 0.05) 0%, transparent 70%);
-  border-radius: 10px;
-  animation: pulseGlow 5s infinite alternate ease-in-out;
-  z-index: -1; /* Под моделью */
+  display: none; /* Скрываем, так как используем карусель */
 }
 
 /* Футер */
@@ -402,67 +325,27 @@
   }
   
   .hero-visual {
-    width: 450px;
-    height: 450px;
-  }
-  
-  .room-builder-3d {
-    width: 250px;
-    height: 250px;
-  }
-  
-  .room-floor {
-    width: 250px;
-    height: 250px;
-    transform: rotateX(90deg) translateZ(-125px);
+    display: none; /* Скрываем */
   }
 
-  .room-grid {
-    width: 250px;
-    height: 250px;
-    transform: rotateX(90deg) translateZ(-126px);
-    background-size: 15px 15px;
-  }
-  
-  .room-wall {
-    width: 250px;
-    height: 150px;
-  }
-
-  .room-wall-back { transform: translateZ(-125px); }
-  .room-wall-left { transform: rotateY(90deg) translateZ(-125px); }
-  .room-wall-right { transform: rotateY(-90deg) translateZ(-125px); }
-  .room-wall-front { transform: rotateY(180deg) translateZ(-125px); }
-
-  .room-door {
-    width: 40px;
-    height: 80px;
-    transform: translateZ(-124px) translateX(30px) translateY(10px);
-  }
-
-  .room-window {
-    width: 80px;
-    height: 50px;
-    transform: translateZ(-124px) translateX(-70px) translateY(20px);
-  }
-
-  .line-h-1 { width: 80px; top: 40px; left: 40px; transform: translateZ(-124px); }
-  .line-v-1 { height: 80px; top: 40px; left: 40px; transform: translateZ(-124px); }
-
-  .furniture-bed {
-    width: 60px;
-    height: 80px;
-    top: 60px;
-    left: 20px;
-    transform: translateZ(-120px);
-  }
-  
-  .furniture-table {
-    width: 50px;
-    height: 50px;
-    top: 120px;
-    left: 170px;
-    transform: translateZ(-120px);
+  /* Убираем стили для 3D модели */
+  .room-builder-3d,
+  .room-plane,
+  .room-floor,
+  .room-grid,
+  .room-wall,
+  .room-wall-back,
+  .room-wall-left,
+  .room-wall-right,
+  .room-wall-front,
+  .room-detail-line,
+  .line-h-1,
+  .line-v-1,
+  .room-furniture-placeholder,
+  .furniture-bed,
+  .furniture-table,
+  .room-glow-effect {
+    display: none;
   }
 }
 
@@ -505,70 +388,6 @@
   .hero-cta {
     padding: 1rem 2rem;
     font-size: 1rem;
-  }
-  
-  .hero-visual {
-    width: 300px;
-    height: 300px;
-  }
-  
-  .room-builder-3d {
-    width: 180px;
-    height: 180px;
-  }
-  
-  .room-floor {
-    width: 180px;
-    height: 180px;
-    transform: rotateX(90deg) translateZ(-90px);
-  }
-
-  .room-grid {
-    width: 180px;
-    height: 180px;
-    transform: rotateX(90deg) translateZ(-91px);
-    background-size: 10px 10px;
-  }
-  
-  .room-wall {
-    width: 180px;
-    height: 100px;
-  }
-
-  .room-wall-back { transform: translateZ(-90px); }
-  .room-wall-left { transform: rotateY(90deg) translateZ(-90px); }
-  .room-wall-right { transform: rotateY(-90deg) translateZ(-90px); }
-  .room-wall-front { transform: rotateY(180deg) translateZ(-90px); }
-
-  .room-door {
-    width: 30px;
-    height: 60px;
-    transform: translateZ(-89px) translateX(20px) translateY(5px);
-  }
-
-  .room-window {
-    width: 60px;
-    height: 40px;
-    transform: translateZ(-89px) translateX(-50px) translateY(10px);
-  }
-
-  .line-h-1 { width: 60px; top: 30px; left: 30px; transform: translateZ(-89px); }
-  .line-v-1 { height: 60px; top: 30px; left: 30px; transform: translateZ(-89px); }
-
-  .furniture-bed {
-    width: 50px;
-    height: 70px;
-    top: 50px;
-    left: 15px;
-    transform: translateZ(-85px);
-  }
-  
-  .furniture-table {
-    width: 40px;
-    height: 40px;
-    top: 90px;
-    left: 120px;
-    transform: translateZ(-85px);
   }
 
   .main-footer {
