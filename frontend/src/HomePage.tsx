@@ -11,16 +11,8 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="home-page">
-      {/* Анимированный фон */}
-      <div className="background-animation">
-        {/* <div className="gradient-orb"></div> */}
-        {/* <div className="floating-shapes"> */}
-          {/* <div className="shape shape-1"></div> */}
-          {/* <div className="shape shape-2"></div> */}
-          {/* <div className="shape shape-3"></div> */}
-          {/* <div className="shape shape-4"></div> */}
-        {/* </div> */}
-      </div>
+      {/* Глобальный фон с более сложной анимацией */}
+      <div className="background-animation"></div>
 
       {/* Главная навигация */}
       <nav className="main-navbar">
@@ -43,12 +35,12 @@ const HomePage: React.FC = () => {
         <div className="hero-content">
           <h1 className="hero-title">
             Превратите ваши идеи в
-            <span className="gradient-text"> профессиональные</span>
+            <span className="gradient-text"> точные</span>
             <br />
-            технические планы помещений
+            технические планы
           </h1>
           <p className="hero-subtitle">
-            Передовая AI-технология создает точные, детализированные архитектурные чертежи с безупречным качеством за считанные секунды.
+            Передовая AI-технология создает детализированные архитектурные чертежи с уникальной точностью и космической скоростью.
           </p>
           <button className="hero-cta" onClick={handleAuthRedirect}>
             Начать создание планов
@@ -57,17 +49,24 @@ const HomePage: React.FC = () => {
         </div>
 
         <div className="hero-visual">
-          <div className="galactic-builder-3d">
-            <div className="galaxy-plane galaxy-base"></div>
-            <div className="galaxy-plane galaxy-shard shard-1"></div>
-            <div className="galaxy-plane galaxy-shard shard-2"></div>
-            <div className="galaxy-plane galaxy-shard shard-3"></div>
-            <div className="galaxy-plane galaxy-shard shard-4"></div>
-            <div className="galaxy-beam beam-1"></div>
-            <div className="galaxy-beam beam-2"></div>
-            <div className="galaxy-beam beam-3"></div>
-            <div className="galactic-object object-sphere-1"></div>
-            <div className="galactic-object object-sphere-2"></div>
+          <div className="room-builder-3d">
+            <div className="room-glow-effect"></div> {/* Голографическое свечение */}
+            <div className="room-plane room-floor"></div>
+            <div className="room-grid"></div> {/* Сетка на полу */}
+
+            {/* Стены с анимацией появления */}
+            <div className="room-plane room-wall room-wall-back"></div>
+            <div className="room-plane room-wall room-wall-left"></div>
+            <div className="room-plane room-wall room-wall-right"></div>
+            <div className="room-plane room-wall room-wall-front"></div>
+
+            {/* Детализированные линии построения */}
+            <div className="room-detail-line line-h-1"></div>
+            <div className="room-detail-line line-v-1"></div>
+
+            {/* Мебель-плейсхолдеры */}
+            <div className="room-furniture-placeholder furniture-bed"></div>
+            <div className="room-furniture-placeholder furniture-table"></div>
           </div>
         </div>
       </main>

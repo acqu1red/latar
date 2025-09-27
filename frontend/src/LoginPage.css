@@ -1,17 +1,18 @@
-/* Страница входа - теплые и черные тона */
+/* LoginPage.css - Галактический масштаб, светло-бежевые и темно-серые тона */
 
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); /* Глубокий черный фон */
-  color: #e0e0e0; /* Светлый текст */
+  background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 50%, #f8f8f8 100%); /* Светло-бежевый/светло-серый фон */
+  color: #2a2a2a; /* Очень темный, почти черный текст */
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
+  font-family: 'Roboto', sans-serif;
 }
 
-/* Анимированный фон */
+/* Глобальный фон с более сложной анимацией */
 .background-animation {
   position: fixed;
   top: 0;
@@ -20,33 +21,63 @@
   height: 100%;
   z-index: -2;
   pointer-events: none;
-  background: #0d0d0d; /* Черный космос */
-  background-image: 
-    radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 80px 100px, #eee, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 150px 150px, #eee, rgba(0,0,0,0)),
-    radial-gradient(3px 3px at 300px 50px, #fff, rgba(0,0,0,0)),
-    radial-gradient(3px 3px at 400px 200px, #fff, rgba(0,0,0,0)),
-    radial-gradient(3px 3px at 500px 300px, #fff, rgba(0,0,0,0));
-  background-size: 600px 600px;
-  animation: animateBackground 100s linear infinite;
+  background: radial-gradient(circle at 10% 40%, rgba(220, 220, 220, 0.3) 0%, rgba(240, 240, 240, 0) 60%),
+              radial-gradient(circle at 90% 60%, rgba(200, 200, 200, 0.2) 0%, rgba(240, 240, 240, 0) 60%),
+              linear-gradient(180deg, rgba(0,0,0,0.05) 1px, transparent 1px) 0 0,
+              linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px) 0 0;
+  background-size: 50px 50px;
+  animation: subtleZoom 60s infinite alternate linear;
 }
 
-.gradient-orb, .floating-shapes {
-  display: none; /* Убираем, если используем новый фон */
+@keyframes subtleZoom {
+  0% { background-size: 50px 50px; background-position: 0 0; }
+  100% { background-size: 60px 60px; background-position: 100px 100px; }
 }
 
 /* Контейнер формы */
 .login-container {
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.95); /* Почти белый, полупрозрачный */
+  backdrop-filter: blur(25px); /* Более сильное размытие */
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 20px;
   padding: 3rem;
   width: 100%;
   max-width: 450px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15); /* Более выраженная тень */
   animation: fadeInScale 0.6s ease-out;
+  position: relative; /* Для псевдоэлементов */
+  overflow: hidden;
+}
+
+.login-container::before, .login-container::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.05) 0%, transparent 70%);
+  opacity: 0.6;
+  filter: blur(15px);
+  animation: orbFloat 10s infinite ease-in-out alternate;
+}
+
+.login-container::before {
+  width: 150px;
+  height: 150px;
+  top: -50px;
+  left: -50px;
+  animation-delay: 0s;
+}
+
+.login-container::after {
+  width: 100px;
+  height: 100px;
+  bottom: -30px;
+  right: -30px;
+  animation-delay: 5s;
+}
+
+@keyframes orbFloat {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  100% { transform: translate(20px, 10px) scale(1.05); opacity: 0.8; }
 }
 
 .login-header {
@@ -55,19 +86,19 @@
 }
 
 .login-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #f0f0f0;
+  font-size: 2.8rem; /* Больше размер шрифта */
+  font-weight: 800;
+  color: #333333;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #add8e6, #87ceeb); /* Светло-голубой градиент */
+  background: linear-gradient(135deg, #4a4a4a, #1a1a1a); /* Темно-серый градиент */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .login-subtitle {
-  font-size: 1.1rem;
-  color: #b0b0b0;
+  font-size: 1.15rem;
+  color: #666666;
   margin: 0;
 }
 
@@ -75,30 +106,31 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.6rem;
 }
 
 .input-group label {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
-  color: #e0e0e0;
+  color: #4a4a4a;
 }
 
 .form-input {
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #e0e0e0;
-  font-size: 1rem;
+  padding: 1.1rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7); /* Светлее фон инпута */
+  color: #333333;
+  font-size: 1.05rem;
   transition: all 0.3s ease;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #add8e6;
-  box-shadow: 0 0 0 3px rgba(173, 216, 230, 0.1);
-  background: rgba(255, 255, 255, 0.1);
+  border-color: #555555; /* Темнее при фокусе */
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1); /* Более выраженная тень */
+  background: rgba(255, 255, 255, 0.9); /* Почти белый при фокусе */
 }
 
 .form-input::placeholder {
@@ -107,27 +139,27 @@
 
 /* Сообщение об ошибке */
 .error-message {
-  background: rgba(244, 67, 54, 0.1);
-  border: 1px solid rgba(244, 67, 54, 0.3);
-  color: #f44336;
-  padding: 0.75rem;
-  border-radius: 8px;
+  background: rgba(244, 67, 54, 0.08);
+  border: 1px solid rgba(244, 67, 54, 0.2);
+  color: #d32f2f;
+  padding: 0.8rem;
+  border-radius: 10px;
   font-size: 0.9rem;
   text-align: center;
 }
 
 /* Кнопка входа */
 .login-button {
-  padding: 1rem;
-  background: linear-gradient(135deg, #add8e6, #87ceeb); /* Светло-голубой градиент */
-  color: #1a1a1a;
+  padding: 1.2rem;
+  background: linear-gradient(135deg, #333333, #1a1a1a); /* Темно-серый/черный градиент */
+  color: #ffffff;
   border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
+  border-radius: 14px;
+  font-size: 1.15rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(173, 216, 230, 0.3);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -136,50 +168,51 @@
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
-  width: 100%;
+  left: -120%;
+  width: 120%;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.5s ease;
+  transition: left 0.6s ease;
 }
 
 .login-button:hover::before {
-  left: 100%;
+  left: 120%;
 }
 
 .login-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(173, 216, 230, 0.4);
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
 .login-button:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 /* Футер формы */
 .login-footer {
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   text-align: center;
 }
 
 .register-link {
-  color: #b0b0b0;
+  color: #666666;
   font-size: 0.95rem;
   margin-bottom: 1rem;
   display: block;
 }
 
 .register-link a {
-  color: #add8e6; /* Светло-голубой */
+  color: #333333;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
   transition: color 0.3s ease;
 }
 
 .register-link a:hover {
-  color: #87ceeb;
+  color: #1a1a1a;
 }
 
 .back-link {
@@ -190,14 +223,14 @@
 }
 
 .back-link:hover {
-  color: #add8e6;
+  color: #4a4a4a;
 }
 
 /* Анимации */
 @keyframes fadeInScale {
   0% {
     opacity: 0;
-    transform: scale(0.9) translateY(20px);
+    transform: scale(0.95) translateY(20px);
   }
   100% {
     opacity: 1;
@@ -205,9 +238,9 @@
   }
 }
 
-@keyframes animateBackground {
-  from { background-position: 0 0; }
-  to { background-position: 600px 600px; }
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(180deg); }
 }
 
 /* Адаптивность */
@@ -219,11 +252,21 @@
   }
   
   .login-title {
-    font-size: 2rem;
+    font-size: 2.2rem;
   }
   
   .login-subtitle {
+    font-size: 1.05rem;
+  }
+  
+  .form-input {
+    padding: 1rem;
     font-size: 1rem;
+  }
+  
+  .login-button {
+    padding: 1.1rem;
+    font-size: 1.05rem;
   }
 }
 
@@ -233,15 +276,24 @@
   }
   
   .login-title {
-    font-size: 1.75rem;
+    font-size: 1.8rem;
+  }
+  
+  .login-subtitle {
+    font-size: 0.95rem;
+  }
+  
+  .input-group label {
+    font-size: 0.85rem;
   }
   
   .form-input {
-    padding: 0.875rem;
+    padding: 0.8rem;
+    font-size: 0.95rem;
   }
   
   .login-button {
-    padding: 0.875rem;
+    padding: 0.9rem;
     font-size: 1rem;
   }
 }
