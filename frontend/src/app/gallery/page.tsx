@@ -1,6 +1,8 @@
 "use client"
 
 import React from 'react';
+
+export const dynamic = 'force-dynamic';
 import { useTranslations } from 'next-intl';
 import { BeforeAfterSlider } from '@/components/before-after-slider';
 

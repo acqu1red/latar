@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+// import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const ProcessPage = () => {
   const t = useTranslations('ProcessPage');
@@ -33,15 +33,15 @@ const ProcessPage = () => {
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
         {steps.map((step, index) => (
-          <Card key={index} className="flex flex-col items-center text-center p-6">
-            <CardHeader>
+          <div key={index} className="flex flex-col items-center text-center p-6 border rounded-lg shadow-sm">
+            <div className="mb-4">
               <div className="text-4xl font-extrabold text-primary mb-4">{index + 1}</div>
-              <CardTitle className="text-xl font-semibold mb-2">{step.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-muted-foreground">
+              <h2 className="text-xl font-semibold mb-2">{step.title}</h2>
+            </div>
+            <div className="text-gray-600">
               {step.description}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
     </div>

@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+// import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const ContactPage = () => {
   const t = useTranslations('ContactPage');
@@ -35,23 +35,23 @@ const ContactPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Контактная информация */}
-        <Card className="p-6">
-          <CardHeader>
-            <CardTitle className="text-2xl font-semibold mb-4">{t('contactInfoTitle')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-muted-foreground">
+        <div className="p-6 border rounded-lg shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-2xl font-semibold mb-4">{t('contactInfoTitle')}</h2>
+          </div>
+          <div className="space-y-4 text-gray-600">
             <p><strong>{t('emailLabel')}:</strong> <a href="mailto:info@flatmap.ai" className="text-primary hover:underline">info@flatmap.ai</a></p>
             <p><strong>{t('phoneLabel')}:</strong> +1 (555) 123-4567</p>
             <p><strong>{t('addressLabel')}:</strong> {t('addressValue')}</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Форма обратной связи */}
-        <Card className="p-6">
-          <CardHeader>
-            <CardTitle className="text-2xl font-semibold mb-4">{t('formTitle')}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="p-6 border rounded-lg shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-2xl font-semibold mb-4">{t('formTitle')}</h2>
+          </div>
+          <div>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
@@ -99,8 +99,8 @@ const ContactPage = () => {
                 {t('submitButton')}
               </Button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

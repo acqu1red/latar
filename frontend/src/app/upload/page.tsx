@@ -1,18 +1,14 @@
 "use client"
 
 import React, { useState, useCallback } from 'react';
-
-export const dynamic = 'force-dynamic';
-import { useTranslations } from 'next-intl';
 import { UploadDropzone } from '@/components/upload-dropzone';
 import { SpecLegend } from '@/components/spec-legend';
 // import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { generatePlanFromImage } from '@/lib/ai'; // Импортируем реальную функцию API
+import { generatePlanFromImage } from '@/lib/ai';
 
-const PlaygroundPage = () => {
-  const t = useTranslations('PlaygroundPage');
+const UploadPage = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
   const [planDetails, setPlanDetails] = useState<Record<string, number> | null>(null);
@@ -30,7 +26,7 @@ const PlaygroundPage = () => {
 
   const handleGeneratePlan = useCallback(async () => {
     if (!uploadedFile) {
-      setError(t('noFileSelectedError'));
+      setError('Пожалуйста, выберите файл для загрузки');
       return;
     }
 
@@ -48,34 +44,36 @@ const PlaygroundPage = () => {
       setError(result.error);
     }
     setIsLoading(false);
-  }, [uploadedFile, t]);
+  }, [uploadedFile]);
 
   const legendItems = [
-    { label: t('legendWallOuter'), color: '#111214', type: 'line' as const },
-    { label: t('legendWallInner'), color: '#2E3137', type: 'line' as const },
-    { label: t('legendDoor'), color: '#C9CED6', type: 'box' as const },
-    { label: t('legendWindow'), color: '#F5F5F5', type: 'box' as const },
-    { label: t('legendFurniture'), color: '#888888', type: 'box' as const },
+    { label: 'Внешние стены', color: '#111214', type: 'line' as const },
+    { label: 'Внутренние стены', color: '#2E3137', type: 'line' as const },
+    { label: 'Двери', color: '#C9CED6', type: 'box' as const },
+    { label: 'Окна', color: '#F5F5F5', type: 'box' as const },
+    { label: 'Мебель', color: '#888888', type: 'box' as const },
   ];
 
   return (
     <div className="container py-20">
-      <h1 className="text-4xl font-bold text-center mb-8">{t('title')}</h1>
-      <p className="text-lg text-center text-muted-foreground mb-12">{t('subtitle')}</p>
+      <h1 className="text-4xl font-bold text-center mb-8">Загрузите свой план</h1>
+      <p className="text-lg text-center text-gray-600 mb-12">
+        Загрузите фото или скан вашего плана, и наш ИИ создаст аккуратный 2D-чертёж
+      </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Секция загрузки */}
         <div className="p-6 border rounded-lg shadow-sm">
           <div className="mb-4">
-            <h2 className="text-2xl font-semibold mb-4">{t('uploadSectionTitle')}</h2>
+            <h2 className="text-2xl font-semibold mb-4">Загрузка файла</h2>
           </div>
           <div>
             <UploadDropzone onFilesAccepted={handleFilesAccepted} className="mb-6" disabled={isLoading} />
             {uploadedFile && (
-              <p className="text-muted-foreground mb-4">{t('uploadedFile')}: {uploadedFile.name}</p>
+              <p className="text-gray-600 mb-4">Загруженный файл: {uploadedFile.name}</p>
             )}
             <Button onClick={handleGeneratePlan} disabled={!uploadedFile || isLoading} className="w-full">
-              {isLoading ? t('generating') : t('generatePlanButton')}
+              {isLoading ? 'Обработка...' : 'Создать план'}
             </Button>
             {error && (
               <p className="text-red-500 text-sm mt-4">{error}</p>
@@ -86,30 +84,30 @@ const PlaygroundPage = () => {
         {/* Секция результатов ИИ */}
         <div className="p-6 border rounded-lg shadow-sm">
           <div className="mb-4">
-            <h2 className="text-2xl font-semibold mb-4">{t('resultsSectionTitle')}</h2>
+            <h2 className="text-2xl font-semibold mb-4">Результат обработки</h2>
           </div>
           <div>
             {isLoading ? (
-              <div className="w-full h-80 bg-muted rounded-lg flex items-center justify-center text-primary-foreground animate-pulse">
-                <p>{t('processing')}</p>
+              <div className="w-full h-80 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 animate-pulse">
+                <p>Обработка изображения...</p>
               </div>
             ) : processedImageUrl ? (
               <div className="relative w-full h-80 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
                 <Image src={processedImageUrl} alt="Processed Plan" layout="fill" objectFit="contain" />
               </div>
             ) : (
-              <div className="w-full h-80 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-                <p>{t('noResultsMessage')}</p>
+              <div className="w-full h-80 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
+                <p>Результат появится здесь после обработки</p>
               </div>
             )}
             {planDetails && (
-              <div className="mt-8 space-y-2 text-muted-foreground">
-                <h3 className="text-xl font-semibold text-foreground mb-2">{t('planDetailsTitle')}</h3>
-                <p>{t('planDetailsOuterWalls')}: {planDetails.wallOuter}</p>
-                <p>{t('planDetailsInnerWalls')}: {planDetails.wallInner}</p>
-                <p>{t('planDetailsDoors')}: {planDetails.doors}</p>
-                <p>{t('planDetailsWindows')}: {planDetails.windows}</p>
-                <p>{t('planDetailsFurniture')}: {planDetails.furnitureItems}</p>
+              <div className="mt-8 space-y-2 text-gray-600">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Детали плана</h3>
+                <p>Внешние стены: {planDetails.wallOuter}</p>
+                <p>Внутренние стены: {planDetails.wallInner}</p>
+                <p>Двери: {planDetails.doors}</p>
+                <p>Окна: {planDetails.windows}</p>
+                <p>Мебель: {planDetails.furnitureItems}</p>
               </div>
             )}
             <div className="mt-8">
@@ -122,4 +120,4 @@ const PlaygroundPage = () => {
   );
 };
 
-export default PlaygroundPage;
+export default UploadPage;

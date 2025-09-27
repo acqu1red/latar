@@ -178,6 +178,63 @@ app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
   }
 });
 
+// Маршрут для генерации плана (аналогично generate-photo, но возвращает JSON)
+app.post('/api/generate-plan', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Файл не загружен' });
+    }
+
+    // Scribble Diffusion API ключ обязателен
+    if (!isApiKeyValid) {
+      return res.status(503).json({ 
+        error: 'Сервис генерации планов временно недоступен. API ключ не настроен.',
+        code: 'API_KEY_MISSING'
+      });
+    }
+
+    const imagePath = req.file.path;
+    
+    console.log('Обработка изображения для генерации плана:', imagePath);
+
+    // Анализируем изображение и создаем эскиз
+    const analysisData = await analyzeImageForPhoto(imagePath);
+    
+    // Используем автоматически сгенерированный промпт для точного воспроизведения плана
+    const prompt = analysisData.prompt;
+    
+    // Генерируем фотографию из эскиза
+    const photoBuffer = await generatePhotoFromSketch(analysisData.sketchPath, prompt);
+    
+    // Сохраняем результат в uploads
+    const resultFileName = `plan_${Date.now()}.png`;
+    const resultPath = path.join(uploadsDir, resultFileName);
+    fs.writeFileSync(resultPath, photoBuffer);
+    
+    // Удаляем временные файлы
+    fs.unlinkSync(imagePath);
+    if (fs.existsSync(analysisData.sketchPath)) {
+      fs.unlinkSync(analysisData.sketchPath);
+    }
+
+    // Возвращаем JSON с данными о плане
+    res.json({
+      imageUrl: `/uploads/${resultFileName}`,
+      details: {
+        wallOuter: Math.floor(Math.random() * 10) + 5, // Моковые данные
+        wallInner: Math.floor(Math.random() * 15) + 8,
+        doors: Math.floor(Math.random() * 5) + 2,
+        windows: Math.floor(Math.random() * 8) + 3,
+        furnitureItems: Math.floor(Math.random() * 12) + 5
+      }
+    });
+
+  } catch (error) {
+    console.error('Ошибка генерации плана:', error);
+    res.status(500).json({ error: 'Ошибка генерации плана: ' + error.message });
+  }
+});
+
 // Health check endpoint
 app.get('/healthz', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -238,6 +295,7 @@ const server = app.listen(PORT, () => {
   console.log(`🌐 Health check доступен по адресу: http://localhost:${PORT}/healthz`);
   console.log(`📊 API endpoints:`);
   console.log(`   POST /api/generate-photo - генерация фотографии`);
+  console.log(`   POST /api/generate-plan - генерация плана`);
   console.log(`   GET  /api/furniture - получение данных мебели`);
   console.log(`   GET  /healthz - проверка здоровья сервера`);
   console.log(`✅ Приложение готово к работе!`);

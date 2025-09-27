@@ -26,7 +26,7 @@ export const trackPageView = (url: string) => {
   // }
 };
 
-export const trackEvent = (eventName: string, params?: Record<string, any>) => {
+export const trackEvent = (eventName: string, params?: Record<string, unknown>) => {
   console.log("Tracking event:", eventName, params);
   // Пример для Google Analytics
   // if (process.env.NEXT_PUBLIC_GA_ID && typeof window !== 'undefined') {

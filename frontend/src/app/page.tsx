@@ -1,38 +1,34 @@
 "use client"
 
 import React from 'react';
+
+export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useTranslations } from 'next-intl';
+// import { useTranslations } from 'next-intl';
 import { BeforeAfterSlider } from '@/components/before-after-slider';
 import { motion } from 'framer-motion';
 
 export default function HomePage() {
-  const t = useTranslations('HomePage');
+  // const t = useTranslations('HomePage');
 
   return (
     <main className="flex min-h-[calc(100vh-theme(spacing.16))] flex-col items-center justify-center overflow-hidden">
-      <section className="relative z-10 w-full overflow-hidden bg-background py-20 md:py-32 lg:py-48">
+      <section className="relative z-10 w-full overflow-hidden bg-white py-20 md:py-32 lg:py-48">
         <div className="container flex flex-col items-center gap-12 text-center lg:flex-row lg:text-left">
           <div className="flex flex-col items-center gap-6 lg:items-start lg:w-1/2">
             <h1 className="text-display-3xl font-extrabold tracking-tight text-foreground sm:text-display-4xl lg:text-display-5xl">
-              {t('heroTitle').split(' ').map((word, index) => (
-                word === 'чистый' ? (
-                  <span key={index} className="bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent"> {word}</span>
-                ) : (
-                  <span key={index}> {word}</span>
-                )
-              ))}
+              Превращаем ваш черновой план в <span className="bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">чистый</span> 2D-чертёж за минуты
             </h1>
             <p className="text-lead text-muted-foreground max-w-2xl">
-              {t('heroSubtitle')}
+              ИИ анализирует фото или скан вашего плана и создаёт аккуратный 2D-чертёж с чистыми линиями, правильными размерами и понятными подписями
             </p>
             <div className="flex flex-col gap-4 sm:flex-row">
               <Button asChild size="lg" className="text-lg px-8 py-3 rounded-xl bg-primary hover:opacity-90 transition-opacity">
-                <Link href="/upload">{t('ctaButton1')}</Link>
+                <Link href="/upload">Начать сейчас</Link>
               </Button>
               <Button asChild variant="secondary" size="lg" className="text-lg px-8 py-3 rounded-xl ring-1 ring-border hover:bg-muted transition-colors">
-                <Link href="/gallery">{t('ctaButton2')}</Link>
+                <Link href="/gallery">Посмотреть примеры</Link>
               </Button>
             </div>
           </div>
@@ -135,9 +131,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Секция Before/After Slider */}
-      <section className="container py-20">
-        <h2 className="text-4xl font-bold text-center mb-12">{t('beforeAfterSectionTitle')}</h2>
+            {/* Секция Before/After Slider */}
+            <section className="container py-20">
+              <h2 className="text-4xl font-bold text-center mb-12">До и после</h2>
         <div className="flex justify-center">
           <BeforeAfterSlider
             beforeImg="/uploads/temp_plan_before.png" // Замените на реальные пути
