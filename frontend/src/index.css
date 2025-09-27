@@ -1,12 +1,13 @@
-/* Глобальные стили */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #0a0a0a; /* Единый темный фон */
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #0a0a0a; /* Обновленный глобальный фон */
   color: white;
+  font-family: 'Poppins', sans-serif; /* Основной шрифт */
 }
 
 code {
@@ -18,3 +19,5 @@ code {
   width: 100%;
   min-height: 100vh;
 }
+
+/* Стили, которые были удалены из App.css, если они актуальны, могут быть здесь */

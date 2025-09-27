@@ -60,13 +60,11 @@ const HomePage: React.FC = () => {
         <main className="hero-section">
           <div className="hero-content">
             <h1 className="hero-title">
-              <span className="title-line">Создавайте</span>
-              <span className="title-line highlight">Технические Планы</span>
-              <span className="title-line">с помощью ИИ</span>
+              <span className="title-line">Ваш проект,</span>
+              <span className="title-line highlight">Наша Точность</span>
             </h1>
             <p className="hero-description">
-              Превратите ваши идеи в профессиональные технические планы помещений за считанные секунды.
-              Наша передовая AI-технология создает точные, детализированные архитектурные чертежи с безупречным качеством.
+              Превратите идеи в архитектурные планы с помощью передового ИИ. Быстро, точно, профессионально.
             </p>
             <div className="hero-cta">
               <button className="cta-button primary large" onClick={() => handleAuthRedirect('/register')}>
@@ -76,18 +74,17 @@ const HomePage: React.FC = () => {
             </div>
           </div>
           
-          {/* 3D элемент */}
+          {/* 3D элемент - Advanced Architectural Grid */}
           <div className="hero-visual" style={{
-            transform: `perspective(1000px) rotateY(${(mousePosition.x - window.innerWidth / 2) * 0.05}deg) rotateX(${(mousePosition.y - window.innerHeight / 2) * 0.02}deg)`
+            transform: `perspective(1000px) rotateY(${(mousePosition.x - window.innerWidth / 2) * 0.03}deg) rotateX(${(mousePosition.y - window.innerHeight / 2) * 0.015}deg)`
           }}>
-            <div className="hero-3d-model">
-              <div className="model-face front"></div>
-              <div className="model-face back"></div>
-              <div className="model-face left"></div>
-              <div className="model-face right"></div>
-              <div className="model-face top"></div>
-              <div className="model-face bottom"></div>
-              <div className="model-glow"></div>
+            <div className="architectural-grid">
+              <div className="grid-layer layer-1"></div>
+              <div className="grid-layer layer-2"></div>
+              <div className="grid-layer layer-3"></div>
+              <div className="grid-core"></div>
+              <div className="grid-glow-inner"></div>
+              <div className="grid-glow-outer"></div>
             </div>
           </div>
         </main>

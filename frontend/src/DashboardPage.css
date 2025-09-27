@@ -1,215 +1,625 @@
 /* Стили для DashboardPage */
 .dashboard-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0d1a42, #1e3a8a); /* Темный градиентный фон */
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-  color: white;
-  display: flex;
-  flex-direction: column;
+  position: relative;
   overflow: hidden;
 }
 
+.dashboard-content-wrapper {
+  position: relative;
+  z-index: 10;
+  opacity: 0;
+  transform: translateY(50px);
+  animation: fadeInUp 1s ease-out forwards 0.3s;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.dashboard-content-wrapper.loaded {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Анимации фона - скопированы из HomePage.css */
+.background-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background: linear-gradient(135deg, #020210, #0a0a20);
+  overflow: hidden;
+}
+
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(150px);
+  opacity: 0.4;
+  animation: orbFloat 30s infinite ease-in-out;
+}
+
+.orb-1 {
+  width: 600px;
+  height: 600px;
+  background: linear-gradient(45deg, #4f0088, #2e006b);
+  top: 0%;
+  left: -5%;
+  animation-delay: 0s;
+}
+
+.orb-2 {
+  width: 700px;
+  height: 700px;
+  background: linear-gradient(45deg, #007bff, #00c6ff);
+  top: 55%;
+  right: -8%;
+  animation-delay: -10s;
+}
+
+.orb-3 {
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(45deg, #ff007f, #cc0066);
+  bottom: -10%;
+  left: 15%;
+  animation-delay: -20s;
+}
+
+.floating-shapes {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.shape {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  animation: shapeFloat 25s infinite ease-in-out;
+}
+
+.shape-1 { width: 120px; height: 120px; top: 10%; left: 10%; animation-delay: 0s; transform: rotate(0deg); }
+.shape-2 { width: 180px; height: 180px; top: 60%; right: 5%; animation-delay: -8s; transform: rotate(45deg); }
+.shape-3 { width: 90px; height: 90px; bottom: 20%; left: 30%; animation-delay: -16s; transform: rotate(90deg); }
+.shape-4 { width: 140px; height: 140px; top: 20%; left: 70%; animation-delay: -5s; background: rgba(0, 255, 255, 0.05); transform: rotate(120deg); }
+.shape-5 { width: 110px; height: 110px; bottom: 5%; right: 25%; animation-delay: -13s; background: rgba(255, 0, 255, 0.05); transform: rotate(180deg); }
+
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0) translateX(0) scale(1); opacity: 0.4; }
+  25% { transform: translateY(-50px) translateX(30px) scale(1.1); opacity: 0.5; }
+  50% { transform: translateY(0px) translateX(0px) scale(1.2); opacity: 0.6; }
+  75% { transform: translateY(50px) translateX(-30px) scale(1.1); opacity: 0.5; }
+}
+
+@keyframes shapeFloat {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.05; }
+  33% { transform: translate(50px, 50px) rotate(180deg); opacity: 0.08; }
+  66% { transform: translate(-50px, -50px) rotate(360deg); opacity: 0.06; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(60px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.95; }
+}
+
+/* Навигация */
 .dashboard-navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 50px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 25px 60px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(30px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .nav-brand {
   display: flex;
   align-items: center;
-  gap: 15px;
-  font-size: 1.8rem;
-  font-weight: 700;
+  gap: 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 900;
   color: white;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
 }
 
 .brand-icon {
-  font-size: 2.2rem;
-  animation: pulse 2s infinite;
+  font-size: 2.8rem;
+  color: #00bfff;
+  text-shadow: 0 0 15px rgba(0, 191, 255, 0.7);
+  animation: pulse 3s infinite ease-in-out;
 }
 
 .logout-button {
-  padding: 10px 25px;
+  padding: 12px 30px;
   border: none;
-  border-radius: 50px;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: 60px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.logout-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: -1;
+}
+
+.logout-button:hover::before {
+  transform: translateX(100%);
 }
 
 .logout-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
-.dashboard-content {
+/* 3D Dashboard Scene */
+.dashboard-3d-scene {
   flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  perspective: 1500px; /* Для 3D глубины */
+  transform-style: preserve-3d;
+  padding: 40px;
+}
+
+.scene-center-orb {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, #00c6ff, #0072ff);
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.8;
+  animation: centerOrbPulse 4s infinite alternate ease-in-out;
+  transform: translateZ(-100px); /* Отдаляем для 3D */
+}
+
+.scene-line {
+  position: absolute;
+  background: rgba(0, 191, 255, 0.3);
+  border-radius: 2px;
+  animation: lineFlow 10s infinite linear;
+}
+
+.scene-line.line-1 {
+  width: 2px;
+  height: 300px;
+  transform: rotateY(45deg) translateZ(-50px) translateY(-150px);
+  animation-delay: 0s;
+}
+.scene-line.line-2 {
+  width: 2px;
+  height: 300px;
+  transform: rotateY(-45deg) translateZ(-50px) translateY(150px);
+  animation-delay: -2.5s;
+}
+.scene-line.line-3 {
+  width: 300px;
+  height: 2px;
+  transform: rotateX(45deg) translateZ(-50px) translateX(-150px);
+  animation-delay: -5s;
+}
+.scene-line.line-4 {
+  width: 300px;
+  height: 2px;
+  transform: rotateX(-45deg) translateZ(-50px) translateX(150px);
+  animation-delay: -7.5s;
+}
+
+@keyframes centerOrbPulse {
+  0%, 100% { transform: translateZ(-100px) scale(1); opacity: 0.8; }
+  50% { transform: translateZ(-80px) scale(1.1); opacity: 1; }
+}
+
+@keyframes lineFlow {
+  0%, 100% { background: rgba(0, 191, 255, 0.3); }
+  50% { background: rgba(0, 220, 255, 0.6); }
+}
+
+/* 3D панели и карточки */
+.dashboard-card,
+.dashboard-panel {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 0 30px rgba(0, 191, 255, 0.1), 0 0 60px rgba(0, 123, 255, 0.05);
+  transform-style: preserve-3d;
+  transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  text-align: center;
+}
+
+.dashboard-card:hover,
+.dashboard-panel:hover {
+  transform: scale(1.03) translateZ(20px); /* Приближение и увеличение при наведении */
+  box-shadow: 0 0 40px rgba(0, 191, 255, 0.2), 0 0 80px rgba(0, 123, 255, 0.1);
+}
+
+.dashboard-panel {
+  width: 300px;
+  height: 250px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 50px 20px;
-  text-align: center;
+  gap: 20px;
 }
 
-.welcome-card {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(15px);
-  border-radius: 20px;
-  padding: 40px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-  max-width: 800px;
-  width: 100%;
-  margin-bottom: 50px;
-  animation: fadeInScale 0.8s ease-out forwards;
+.panel-left {
+  transform: translateZ(-50px) translateX(-400px) rotateY(-20deg); /* Позиционирование в 3D */
+}
+.panel-right {
+  transform: translateZ(-50px) translateX(400px) rotateY(20deg); /* Позиционирование в 3D */
 }
 
-.welcome-title {
-  font-size: 2.8rem;
-  font-weight: 700;
+.panel-title,
+.card-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #00e0ff;
+  text-shadow: 0 0 10px rgba(0, 191, 255, 0.4);
   margin-bottom: 15px;
-  background: linear-gradient(45deg, #4CAF50, #8BC34A); /* Градиентный заголовок */
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
-.welcome-subtitle {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 30px;
+.stat-card {
+  background: rgba(0, 191, 255, 0.1);
+  border: 1px solid rgba(0, 191, 255, 0.2);
+  border-radius: 10px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100px;
+  text-align: center;
+  transition: all 0.3s ease;
 }
 
-.generate-button {
-  padding: 15px 30px;
-  border: none;
-  border-radius: 50px;
-  font-size: 1.1rem;
+.stat-card:hover {
+  transform: translateY(-5px);
+  background: rgba(0, 191, 255, 0.15);
+}
+
+.stat-icon {
+  font-size: 2rem;
+}
+
+.stat-value {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+}
+
+.quick-access-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+}
+
+.quick-access-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px 20px;
+  color: white;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: linear-gradient(135deg, #00c6ff, #0072ff);
-  color: white;
-  box-shadow: 0 5px 15px rgba(0, 198, 255, 0.4);
 }
 
-.generate-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 198, 255, 0.6);
+.quick-access-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateX(5px);
 }
 
-.projects-section {
-  max-width: 800px;
-  width: 100%;
-  text-align: center;
+.quick-access-btn .btn-icon {
+  font-size: 1.3rem;
+  color: #00e0ff;
 }
 
-.projects-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 30px;
-  color: white;
+.welcome-card-3d {
+  width: 500px;
+  height: 200px;
+  top: -150px;
+  transform: translateZ(150px) rotateX(-5deg); /* Позиционирование в 3D */
+  background: linear-gradient(135deg, rgba(0, 191, 255, 0.15), rgba(0, 123, 255, 0.1));
+  border-color: rgba(0, 191, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
-.project-list {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border-radius: 15px;
-  padding: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.welcome-card-3d .card-title {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  background: linear-gradient(45deg, #00e0ff, #007bff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
 }
 
-.empty-projects p {
+.welcome-card-3d .card-subtitle {
+  font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 20px;
+}
+
+.generate-button-3d {
+  padding: 14px 30px;
+  border: none;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #28a745, #218838);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 20px rgba(40, 167, 69, 0.5);
+  border: 1px solid #28a745;
+}
+
+.generate-button-3d:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 30px rgba(40, 167, 69, 0.7);
+}
+
+.projects-card-3d {
+  width: 600px;
+  height: 300px;
+  bottom: -150px;
+  transform: translateZ(50px) rotateX(5deg); /* Позиционирование в 3D */
+  background: linear-gradient(135deg, rgba(79, 0, 136, 0.15), rgba(46, 0, 107, 0.1));
+  border-color: rgba(79, 0, 136, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 30px;
+}
+
+.projects-card-3d .card-title {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  background: linear-gradient(45deg, #ff007f, #cc0066);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 10px rgba(255, 0, 127, 0.5);
+}
+
+.project-list-3d {
+  flex-grow: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.empty-projects-3d p {
   font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
   margin-bottom: 10px;
 }
 
-/* Анимации (повторяются из LoginPage/RegisterPage для консистентности) */
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
 /* Адаптивность */
+@media (max-width: 1200px) {
+  .dashboard-navbar {
+    padding: 20px 40px;
+  }
+  .nav-brand {
+    font-size: 2rem;
+    gap: 15px;
+  }
+  .brand-icon {
+    font-size: 2.5rem;
+  }
+  .dashboard-3d-scene {
+    padding: 20px;
+    flex-direction: column;
+    gap: 80px;
+    perspective: 1000px;
+  }
+  .panel-left {
+    transform: translateZ(0) translateX(0) rotateY(0);
+  }
+  .panel-right {
+    transform: translateZ(0) translateX(0) rotateY(0);
+  }
+  .welcome-card-3d {
+    width: 90%;
+    top: -250px;
+    transform: translateZ(0) rotateX(0);
+  }
+  .projects-card-3d {
+    width: 90%;
+    bottom: -250px;
+    transform: translateZ(0) rotateX(0);
+  }
+  .scene-line {
+    display: none;
+  }
+  .scene-center-orb {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard-navbar {
     padding: 15px 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
   }
-
   .nav-brand {
-    font-size: 1.5rem;
-  }
-
-  .brand-icon {
+    width: 100%;
+    justify-content: center;
     font-size: 1.8rem;
   }
-
+  .brand-icon {
+    font-size: 2.2rem;
+  }
   .logout-button {
-    padding: 8px 15px;
+    width: 100%;
+    max-width: 200px;
+  }
+  .dashboard-3d-scene {
+    padding: 15px;
+    gap: 60px;
+  }
+  .dashboard-panel {
+    width: 90%;
+    height: auto;
+    padding: 20px;
+  }
+  .panel-title,
+  .card-title {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  .stats-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+  .stat-card {
+    width: 150px;
+  }
+  .quick-access-btn {
+    padding: 10px 15px;
     font-size: 0.9rem;
   }
-
-  .welcome-card {
+  .welcome-card-3d {
+    height: auto;
     padding: 30px;
+    top: -200px;
   }
-
-  .welcome-title {
+  .welcome-card-3d .card-title {
     font-size: 2rem;
   }
-
-  .welcome-subtitle {
+  .welcome-card-3d .card-subtitle {
     font-size: 1rem;
   }
-
-  .generate-button {
+  .generate-button-3d {
     padding: 12px 25px;
     font-size: 1rem;
   }
-
-  .projects-title {
-    font-size: 1.6rem;
-  }
-
-  .project-list {
+  .projects-card-3d {
+    height: auto;
     padding: 20px;
+    bottom: -200px;
   }
 }
 
 @media (max-width: 480px) {
   .dashboard-navbar {
-    flex-direction: column;
-    gap: 15px;
+    padding: 10px 15px;
   }
-
-  .welcome-card {
-    padding: 20px;
+  .nav-brand {
+    font-size: 1.6rem;
   }
-
-  .welcome-title {
+  .brand-icon {
+    font-size: 2rem;
+  }
+  .logout-button {
+    font-size: 0.9rem;
+  }
+  .dashboard-3d-scene {
+    padding: 10px;
+    gap: 40px;
+  }
+  .dashboard-panel {
+    width: 100%;
+    padding: 15px;
+  }
+  .panel-title,
+  .card-title {
+    font-size: 1.3rem;
+  }
+  .stat-card {
+    width: 120px;
+    padding: 10px;
+  }
+  .stat-icon {
+    font-size: 1.5rem;
+  }
+  .stat-value {
+    font-size: 1.2rem;
+  }
+  .stat-label {
+    font-size: 0.7rem;
+  }
+  .quick-access-btn {
+    font-size: 0.8rem;
+    padding: 10px;
+  }
+  .welcome-card-3d {
+    top: -150px;
+  }
+  .welcome-card-3d .card-title {
     font-size: 1.8rem;
   }
-
-  .generate-button {
-    width: 100%;
+  .projects-card-3d {
+    bottom: -150px;
+  }
+  .projects-card-3d .card-title {
+    font-size: 1.6rem;
+  }
+  .empty-projects-3d p {
+    font-size: 0.9rem;
   }
 }

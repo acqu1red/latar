@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext'; // Импорт AuthContext
 import './TexSchemePage.css';
 import { API_BASE_URL } from './config';
 
@@ -10,13 +11,11 @@ const TexSchemePage: React.FC = () => {
   const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const navigate = useNavigate();
+  const { user, loading } = useAuth(); // Получаем пользователя и состояние загрузки из AuthContext
 
   useEffect(() => {
-    // В реальном приложении здесь будет проверка авторизации
-    const isAuthenticated = true; // Заглушка: считаем пользователя авторизованным
-
-    if (!isAuthenticated) {
-      navigate('/login'); // Перенаправить на страницу входа, если не авторизован
+    if (!loading && !user) {
+      navigate('/login'); // Перенаправить на страницу входа, если не авторизован и загрузка завершена
       return;
     }
 
@@ -27,7 +26,7 @@ const TexSchemePage: React.FC = () => {
     return () => {
       clearTimeout(timer);
     };
-  }, [navigate]); // Добавляем navigate в зависимости useEffect
+  }, [user, loading, navigate]); // Добавляем user и loading в зависимости useEffect
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -92,6 +91,8 @@ const TexSchemePage: React.FC = () => {
           <div className="shape shape-1"></div>
           <div className="shape shape-2"></div>
           <div className="shape shape-3"></div>
+          <div className="shape shape-4"></div>
+          <div className="shape shape-5"></div>
         </div>
       </div>
 

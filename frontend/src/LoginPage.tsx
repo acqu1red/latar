@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '../supabaseClient'; // Импорт клиента Supabase
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState(''); // Изменяем email на login
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -14,16 +15,17 @@ const LoginPage: React.FC = () => {
     setError(null);
     setIsLoading(true);
 
-    // Здесь будет логика для аутентификации
     try {
-      // Имитация задержки запроса
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const { error } = await supabase.auth.signInWithPassword({
+        email: login, // Используем login как email для Supabase
+        password: password,
+      });
 
-      if (email === 'test@example.com' && password === 'password') {
+      if (error) {
+        setError(error.message);
+      } else {
         console.log('Login successful');
         navigate('/dashboard'); // Перенаправление в личный кабинет
-      } else {
-        setError('Неверный email или пароль');
       }
     } catch (err) {
       setError('Произошла ошибка при входе');
@@ -35,40 +37,56 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="login-page">
-      <div className="login-container">
-        <h2 className="login-title">Вход</h2>
-        <p className="login-subtitle">Добро пожаловать обратно!</p>
-        <form onSubmit={handleLogin} className="login-form">
-          <div className="input-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="your@example.com"
-            />
-          </div>
-          <div className="input-group">
-            <label htmlFor="password">Пароль</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-            />
-          </div>
-          {error && <p className="error-message">{error}</p>}
-          <button type="submit" className="login-button" disabled={isLoading}>
-            {isLoading ? 'Вход...' : 'Войти'}
-          </button>
-        </form>
-        <p className="register-link">
-          Ещё нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
-        </p>
+      {/* Анимированный фон */}
+      <div className="background-animation">
+        <div className="gradient-orb orb-1"></div>
+        <div className="gradient-orb orb-2"></div>
+        <div className="gradient-orb orb-3"></div>
+        <div className="floating-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+          <div className="shape shape-4"></div>
+          <div className="shape shape-5"></div>
+        </div>
+      </div>
+
+      <div className="login-content">
+        <div className="login-container">
+          <h2 className="login-title">Вход</h2>
+          <p className="login-subtitle">Добро пожаловать обратно!</p>
+          <form onSubmit={handleLogin} className="login-form">
+            <div className="input-group">
+              <label htmlFor="login">Логин</label> {/* Изменяем label на Логин */}
+              <input
+                type="text" // Изменяем type на text
+                id="login"
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
+                required
+                placeholder="ваш_логин"
+              />
+            </div>
+            <div className="input-group">
+              <label htmlFor="password">Пароль</label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+            </div>
+            {error && <p className="error-message">{error}</p>}
+            <button type="submit" className="login-button" disabled={isLoading}>
+              {isLoading ? 'Вход...' : 'Войти'}
+            </button>
+          </form>
+          <p className="register-link">
+            Ещё нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
