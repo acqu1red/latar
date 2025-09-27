@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from './supabaseClient';
+// import { supabase } from './supabaseClient'; // Удаляем, так как используется AuthContext
 import { API_BASE_URL } from './config';
 import { useAuth } from './AuthContext'; // Импортируем useAuth
 import './TexSchemePage.css';
