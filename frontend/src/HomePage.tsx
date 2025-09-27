@@ -13,13 +13,13 @@ const HomePage: React.FC = () => {
     <div className="home-page">
       {/* Анимированный фон */}
       <div className="background-animation">
-        <div className="gradient-orb"></div>
-        <div className="floating-shapes">
-          <div className="shape shape-1"></div>
-          <div className="shape shape-2"></div>
-          <div className="shape shape-3"></div>
-          <div className="shape shape-4"></div>
-        </div>
+        {/* <div className="gradient-orb"></div> */}
+        {/* <div className="floating-shapes"> */}
+          {/* <div className="shape shape-1"></div> */}
+          {/* <div className="shape shape-2"></div> */}
+          {/* <div className="shape shape-3"></div> */}
+          {/* <div className="shape shape-4"></div> */}
+        {/* </div> */}
       </div>
 
       {/* Главная навигация */}
@@ -57,16 +57,13 @@ const HomePage: React.FC = () => {
         </div>
 
         <div className="hero-visual">
-          <div className="hero-3d-model">
-            <div className="model-glow"></div>
-            <div className="model-cube">
-              <div className="cube-face front"></div>
-              <div className="cube-face back"></div>
-              <div className="cube-face right"></div>
-              <div className="cube-face left"></div>
-              <div className="cube-face top"></div>
-              <div className="cube-face bottom"></div>
-            </div>
+          <div className="room-builder-3d">
+            <div className="room-plane room-floor"></div>
+            <div className="room-plane room-wall room-wall-back"></div>
+            <div className="room-plane room-wall room-wall-left"></div>
+            <div className="room-plane room-wall room-wall-right"></div>
+            <div className="room-element room-door"></div>
+            <div className="room-element room-window"></div>
           </div>
         </div>
       </main>
