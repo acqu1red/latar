@@ -158,8 +158,9 @@ body {
 }
 
 .nav-actions {
-  display: flex;
-  gap: 30px; /* Увеличим расстояние */
+  /* display: flex; */
+  /* gap: 30px; */
+  /* Увеличим расстояние */
 }
 
 .nav-button {
@@ -421,7 +422,7 @@ body {
     text-align: center;
     max-width: 80%;
   }
-
+  
   .hero-visual {
     order: -1;
   }
@@ -431,7 +432,7 @@ body {
   .main-navbar {
     padding: 15px 20px;
   }
-
+  
   .nav-brand {
     font-size: 1.5rem;
     gap: 10px;
@@ -449,15 +450,15 @@ body {
     padding: 8px 15px;
     font-size: 0.9rem;
   }
-
+  
   .hero-section {
     padding: 60px 20px;
   }
-
+  
   .hero-title {
     font-size: 2.5rem;
   }
-
+  
   .hero-description {
     font-size: 1rem;
   }
@@ -523,7 +524,7 @@ body {
   .hero-title {
     font-size: 2rem;
   }
-
+  
   .hero-description {
     font-size: 0.9rem;
   }
@@ -541,7 +542,7 @@ body {
     width: 150px;
     height: 150px;
   }
-
+  
   .grid-layer {
     width: 150px;
     height: 150px;

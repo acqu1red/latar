@@ -24,8 +24,8 @@ const HomePage: React.FC = () => {
     };
   }, []);
 
-  const handleAuthRedirect = (path: string) => {
-    navigate(path);
+  const handleStartPlan = () => {
+    navigate('/texscheme');
   };
 
   return (
@@ -51,8 +51,7 @@ const HomePage: React.FC = () => {
             <span className="brand-text">FlatMap AI</span>
           </div>
           <div className="nav-actions">
-            <button className="nav-button secondary" onClick={() => handleAuthRedirect('/login')}>Войти</button>
-            <button className="nav-button primary" onClick={() => handleAuthRedirect('/register')}>Регистрация</button>
+            {/* Кнопки Войти/Регистрация удалены */}
           </div>
         </nav>
 
@@ -67,7 +66,7 @@ const HomePage: React.FC = () => {
               Превратите идеи в архитектурные планы с помощью передового ИИ. Быстро, точно, профессионально.
             </p>
             <div className="hero-cta">
-              <button className="cta-button primary large" onClick={() => handleAuthRedirect('/register')}>
+              <button className="cta-button primary large" onClick={handleStartPlan}>
                 <span>Начать бесплатно</span>
                 <span className="cta-icon">→</span>
               </button>
