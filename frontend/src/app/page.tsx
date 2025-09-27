@@ -141,11 +141,10 @@ export default function HomePage() {
             width={800}
             height={500}
           />
-        </div>
+    </div>
       </section>
 
       {/* Здесь будут другие секции */}
     </main>
   );
 }
-<!-- Force rebuild Sat Sep 27 23:48:09 +07 2025 -->
