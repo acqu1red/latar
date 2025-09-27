@@ -157,7 +157,7 @@ body {
   justify-content: center;
   align-items: center;
   transform-style: preserve-3d;
-  transition: transform 0.5s ease-out; /* Плавное движение при наведении */
+  /* transition: transform 0.5s ease-out;  Убираем плавное движение при наведении */
   position: relative;
 }
 
@@ -220,10 +220,10 @@ body {
   z-index: 10;
 }
 
-.dashboard-panel:hover {
-  transform: translateY(-15px) scale(1.02) rotateX(5deg); /* Добавим вращение по X */
-  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.7), 0 0 120px rgba(0, 255, 255, 0.4); /* Еще более выраженная тень */
-}
+/* .dashboard-panel:hover { */
+/*   transform: translateY(-15px) scale(1.02) rotateX(5deg);  Добавим вращение по X */
+/*   box-shadow: 0 30px 100px rgba(0, 0, 0, 0.7), 0 0 120px rgba(0, 255, 255, 0.4);  Еще более выраженная тень */
+/* } */
 
 .panel-left {
   transform: translateZ(100px) translateX(-300px) rotateY(-15deg); /* Сильнее эффект 3D */
@@ -231,9 +231,9 @@ body {
   border-color: rgba(70, 0, 150, 0.5);
 }
 
-.panel-left:hover {
-  transform: translateZ(150px) translateX(-300px) translateY(-15px) rotateY(-18deg) rotateX(5deg); /* Усилить эффект */
-}
+/* .panel-left:hover { */
+/*   transform: translateZ(150px) translateX(-300px) translateY(-15px) rotateY(-18deg) rotateX(5deg);  Усилить эффект */
+/* } */
 
 .panel-right {
   transform: translateZ(100px) translateX(300px) rotateY(15deg); /* Сильнее эффект 3D */
@@ -241,9 +241,9 @@ body {
   border-color: rgba(0, 100, 200, 0.5);
 }
 
-.panel-right:hover {
-  transform: translateZ(150px) translateX(300px) translateY(-15px) rotateY(18deg) rotateX(5deg); /* Усилить эффект */
-}
+/* .panel-right:hover { */
+/*   transform: translateZ(150px) translateX(300px) translateY(-15px) rotateY(18deg) rotateX(5deg);  Усилить эффект */
+/* } */
 
 .panel-content {
   width: 100%;
@@ -581,6 +581,67 @@ body {
   margin-bottom: 15px;
   color: #00c6ff;
   text-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
+}
+
+/* Новые 3D элементы планировки поверх фона */
+.architectural-grid-background {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  perspective: 1000px; /* Перспектива для 3D */
+  pointer-events: none;
+  z-index: 1; /* Между фоном и основным контентом */
+}
+
+.architectural-grid-background .grid-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 1px dashed rgba(0, 198, 255, 0.1); /* Тонкая пунктирная сетка */
+  box-shadow: 0 0 10px rgba(0, 198, 255, 0.05); /* Легкое свечение */
+  background: rgba(0, 198, 255, 0.02);
+  transform-style: preserve-3d;
+  opacity: 0;
+  animation: gridFadeIn 2s ease-out forwards; /* Анимация появления */
+}
+
+.architectural-grid-background .grid-layer.layer-1 {
+  transform: translateZ(-200px) rotateX(70deg);
+  animation-delay: 0.5s;
+}
+.architectural-grid-background .grid-layer.layer-2 {
+  transform: translateZ(-300px) rotateX(70deg) rotateY(10deg);
+  animation-delay: 1s;
+}
+.architectural-grid-background .grid-layer.layer-3 {
+  transform: translateZ(-400px) rotateX(70deg) rotateY(-10deg);
+  animation-delay: 1.5s;
+}
+
+.architectural-grid-background .grid-core {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, rgba(0, 255, 255, 0.5), transparent 70%);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateZ(-250px);
+  filter: blur(20px);
+  opacity: 0.8;
+  animation: corePulse 5s infinite alternate ease-in-out;
+}
+
+@keyframes gridFadeIn {
+  from { opacity: 0; transform: translateZ(-500px) rotateX(90deg); }
+  to { opacity: 1; transform: translateZ(-200px) rotateX(70deg); }
+}
+
+@keyframes corePulse {
+  0%, 100% { transform: translate(-50%, -50%) translateZ(-250px) scale(1); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) translateZ(-240px) scale(1.1); opacity: 1; }
 }
 
 /* Адаптивность для 3D сцены */

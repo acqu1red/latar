@@ -12,7 +12,7 @@ const TexSchemePage: React.FC = () => {
   const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
   // const [planTitle, setPlanTitle] = useState(''); // Новое состояние для названия плана
   const [isLoaded, setIsLoaded] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  // const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 }); // Удаляем mousePosition
   // const navigate = useNavigate(); // Удаляем объявление navigate
   // const { user, loading } = useAuth(); // Получаем пользователя и состояние загрузки из AuthContext
 
@@ -26,15 +26,15 @@ const TexSchemePage: React.FC = () => {
       setIsLoaded(true);
     }, 100);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
+    // const handleMouseMove = (e: MouseEvent) => {
+    //   setMousePosition({ x: e.clientX, y: e.clientY });
+    // };
 
-    window.addEventListener('mousemove', handleMouseMove);
-
+    // window.addEventListener('mousemove', handleMouseMove);
+    
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('mousemove', handleMouseMove);
+      // window.removeEventListener('mousemove', handleMouseMove);
     };
   }, [/* user, loading, navigate */]); // Зависимости обновлены
 
@@ -75,7 +75,7 @@ const TexSchemePage: React.FC = () => {
 
       const planBlob = await response.blob();
       const imageUrl = URL.createObjectURL(planBlob); // Создаем URL для Blob
-
+      
       console.log('План успешно сгенерирован!', { imageUrl });
       setGeneratedPlan(imageUrl); // Отображаем сгенерированный план
 
@@ -112,13 +112,20 @@ const TexSchemePage: React.FC = () => {
           <div className="shape shape-4"></div>
           <div className="shape shape-5"></div>
         </div>
+
+        {/* Новые 3D элементы планировки поверх фона */}
+        <div className="architectural-grid-background">
+          <div className="grid-layer layer-1"></div>
+          <div className="grid-layer layer-2"></div>
+          <div className="grid-layer layer-3"></div>
+          <div className="grid-core"></div>
+        </div>
+
       </div>
 
       {/* Основной контент (3D-сцена) */}
       <div className={`texscheme-content ${isLoaded ? 'loaded' : ''}`}>
-        <div className="dashboard-3d-scene" style={{
-          transform: `perspective(1000px) rotateY(${(mousePosition.x - window.innerWidth / 2) * 0.03}deg) rotateX(${(mousePosition.y - window.innerHeight / 2) * 0.015}deg)`
-        }}>
+        <div className="dashboard-3d-scene">
           {/* Центральный анимированный шар */}
           <div className="scene-center-orb"></div>
 
