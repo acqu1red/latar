@@ -1,133 +1,36 @@
-# FlatMap AI - Автогенерация 2D-планов квартир из фото/сканов через ИИ
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Добро пожаловать в проект FlatMap AI! Этот сервис использует передовые технологии искусственного интеллекта для преобразования ваших черновых планов квартир (фотографий или сканов) в чистые, профессиональные 2D-чертежи. Наша цель — предоставить быструю, точную и эстетичную отрисовку, идеальную для презентаций или дальнейшей работы.
+## Getting Started
 
-## Технический стек
+First, run the development server:
 
-*   **Фреймворк:** Next.js (App Router), React 18, TypeScript
-*   **UI:** Tailwind CSS + shadcn/ui (tree-shaking, on-demand), lucide-react для иконок
-*   **Анимации:** Framer Motion (скелет для scroll-reveal, hover-эффектов)
-*   **Контент:** MDX для блога/кейсов (настраивается)
-*   **i18n:** next-intl (ru — по умолчанию, en — опционально)
-*   **Формы:** react-hook-form + zod (настраивается)
-*   **Качество:** ESLint + Prettier
-*   **Тестирование:** Playwright (скелет для smoke-тестов)
-
-## Начало работы
-
-Чтобы запустить проект локально, следуйте этим инструкциям:
-
-1.  **Клонируйте репозиторий:**
-    ```bash
-    git clone [ваш_репозиторий]
-    cd [ваш_репозиторий]
-    ```
-
-2.  **Перейдите в директорию фронтенда:**
-    ```bash
-    cd frontend
-    ```
-
-3.  **Установите зависимости:**
-    Мы используем `pnpm` для управления пакетами.
-    ```bash
-    pnpm install
-    ```
-    Если `pnpm` не установлен, вы можете установить его глобально:
-    ```bash
-    npm install -g pnpm
-    ```
-    Или использовать `npm` для установки зависимостей, если предпочитаете:
-    ```bash
-    npm install
-    ```
-
-4.  **Запустите сервер разработки:**
-    ```bash
-    pnpm dev
-    ```
-    Или, если используете `npm`:
-    ```bash
-    npm run dev
-    ```
-
-    Проект будет доступен по адресу `http://localhost:3000` (или другому, если 3000 занят).
-
-## Структура проекта
-
-```
-frontend/
-├── app/
-│   ├── layout.tsx         # Корневой лейаут, ThemeProvider, Header, Footer
-│   ├── page.tsx           # Главная страница (Hero-секция)
-│   ├── gallery/page.tsx   # Галерея "До/После" (будет создана)
-│   ├── process/page.tsx   # Описание процесса (будет создана)
-│   ├── pricing/page.tsx   # Тарифы (будет создана)
-│   ├── blog/[slug]/page.tsx # Блог (будет создан)
-│   ├── about/page.tsx     # О сервисе (будет создана)
-│   ├── contact/page.tsx   # Контакты (будет создана)
-│   └── playground/page.tsx # Песочница (будет создана)
-├── components/
-│   ├── ui/               # Компоненты Shadcn/ui (Button, Dialog и т.д.)
-│   ├── header.tsx        # Компонент Header
-│   ├── footer.tsx        # Компонент Footer
-│   ├── theme-provider.tsx # Компонент для next-themes
-│   └── ...               # Другие компоненты (BeforeAfterSlider, UploadDropzone и т.д.)
-├── lib/
-│   ├── utils.ts          # Вспомогательные утилиты (shadcn/ui)
-│   ├── api.ts            # Заглушки для API (будет создана)
-│   ├── ai.ts             # Заглушки для AI-логики (будет создана)
-│   ├── seo.ts            # Хелперы для SEO (будет создана)
-│   ├── analytics.ts      # Хелперы для аналитики (будет создана)
-│   └── i18n.ts           # Настройка i18n (будет создана)
-├── public/
-│   └── samples/          # Примеры "До/После" (будет создана)
-├── styles/
-│   ├── globals.css       # Глобальные стили Tailwind CSS
-│   └── prose.css         # Стили для MDX (будет создана)
-├── content/
-│   └── blog/             # MDX-файлы для блога (будет создана)
-├── next.config.mjs
-├── package.json
-├── postcss.config.js
-├── tailwind.config.ts
-├── tsconfig.json
-└── ...
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## Дизайн-токены и кастомизация
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-**Цвета:**
-Все основные цвета определены в `tailwind.config.ts` и `src/app/globals.css` как CSS-переменные Tailwind. Вы можете изменить их там:
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-*   `background: #FFFFFF;`
-*   `foreground: #111214;`
-*   `gray-100: #F5F5F5;`
-*   `gray-200: #EDEFF2;`
-*   `gray-300: #D9D9D9;`
-*   `gray-500: #C9CED6;`
-*   `gray-700: #2E3137;`
-*   `gray-800: #222429;`
-*   `gray-900: #111214;`
-*   `action: #111214;` (используется для Primary CTA)
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-Для активации Dark темы просто добавьте класс `dark` к `html` элементу (это обрабатывается `ThemeProvider`).
+## Learn More
 
-**Типографика:**
-Семейство шрифтов: `Roboto`, `sans-serif`. Настроено в `tailwind.config.ts`.
-Масштаб шрифтов (`fontSize`): `display-3xl`, `display-xl`, `h1`–`h4`, `lead`, `body`, `small` — все они настроены для жёсткой межстрочности и акцента на крупные заголовки.
+To learn more about Next.js, take a look at the following resources:
 
-**Радиусы (rounded-2xl):**
-Основной радиус для карточек и крупных элементов: `1rem` (см. `borderRadius` в `tailwind.config.ts`).
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-**Отступы секций (`spacing`):**
-`py-16` (`4rem`), `md:py-24` (`6rem`), `xl:py-28` (`7rem`). Эти значения также определены в `tailwind.config.ts`.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Заглушки API
+## Deploy on Vercel
 
-*   `lib/api.ts`: Будет содержать функцию `uploadPlan(file)`, которая имитирует загрузку и возвращает mock-данные.
-*   `lib/ai.ts`: Будет содержать функцию `generatePlanDemo(sampleId)`, которая возвращает mock-SVG/PNG и метаданные.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Демо-данные
-
-*   Примеры файлов "До/После" (абстрактные планы) будут размещены в `public/samples/`.
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

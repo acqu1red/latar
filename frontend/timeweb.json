@@ -1,0 +1,20 @@
+{
+  "name": "latar-frontend",
+  "type": "docker",
+  "dockerfile": "Dockerfile",
+  "environment": {
+    "NODE_ENV": "production"
+  },
+  "server": {
+    "port": 80,
+    "health_check": "/"
+  },
+  "resources": {
+    "memory": "512MB",
+    "cpu": 0.5
+  },
+  "network": {
+    "allow_internet": true,
+    "allow_internal": false
+  }
+}
