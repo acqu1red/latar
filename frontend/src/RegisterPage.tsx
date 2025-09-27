@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from './supabaseClient';
+import { supabase, isSupabaseEnabled } from './supabaseClient';
 import { useAuth } from './AuthContext'; // Импортируем useAuth
 import './RegisterPage.css';
 
@@ -30,7 +30,19 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (!isSupabaseEnabled) {
+      setError('Регистрация недоступна. Supabase не настроен.');
+      setIsLoadingAuth(false);
+      return;
+    }
+
     try {
+      if (!supabase) {
+        setError('Supabase не инициализирован');
+        setIsLoadingAuth(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,

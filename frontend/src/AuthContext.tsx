@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase } from './supabaseClient';
+import { supabase, isSupabaseEnabled } from './supabaseClient';
 
 interface AuthContextType {
   session: Session | null;
@@ -16,7 +16,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!isSupabaseEnabled) {
+      // Если Supabase не настроен, просто устанавливаем состояние как загруженное
+      setIsLoading(false);
+      return;
+    }
+
     const getSession = async () => {
+      if (!supabase) return;
+      
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
         console.error("Error getting session:", error);
@@ -28,15 +36,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     getSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user || null);
-      setIsLoading(false);
-    });
+    if (supabase) {
+      const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session);
+        setUser(session?.user || null);
+        setIsLoading(false);
+      });
 
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
+      return () => {
+        authListener?.subscription.unsubscribe();
+      };
+    }
   }, []);
 
   return (

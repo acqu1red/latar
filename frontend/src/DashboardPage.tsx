@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from './supabaseClient';
+import { supabase, isSupabaseEnabled } from './supabaseClient';
 import { useAuth } from './AuthContext'; // Импортируем useAuth
 import './DashboardPage.css';
 
@@ -15,6 +15,12 @@ const DashboardPage: React.FC = () => {
   }, [isLoading, user, navigate]);
 
   const handleLogout = async () => {
+    if (!isSupabaseEnabled || !supabase) {
+      // Если Supabase не настроен, просто перенаправляем на главную
+      navigate('/');
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {

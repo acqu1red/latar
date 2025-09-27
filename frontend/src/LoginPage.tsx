@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from './supabaseClient';
+import { supabase, isSupabaseEnabled } from './supabaseClient';
 import { useAuth } from './AuthContext'; // Импортируем useAuth
 import './LoginPage.css';
 
@@ -23,7 +23,19 @@ const LoginPage: React.FC = () => {
     setError(null);
     setIsLoadingAuth(true);
 
+    if (!isSupabaseEnabled) {
+      setError('Аутентификация недоступна. Supabase не настроен.');
+      setIsLoadingAuth(false);
+      return;
+    }
+
     try {
+      if (!supabase) {
+        setError('Supabase не инициализирован');
+        setIsLoadingAuth(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
