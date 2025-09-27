@@ -6,6 +6,8 @@
 const nextConfig = {
   output: "export", // Для статического экспорта
   trailingSlash: true,
+  basePath: "/latar", // Для GitHub Pages
+  assetPrefix: "/latar", // Для статических файлов
   images: {
     unoptimized: true, // Для статического экспорта
   },
