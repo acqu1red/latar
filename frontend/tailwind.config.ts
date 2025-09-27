@@ -1,5 +1,4 @@
 import type { Config } from "tailwindcss"
-import animate from "tailwindcss-animate"
 
 const config = {
   darkMode: "class", // Light по умолчанию
@@ -24,29 +23,19 @@ const config = {
     },
     extend: {
       colors: {
-        background: "#FFFFFF", // Light по умолчанию
-        foreground: "#111214", // Dark по умолчанию
-        
-        gray: {
-          100: "#F5F5F5",
-          200: "#EDEFF2",
-          300: "#D9D9D9",
-          500: "#C9CED6",
-          700: "#2E3137",
-          800: "#222429",
-          900: "#111214",
-        },
-        // Добавляем цвета для shadcn/ui
+        // Shadcn/ui цвета (используем HSL-переменные)
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#111214", // Черный CTA
-          foreground: "#FFFFFF",
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          DEFAULT: "#EDEFF2", // Светло-серый
-          foreground: "#111214",
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -68,6 +57,18 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+
+        // Кастомные цвета для дизайн-системы (будут использоваться напрямую)
+        'custom-background': "#FFFFFF",
+        'custom-foreground': "#111214",
+        'custom-gray-100': "#F5F5F5",
+        'custom-gray-200': "#EDEFF2",
+        'custom-gray-300': "#D9D9D9",
+        'custom-gray-500': "#C9CED6",
+        'custom-gray-700': "#2E3137",
+        'custom-gray-800': "#222429",
+        'custom-gray-900': "#111214",
+        'custom-action': "#111214",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -126,7 +127,7 @@ const config = {
       }, // Для секций py-16 md:py-24 xl:py-28
     },
   },
-  plugins: [animate],
+  plugins: [require("tailwindcss-animate")], // Возвращаем require
 } satisfies Config
 
 export default config
