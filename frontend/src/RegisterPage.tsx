@@ -4,7 +4,7 @@ import { supabase } from './supabaseClient'; // Изменяем путь имп
 import './RegisterPage.css';
 
 const RegisterPage: React.FC = () => {
-  const [login, setLogin] = useState(''); // Изменяем email на login
+  const [email, setEmail] = useState(''); // Изменяем обратно на email
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,18 +22,13 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
-    // Генерируем фиктивный email из логина для Supabase
-    const fakeEmail = `${login}@example.com`;
+    // Удаляем логику генерации фиктивного email
 
     try {
       const { error } = await supabase.auth.signUp({
-        email: fakeEmail, // Используем сгенерированный фиктивный email
+        email: email, // Используем введенный email
         password: password,
-        options: {
-          data: { // Добавляем метаданные для хранения логина
-            username: login,
-          },
-        },
+        // Удаляем options.data, так как username будет браться из public.profiles
       });
 
       if (error) {
@@ -41,7 +36,7 @@ const RegisterPage: React.FC = () => {
       } else {
         // После успешной регистрации, также пытаемся войти, чтобы создать сессию
         const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: fakeEmail, // Используем сгенерированный фиктивный email
+          email: email, // Используем введенный email
           password: password,
         });
         if (signInError) {
@@ -81,14 +76,14 @@ const RegisterPage: React.FC = () => {
           <p className="register-subtitle">Создайте свой аккаунт, чтобы начать!</p>
           <form onSubmit={handleRegister} className="register-form">
             <div className="input-group">
-              <label htmlFor="login">Логин</label> {/* Изменяем label на Логин */}
+              <label htmlFor="email">Email</label> {/* Изменяем label обратно на Email */}
               <input
-                type="text" // Изменяем type на text
-                id="login"
-                value={login}
-                onChange={(e) => setLogin(e.target.value)}
+                type="email" // Изменяем type обратно на email
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="ваш_логин"
+                placeholder="your@example.com" // Обновленный placeholder
               />
             </div>
             <div className="input-group">
