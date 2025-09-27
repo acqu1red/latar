@@ -22,9 +22,12 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    // Генерируем фиктивный email из логина для Supabase
+    const fakeEmail = `${login}@example.com`;
+
     try {
       const { error } = await supabase.auth.signUp({
-        email: login, // Используем login как email для Supabase
+        email: fakeEmail, // Используем сгенерированный фиктивный email
         password: password,
         options: {
           data: { // Добавляем метаданные для хранения логина
@@ -38,7 +41,7 @@ const RegisterPage: React.FC = () => {
       } else {
         // После успешной регистрации, также пытаемся войти, чтобы создать сессию
         const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: login,
+          email: fakeEmail, // Используем сгенерированный фиктивный email
           password: password,
         });
         if (signInError) {

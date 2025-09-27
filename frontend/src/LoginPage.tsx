@@ -15,9 +15,12 @@ const LoginPage: React.FC = () => {
     setError(null);
     setIsLoading(true);
 
+    // Генерируем фиктивный email из логина для Supabase
+    const fakeEmail = `${login}@example.com`;
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: login, // Используем login как email для Supabase
+        email: fakeEmail, // Используем сгенерированный фиктивный email
         password: password,
       });
 
