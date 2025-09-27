@@ -204,55 +204,69 @@
   width: 300px;
   height: 300px;
   transform-style: preserve-3d;
-  animation: roomBuild 20s infinite linear;
+  animation: roomBuild 25s infinite linear; /* Увеличил время анимации */
   transform: rotateX(20deg) rotateY(45deg);
+  transform-origin: 50% 50% -150px; /* Центр вращения */
 }
 
 .room-plane {
   position: absolute;
-  background: rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.05); /* Более светлые и тонкие линии */
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
   opacity: 0;
-  animation: fadeInPlane 2s forwards;
+  animation: fadeInPlane 1.5s forwards;
 }
 
 .room-floor {
   width: 300px;
   height: 300px;
   transform: rotateX(90deg) translateZ(-150px);
-  background: repeating-linear-gradient(45deg, #e0e0e0, #e0e0e0 10px, #d0d0d0 10px, #d0d0d0 20px); /* Светлый пол */
+  background: repeating-linear-gradient(45deg, #e8e8e8, #e8e8e8 15px, #d8d8d8 15px, #d8d8d8 30px); /* Светлый пол с более выраженной текстурой */
   animation-delay: 0s;
+  opacity: 0;
+  animation: scaleIn 1s forwards;
 }
 
 .room-wall {
   position: absolute;
   width: 300px;
   height: 150px;
-  background: rgba(200, 200, 200, 0.8); /* Светлые стены */
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  background: rgba(220, 220, 220, 0.9); /* Светлые стены */
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
   opacity: 0;
-  animation: fadeInWall 1.5s forwards;
+  animation: fadeInWall 1s forwards;
 }
 
-.room-wall-back { transform: translateZ(-150px); animation-delay: 1s; }
-.room-wall-left { transform: rotateY(90deg) translateZ(-150px); animation-delay: 1.5s; }
-.room-wall-right { transform: rotateY(-90deg) translateZ(-150px); animation-delay: 2s; }
+.room-wall-back { transform: translateZ(-150px); animation-delay: 0.5s; }
+.room-wall-left { transform: rotateY(90deg) translateZ(-150px); animation-delay: 1s; }
+.room-wall-right { transform: rotateY(-90deg) translateZ(-150px); animation-delay: 1.5s; }
+.room-wall-front { transform: translateZ(150px); animation-delay: 2s; }
+
+.room-ceiling {
+  width: 300px;
+  height: 300px;
+  background: #e0e0e0; /* Светлый потолок */
+  transform: rotateX(90deg) translateZ(0px) translateY(-150px); /* Позиция потолка */
+  opacity: 0;
+  animation: fadeInPlane 1s forwards;
+  animation-delay: 2.5s;
+}
 
 .room-element {
   position: absolute;
   background: rgba(70, 70, 70, 0.8); /* Темные элементы */
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   opacity: 0;
-  animation: fadeInElement 1s forwards;
+  animation: dropIn 0.8s forwards;
 }
 
 .room-door {
   width: 50px;
   height: 100px;
-  transform: translateZ(-149px) translateX(50px) translateY(25px);
+  transform: translateZ(-149px) translateX(50px) translateY(25px); /* Позиция двери */
   background: #555555; /* Темная дверь */
   animation-delay: 3s;
 }
@@ -260,10 +274,49 @@
 .room-window {
   width: 100px;
   height: 70px;
-  transform: translateZ(-149px) translateX(-100px) translateY(40px);
+  transform: translateZ(-149px) translateX(-100px) translateY(40px); /* Позиция окна */
   background: rgba(100, 100, 100, 0.6); /* Темное окно */
-  border: 2px solid rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(0, 0, 0, 0.2);
   animation-delay: 3.5s;
+}
+
+.room-furniture-table {
+  width: 80px;
+  height: 40px;
+  background: #666666; /* Темный стол */
+  transform: rotateX(90deg) translateZ(-140px) translateX(-100px) translateY(100px); /* Позиция стола */
+  animation-delay: 4s;
+}
+
+.room-furniture-chair {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #444444; /* Темный стул */
+  transform: rotateX(90deg) translateZ(-130px) translateX(-120px) translateY(120px); /* Позиция стула */
+  animation-delay: 4.5s;
+}
+
+.room-detail-line {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  animation: drawLine 0.5s forwards ease-out;
+}
+
+/* Линии сетки на полу */
+.grid-line-h {
+  width: 300px;
+  height: 1px;
+  transform: rotateX(90deg) translateZ(-149px);
+  animation-delay: 5s;
+}
+
+.grid-line-v {
+  width: 1px;
+  height: 300px;
+  transform: rotateY(90deg) translateZ(-149px);
+  animation-delay: 5.2s;
 }
 
 /* Футер */
@@ -290,9 +343,6 @@
 
 @keyframes roomBuild {
   0% { transform: rotateX(20deg) rotateY(45deg); }
-  25% { transform: rotateX(20deg) rotateY(135deg); }
-  50% { transform: rotateX(20deg) rotateY(225deg); }
-  75% { transform: rotateX(20deg) rotateY(315deg); }
   100% { transform: rotateX(20deg) rotateY(405deg); }
 }
 
@@ -306,9 +356,19 @@
   100% { opacity: 1; transform: translateY(0px) rotateX(0deg); }
 }
 
-@keyframes fadeInElement {
-  0% { opacity: 0; transform: translateY(50px) scale(0.5); }
+@keyframes dropIn {
+  0% { opacity: 0; transform: translateY(-50px) scale(0.5); }
   100% { opacity: 1; transform: translateY(0px) scale(1); }
+}
+
+@keyframes drawLine {
+  0% { opacity: 0; transform: scaleX(0); }
+  100% { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes scaleIn {
+  0% { opacity: 0; transform: scale(0.5) rotateX(90deg) translateZ(-150px); }
+  100% { opacity: 1; transform: scale(1) rotateX(90deg) translateZ(-150px); }
 }
 
 /* Адаптивность */
@@ -333,35 +393,58 @@
   }
   
   .room-builder-3d {
-    width: 200px;
-    height: 200px;
+    width: 250px;
+    height: 250px;
+    transform-origin: 50% 50% -125px;
   }
   
   .room-floor {
-    width: 200px;
-    height: 200px;
-    transform: rotateX(90deg) translateZ(-100px);
+    width: 250px;
+    height: 250px;
+    transform: rotateX(90deg) translateZ(-125px);
   }
   
   .room-wall {
-    width: 200px;
-    height: 100px;
+    width: 250px;
+    height: 125px;
   }
 
-  .room-wall-back { transform: translateZ(-100px); }
-  .room-wall-left { transform: rotateY(90deg) translateZ(-100px); }
-  .room-wall-right { transform: rotateY(-90deg) translateZ(-100px); }
-
+  .room-wall-back { transform: translateZ(-125px); }
+  .room-wall-left { transform: rotateY(90deg) translateZ(-125px); }
+  .room-wall-right { transform: rotateY(-90deg) translateZ(-125px); }
+  .room-wall-front { transform: translateZ(125px); }
+  .room-ceiling {
+    width: 250px;
+    height: 250px;
+    transform: rotateX(90deg) translateZ(0px) translateY(-125px);
+  }
   .room-door {
     width: 40px;
     height: 80px;
-    transform: translateZ(-99px) translateX(30px) translateY(10px);
+    transform: translateZ(-124px) translateX(40px) translateY(20px);
   }
-
   .room-window {
     width: 80px;
-    height: 50px;
-    transform: translateZ(-99px) translateX(-70px) translateY(20px);
+    height: 60px;
+    transform: translateZ(-124px) translateX(-80px) translateY(30px);
+  }
+  .room-furniture-table {
+    width: 60px;
+    height: 30px;
+    transform: rotateX(90deg) translateZ(-115px) translateX(-80px) translateY(80px);
+  }
+  .room-furniture-chair {
+    width: 25px;
+    height: 25px;
+    transform: rotateX(90deg) translateZ(-105px) translateX(-95px) translateY(95px);
+  }
+  .grid-line-h {
+    width: 250px;
+    transform: rotateX(90deg) translateZ(-124px);
+  }
+  .grid-line-v {
+    height: 250px;
+    transform: rotateY(90deg) translateZ(-124px);
   }
 }
 
@@ -394,5 +477,56 @@
   .hero-cta {
     padding: 1rem 2rem;
     font-size: 1rem;
+  }
+  .room-builder-3d {
+    width: 200px;
+    height: 200px;
+    transform-origin: 50% 50% -100px;
+  }
+  .room-floor {
+    width: 200px;
+    height: 200px;
+    transform: rotateX(90deg) translateZ(-100px);
+  }
+  .room-wall {
+    width: 200px;
+    height: 100px;
+  }
+  .room-wall-back { transform: translateZ(-100px); }
+  .room-wall-left { transform: rotateY(90deg) translateZ(-100px); }
+  .room-wall-right { transform: rotateY(-90deg) translateZ(-100px); }
+  .room-wall-front { transform: translateZ(100px); }
+  .room-ceiling {
+    width: 200px;
+    height: 200px;
+    transform: rotateX(90deg) translateZ(0px) translateY(-100px);
+  }
+  .room-door {
+    width: 30px;
+    height: 60px;
+    transform: translateZ(-99px) translateX(20px) translateY(15px);
+  }
+  .room-window {
+    width: 60px;
+    height: 40px;
+    transform: translateZ(-99px) translateX(-60px) translateY(20px);
+  }
+  .room-furniture-table {
+    width: 50px;
+    height: 25px;
+    transform: rotateX(90deg) translateZ(-90px) translateX(-60px) translateY(60px);
+  }
+  .room-furniture-chair {
+    width: 20px;
+    height: 20px;
+    transform: rotateX(90deg) translateZ(-80px) translateX(-70px) translateY(70px);
+  }
+  .grid-line-h {
+    width: 200px;
+    transform: rotateX(90deg) translateZ(-99px);
+  }
+  .grid-line-v {
+    height: 200px;
+    transform: rotateY(90deg) translateZ(-99px);
   }
 }

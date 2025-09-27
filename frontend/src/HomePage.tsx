@@ -62,8 +62,23 @@ const HomePage: React.FC = () => {
             <div className="room-plane room-wall room-wall-back"></div>
             <div className="room-plane room-wall room-wall-left"></div>
             <div className="room-plane room-wall room-wall-right"></div>
+            <div className="room-plane room-wall room-wall-front"></div> {/* Передняя стена */}
+            <div className="room-plane room-ceiling"></div> {/* Потолок */}
             <div className="room-element room-door"></div>
             <div className="room-element room-window"></div>
+            <div className="room-element room-furniture-table"></div> {/* Стол */}
+            <div className="room-element room-furniture-chair"></div> {/* Стул */}
+            {/* Линии сетки */}
+            <div className="room-detail-line grid-line-h" style={{ top: '50px', left: '0' }}></div>
+            <div className="room-detail-line grid-line-h" style={{ top: '100px', left: '0' }}></div>
+            <div className="room-detail-line grid-line-h" style={{ top: '150px', left: '0' }}></div>
+            <div className="room-detail-line grid-line-h" style={{ top: '200px', left: '0' }}></div>
+            <div className="room-detail-line grid-line-h" style={{ top: '250px', left: '0' }}></div>
+            <div className="room-detail-line grid-line-v" style={{ top: '0', left: '50px' }}></div>
+            <div className="room-detail-line grid-line-v" style={{ top: '0', left: '100px' }}></div>
+            <div className="room-detail-line grid-line-v" style={{ top: '0', left: '150px' }}></div>
+            <div className="room-detail-line grid-line-v" style={{ top: '0', left: '200px' }}></div>
+            <div className="room-detail-line grid-line-v" style={{ top: '0', left: '250px' }}></div>
           </div>
         </div>
       </main>
