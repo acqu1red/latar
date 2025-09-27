@@ -100,10 +100,15 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static('frontend/dist'));
 
 // Статический маршрут для временных изображений
 app.use('/temp-images', express.static(path.join(__dirname, 'uploads')));
+
+// SPA маршрут - все остальные запросы направляем на index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/dist/index.html'));
+});
 
 // Настройка multer для загрузки файлов
 const storage = multer.diskStorage({
