@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
 
 // Импортируем изображения для карусели
-import image1 from './assets/carousel/image1.jpg'; // Замените на ваши пути
-import image2 from './assets/carousel/image2.jpg';
-import image3 from './assets/carousel/image3.jpg';
-import image4 from './assets/carousel/image4.jpg';
+import image1 from './assets/carousel/image1.png'; // Замените на ваши пути
+import image2 from './assets/carousel/image2.png';
+import image3 from './assets/carousel/image3.png';
+import image4 from './assets/carousel/image4.png';
 
 const images = [image1, image2, image3, image4];
 
