@@ -1,5 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
+import { ThemeToggle } from './theme-toggle'; // Импортируем ThemeToggle
+import { LocaleSwitcher } from './locale-switcher'; // Импортируем LocaleSwitcher
 
 const Header = () => {
   return (
@@ -12,7 +14,9 @@ const Header = () => {
           {/* Навигационные ссылки будут здесь */}
         </div>
         <nav className="flex items-center space-x-4">
-          {/* CTA кнопки и переключатель темы будут здесь */}
+          <LocaleSwitcher /> {/* Добавляем LocaleSwitcher сюда */}
+          <ThemeToggle /> {/* Добавляем ThemeToggle сюда */}
+          {/* CTA кнопки будут здесь */}
         </nav>
       </div>
     </header>

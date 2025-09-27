@@ -1,0 +1,93 @@
+{
+  "LocaleSwitcher": {
+    "label": "Change language"
+  },
+  "ThemeToggle": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "Header": {
+    "home": "Home",
+    "gallery": "Gallery",
+    "process": "Process",
+    "pricing": "Pricing",
+    "blog": "Blog",
+    "about": "About",
+    "contact": "Contact",
+    "playground": "Playground"
+  },
+  "HomePage": {
+    "heroTitle": "FlatMap AI - AI-powered 2D apartment plans from photos/scans",
+    "heroSubtitle": "AI transforms your rough plan into a clean 2D drawing in minutes. Upload a photo/scan. We will redraw a neat 2D plan: clean white background, thick outer and thinner inner walls, correct doors/windows, clear area labels.",
+    "ctaButton1": "Start now",
+    "ctaButton2": "Learn more",
+    "beforeAfterSectionTitle": "See the Transformation: Before and After"
+  },
+  "GalleryPage": {
+    "title": "Our Projects: Before & After",
+    "subtitle": "See how FlatMap AI transforms rough sketches into polished 2D plans."
+  },
+  "ProcessPage": {
+    "title": "Our AI-Powered Process",
+    "subtitle": "Experience the seamless workflow of transforming your ideas into precise 2D plans.",
+    "step1Title": "Upload Your Plan",
+    "step1Description": "Securely upload photos or scans of your rough apartment layouts. We support various image and PDF formats.",
+    "step2Title": "AI Analysis & Processing",
+    "step2Description": "Our advanced AI algorithms analyze your input, detecting walls, doors, windows, and structural elements.",
+    "step3Title": "2D Plan Generation",
+    "step3Description": "Receive a clean, precise 2D plan with accurate dimensions, clear wall thicknesses, and correct symbol placements.",
+    "step4Title": "Review & Download",
+    "step4Description": "Review your generated plan, make minor adjustments if needed, and download in multiple formats (e.g., SVG, PNG, PDF)."
+  },
+  "BlogPostPage": {
+    "title": "Blog Post",
+    "description": "This is a placeholder for a blog post.",
+    "placeholderContent": "Full blog post content will be rendered here. This might include MDX content, images, and other rich media. We'll implement MDX parsing later."
+  },
+  "AboutPage": {
+    "title": "About FlatMap AI",
+    "subtitle": "Revolutionizing 2D floor plan generation with artificial intelligence.",
+    "section1Title": "Our Mission",
+    "section1Paragraph1": "At FlatMap AI, we believe in simplifying complex tasks. Our mission is to empower architects, designers, and real estate professionals by providing an innovative AI-driven solution for generating precise 2D floor plans from any input.\n\n",
+    "section1Paragraph2": "We are dedicated to accuracy, efficiency, and user-friendliness, ensuring that our technology not only saves time but also enhances the quality of your work.",
+    "section2Title": "The Team Behind the Innovation",
+    "section2Paragraph1": "Our team is composed of passionate AI researchers, software engineers, and design experts. We leverage cutting-edge machine learning and computer vision techniques to push the boundaries of what's possible in architectural drafting.\n\n",
+    "section2Paragraph2": "We are constantly evolving, integrating the latest advancements in AI to provide you with the most reliable and advanced tools."
+  },
+  "ContactPage": {
+    "title": "Contact Us",
+    "subtitle": "Have questions or feedback? We'd love to hear from you!",
+    "contactInfoTitle": "Our Contact Information",
+    "emailLabel": "Email",
+    "phoneLabel": "Phone",
+    "addressLabel": "Address",
+    "addressValue": "123 AI Street, Suite 456, Innovation City, IC 78901",
+    "formTitle": "Send us a Message",
+    "nameLabel": "Your Name",
+    "namePlaceholder": "Enter your name",
+    "emailPlaceholder": "Enter your email",
+    "messageLabel": "Your Message",
+    "messagePlaceholder": "Type your message here...",
+    "submitButton": "Send Message",
+    "formSubmissionSuccess": "Your message has been sent successfully! We will get back to you shortly."
+  },
+  "PlaygroundPage": {
+    "title": "AI Playground",
+    "subtitle": "Experiment with our AI to generate and visualize 2D plans.",
+    "uploadSectionTitle": "Upload Your Plan",
+    "uploadedFile": "Uploaded file",
+    "resultsSectionTitle": "AI Processing Results",
+    "noResultsMessage": "Upload a plan to see AI-generated results.",
+    "legendWallOuter": "Outer Wall",
+    "legendWallInner": "Inner Wall",
+    "legendDoor": "Door",
+    "legendWindow": "Window",
+    "legendFurniture": "Furniture Placeholder"
+  },
+  "PricingPage": {
+    "title": "Free for Authorized Users",
+    "subtitle": "Access all features and generate your 2D plans at no cost. Simply register or log in to get started!",
+    "ctaButton": "Register or Log In"
+  }
+}
