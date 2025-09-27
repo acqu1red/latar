@@ -1,46 +1,26 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { TransitionGroup, CSSTransition } from 'react-transition-group';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './HomePage';
 import TexSchemePage from './TexSchemePage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import DashboardPage from './DashboardPage';
-import './index.css';
-import { AuthProvider } from './AuthContext'; // Импорт AuthProvider
+import './index.css'; // Импортируем глобальные стили
 
 const App: React.FC = () => {
-  const location = useLocation();
-
-  return (
-    <div className="app">
-      <TransitionGroup>
-        <CSSTransition
-          key={location.key}
-          classNames="page-transition"
-          timeout={500}
-        >
-          <Routes location={location}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/texscheme" element={<TexSchemePage />} />
-          </Routes>
-        </CSSTransition>
-      </TransitionGroup>
-    </div>
-  );
-};
-
-const AppWrapper: React.FC = () => {
   return (
     <Router basename="/latar">
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <div className="app">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/texscheme" element={<TexSchemePage />} />
+        </Routes>
+      </div>
     </Router>
   );
 };
 
-export default AppWrapper;
+export default App;

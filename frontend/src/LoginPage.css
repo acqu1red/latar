@@ -1,272 +1,445 @@
-/* LoginPage.css - Галактический масштаб, светло-бежевые и темно-серые тона */
+/* =============================================
+   LATAR AI - Warm Dark Theme LoginPage Styles
+   ============================================= */
 
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 50%, #f8f8f8 100%); /* Светло-бежевый/светло-серый фон */
-  color: #2a2a2a; /* Очень темный, почти черный текст */
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  overflow: hidden;
-  font-family: 'Roboto', sans-serif;
+  background: var(--gradient-bg);
+  padding: 2rem;
 }
 
-/* Глобальный фон с более сложной анимацией */
+/* =============================================
+   BACKGROUND ANIMATION
+   ============================================= */
+
 .background-animation {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -2;
+  z-index: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 10% 40%, rgba(220, 220, 220, 0.3) 0%, rgba(240, 240, 240, 0) 60%),
-              radial-gradient(circle at 90% 60%, rgba(200, 200, 200, 0.2) 0%, rgba(240, 240, 240, 0) 60%),
-              linear-gradient(180deg, rgba(0,0,0,0.05) 1px, transparent 1px) 0 0,
-              linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px) 0 0;
-  background-size: 50px 50px;
-  animation: subtleZoom 60s infinite alternate linear;
 }
 
-@keyframes subtleZoom {
-  0% { background-size: 50px 50px; background-position: 0 0; }
-  100% { background-size: 60px 60px; background-position: 100px 100px; }
-}
-
-/* Контейнер формы */
-.login-container {
-  background: rgba(255, 255, 255, 0.95); /* Почти белый, полупрозрачный */
-  backdrop-filter: blur(25px); /* Более сильное размытие */
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 20px;
-  padding: 3rem;
-  width: 100%;
-  max-width: 450px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15); /* Более выраженная тень */
-  animation: fadeInScale 0.6s ease-out;
-  position: relative; /* Для псевдоэлементов */
-  overflow: hidden;
-}
-
-.login-container::before, .login-container::after {
-  content: '';
+.gradient-orb {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 0, 0, 0.05) 0%, transparent 70%);
-  opacity: 0.6;
-  filter: blur(15px);
-  animation: orbFloat 10s infinite ease-in-out alternate;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: orbFloat 25s ease-in-out infinite;
 }
 
-.login-container::before {
-  width: 150px;
-  height: 150px;
-  top: -50px;
-  left: -50px;
+.orb-1 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, var(--primary-gold) 0%, transparent 70%);
+  top: 20%;
+  left: 10%;
   animation-delay: 0s;
 }
 
-.login-container::after {
-  width: 100px;
-  height: 100px;
-  bottom: -30px;
-  right: -30px;
-  animation-delay: 5s;
+.orb-2 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, var(--copper) 0%, transparent 70%);
+  bottom: 20%;
+  right: 15%;
+  animation-delay: -12s;
 }
 
-@keyframes orbFloat {
-  0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
-  100% { transform: translate(20px, 10px) scale(1.05); opacity: 0.8; }
+.floating-shapes {
+  position: absolute;
+  width: 100%;
+  height: 100%;
 }
+
+.shape {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(45deg, var(--primary-gold), var(--copper));
+  opacity: 0.05;
+  animation: shapeFloat 20s ease-in-out infinite;
+}
+
+.shape-1 {
+  width: 60px;
+  height: 60px;
+  top: 15%;
+  right: 20%;
+  animation-delay: 0s;
+}
+
+.shape-2 {
+  width: 80px;
+  height: 80px;
+  bottom: 30%;
+  left: 20%;
+  animation-delay: -7s;
+}
+
+.shape-3 {
+  width: 40px;
+  height: 40px;
+  top: 60%;
+  right: 30%;
+  animation-delay: -14s;
+}
+
+/* =============================================
+   LOGIN CONTAINER
+   ============================================= */
+
+.login-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 450px;
+  background: var(--gradient-card);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 24px;
+  padding: 3rem;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(20px);
+  animation: fadeInScale 0.8s ease;
+}
+
+/* =============================================
+   LOGIN HEADER
+   ============================================= */
 
 .login-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.login-icon {
+  position: relative;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 15px var(--primary-gold));
+}
+
+.icon-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, var(--primary-gold) 0%, transparent 70%);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: iconPulse 3s ease-in-out infinite;
 }
 
 .login-title {
-  font-size: 2.8rem; /* Больше размер шрифта */
-  font-weight: 800;
-  color: #333333;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #4a4a4a, #1a1a1a); /* Темно-серый градиент */
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .login-subtitle {
-  font-size: 1.15rem;
-  color: #666666;
-  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-/* Форма */
+/* =============================================
+   LOGIN FORM
+   ============================================= */
+
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.6rem;
+  gap: 1.5rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .input-group label {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: #4a4a4a;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.input-wrapper {
+  position: relative;
 }
 
 .form-input {
-  padding: 1.1rem;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.7); /* Светлее фон инпута */
-  color: #333333;
-  font-size: 1.05rem;
-  transition: all 0.3s ease;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: var(--secondary-bg);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: all var(--transition-normal);
+  outline: none;
 }
 
 .form-input:focus {
-  outline: none;
-  border-color: #555555; /* Темнее при фокусе */
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1); /* Более выраженная тень */
-  background: rgba(255, 255, 255, 0.9); /* Почти белый при фокусе */
+  border-color: var(--primary-gold);
+  box-shadow: var(--shadow-gold);
+  background: var(--tertiary-bg);
 }
 
 .form-input::placeholder {
-  color: #888888;
+  color: var(--text-muted);
 }
 
-/* Сообщение об ошибке */
-.error-message {
-  background: rgba(244, 67, 54, 0.08);
-  border: 1px solid rgba(244, 67, 54, 0.2);
-  color: #d32f2f;
-  padding: 0.8rem;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  text-align: center;
-}
-
-/* Кнопка входа */
-.login-button {
-  padding: 1.2rem;
-  background: linear-gradient(135deg, #333333, #1a1a1a); /* Темно-серый/черный градиент */
-  color: #ffffff;
-  border: none;
-  border-radius: 14px;
-  font-size: 1.15rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-.login-button::before {
-  content: '';
+.input-glow {
   position: absolute;
   top: 0;
-  left: -120%;
-  width: 120%;
+  left: 0;
+  width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.6s ease;
+  background: linear-gradient(45deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+  border-radius: 12px;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  pointer-events: none;
 }
 
-.login-button:hover::before {
-  left: 120%;
+.form-input:focus + .input-glow {
+  opacity: 1;
 }
 
-.login-button:hover {
-  transform: translateY(-3px) scale(1.01);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+/* =============================================
+   ERROR MESSAGE
+   ============================================= */
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 0.9rem;
+  animation: errorShake 0.5s ease;
+}
+
+.error-icon {
+  font-size: 1rem;
+}
+
+.error-text {
+  flex: 1;
+}
+
+/* =============================================
+   LOGIN BUTTON
+   ============================================= */
+
+.login-button {
+  position: relative;
+  width: 100%;
+  padding: 1rem 2rem;
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: 12px;
+  color: var(--primary-bg);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  overflow: hidden;
+  box-shadow: var(--shadow-button);
+  margin-top: 0.5rem;
+}
+
+.login-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold-strong);
+}
+
+.login-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .login-button:disabled {
-  opacity: 0.5;
+  opacity: 0.7;
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
 }
 
-/* Футер формы */
+.button-text {
+  position: relative;
+  z-index: 2;
+}
+
+.button-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform var(--transition-normal);
+}
+
+.login-button:hover .button-glow {
+  transform: translateX(100%);
+}
+
+.button-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.6s ease;
+}
+
+.login-button:active .button-ripple {
+  width: 300px;
+  height: 300px;
+}
+
+/* =============================================
+   LOGIN FOOTER
+   ============================================= */
+
 .login-footer {
-  margin-top: 2.5rem;
+  margin-top: 2rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .register-link {
-  color: #666666;
-  font-size: 0.95rem;
-  margin-bottom: 1rem;
-  display: block;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.register-link a {
-  color: #333333;
+.link {
+  color: var(--primary-gold);
   text-decoration: none;
   font-weight: 600;
-  transition: color 0.3s ease;
+  transition: color var(--transition-normal);
+  position: relative;
 }
 
-.register-link a:hover {
-  color: #1a1a1a;
+.link:hover {
+  color: var(--warm-gold);
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary-gold);
+  transition: width var(--transition-normal);
+}
+
+.link:hover::after {
+  width: 100%;
 }
 
 .back-link {
-  color: #888888;
+  color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.9rem;
-  transition: color 0.3s ease;
+  font-size: 0.875rem;
+  transition: color var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .back-link:hover {
-  color: #4a4a4a;
+  color: var(--text-secondary);
 }
 
-/* Анимации */
+/* =============================================
+   ANIMATIONS
+   ============================================= */
+
 @keyframes fadeInScale {
-  0% {
+  from {
     opacity: 0;
-    transform: scale(0.95) translateY(20px);
+    transform: scale(0.9) translateY(20px);
   }
-  100% {
+  to {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(180deg); }
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-30px) scale(1.1); }
 }
 
-/* Адаптивность */
+@keyframes shapeFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-40px) rotate(180deg); }
+}
+
+@keyframes iconPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+  50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.6; }
+}
+
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* =============================================
+   RESPONSIVE DESIGN
+   ============================================= */
+
 @media (max-width: 768px) {
+  .login-page {
+    padding: 1rem;
+  }
+  
   .login-container {
-    margin: 1rem;
     padding: 2rem;
-    max-width: none;
+    max-width: 100%;
   }
   
   .login-title {
-    font-size: 2.2rem;
+    font-size: 1.75rem;
   }
   
-  .login-subtitle {
-    font-size: 1.05rem;
+  .login-icon {
+    font-size: 2.5rem;
   }
   
   .form-input {
-    padding: 1rem;
-    font-size: 1rem;
+    padding: 0.875rem 1rem;
   }
   
   .login-button {
-    padding: 1.1rem;
-    font-size: 1.05rem;
+    padding: 0.875rem 1.5rem;
   }
 }
 
@@ -276,24 +449,20 @@
   }
   
   .login-title {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
   }
   
   .login-subtitle {
-    font-size: 0.95rem;
-  }
-  
-  .input-group label {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
   
   .form-input {
-    padding: 0.8rem;
-    font-size: 0.95rem;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.9rem;
   }
   
   .login-button {
-    padding: 0.9rem;
-    font-size: 1rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
   }
 }

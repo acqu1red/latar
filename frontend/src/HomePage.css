@@ -1,603 +1,820 @@
-/* HomePage.css - Галактический масштаб, светло-бежевые и темно-серые тона */
+/* =============================================
+   LATAR AI - Warm Dark Theme HomePage Styles
+   ============================================= */
 
-.home-page {
+.homepage {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 50%, #f8f8f8 100%); /* Светло-бежевый/светло-серый фон */
-  color: #2a2a2a; /* Очень темный, почти черный текст */
   position: relative;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-  font-family: 'Roboto', sans-serif; /* Более универсальный шрифт */
+  overflow: hidden;
+  background: var(--gradient-bg);
 }
 
-/* Глобальный фон с более сложной анимацией */
+/* =============================================
+   BACKGROUND ANIMATION
+   ============================================= */
+
 .background-animation {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -2; /* Ниже 3D модели */
+  z-index: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 10% 40%, rgba(220, 220, 220, 0.3) 0%, rgba(240, 240, 240, 0) 60%),
-              radial-gradient(circle at 90% 60%, rgba(200, 200, 200, 0.2) 0%, rgba(240, 240, 240, 0) 60%),
-              linear-gradient(180deg, rgba(0,0,0,0.05) 1px, transparent 1px) 0 0, /* Сетка */
-              linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px) 0 0;
-  background-size: 50px 50px;
-  animation: subtleZoom 60s infinite alternate linear;
 }
 
-@keyframes subtleZoom {
-  0% { background-size: 50px 50px; background-position: 0 0; }
-  100% { background-size: 60px 60px; background-position: 100px 100px; }
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.6;
+  animation: orbFloat 20s ease-in-out infinite;
 }
 
-/* Главная навигация */
-.main-navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 2.5rem;
-  background: rgba(255, 255, 255, 0.95); /* Почти белый, полупрозрачный */
-  backdrop-filter: blur(25px); /* Более сильное размытие */
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+.orb-1 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--primary-gold) 0%, transparent 70%);
+  top: 20%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.orb-2 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, var(--copper) 0%, transparent 70%);
+  top: 60%;
+  right: 15%;
+  animation-delay: -7s;
+}
+
+.orb-3 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, var(--warm-gold) 0%, transparent 70%);
+  bottom: 20%;
+  left: 50%;
+  animation-delay: -14s;
+}
+
+.floating-shapes {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.shape {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(45deg, var(--primary-gold), var(--copper));
+  opacity: 0.1;
+  animation: shapeFloat 15s ease-in-out infinite;
+}
+
+.shape-1 {
+  width: 80px;
+  height: 80px;
+  top: 10%;
+  left: 20%;
+  animation-delay: 0s;
+}
+
+.shape-2 {
+  width: 60px;
+  height: 60px;
+  top: 30%;
+  right: 25%;
+  animation-delay: -3s;
+}
+
+.shape-3 {
+  width: 100px;
+  height: 100px;
+  bottom: 30%;
+  left: 15%;
+  animation-delay: -6s;
+}
+
+.shape-4 {
+  width: 70px;
+  height: 70px;
+  top: 50%;
+  left: 70%;
+  animation-delay: -9s;
+}
+
+.shape-5 {
+  width: 90px;
+  height: 90px;
+  bottom: 10%;
+  right: 30%;
+  animation-delay: -12s;
+}
+
+.particle-field {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: var(--primary-gold);
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: particleFloat 6s linear infinite;
+}
+
+/* =============================================
+   MAIN CONTENT
+   ============================================= */
+
+.homepage-content {
   position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.8s ease;
+}
+
+.homepage-content.loaded {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* =============================================
+   NAVIGATION
+   ============================================= */
+
+.main-navbar {
+  padding: 2rem 0;
+  backdrop-filter: blur(20px);
+  background: rgba(26, 26, 26, 0.8);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+  position: sticky;
+  top: 0;
   z-index: 100;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); /* Более выраженная тень */
 }
 
 .nav-brand {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: #333333; /* Темный текст */
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .brand-icon {
-  font-size: 2.2rem;
-  color: #555555; /* Средне-серый */
-  text-shadow: 0 0 5px rgba(0,0,0,0.1);
-}
-
-.nav-links {
-  display: flex;
-  gap: 1.2rem;
-  align-items: center;
-}
-
-.nav-link {
-  padding: 0.8rem 1.6rem;
-  border: none;
-  border-radius: 14px; /* Более мягкие углы */
-  font-size: 1.05rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: transparent;
-  color: #4a4a4a; /* Темно-серый */
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-}
-
-.nav-link:hover {
-  background: rgba(0, 0, 0, 0.08); /* Немного темнее при наведении */
-  border-color: rgba(0, 0, 0, 0.25);
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-}
-
-.nav-link.primary {
-  background: linear-gradient(135deg, #333333, #1a1a1a); /* Темно-серый/черный градиент */
-  color: #ffffff;
-  border: none;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-.nav-link.primary:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-  transform: translateY(-4px) scale(1.03);
-}
-
-/* Главная секция */
-.hero-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 2rem;
-  max-width: 1500px;
-  margin: 0 auto;
-  gap: 6rem; /* Увеличиваем отступ */
   position: relative;
-  min-height: calc(100vh - 100px); /* С учетом навигации */
+  font-size: 2.5rem;
+  filter: drop-shadow(0 0 10px var(--primary-gold));
 }
 
-.hero-content {
-  flex: 1.2; /* Больше места для текста */
-  max-width: 700px;
-  text-align: left;
-  z-index: 10;
+.icon-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle, var(--primary-gold) 0%, transparent 70%);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: iconPulse 2s ease-in-out infinite;
 }
 
-.hero-title {
-  font-size: 4rem; /* Больше размер шрифта */
-  font-weight: 900;
-  line-height: 1.1;
-  margin-bottom: 1.8rem;
-  color: #1a1a1a; /* Очень темный текст */
-  text-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+.brand-text {
+  display: flex;
+  flex-direction: column;
 }
 
-.gradient-text {
-  background: linear-gradient(135deg, #4a4a4a, #000000); /* От темно-серого к черному */
+.brand-name {
+  font-size: 2rem;
+  font-weight: 700;
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1;
 }
 
-.hero-subtitle {
-  font-size: 1.35rem; /* Немного больше */
-  line-height: 1.6;
-  margin-bottom: 3rem;
-  color: #555555;
-  max-width: 600px;
-}
-
-.hero-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.4rem 3rem;
-  background: linear-gradient(135deg, #333333, #000000); /* От темно-серого к черному */
-  color: #ffffff;
-  border: none;
-  border-radius: 18px;
-  font-size: 1.2rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.4s ease;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  position: relative;
-  overflow: hidden;
+.brand-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
   letter-spacing: 0.5px;
 }
 
-.hero-cta::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -120%; /* Увеличиваем ширину эффекта */
-  width: 120%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent); /* Более заметный блеск */
-  transition: left 0.6s ease; /* Более плавная анимация */
-}
-
-.hero-cta:hover::before {
-  left: 120%;
-}
-
-.hero-cta:hover {
-  transform: translateY(-5px) scale(1.02);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
-}
-
-.cta-arrow {
-  font-size: 1.4rem;
-  transition: transform 0.3s ease;
-}
-
-.hero-cta:hover .cta-arrow {
-  transform: translateX(8px); /* Более выраженное движение */
-}
-
-/* Визуальная часть - сложная 3D модель создания комнаты */
-.hero-visual {
-  flex: 1; /* Оставим 1 для баланса */
+.nav-actions {
   display: flex;
-  justify-content: center;
+  gap: 1rem;
   align-items: center;
+}
+
+.nav-button {
   position: relative;
-  width: 600px; /* Увеличиваем размер контейнера */
-  height: 600px;
-  perspective: 2000px; /* Более глубокая перспектива */
-  z-index: 5;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.room-builder-3d {
+.nav-button.secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.nav-button.secondary:hover {
+  color: var(--primary-gold);
+  border-color: var(--primary-gold);
+  box-shadow: var(--shadow-gold);
+}
+
+.nav-button.primary {
+  background: var(--gradient-primary);
+  color: var(--primary-bg);
+  box-shadow: var(--shadow-button);
+}
+
+.nav-button.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold-strong);
+}
+
+.button-text {
   position: relative;
-  width: 350px; /* Увеличиваем базовый размер */
-  height: 350px;
-  transform-style: preserve-3d;
-  animation: roomBuildComplex 30s infinite linear;
-  transform: rotateX(30deg) rotateY(60deg) rotateZ(0deg); /* Более интересное начальное положение */
-  box-shadow: 0 0 80px rgba(0, 0, 0, 0.2); /* Общая тень для модели */
-  border-radius: 10px;
+  z-index: 2;
 }
 
-/* Базовые элементы, которые будут появляться */
-.room-plane {
+.button-underline {
   position: absolute;
-  background: rgba(200, 200, 200, 0.05); /* Очень светлый, почти прозрачный */
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.02);
-  opacity: 0;
-  animation: fadeInOutPlane 4s forwards;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary-gold);
+  transition: width var(--transition-normal);
 }
 
-.room-floor {
-  width: 350px;
-  height: 350px;
-  transform: rotateX(90deg) translateZ(-175px);
-  background: repeating-linear-gradient(45deg, #e5e5e5, #e5e5e5 15px, #d8d8d8 15px, #d8d8d8 30px); /* Светлый пол с более крупной сеткой */
-  animation-delay: 0s;
-  opacity: 0.8; /* Всегда виден */
-  animation: none; /* Не анимируем его появление, всегда на месте */
+.nav-button.secondary:hover .button-underline {
+  width: 100%;
 }
 
-.room-grid {
-  position: absolute;
-  width: 350px;
-  height: 350px;
-  transform: rotateX(90deg) translateZ(-176px);
-  background: 
-    linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px) 0 0,
-    linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px) 0 0;
-  background-size: 20px 20px;
-  opacity: 0;
-  animation: fadeIn 1s forwards;
-  animation-delay: 0.5s;
-}
-
-.room-wall {
-  position: absolute;
-  width: 350px;
-  height: 200px; /* Увеличиваем высоту */
-  background: rgba(220, 220, 220, 0.1); /* Полупрозрачные стены */
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
-  opacity: 0;
-  animation: fadeInWallComplex 2s forwards;
-  transform-origin: bottom; /* Анимация будет от низа */
-}
-
-.room-wall-back { transform: translateZ(-175px); animation-delay: 1s; }
-.room-wall-left { transform: rotateY(90deg) translateZ(-175px); animation-delay: 1.5s; }
-.room-wall-right { transform: rotateY(-90deg) translateZ(-175px); animation-delay: 2s; }
-.room-wall-front { transform: rotateY(180deg) translateZ(-175px); animation-delay: 2.5s; }
-
-/* Детализированные элементы */
-.room-detail-line {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.2); /* Темные линии */
-  opacity: 0;
-  animation: drawLine 1s forwards;
-  animation-delay: 3s;
-}
-
-.line-h-1 { width: 100px; height: 1px; top: 50px; left: 50px; transform: translateZ(-174px); animation-delay: 3s; }
-.line-v-1 { width: 1px; height: 100px; top: 50px; left: 50px; transform: translateZ(-174px); animation-delay: 3.2s; }
-
-.room-furniture-placeholder {
-  position: absolute;
-  background: linear-gradient(135deg, #4a4a4a, #2a2a2a); /* Темная мебель */
-  border: 1px solid rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
-  opacity: 0;
-  animation: fadeInScale 1.5s forwards;
-}
-
-.furniture-bed {
-  width: 80px;
-  height: 100px;
-  top: 70px;
-  left: 30px;
-  transform: translateZ(-170px); 
-  animation-delay: 4s;
-}
-
-.furniture-table {
-  width: 60px;
-  height: 60px;
-  top: 150px;
-  left: 200px;
-  transform: translateZ(-170px); 
-  animation-delay: 4.5s;
-  border-radius: 50%;
-}
-
-/* Голографический эффект */
-.room-glow-effect {
+.button-glow {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, rgba(0, 0, 0, 0.05) 0%, transparent 70%);
-  border-radius: 10px;
-  animation: pulseGlow 5s infinite alternate ease-in-out;
-  z-index: -1; /* Под моделью */
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform var(--transition-normal);
 }
 
-/* Футер */
-.main-footer {
-  background: rgba(0, 0, 0, 0.9); /* Темный футер */
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 2rem 2.5rem;
-  text-align: center;
-  color: #cccccc;
-  margin-top: auto;
+.nav-button.primary:hover .button-glow {
+  transform: translateX(100%);
+}
+
+/* =============================================
+   HERO SECTION
+   ============================================= */
+
+.hero-section {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+  padding: 4rem 0;
+  min-height: calc(100vh - 200px);
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 50px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary-gold);
+  width: fit-content;
+  backdrop-filter: blur(10px);
+}
+
+.badge-icon {
+  font-size: 1rem;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.title-line {
+  display: block;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: titleReveal 0.8s ease forwards;
+}
+
+.title-line:nth-child(1) { animation-delay: 0.2s; }
+.title-line:nth-child(2) { animation-delay: 0.4s; }
+.title-line:nth-child(3) { animation-delay: 0.6s; }
+
+.title-accent {
+  position: relative;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.accent-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  background: var(--gradient-primary);
+  filter: blur(20px);
+  opacity: 0.3;
+  z-index: -1;
 }
 
-/* Анимации */
-@keyframes float {
+.hero-description {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 500px;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.8s ease 0.8s forwards;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 2rem;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.8s ease 1s forwards;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.8s ease 1.2s forwards;
+}
+
+.cta-button {
+  position: relative;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.cta-button.primary {
+  background: var(--gradient-primary);
+  color: var(--primary-bg);
+  box-shadow: var(--shadow-button);
+}
+
+.cta-button.primary:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-gold-strong);
+}
+
+.cta-button.primary.large {
+  padding: 1.25rem 2.5rem;
+  font-size: 1.1rem;
+}
+
+.cta-button.secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.cta-button.secondary:hover {
+  color: var(--primary-gold);
+  border-color: var(--primary-gold);
+}
+
+.cta-icon {
+  font-size: 1.2rem;
+  transition: transform var(--transition-normal);
+}
+
+.cta-button.primary:hover .cta-icon {
+  transform: translateX(5px);
+}
+
+.button-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform var(--transition-normal);
+}
+
+.cta-button.primary:hover .button-glow {
+  transform: translateX(100%);
+}
+
+.button-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.6s ease;
+}
+
+.cta-button.primary:active .button-ripple {
+  width: 300px;
+  height: 300px;
+}
+
+.button-underline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary-gold);
+  transition: width var(--transition-normal);
+}
+
+.cta-button.secondary:hover .button-underline {
+  width: 100%;
+}
+
+/* =============================================
+   HERO VISUAL
+   ============================================= */
+
+.hero-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  perspective: 1000px;
+}
+
+.hero-3d-model {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  transform-style: preserve-3d;
+  animation: modelRotate 20s linear infinite;
+}
+
+.model-cube {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: cubeFloat 6s ease-in-out infinite;
+}
+
+.model-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-card);
+  border: 2px solid var(--primary-gold);
+  border-radius: 10px;
+  box-shadow: var(--shadow-gold);
+}
+
+.model-face.front { transform: rotateY(0deg) translateZ(150px); }
+.model-face.back { transform: rotateY(180deg) translateZ(150px); }
+.model-face.right { transform: rotateY(90deg) translateZ(150px); }
+.model-face.left { transform: rotateY(-90deg) translateZ(150px); }
+.model-face.top { transform: rotateX(90deg) translateZ(150px); }
+.model-face.bottom { transform: rotateX(-90deg) translateZ(150px); }
+
+.model-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--primary-gold) 0%, transparent 70%);
+  border-radius: 50%;
+  opacity: 0.2;
+  filter: blur(40px);
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+.model-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.model-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--primary-gold);
+  border-radius: 50%;
+  animation: particleOrbit 4s linear infinite;
+}
+
+.model-particle:nth-child(1) { top: 20%; left: 20%; }
+.model-particle:nth-child(2) { top: 30%; right: 20%; }
+.model-particle:nth-child(3) { bottom: 30%; left: 30%; }
+.model-particle:nth-child(4) { bottom: 20%; right: 30%; }
+.model-particle:nth-child(5) { top: 50%; left: 10%; }
+.model-particle:nth-child(6) { top: 50%; right: 10%; }
+.model-particle:nth-child(7) { top: 10%; left: 50%; }
+.model-particle:nth-child(8) { bottom: 10%; left: 50%; }
+
+/* =============================================
+   FOOTER
+   ============================================= */
+
+.main-footer {
+  padding: 2rem 0;
+  border-top: 1px solid rgba(212, 175, 55, 0.1);
+  background: rgba(26, 26, 26, 0.5);
+  backdrop-filter: blur(20px);
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 5px var(--primary-gold));
+}
+
+.footer-text {
+  font-weight: 600;
+  color: var(--text-gold);
+}
+
+.footer-copyright {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* =============================================
+   ANIMATIONS
+   ============================================= */
+
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-20px) scale(1.05); }
+}
+
+@keyframes shapeFloat {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(180deg); }
+  50% { transform: translateY(-30px) rotate(180deg); }
 }
 
-@keyframes pulseGlow {
-  0% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 0.9; transform: scale(1.05); }
-  100% { opacity: 0.6; transform: scale(1); }
+@keyframes particleFloat {
+  0% { transform: translateY(100vh) translateX(0px); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100px) translateX(50px); opacity: 0; }
 }
 
-@keyframes roomBuildComplex {
-  0% { transform: rotateX(30deg) rotateY(60deg) rotateZ(0deg); }
-  25% { transform: rotateX(30deg) rotateY(150deg) rotateZ(10deg); }
-  50% { transform: rotateX(30deg) rotateY(240deg) rotateZ(0deg); }
-  75% { transform: rotateX(30deg) rotateY(330deg) rotateZ(-10deg); }
-  100% { transform: rotateX(30deg) rotateY(420deg) rotateZ(0deg); }
+@keyframes iconPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.6; }
 }
 
-@keyframes fadeInOutPlane {
-  0% { opacity: 0; transform: rotateX(90deg) translateZ(-200px) scale(0.5); }
-  50% { opacity: 1; transform: rotateX(90deg) translateZ(-175px) scale(1); }
-  100% { opacity: 0; transform: rotateX(90deg) translateZ(-150px) scale(1.2); }
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
-@keyframes fadeInWallComplex {
-  0% { opacity: 0; transform: scaleY(0) translateY(100px); }
-  100% { opacity: 1; transform: scaleY(1) translateY(0px); }
+@keyframes titleReveal {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@keyframes fadeInScale {
-  0% { opacity: 0; transform: scale(0.8); }
-  100% { opacity: 1; transform: scale(1); }
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@keyframes drawLine {
-  0% { width: 0; height: 1px; opacity: 0; }
-  50% { width: 100px; height: 1px; opacity: 1; }
-  100% { width: 100px; height: 1px; opacity: 1; }
+@keyframes modelRotate {
+  from { transform: rotateY(0deg) rotateX(0deg); }
+  to { transform: rotateY(360deg) rotateX(360deg); }
 }
 
-/* Адаптивность */
-@media (max-width: 1200px) {
+@keyframes cubeFloat {
+  0%, 100% { transform: translateY(0px) rotateY(0deg); }
+  50% { transform: translateY(-10px) rotateY(180deg); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.2; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.4; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+@keyframes particleOrbit {
+  from { transform: rotate(0deg) translateX(200px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(200px) rotate(-360deg); }
+}
+
+/* =============================================
+   RESPONSIVE DESIGN
+   ============================================= */
+
+@media (max-width: 1024px) {
   .hero-section {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    gap: 2rem;
     text-align: center;
-    gap: 4rem;
   }
   
-  .hero-content {
-    max-width: 100%;
-  }
-
   .hero-title {
-    font-size: 3.2rem;
-  }
-  
-  .hero-subtitle {
-    font-size: 1.2rem;
-  }
-  
-  .hero-cta {
-    padding: 1.2rem 2.5rem;
-    font-size: 1.1rem;
+    font-size: 3rem;
   }
   
   .hero-visual {
-    width: 450px;
-    height: 450px;
+    order: -1;
   }
   
-  .room-builder-3d {
+  .hero-3d-model {
     width: 250px;
     height: 250px;
-  }
-  
-  .room-floor {
-    width: 250px;
-    height: 250px;
-    transform: rotateX(90deg) translateZ(-125px);
-  }
-
-  .room-grid {
-    width: 250px;
-    height: 250px;
-    transform: rotateX(90deg) translateZ(-126px);
-    background-size: 15px 15px;
-  }
-  
-  .room-wall {
-    width: 250px;
-    height: 150px;
-  }
-
-  .room-wall-back { transform: translateZ(-125px); }
-  .room-wall-left { transform: rotateY(90deg) translateZ(-125px); }
-  .room-wall-right { transform: rotateY(-90deg) translateZ(-125px); }
-  .room-wall-front { transform: rotateY(180deg) translateZ(-125px); }
-
-  .room-door {
-    width: 40px;
-    height: 80px;
-    transform: translateZ(-124px) translateX(30px) translateY(10px);
-  }
-
-  .room-window {
-    width: 80px;
-    height: 50px;
-    transform: translateZ(-124px) translateX(-70px) translateY(20px);
-  }
-
-  .line-h-1 { width: 80px; top: 40px; left: 40px; transform: translateZ(-124px); }
-  .line-v-1 { height: 80px; top: 40px; left: 40px; transform: translateZ(-124px); }
-
-  .furniture-bed {
-    width: 60px;
-    height: 80px;
-    top: 60px;
-    left: 20px;
-    transform: translateZ(-120px);
-  }
-  
-  .furniture-table {
-    width: 50px;
-    height: 50px;
-    top: 120px;
-    left: 170px;
-    transform: translateZ(-120px);
   }
 }
 
 @media (max-width: 768px) {
   .main-navbar {
-    padding: 1rem 1.5rem;
+    padding: 1rem 0;
   }
   
   .nav-brand {
-    font-size: 1.4rem;
-  }
-
-  .brand-icon {
-    font-size: 2rem;
+    margin-bottom: 0;
   }
   
-  .nav-links {
-    gap: 0.8rem;
+  .brand-name {
+    font-size: 1.5rem;
   }
   
-  .nav-link {
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
+  .nav-actions {
+    gap: 0.5rem;
   }
   
-  .hero-section {
-    padding: 2rem 1rem;
-    gap: 2rem;
-    min-height: calc(100vh - 80px);
+  .nav-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
   }
   
   .hero-title {
     font-size: 2.5rem;
   }
   
-  .hero-subtitle {
+  .hero-description {
     font-size: 1.1rem;
   }
   
+  .hero-stats {
+    gap: 1rem;
+  }
+  
+  .stat-number {
+    font-size: 1.5rem;
+  }
+  
   .hero-cta {
-    padding: 1rem 2rem;
-    font-size: 1rem;
+    flex-direction: column;
+    align-items: stretch;
   }
   
-  .hero-visual {
-    width: 300px;
-    height: 300px;
+  .cta-button {
+    justify-content: center;
   }
   
-  .room-builder-3d {
-    width: 180px;
-    height: 180px;
+  .hero-3d-model {
+    width: 200px;
+    height: 200px;
   }
   
-  .room-floor {
-    width: 180px;
-    height: 180px;
-    transform: rotateX(90deg) translateZ(-90px);
-  }
-
-  .room-grid {
-    width: 180px;
-    height: 180px;
-    transform: rotateX(90deg) translateZ(-91px);
-    background-size: 10px 10px;
-  }
-  
-  .room-wall {
-    width: 180px;
-    height: 100px;
-  }
-
-  .room-wall-back { transform: translateZ(-90px); }
-  .room-wall-left { transform: rotateY(90deg) translateZ(-90px); }
-  .room-wall-right { transform: rotateY(-90deg) translateZ(-90px); }
-  .room-wall-front { transform: rotateY(180deg) translateZ(-90px); }
-
-  .room-door {
-    width: 30px;
-    height: 60px;
-    transform: translateZ(-89px) translateX(20px) translateY(5px);
-  }
-
-  .room-window {
-    width: 60px;
-    height: 40px;
-    transform: translateZ(-89px) translateX(-50px) translateY(10px);
-  }
-
-  .line-h-1 { width: 60px; top: 30px; left: 30px; transform: translateZ(-89px); }
-  .line-v-1 { height: 60px; top: 30px; left: 30px; transform: translateZ(-89px); }
-
-  .furniture-bed {
-    width: 50px;
-    height: 70px;
-    top: 50px;
-    left: 15px;
-    transform: translateZ(-85px);
-  }
-  
-  .furniture-table {
-    width: 40px;
-    height: 40px;
-    top: 90px;
-    left: 120px;
-    transform: translateZ(-85px);
-  }
-
-  .main-footer {
-    padding: 1.5rem 1rem;
-    font-size: 0.85rem;
+  .footer-content {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
   }
 }
 
 @media (max-width: 480px) {
-  .main-navbar {
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-  
-  .nav-links {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .nav-link {
-    flex: 1;
-    text-align: center;
-  }
-
   .hero-title {
     font-size: 2rem;
   }
-
-  .hero-subtitle {
+  
+  .hero-description {
     font-size: 1rem;
+  }
+  
+  .hero-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .stat-number {
+    font-size: 1.25rem;
+  }
+  
+  .hero-3d-model {
+    width: 150px;
+    height: 150px;
   }
 }
