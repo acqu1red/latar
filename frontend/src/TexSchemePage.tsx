@@ -69,7 +69,7 @@ const TexSchemePage: React.FC = () => {
       const uniqueFileName = `${user.id}/${Date.now()}-${selectedImage.name}`;
 
       // 2. Загрузка сгенерированного плана в Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { data: _uploadData, error: uploadError } = await supabase.storage
         .from('plans') // Имя вашего бакета в Supabase Storage
         .upload(uniqueFileName, planBlob, { // Используем уникальное имя файла
           contentType: planBlob.type,
