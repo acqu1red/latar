@@ -4,11 +4,11 @@
 // );
 
 const nextConfig = {
-  // output: "export", // Для статического экспорта
-  // trailingSlash: true,
-  // images: {
-  //   unoptimized: true, // Для статического экспорта
-  // },
+  output: "export", // Для статического экспорта
+  trailingSlash: true,
+  images: {
+    unoptimized: true, // Для статического экспорта
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback.fs = false;

@@ -1,14 +1,16 @@
 "use client"
 
 import React, { useState } from 'react';
-import { useTranslations } from 'next-intl';
+
+export const dynamic = 'force-dynamic';
+// import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 // import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const ContactPage = () => {
-  const t = useTranslations('ContactPage');
+  // const t = useTranslations('ContactPage');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -24,38 +26,38 @@ const ContactPage = () => {
     e.preventDefault();
     console.log("Form data submitted:", formData);
     // Здесь будет логика отправки формы на сервер
-    alert(t('formSubmissionSuccess'));
+    alert('Сообщение успешно отправлено!');
     setFormData({ name: '', email: '', message: '' });
   };
 
   return (
     <div className="container py-20">
-      <h1 className="text-4xl font-bold text-center mb-8">{t('title')}</h1>
-      <p className="text-lg text-center text-muted-foreground mb-12">{t('subtitle')}</p>
+      <h1 className="text-4xl font-bold text-center mb-8">Контакты</h1>
+      <p className="text-lg text-center text-gray-600 mb-12">Свяжитесь с нами для получения дополнительной информации</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Контактная информация */}
         <div className="p-6 border rounded-lg shadow-sm">
           <div className="mb-4">
-            <h2 className="text-2xl font-semibold mb-4">{t('contactInfoTitle')}</h2>
+            <h2 className="text-2xl font-semibold mb-4">Контактная информация</h2>
           </div>
           <div className="space-y-4 text-gray-600">
-            <p><strong>{t('emailLabel')}:</strong> <a href="mailto:info@flatmap.ai" className="text-primary hover:underline">info@flatmap.ai</a></p>
-            <p><strong>{t('phoneLabel')}:</strong> +1 (555) 123-4567</p>
-            <p><strong>{t('addressLabel')}:</strong> {t('addressValue')}</p>
+            <p><strong>Email:</strong> <a href="mailto:info@flatmap.ai" className="text-primary hover:underline">info@flatmap.ai</a></p>
+            <p><strong>Телефон:</strong> +1 (555) 123-4567</p>
+            <p><strong>Адрес:</strong> Москва, Россия</p>
           </div>
         </div>
 
         {/* Форма обратной связи */}
         <div className="p-6 border rounded-lg shadow-sm">
           <div className="mb-4">
-            <h2 className="text-2xl font-semibold mb-4">{t('formTitle')}</h2>
+            <h2 className="text-2xl font-semibold mb-4">Форма обратной связи</h2>
           </div>
           <div>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-                  {t('nameLabel')}
+                  Имя
                 </label>
                 <Input
                   type="text"
@@ -63,13 +65,13 @@ const ContactPage = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder={t('namePlaceholder')}
+                  placeholder="Введите ваше имя"
                   required
                 />
               </div>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                  {t('emailLabel')}
+                  Email
                 </label>
                 <Input
                   type="email"
@@ -77,26 +79,26 @@ const ContactPage = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder={t('emailPlaceholder')}
+                  placeholder="Введите ваш email"
                   required
                 />
               </div>
               <div>
                 <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
-                  {t('messageLabel')}
+                  Сообщение
                 </label>
                 <Textarea
                   id="message"
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
-                  placeholder={t('messagePlaceholder')}
+                  placeholder="Введите ваше сообщение"
                   rows={5}
                   required
                 />
               </div>
               <Button type="submit" className="w-full" size="lg">
-                {t('submitButton')}
+                Отправить
               </Button>
             </form>
           </div>

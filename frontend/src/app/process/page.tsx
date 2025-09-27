@@ -1,35 +1,37 @@
 "use client"
 
 import React from 'react';
-import { useTranslations } from 'next-intl';
+
+export const dynamic = 'force-dynamic';
+// import { useTranslations } from 'next-intl';
 // import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const ProcessPage = () => {
-  const t = useTranslations('ProcessPage');
+  // const t = useTranslations('ProcessPage');
 
   const steps = [
     {
-      title: t('step1Title'),
-      description: t('step1Description'),
+      title: 'Загрузка файла',
+      description: 'Загрузите фото или скан вашего плана в формате JPG, PNG или PDF',
     },
     {
-      title: t('step2Title'),
-      description: t('step2Description'),
+      title: 'Анализ ИИ',
+      description: 'Наш ИИ анализирует изображение и распознает стены, двери, окна и мебель',
     },
     {
-      title: t('step3Title'),
-      description: t('step3Description'),
+      title: 'Обработка',
+      description: 'Создается чистый 2D-чертеж с правильными размерами и подписями',
     },
     {
-      title: t('step4Title'),
-      description: t('step4Description'),
+      title: 'Готовый результат',
+      description: 'Получите аккуратный план в высоком качестве для дальнейшего использования',
     },
   ];
 
   return (
     <div className="container py-20">
-      <h1 className="text-4xl font-bold text-center mb-8">{t('title')}</h1>
-      <p className="text-lg text-center text-muted-foreground mb-12">{t('subtitle')}</p>
+      <h1 className="text-4xl font-bold text-center mb-8">Как это работает</h1>
+      <p className="text-lg text-center text-gray-600 mb-12">Простой процесс создания 2D-планов из ваших фотографий</p>
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
         {steps.map((step, index) => (

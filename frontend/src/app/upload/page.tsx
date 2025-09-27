@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useState, useCallback } from 'react';
+
+export const dynamic = 'force-dynamic';
 import { UploadDropzone } from '@/components/upload-dropzone';
 import { SpecLegend } from '@/components/spec-legend';
 // import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

@@ -3,11 +3,11 @@
 import React from 'react';
 
 export const dynamic = 'force-dynamic';
-import { useTranslations } from 'next-intl';
+// import { useTranslations } from 'next-intl';
 import { BeforeAfterSlider } from '@/components/before-after-slider';
 
 const GalleryPage = () => {
-  const t = useTranslations('GalleryPage');
+  // const t = useTranslations('GalleryPage');
 
   const galleryItems = [
     {
@@ -29,8 +29,8 @@ const GalleryPage = () => {
 
   return (
     <div className="container py-20">
-      <h1 className="text-4xl font-bold text-center mb-8">{t('title')}</h1>
-      <p className="text-lg text-center text-muted-foreground mb-12">{t('subtitle')}</p>
+      <h1 className="text-4xl font-bold text-center mb-8">Галерея</h1>
+      <p className="text-lg text-center text-gray-600 mb-12">Примеры работ: до и после обработки</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {galleryItems.map((item, index) => (
