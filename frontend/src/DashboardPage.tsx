@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext'; // Импорт AuthContext
+import { supabase } from './supabaseClient'; // Импорт клиента Supabase
 import './DashboardPage.css';
 
+interface Plan {
+  id: string;
+  title: string;
+  image_url: string;
+  created_at: string;
+}
+
 const DashboardPage: React.FC = () => {
-  const { user, signOut } = useAuth(); // Получаем пользователя и функцию выхода из контекста
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isLoaded, setIsLoaded] = useState(false);
+  const [userPlans, setUserPlans] = useState<Plan[]>([]); // Новое состояние для планов
+  const [plansLoading, setPlansLoading] = useState(true); // Состояние загрузки планов
 
   useEffect(() => {
-    // Если пользователь не авторизован, перенаправляем на страницу входа
     if (!user) {
       navigate('/login');
     }
@@ -24,15 +33,37 @@ const DashboardPage: React.FC = () => {
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-
+    
     return () => {
       clearTimeout(timer);
       window.removeEventListener('mousemove', handleMouseMove);
     };
   }, [user, navigate]);
 
+  useEffect(() => {
+    const fetchPlans = async () => {
+      if (user) {
+        setPlansLoading(true);
+        const { data, error } = await supabase
+          .from('plans')
+          .select('id, title, image_url, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Ошибка загрузки планов:', error);
+        } else {
+          setUserPlans(data || []);
+        }
+        setPlansLoading(false);
+      }
+    };
+
+    fetchPlans();
+  }, [user]); // Загружаем планы при изменении пользователя
+
   const handleLogout = async () => {
-    await signOut(); // Выход из аккаунта через AuthContext
+    await signOut();
     console.log('Logged out');
     navigate('/login');
   };
@@ -41,7 +72,7 @@ const DashboardPage: React.FC = () => {
     navigate('/texscheme');
   };
 
-  if (!user) { // Пока пользователь не загрузится, ничего не показываем
+  if (!user) {
     return null;
   }
 
@@ -86,7 +117,7 @@ const DashboardPage: React.FC = () => {
             <div className="stats-grid">
               <div className="stat-card">
                 <span className="stat-icon">📊</span>
-                <span className="stat-value">12</span>
+                <span className="stat-value">{userPlans.length}</span> {/* Динамическое количество проектов */}
                 <span className="stat-label">Проектов</span>
               </div>
               <div className="stat-card">
@@ -130,12 +161,25 @@ const DashboardPage: React.FC = () => {
 
           <div className="dashboard-card projects-card-3d">
             <h2 className="card-title">Мои последние проекты</h2>
-            <div className="project-list-3d">
+            {plansLoading ? (
+              <p className="loading-text">Загрузка планов...</p>
+            ) : userPlans.length > 0 ? (
+              <div className="project-list-3d">
+                {userPlans.map((plan) => (
+                  <div key={plan.id} className="plan-card-3d">
+                    <img src={plan.image_url} alt={plan.title} className="plan-card-image" />
+                    <h3 className="plan-card-title">{plan.title}</h3>
+                    <p className="plan-card-date">{new Date(plan.created_at).toLocaleDateString()}</p>
+                    <a href={plan.image_url} download={plan.title || `plan_${plan.id}.png`} className="plan-card-download-btn">Скачать</a>
+                  </div>
+                ))}
+              </div>
+            ) : (
               <div className="empty-projects-3d">
                 <p>У вас пока нет проектов.</p>
                 <p>Начните свой первый проект прямо сейчас!</p>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
