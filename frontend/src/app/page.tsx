@@ -144,7 +144,7 @@ export default function HomePage() {
     </div>
       </section>
 
-      {/* Здесь будут другие секции */}
+      {/* Здесь будут другие секции - обновлено */}
     </main>
   );
 }
