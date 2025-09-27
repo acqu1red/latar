@@ -60,8 +60,8 @@ const HomePage: React.FC = () => {
         <main className="hero-section">
           <div className="hero-content">
             <h1 className="hero-title">
-              <span className="title-line">Ваш проект,</span>
-              <span className="title-line highlight">Наша Точность</span>
+              <span className="title-line">Ваш ПРОЕКТ</span>
+              <span className="title-line highlight">Наша ТОЧНОСТЬ</span>
             </h1>
             <p className="hero-description">
               Превратите идеи в архитектурные планы с помощью передового ИИ. Быстро, точно, профессионально.
