@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient'; // Импорт клиента Supabase
+import { supabase } from './supabaseClient'; // Изменяем путь импорта
 import './RegisterPage.css';
 
 const RegisterPage: React.FC = () => {
