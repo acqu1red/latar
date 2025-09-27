@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss"
+import animate from "tailwindcss-animate"
 
 const config = {
   darkMode: ["class"], // Light по умолчанию
@@ -125,7 +126,7 @@ const config = {
       }, // Для секций py-16 md:py-24 xl:py-28
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate],
 } satisfies Config
 
 export default config
