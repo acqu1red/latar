@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-// import { authService } from '../lib/supabase';
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,15 +14,16 @@ const LoginPage: React.FC = () => {
     setError(null);
     setIsLoading(true);
 
+    // Здесь будет логика для аутентификации
     try {
-      // Временная заглушка для сборки
+      // Имитация задержки запроса
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      if (username === 'admin' && password === 'password') {
+
+      if (email === 'test@example.com' && password === 'password') {
         console.log('Login successful');
-        navigate('/dashboard');
+        navigate('/dashboard'); // Перенаправление в личный кабинет
       } else {
-        setError('Неверное имя пользователя или пароль');
+        setError('Неверный email или пароль');
       }
     } catch (err) {
       setError('Произошла ошибка при входе');
@@ -35,84 +35,40 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="login-page">
-      {/* Background Animation */}
-      <div className="background-animation">
-        <div className="gradient-orb orb-1"></div>
-        <div className="gradient-orb orb-2"></div>
-        <div className="floating-shapes">
-          <div className="shape shape-1"></div>
-          <div className="shape shape-2"></div>
-          <div className="shape shape-3"></div>
-        </div>
-      </div>
-
       <div className="login-container">
-        <div className="login-header">
-          <div className="login-icon">
-            <div className="icon-glow"></div>
-            🔐
-          </div>
-          <h2 className="login-title">Добро пожаловать обратно</h2>
-          <p className="login-subtitle">Войдите в свой аккаунт, чтобы продолжить</p>
-        </div>
-
+        <h2 className="login-title">Вход</h2>
+        <p className="login-subtitle">Добро пожаловать обратно!</p>
         <form onSubmit={handleLogin} className="login-form">
           <div className="input-group">
-            <label htmlFor="username">Имя пользователя</label>
-            <div className="input-wrapper">
-              <input
-                type="text"
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                placeholder="Введите имя пользователя"
-                className="form-input"
-              />
-              <div className="input-glow"></div>
-            </div>
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="your@example.com"
+            />
           </div>
-
           <div className="input-group">
             <label htmlFor="password">Пароль</label>
-            <div className="input-wrapper">
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Введите пароль"
-                className="form-input"
-              />
-              <div className="input-glow"></div>
-            </div>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="••••••••"
+            />
           </div>
-
-          {error && (
-            <div className="error-message">
-              <span className="error-icon">⚠️</span>
-              <span className="error-text">{error}</span>
-            </div>
-          )}
-
+          {error && <p className="error-message">{error}</p>}
           <button type="submit" className="login-button" disabled={isLoading}>
-            <span className="button-text">
-              {isLoading ? 'Вход...' : 'Войти'}
-            </span>
-            <div className="button-glow"></div>
-            <div className="button-ripple"></div>
+            {isLoading ? 'Вход...' : 'Войти'}
           </button>
         </form>
-
-        <div className="login-footer">
-          <p className="register-link">
-            Ещё нет аккаунта? <Link to="/register" className="link">Зарегистрироваться</Link>
-          </p>
-          <Link to="/" className="back-link">
-            ← Вернуться на главную
-          </Link>
-        </div>
+        <p className="register-link">
+          Ещё нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+        </p>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TexSchemePage.css';
-import { API_BASE_URL } from './config.js';
+import { API_BASE_URL } from './config';
 
 const TexSchemePage: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
