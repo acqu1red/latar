@@ -235,15 +235,19 @@ export const constructorReducer = (
 
 export const createRoom = (area: number, position: { x: number; y: number }): Room => {
   const length = Math.sqrt(area);
-  const snappedLength = Math.max(1, Math.round(length * 2) / 2);
-  const width = Math.round((area / snappedLength) * 2) / 2;
+  const snappedLength = snapToStep(Math.max(1, length), 0.5); // Привязка к сетке
+  const width = snapToStep(Math.max(1, area / snappedLength), 0.5); // Привязка к сетке
+  const snappedPosition = {
+    x: snapToStep(position.x, 0.5),
+    y: snapToStep(position.y, 0.5),
+  }; // Привязка позиции к сетке
   return {
     id: generateId(),
     label: 'Комната',
     area,
     length: snappedLength,
     width,
-    position,
+    position: snappedPosition,
     photos: [],
   };
 };

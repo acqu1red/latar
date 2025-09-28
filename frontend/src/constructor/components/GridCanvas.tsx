@@ -249,7 +249,7 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
       };
       const clamped = clampRoomPosition(room, snapped);
       dispatch({ type: 'UPDATE_ROOM', roomId: room.id, patch: { position: clamped } });
-      node.position({ x: toPixels(clamped.x), y: toPixels(clamped.y) });
+      node.position({ x: toPixels(snapped.x), y: toPixels(snapped.y) });
     },
     [clampRoomPosition, dispatch],
   );
@@ -257,42 +257,6 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
   const handleRoomSelect = useCallback(
     (roomId: string) => {
       dispatch({ type: 'SET_SELECTED_ROOM', roomId });
-    },
-    [dispatch],
-  );
-
-  const handleRoomResize = useCallback(
-    (room: Room, direction: 'horizontal' | 'vertical', pointerGrid: { x: number; y: number }) => {
-      if (direction === 'horizontal') {
-        const maxLength = Math.max(1, WORKSPACE_WIDTH - room.position.x);
-        const tentative = snapToStep(clamp(pointerGrid.x - room.position.x, 1, Math.min(room.area * 2, maxLength)));
-        if (tentative <= 0) {
-          return null;
-        }
-        const width = snapToStep(clamp(room.area / tentative, 1, WORKSPACE_HEIGHT - room.position.y));
-        const lengthValue = tentative; // Уже округлено
-        const widthValue = width; // Уже округлено
-        dispatch({
-          type: 'UPDATE_ROOM',
-          roomId: room.id,
-          patch: { length: lengthValue, width: widthValue },
-        });
-        return { length: lengthValue, width: widthValue };
-      }
-      const maxWidth = Math.max(1, WORKSPACE_HEIGHT - room.position.y);
-      const tentative = snapToStep(clamp(pointerGrid.y - room.position.y, 1, Math.min(room.area * 2, maxWidth)));
-      if (tentative <= 0) {
-        return null;
-      }
-      const length = snapToStep(clamp(room.area / tentative, 1, WORKSPACE_WIDTH - room.position.x));
-      const widthValue = tentative; // Уже округлено
-      const lengthValue = length; // Уже округлено
-      dispatch({
-        type: 'UPDATE_ROOM',
-        roomId: room.id,
-        patch: { width: widthValue, length: lengthValue },
-      });
-      return { length: lengthValue, width: widthValue };
     },
     [dispatch],
   );
@@ -609,54 +573,114 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             )}
           </Group>
 
-          <Circle
-            x={width}
-            y={height / 2}
-            radius={8}
-            fill="#4fa7ff"
-            draggable
-            onDragMove={(evt) => {
-              const pointer = getPointer();
-              if (!pointer) {
-                return;
-              }
-              const result = handleRoomResize(room, 'horizontal', pointer);
-              const nextLength = result?.length ?? room.length;
-              const nextWidth = result?.width ?? room.width;
-              // Ensure the resizer also snaps to the new position
-              // by updating its position based on the new room dimensions.
-              evt.target.position({ x: toPixels(nextLength), y: toPixels(nextWidth / 2) });
-            }}
-            onDragEnd={() => {
-              const pointer = getPointer();
-              if (!pointer) {
-                return;
-              }
-              handleRoomResize(room, 'horizontal', pointer);
-            }}
-          />
+          {/* Угловые ресайзеры */}
+          {[0, 1].map((i) =>
+            [0, 1].map((j) => (
+              <Circle
+                key={`resizer-${i}-${j}`}
+                x={i === 0 ? 0 : width}
+                y={j === 0 ? 0 : height}
+                radius={8}
+                fill="#4fa7ff"
+                draggable
+                onDragMove={(evt) => {
+                  const pointer = getPointer(true);
+                  if (!pointer) return;
 
-          <Circle
-            x={width / 2}
-            y={height}
-            radius={8}
-            fill="#4fa7ff"
-            draggable
-            onDragMove={() => {
-              const pointer = getPointer();
-              if (!pointer) {
-                return;
-              }
-              handleRoomResize(room, 'vertical', pointer);
-            }}
-            onDragEnd={() => {
-              const pointer = getPointer();
-              if (!pointer) {
-                return;
-              }
-              handleRoomResize(room, 'vertical', pointer);
-            }}
-          />
+                  // Вычисляем новую длину и ширину
+                  const newLength = snapToStep(
+                    Math.max(1, i === 0 ? room.position.x + room.length - pointer.x : pointer.x - room.position.x),
+                    SNAP_STEP,
+                  );
+                  const newWidth = snapToStep(
+                    Math.max(1, j === 0 ? room.position.y + room.width - pointer.y : pointer.y - room.position.y),
+                    SNAP_STEP,
+                  );
+
+                  let finalLength = newLength;
+                  let finalWidth = newWidth;
+
+                  if (i === 0) { // Изменение левого края
+                    finalLength = newLength;
+                    finalWidth = snapToStep(room.area / finalLength, SNAP_STEP);
+                  } else { // Изменение правого края
+                    finalLength = newLength;
+                    finalWidth = snapToStep(room.area / finalLength, SNAP_STEP);
+                  }
+
+                  if (j === 0) { // Изменение верхнего края
+                    finalWidth = newWidth;
+                    finalLength = snapToStep(room.area / finalWidth, SNAP_STEP);
+                  } else { // Изменение нижнего края
+                    finalWidth = newWidth;
+                    finalLength = snapToStep(room.area / finalWidth, SNAP_STEP);
+                  }
+
+                  // Корректируем позицию для сохранения "неподвижного" угла
+                  let newX = room.position.x;
+                  let newY = room.position.y;
+
+                  if (i === 0) {
+                    newX = snapToStep(room.position.x + room.length - finalLength, SNAP_STEP);
+                  }
+                  if (j === 0) {
+                    newY = snapToStep(room.position.y + room.width - finalWidth, SNAP_STEP);
+                  }
+
+                  dispatch({
+                    type: 'UPDATE_ROOM',
+                    roomId: room.id,
+                    patch: { length: finalLength, width: finalWidth, position: { x: newX, y: newY } },
+                  });
+
+                  // Обновляем позицию ресайзера, чтобы он оставался привязанным к углу
+                  evt.target.position({
+                    x: i === 0 ? toPixels(0) : toPixels(finalLength),
+                    y: j === 0 ? toPixels(0) : toPixels(finalWidth),
+                  });
+                }}
+                onDragEnd={(evt) => {
+                  // Просто диспатчим, так как onDragMove уже делает всю работу
+                  // Мы не хотим повторно вызывать handleRoomResize, чтобы избежать двойного обновления
+                  // И привязываем ресайзер к новой позиции
+                  const finalLength = snapToStep(
+                    Math.max(
+                      1,
+                      i === 0
+                        ? room.position.x + room.length - evt.target.x() / GRID_SIZE
+                        : evt.target.x() / GRID_SIZE - room.position.x,
+                    ),
+                    SNAP_STEP,
+                  );
+                  const finalWidth = snapToStep(
+                    Math.max(
+                      1,
+                      j === 0
+                        ? room.position.y + room.width - evt.target.y() / GRID_SIZE
+                        : evt.target.y() / GRID_SIZE - room.position.y,
+                    ),
+                    SNAP_STEP,
+                  );
+
+                  let newX = room.position.x;
+                  let newY = room.position.y;
+
+                  if (i === 0) {
+                    newX = snapToStep(room.position.x + room.length - finalLength, SNAP_STEP);
+                  }
+                  if (j === 0) {
+                    newY = snapToStep(room.position.y + room.width - finalWidth, SNAP_STEP);
+                  }
+
+                  dispatch({
+                    type: 'UPDATE_ROOM',
+                    roomId: room.id,
+                    patch: { length: finalLength, width: finalWidth, position: { x: newX, y: newY } },
+                  });
+                }}
+              />
+            )),
+          )}
         </Group>
       );
     });
@@ -1055,10 +1079,10 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         </Layer>
         <Layer>{renderRooms()}</Layer>
         <Layer>{renderWalls()}</Layer>
-        <Layer>{renderWindows()}</Layer>
-        <Layer>{renderDoors()}</Layer>
         <Layer>{renderFloatingWindows()}</Layer>
         <Layer>{renderFloatingDoors()}</Layer>
+        <Layer>{renderWindows()}</Layer>
+        <Layer>{renderDoors()}</Layer>
         {draftWall && (
           <Layer listening={false}>
             <Shape

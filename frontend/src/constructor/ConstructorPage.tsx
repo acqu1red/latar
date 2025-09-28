@@ -91,12 +91,17 @@ const buildPayload = (state: ConstructorState) => {
 const ConstructorPage: React.FC = () => {
   const [state, dispatch] = useReducer(constructorReducer, initialState);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [pendingPhotoRoomId, setPendingPhotoRoomId] = useState<string | null>(null);
 
-  const showNotification = useCallback((message: string) => {
-    setNotification(message);
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setNotification({ message, type });
+    // Добавляем класс в зависимости от типа уведомления
+    const toastElement = document.querySelector('.toast');
+    if (toastElement) {
+      toastElement.className = `toast ${type}`;
+    }
     window.setTimeout(() => setNotification(null), 2400);
   }, []);
 
@@ -134,10 +139,10 @@ const ConstructorPage: React.FC = () => {
       if (!response.ok) {
         throw new Error('Не удалось сохранить макет');
       }
-      showNotification('Макет сохранен');
+      showNotification('Макет сохранен', 'success');
     } catch (error) {
       console.error(error);
-      showNotification('Ошибка при сохранении');
+      showNotification('Ошибка при сохранении', 'error');
     }
   }, [state, showNotification]);
 
@@ -155,10 +160,10 @@ const ConstructorPage: React.FC = () => {
       }
       const data = await response.json();
       dispatch({ type: 'SET_PLAN_IMAGE', url: data.imageUrl });
-      showNotification('План готов');
+      showNotification('План готов', 'success');
     } catch (error) {
       console.error(error);
-      showNotification('Ошибка генерации');
+      showNotification('Ошибка генерации', 'error');
     } finally {
       dispatch({ type: 'SET_IS_GENERATING', value: false });
     }
@@ -187,7 +192,7 @@ const ConstructorPage: React.FC = () => {
       const page = pdfDoc.addPage([image.width, image.height]);
       page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
       const pdfBytes = await pdfDoc.save();
-      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const pdfBlob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -198,7 +203,7 @@ const ConstructorPage: React.FC = () => {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error(error);
-      showNotification('Не удалось создать PDF');
+      showNotification('Не удалось создать PDF', 'error');
     }
   }, [showNotification, state.planImageUrl]);
 
@@ -218,10 +223,10 @@ const ConstructorPage: React.FC = () => {
         }
         const data = (await response.json()) as RoomPhoto;
         dispatch({ type: 'UPSERT_PHOTO', roomId, photo: data });
-        showNotification('Фото добавлено');
+        showNotification('Фото добавлено', 'success');
       } catch (error) {
         console.error(error);
-        showNotification('Не удалось загрузить фото');
+        showNotification('Не удалось загрузить фото', 'error');
       }
     },
     [dispatch, showNotification],
@@ -294,7 +299,9 @@ const ConstructorPage: React.FC = () => {
         onChange={handlePhotoInputChange}
       />
 
-      {notification && <div className="toast">{notification}</div>}
+      {notification && <div className={`toast ${notification.type}`}>
+        {notification.message}
+      </div>}
     </div>
   );
 };
