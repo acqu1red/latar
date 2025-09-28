@@ -24,8 +24,8 @@ const HomePage: React.FC = () => {
     };
   }, []);
 
-  const handleStartPlan = () => {
-    navigate('/texscheme');
+  const handleAuthRedirect = (path: string) => {
+    navigate(path);
   };
 
   return (
@@ -51,7 +51,8 @@ const HomePage: React.FC = () => {
             <span className="brand-text">FlatMap AI</span>
           </div>
           <div className="nav-actions">
-            {/* Кнопки Войти/Регистрация удалены */}
+            <button className="nav-button secondary" onClick={() => handleAuthRedirect('/login')}>Войти</button>
+            <button className="nav-button primary" onClick={() => handleAuthRedirect('/register')}>Регистрация</button>
           </div>
         </nav>
 
@@ -59,31 +60,34 @@ const HomePage: React.FC = () => {
         <main className="hero-section">
           <div className="hero-content">
             <h1 className="hero-title">
-              <span className="title-line">Ваш ПРОЕКТ</span>
-              <span className="title-line highlight">Наша ТОЧНОСТЬ</span>
+              <span className="title-line">Создавайте</span>
+              <span className="title-line highlight">Технические Планы</span>
+              <span className="title-line">с помощью ИИ</span>
             </h1>
             <p className="hero-description">
-              Превратите идеи в архитектурные планы с помощью передового ИИ. Быстро, точно, профессионально.
+              Превратите ваши идеи в профессиональные технические планы помещений за считанные секунды.
+              Наша передовая AI-технология создает точные, детализированные архитектурные чертежи с безупречным качеством.
             </p>
             <div className="hero-cta">
-              <button className="cta-button primary large" onClick={handleStartPlan}>
+              <button className="cta-button primary large" onClick={() => handleAuthRedirect('/register')}>
                 <span>Начать бесплатно</span>
                 <span className="cta-icon">→</span>
               </button>
             </div>
           </div>
           
-          {/* 3D элемент - Advanced Architectural Grid */}
+          {/* 3D элемент */}
           <div className="hero-visual" style={{
-            transform: `perspective(1000px) rotateY(${(mousePosition.x - window.innerWidth / 2) * 0.03}deg) rotateX(${(mousePosition.y - window.innerHeight / 2) * 0.015}deg)`
+            transform: `perspective(1000px) rotateY(${(mousePosition.x - window.innerWidth / 2) * 0.05}deg) rotateX(${(mousePosition.y - window.innerHeight / 2) * 0.02}deg)`
           }}>
-            <div className="architectural-grid">
-              <div className="grid-layer layer-1"></div>
-              <div className="grid-layer layer-2"></div>
-              <div className="grid-layer layer-3"></div>
-              <div className="grid-core"></div>
-              <div className="grid-glow-inner"></div>
-              <div className="grid-glow-outer"></div>
+            <div className="hero-3d-model">
+              <div className="model-face front"></div>
+              <div className="model-face back"></div>
+              <div className="model-face left"></div>
+              <div className="model-face right"></div>
+              <div className="model-face top"></div>
+              <div className="model-face bottom"></div>
+              <div className="model-glow"></div>
             </div>
           </div>
         </main>

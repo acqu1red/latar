@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// import { useNavigate } from 'react-router-dom'; // Удаляем import useNavigate
-// import { useAuth } from './AuthContext'; // Импорт AuthContext
-// import { supabase } from './supabaseClient'; // Импорт клиента Supabase
+import { useNavigate } from 'react-router-dom';
 import './TexSchemePage.css';
 import { API_BASE_URL } from './config';
 
@@ -10,33 +8,26 @@ const TexSchemePage: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
-  // const [planTitle, setPlanTitle] = useState(''); // Новое состояние для названия плана
   const [isLoaded, setIsLoaded] = useState(false);
-  // const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 }); // Удаляем mousePosition
-  // const navigate = useNavigate(); // Удаляем объявление navigate
-  // const { user, loading } = useAuth(); // Получаем пользователя и состояние загрузки из AuthContext
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // if (!loading && !user) {
-    //   navigate('/login'); // Перенаправить на страницу входа, если не авторизован и загрузка завершена
-    //   return;
-    // }
+    // В реальном приложении здесь будет проверка авторизации
+    const isAuthenticated = true; // Заглушка: считаем пользователя авторизованным
+
+    if (!isAuthenticated) {
+      navigate('/login'); // Перенаправить на страницу входа, если не авторизован
+      return;
+    }
 
     const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 100);
-
-    // const handleMouseMove = (e: MouseEvent) => {
-    //   setMousePosition({ x: e.clientX, y: e.clientY });
-    // };
-
-    // window.addEventListener('mousemove', handleMouseMove);
     
     return () => {
       clearTimeout(timer);
-      // window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [/* user, loading, navigate */]); // Зависимости обновлены
+  }, [navigate]); // Добавляем navigate в зависимости useEffect
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -51,13 +42,10 @@ const TexSchemePage: React.FC = () => {
   };
 
   const handleGenerate = async () => {
-    if (!selectedImage) return; // Больше не проверяем пользователя
+    if (!selectedImage) return;
 
     setIsGenerating(true);
-    setGeneratedPlan(null); // Сбрасываем предыдущий план
-
     try {
-      // 1. Отправка изображения на бэкенд для генерации
       const formData = new FormData();
       formData.append('image', selectedImage);
 
@@ -66,22 +54,18 @@ const TexSchemePage: React.FC = () => {
         body: formData,
       });
 
-      if (!response.ok) {
+      if (response.ok) {
+        const planBlob = await response.blob();
+        const planUrl = URL.createObjectURL(planBlob);
+        setGeneratedPlan(planUrl);
+      } else {
         const errorData = await response.json();
         console.error('Ошибка генерации:', errorData.error);
         alert(`Ошибка: ${errorData.error}`);
-        return;
       }
-
-      const planBlob = await response.blob();
-      const imageUrl = URL.createObjectURL(planBlob); // Создаем URL для Blob
-      
-      console.log('План успешно сгенерирован!', { imageUrl });
-      setGeneratedPlan(imageUrl); // Отображаем сгенерированный план
-
     } catch (error) {
-      console.error('Произошла общая ошибка при генерации:', error);
-      alert('Произошла ошибка при генерации плана');
+      console.error('Ошибка:', error);
+      alert('Произошла ошибка при генерации');
     } finally {
       setIsGenerating(false);
     }
@@ -91,12 +75,11 @@ const TexSchemePage: React.FC = () => {
     setSelectedImage(null);
     setImagePreview(null);
     setGeneratedPlan(null);
-    // setPlanTitle(''); // Больше нет названия плана
   };
 
-  // const goToDashboard = () => {
-  //   navigate('/dashboard'); // Эта функция больше не нужна
-  // };
+  const goToDashboard = () => {
+    navigate('/dashboard'); // Перенаправляем на личный кабинет
+  };
 
   return (
     <div className="texscheme-page">
@@ -109,138 +92,192 @@ const TexSchemePage: React.FC = () => {
           <div className="shape shape-1"></div>
           <div className="shape shape-2"></div>
           <div className="shape shape-3"></div>
-          <div className="shape shape-4"></div>
-          <div className="shape shape-5"></div>
         </div>
-
-        {/* Новые 3D элементы планировки поверх фона */}
-        <div className="architectural-grid-background">
-          <div className="grid-layer layer-1"></div>
-          <div className="grid-layer layer-2"></div>
-          <div className="grid-layer layer-3"></div>
-          <div className="grid-core"></div>
-        </div>
-
       </div>
 
-      {/* Основной контент (3D-сцена) */}
+      {/* Основной контент */}
       <div className={`texscheme-content ${isLoaded ? 'loaded' : ''}`}>
-        <div className="dashboard-3d-scene">
-          {/* Центральный анимированный шар */}
-          <div className="scene-center-orb"></div>
-
-          {/* Анимированные линии, соединяющие шар с панелями */}
-          <div className="scene-line line-1"></div>
-          <div className="scene-line line-2"></div>
-          <div className="scene-line line-3"></div>
-
-          {/* Основные панели - теперь для генерации плана */}
-          <div className="dashboard-panel panel-left">
-            <div className="panel-content">
-              <h2 className="panel-title">Создание Технического Плана</h2>
-              <p className="panel-description">Загрузите изображение и сгенерируйте точный архитектурный план.</p>
-
-              {/* Секция загрузки */}
-              <div className="upload-section">
-                <div className="upload-container">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    id="image-upload"
-                    className="file-input"
-                  />
-                  <label htmlFor="image-upload" className="upload-label">
-                    {imagePreview ? (
-                      <div className="preview-container">
-                        <img src={imagePreview} alt="Предпросмотр" className="preview-image" />
-                        <div className="preview-overlay">
-                          <div className="overlay-content">
-                            <div className="overlay-icon">🔄</div>
-                            <span className="overlay-text">Нажмите для изменения</span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="upload-placeholder">
-                        <div className="upload-icon">
-                          <div className="icon-main">📷</div>
-                          <div className="icon-particles">
-                            <span className="particle">✨</span>
-                            <span className="particle">⭐</span>
-                            <span className="particle">💫</span>
-                          </div>
-                        </div>
-                        <h3 className="upload-title">Загрузите план помещения</h3>
-                        <p className="upload-description">
-                          Перетащите изображение сюда или нажмите для выбора файла
-                        </p>
-                        <div className="upload-features">
-                          <span className="feature-tag">JPG, PNG, WEBP</span>
-                          <span className="feature-tag">До 10MB</span>
-                          <span className="feature-tag">Высокое качество</span>
-                        </div>
-                      </div>
-                    )}
-                  </label>
-                </div>
+        {/* Навигация */}
+        <nav className="dashboard-navbar">
+          <div className="nav-content">
+            <button className="back-button" onClick={goToDashboard}>
+              <span className="back-icon">←</span>
+              <span>В личный кабинет</span>
+            </button>
+            <div className="nav-title">
+              <div className="title-icon">📐</div>
+              <div className="title-text">
+                <span className="title-main">AI Генератор</span>
+                <span className="title-sub">Технических Планов</span>
               </div>
+            </div>
+          </div>
+        </nav>
 
-              {/* Кнопка генерации */}
-              <div className="generate-section">
-                <button
-                  className={`generate-btn ${isGenerating ? 'generating' : ''}`}
-                  onClick={handleGenerate}
-                  disabled={!selectedImage || isGenerating}
-                >
-                  <div className="btn-content">
-                    <span className="btn-icon">
-                      {isGenerating ? '🎨' : '⚡'}
-                    </span>
-                    <span className="btn-text">
-                      {isGenerating ? 'Генерация...' : 'Сгенерировать план'}
-                    </span>
-                  </div>
-                  {isGenerating && (
-                    <div className="loading-animation">
-                      <div className="loading-dot"></div>
-                      <div className="loading-dot"></div>
-                      <div className="loading-dot"></div>
+        {/* Основной контент */}
+        <div className="main-content">
+          <div className="container">
+            {/* Заголовок страницы */}
+            <div className="page-header">
+              <div className="header-badge">
+                <span className="badge-icon">✨</span>
+                <span className="badge-text">AI-Powered Generation</span>
+              </div>
+              
+              <h1 className="page-title">
+                <span className="title-highlight">AI Генерация</span>
+                <span className="title-normal">технических планов</span>
+              </h1>
+              
+              <p className="page-description">
+                Загрузите фотографию технического плана помещения и получите профессиональную 
+                архитектурную схему с точными пропорциями и деталями за считанные секунды
+              </p>
+            </div>
+
+            {/* Секция загрузки */}
+            <div className="upload-section">
+              <div className="upload-container">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  id="image-upload"
+                  className="file-input"
+                />
+                <label htmlFor="image-upload" className="upload-label">
+                  {imagePreview ? (
+                    <div className="preview-container">
+                      <img src={imagePreview} alt="Предпросмотр" className="preview-image" />
+                      <div className="preview-overlay">
+                        <div className="overlay-content">
+                          <div className="overlay-icon">🔄</div>
+                          <span className="overlay-text">Нажмите для изменения</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="upload-placeholder">
+                      <div className="upload-icon">
+                        <div className="icon-main">📷</div>
+                        <div className="icon-particles">
+                          <span className="particle">✨</span>
+                          <span className="particle">⭐</span>
+                          <span className="particle">💫</span>
+                        </div>
+                      </div>
+                      <h3 className="upload-title">Загрузите план помещения</h3>
+                      <p className="upload-description">
+                        Перетащите изображение сюда или нажмите для выбора файла
+                      </p>
+                      <div className="upload-features">
+                        <span className="feature-tag">JPG, PNG, WEBP</span>
+                        <span className="feature-tag">До 10MB</span>
+                        <span className="feature-tag">Высокое качество</span>
+                      </div>
                     </div>
                   )}
-                  <div className="btn-glow"></div>
-                  <div className="btn-ripple"></div>
-                </button>
+                </label>
               </div>
             </div>
-          </div>
 
-          <div className="dashboard-panel panel-right">
-            <div className="panel-content">
-              <h2 className="panel-title">Результат Генерации</h2>
-              <p className="panel-description">Здесь отобразится ваш готовый технический план.</p>
-
-              {generatedPlan ? (
-                <div className="result-display-card">
-                  <img src={generatedPlan} alt="Сгенерированный план" className="generated-plan-image" />
-                  <a href={generatedPlan} download="technical-plan.png" className="download-button-3d">
-                    <span>Скачать План</span>
-                    <span className="download-icon">↓</span>
-                  </a>
-                  <button onClick={resetApp} className="reset-button-3d">
-                    <span>Новый План</span>
-                    <span className="reset-icon">🔄</span>
-                  </button>
+            {/* Кнопка генерации */}
+            <div className="generate-section">
+              <button 
+                className={`generate-btn ${isGenerating ? 'generating' : ''}`}
+                onClick={handleGenerate}
+                disabled={!selectedImage || isGenerating}
+              >
+                <div className="btn-content">
+                  <span className="btn-icon">
+                    {isGenerating ? '🎨' : '⚡'}
+                  </span>
+                  <span className="btn-text">
+                    {isGenerating ? 'Генерация...' : 'Сгенерировать план'}
+                  </span>
                 </div>
-              ) : (
-                <div className="no-plan-placeholder">
-                  <span className="placeholder-icon">⏳</span>
-                  <p>Ожидание генерации плана...</p>
-                </div>
-              )}
+                {isGenerating && (
+                  <div className="loading-animation">
+                    <div className="loading-dot"></div>
+                    <div className="loading-dot"></div>
+                    <div className="loading-dot"></div>
+                  </div>
+                )}
+                <div className="btn-glow"></div>
+                <div className="btn-ripple"></div>
+              </button>
             </div>
-          </div>
 
+            {/* Результат */}
+            {generatedPlan && (
+              <div className="result-section">
+                <div className="result-header">
+                  <div className="result-title">
+                    <div className="title-icon">✅</div>
+                    <div className="title-text">
+                      <h2>Результат генерации</h2>
+                      <p>Ваш технический план готов к скачиванию</p>
+                    </div>
+                  </div>
+                  <div className="result-actions">
+                    <button 
+                      onClick={resetApp}
+                      className="action-btn secondary"
+                    >
+                      <span className="btn-icon">🔄</span>
+                      <span>Новый план</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="result-content">
+                  <div className="plan-info">
+                    <div className="info-card">
+                      <div className="info-icon">🎯</div>
+                      <div className="info-content">
+                        <h4>Точность</h4>
+                        <p>Сохранены все пропорции и размеры</p>
+                      </div>
+                    </div>
+                    <div className="info-card">
+                      <div className="info-icon">🎨</div>
+                      <div className="info-content">
+                        <h4>Качество</h4>
+                        <p>Профессиональный архитектурный стандарт</p>
+                      </div>
+                    </div>
+                    <div className="info-card">
+                      <div className="info-icon">⚡</div>
+                      <div className="info-content">
+                        <h4>Скорость</h4>
+                        <p>Результат за несколько секунд</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="plan-container">
+                    <div className="plan-wrapper">
+                      <img 
+                        src={generatedPlan} 
+                        alt="Сгенерированный технический план" 
+                        className="generated-plan"
+                      />
+                      <div className="plan-overlay">
+                        <a 
+                          href={generatedPlan} 
+                          download="technical-plan.png"
+                          className="download-btn"
+                        >
+                          <span className="btn-icon">💾</span>
+                          <span>Скачать план</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

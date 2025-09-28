@@ -1,28 +1,14 @@
-/* Общие стили для TexSchemePage - с 3D-моделированным дизайном */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Poppins', sans-serif; /* Более современный шрифт */
-  line-height: 1.6;
-  color: white;
-  background-color: #05050f; /* Еще более темный фон */
-  overflow-x: hidden;
-}
-
+/* Стили для TexSchemePage */
 .texscheme-page {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  background: linear-gradient(135deg, #0d1a42, #1e3a8a); /* Темный градиентный фон */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  color: white;
 }
 
-/* Анимации фона - скопированы из HomePage.css */
+/* Анимированный фон (повторяется из HomePage для консистентности) */
 .background-animation {
   position: fixed;
   top: 0;
@@ -30,43 +16,43 @@ body {
   width: 100%;
   height: 100%;
   z-index: -1;
-  background: linear-gradient(135deg, #020210, #0a0a20); /* Еще более глубокие, темные градиенты */
+  background: linear-gradient(135deg, #1e3a8a, #0d1a42);
   overflow: hidden;
 }
 
 .gradient-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(150px); /* Еще увеличенное размытие */
-  opacity: 0.4;
-  animation: orbFloat 30s infinite ease-in-out; /* Более медленная и плавная анимация */
+  filter: blur(100px);
+  opacity: 0.6;
+  animation: orbFloat 20s infinite ease-in-out;
 }
 
 .orb-1 {
-  width: 600px;
-  height: 600px;
-  background: linear-gradient(45deg, #4f0088, #2e006b); /* Глубокий фиолетовый */
-  top: 0%;
-  left: -5%;
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  top: 10%;
+  left: 10%;
   animation-delay: 0s;
 }
 
 .orb-2 {
-  width: 700px;
-  height: 700px;
-  background: linear-gradient(45deg, #007bff, #00c6ff); /* Яркий голубой */
-  top: 55%;
-  right: -8%;
-  animation-delay: -10s;
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(45deg, #f093fb, #f5576c);
+  top: 60%;
+  right: 15%;
+  animation-delay: -7s;
 }
 
 .orb-3 {
-  width: 500px;
-  height: 500px;
-  background: linear-gradient(45deg, #ff007f, #cc0066); /* Яркий малиновый */
-  bottom: -10%;
-  left: 15%;
-  animation-delay: -20s;
+  width: 300px;
+  height: 300px;
+  background: linear-gradient(45deg, #4facfe, #00f2fe);
+  bottom: 20%;
+  left: 30%;
+  animation-delay: -14s;
 }
 
 .floating-shapes {
@@ -74,44 +60,38 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .shape {
   position: absolute;
-  background: rgba(255, 255, 255, 0.05); /* Еще менее заметные */
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  animation: shapeFloat 25s infinite ease-in-out;
+  animation: shapeFloat 15s infinite ease-in-out;
 }
 
-.shape-1 { width: 120px; height: 120px; top: 10%; left: 10%; animation-delay: 0s; transform: rotate(0deg); }
-.shape-2 { width: 180px; height: 180px; top: 60%; right: 5%; animation-delay: -8s; transform: rotate(45deg); }
-.shape-3 { width: 90px; height: 90px; bottom: 20%; left: 30%; animation-delay: -16s; transform: rotate(90deg); }
-.shape-4 { width: 140px; height: 140px; top: 20%; left: 70%; animation-delay: -5s; background: rgba(0, 255, 255, 0.05); transform: rotate(120deg); }
-.shape-5 { width: 110px; height: 110px; bottom: 5%; right: 25%; animation-delay: -13s; background: rgba(255, 0, 255, 0.05); transform: rotate(180deg); }
+.shape-1 { width: 80px; height: 80px; top: 20%; left: 20%; animation-delay: 0s; }
+.shape-2 { width: 120px; height: 120px; top: 40%; right: 20%; animation-delay: -5s; }
+.shape-3 { width: 60px; height: 60px; bottom: 30%; left: 40%; animation-delay: -10s; }
 
 /* Анимации (повторяются из HomePage для консистентности) */
 @keyframes orbFloat {
-  0%, 100% { transform: translateY(0) translateX(0) scale(1); opacity: 0.4; }
-  25% { transform: translateY(-50px) translateX(30px) scale(1.1); opacity: 0.5; }
-  50% { transform: translateY(0px) translateX(0px) scale(1.2); opacity: 0.6; }
-  75% { transform: translateY(50px) translateX(-30px) scale(1.1); opacity: 0.5; }
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-30px) scale(1.1); }
 }
 
 @keyframes shapeFloat {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.05; }
-  33% { transform: translate(50px, 50px) rotate(180deg); opacity: 0.08; }
-  66% { transform: translate(-50px, -50px) rotate(360deg); opacity: 0.06; }
+  0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.1; }
+  50% { transform: translate(30px, 30px) rotate(180deg); opacity: 0.2; }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(60px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.95; }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 @keyframes fadeInScale {
@@ -129,18 +109,16 @@ body {
   100% { transform: scale(4); opacity: 0; }
 }
 
-/* Основной контент TexSchemePage - 3D сцена */
+/* Основной контент */
 .texscheme-content {
   position: relative;
-  z-index: 10;
+  z-index: 1;
   opacity: 0;
-  transform: translateY(50px);
-  transition: all 1s ease-out;
+  transform: translateY(30px);
+  transition: all 0.8s ease-out;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
   min-height: 100vh;
-  width: 100%;
 }
 
 .texscheme-content.loaded {
@@ -148,246 +126,266 @@ body {
   transform: translateY(0);
 }
 
-/* 3D Сцена - адаптировано из DashboardPage.css */
-.dashboard-3d-scene {
-  width: 100%;
-  height: 100vh;
-  perspective: 1500px; /* Увеличено для большей глубины */
+/* Навигация (повторяется из DashboardPage) */
+.dashboard-navbar {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  transform-style: preserve-3d;
-  /* transition: transform 0.5s ease-out;  Убираем плавное движение при наведении */
-  position: relative;
+  padding: 20px 50px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.scene-center-orb {
-  position: absolute;
-  width: 80px;
-  height: 80px;
-  background: radial-gradient(circle, #00c6ff, #007bff);
-  border-radius: 50%;
-  box-shadow: 0 0 40px rgba(0, 198, 255, 0.8), 0 0 80px rgba(0, 123, 255, 0.6);
-  animation: centerOrbPulse 4s infinite ease-in-out;
-  z-index: 5;
-}
-
-@keyframes centerOrbPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.15); opacity: 0.8; }
-}
-
-.scene-line {
-  position: absolute;
-  width: 2px; /* Толще линии */
-  height: 200px; /* Длиннее линии */
-  background: linear-gradient(to bottom, rgba(0, 198, 255, 0.2), #00c6ff, rgba(0, 198, 255, 0.2));
-  transform-origin: top center;
-  animation: lineFlow 5s infinite linear;
-  opacity: 0.6;
-  filter: blur(0.5px); /* Легкое размытие */
-}
-
-.scene-line.line-1 { transform: rotateY(0deg) translateZ(10px) translateY(-100px); animation-delay: 0s; }
-.scene-line.line-2 { transform: rotateY(120deg) translateZ(10px) translateY(-100px); animation-delay: 1.6s; }
-.scene-line.line-3 { transform: rotateY(240deg) translateZ(10px) translateY(-100px); animation-delay: 3.2s; }
-
-@keyframes lineFlow {
-  0% { transform: translateY(-100px) scaleY(0); opacity: 0; }
-  50% { transform: translateY(0px) scaleY(1); opacity: 1; }
-  100% { transform: translateY(100px) scaleY(0); opacity: 0; }
-}
-
-.dashboard-panel {
-  position: absolute;
-  width: 45%; /* Шире панели */
-  max-width: 500px;
-  height: 70vh;
-  min-height: 500px; /* Фиксированная высота для единообразия */
-  background: rgba(255, 255, 255, 0.08); /* Светлее, более прозрачный фон */
-  backdrop-filter: blur(40px); /* Сильнее размытие */
-  border: 1px solid rgba(255, 255, 255, 0.15); /* Заметнее граница */
-  border-radius: 30px; /* Более округлые углы */
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5), 0 0 100px rgba(0, 198, 255, 0.2); /* Более выраженная тень */
-  transform-style: preserve-3d;
-  transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); /* Усложненная анимация */
+.nav-content {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  padding: 40px;
-  text-align: center;
-  z-index: 10;
+  gap: 20px;
 }
 
-/* .dashboard-panel:hover { */
-/*   transform: translateY(-15px) scale(1.02) rotateX(5deg);  Добавим вращение по X */
-/*   box-shadow: 0 30px 100px rgba(0, 0, 0, 0.7), 0 0 120px rgba(0, 255, 255, 0.4);  Еще более выраженная тень */
-/* } */
-
-.panel-left {
-  transform: translateZ(100px) translateX(-300px) rotateY(-15deg); /* Сильнее эффект 3D */
-  background: linear-gradient(145deg, rgba(30, 0, 80, 0.7), rgba(0, 0, 0, 0.7)); /* Темный фиолетовый градиент */
-  border-color: rgba(70, 0, 150, 0.5);
-}
-
-/* .panel-left:hover { */
-/*   transform: translateZ(150px) translateX(-300px) translateY(-15px) rotateY(-18deg) rotateX(5deg);  Усилить эффект */
-/* } */
-
-.panel-right {
-  transform: translateZ(100px) translateX(300px) rotateY(15deg); /* Сильнее эффект 3D */
-  background: linear-gradient(145deg, rgba(0, 50, 100, 0.7), rgba(0, 0, 0, 0.7)); /* Темный синий градиент */
-  border-color: rgba(0, 100, 200, 0.5);
-}
-
-/* .panel-right:hover { */
-/*   transform: translateZ(150px) translateX(300px) translateY(-15px) rotateY(18deg) rotateX(5deg);  Усилить эффект */
-/* } */
-
-.panel-content {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
-  gap: 20px; /* Уменьшим пробелы */
-}
-
-.panel-title {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 2.5rem; /* Увеличим размер */
-  font-weight: 900;
+.back-button {
+  padding: 10px 25px;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
   color: white;
-  text-shadow: 0 0 15px rgba(0, 198, 255, 0.5); /* Сильное свечение */
-  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.panel-description {
-  font-size: 1.1rem;
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-5px);
+}
+
+.back-icon {
+  font-size: 1.2rem;
+}
+
+.nav-title {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.title-icon {
+  font-size: 2.2rem;
+  animation: pulse 2s infinite;
+}
+
+.title-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.title-main {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.5px;
+}
+
+.title-sub {
+  font-size: 0.9rem;
+  font-weight: 500;
   color: rgba(255, 255, 255, 0.7);
+  margin-top: -2px;
+}
+
+/* Основной контент страницы */
+.main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 50px 20px;
+  text-align: center;
+}
+
+.container {
+  max-width: 1000px;
+  width: 100%;
+}
+
+.page-header {
+  margin-bottom: 50px;
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 8px 15px;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
   margin-bottom: 20px;
 }
 
-/* Секция загрузки - адаптировано */
-.upload-section {
-  width: 100%;
-  margin-bottom: 30px;
+.badge-icon {
+  font-size: 1rem;
 }
 
-.upload-container {
-  position: relative;
-  border: 2px dashed rgba(0, 191, 255, 0.4); 
-  border-radius: 20px;
-  background: rgba(0, 0, 0, 0.3);
-  min-height: 250px; /* Уменьшим высоту */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 20px rgba(0, 191, 255, 0.1);
-}
-
-.upload-container:hover {
-  border-color: rgba(0, 191, 255, 0.7);
-  background: rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 30px rgba(0, 191, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-.file-input {
-  display: none;
-}
-
-.upload-label {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  padding: 20px;
-}
-
-.upload-placeholder {
-  text-align: center;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.upload-icon {
-  position: relative;
-  font-size: 3.5rem; /* Уменьшим размер */
-  color: #00c6ff;
+.page-title {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.1;
   margin-bottom: 15px;
 }
 
-.icon-particles .particle {
-  position: absolute;
-  font-size: 1rem;
-  animation: particleFloat 3s infinite ease-in-out;
+.title-highlight {
+  background: linear-gradient(45deg, #00c6ff, #0072ff); /* Градиентный заголовок */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.icon-particles .particle:nth-child(1) { top: -10px; left: -10px; animation-delay: 0s; }
-.icon-particles .particle:nth-child(2) { top: 0px; right: -15px; animation-delay: 1s; }
-.icon-particles .particle:nth-child(3) { bottom: -5px; left: 10px; animation-delay: 2s; }
+.title-normal {
+  color: white;
+}
+
+.page-description {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.upload-section {
+  margin-bottom: 40px;
+  animation: fadeInScale 0.8s ease-out 0.2s forwards;
+}
+
+.upload-container {
+  max-width: 600px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.file-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.upload-label {
+  display: block;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 50px 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-label:hover {
+  border-color: #00c6ff;
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.upload-icon {
+  font-size: 3rem;
+  position: relative;
+}
+
+.icon-main {
+  animation: pulse 2s infinite;
+}
+
+.icon-particles {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 80px;
+}
+
+.particle {
+  position: absolute;
+  font-size: 1rem;
+  animation: orbFloat 3s infinite ease-in-out;
+}
+
+.particle:nth-child(1) { top: 10px; left: 10px; animation-delay: 0s; }
+.particle:nth-child(2) { top: 20px; right: 10px; animation-delay: 1s; }
+.particle:nth-child(3) { bottom: 10px; left: 30px; animation-delay: 2s; }
 
 .upload-title {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 1.6rem; /* Уменьшим размер */
+  font-size: 1.3rem;
   font-weight: 700;
-  margin-bottom: 8px;
   color: white;
 }
 
 .upload-description {
-  font-size: 0.9rem; /* Уменьшим размер */
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .upload-features {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
   justify-content: center;
+  margin-top: 15px;
 }
 
 .feature-tag {
-  background: rgba(0, 191, 255, 0.1);
-  border: 1px solid rgba(0, 191, 255, 0.3);
-  border-radius: 20px;
+  background: rgba(0, 198, 255, 0.2);
+  color: #00c6ff;
   padding: 5px 12px;
+  border-radius: 15px;
   font-size: 0.8rem;
   font-weight: 500;
-  color: #00e0ff;
+  border: 1px solid rgba(0, 198, 255, 0.3);
 }
 
 .preview-container {
   position: relative;
   width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  height: 250px;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
 .preview-image {
-  max-width: 100%;
-  max-height: 200px; /* Уменьшим максимальную высоту */
-  border-radius: 15px;
-  object-fit: contain;
-  box-shadow: 0 0 25px rgba(0, 191, 255, 0.2);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .preview-overlay {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 15px;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -400,77 +398,46 @@ body {
 }
 
 .overlay-content {
-  color: white;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
 .overlay-icon {
-  font-size: 2.5rem; /* Уменьшим размер */
-  margin-bottom: 8px;
+  font-size: 1.8rem;
+  animation: pulse 2s infinite;
 }
 
 .overlay-text {
   font-size: 1rem;
+  font-weight: 600;
 }
 
-/* Кнопка генерации - адаптировано */
 .generate-section {
-  width: 100%;
-  display: flex;
-  justify-content: center;
+  margin-bottom: 50px;
+  animation: fadeInScale 0.8s ease-out 0.4s forwards;
 }
 
 .generate-btn {
-  position: relative;
-  padding: 15px 40px; /* Уменьшим отступы */
+  padding: 15px 40px;
   border: none;
-  border-radius: 70px;
-  background: linear-gradient(135deg, #28a745, #218838); /* Яркий зеленый */
-  color: white;
-  font-size: 1.3rem; /* Уменьшим шрифт */
-  font-weight: 800;
+  border-radius: 50px;
+  font-size: 1.2rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-  box-shadow: 0 10px 30px rgba(40, 167, 69, 0.6), 0 0 50px rgba(40, 167, 69, 0.3);
-  border: 1px solid #28a745;
-  overflow: hidden;
-  z-index: 1;
-}
-
-.generate-btn .btn-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #4CAF50, #8BC34A);
+  color: white;
+  box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
   position: relative;
-  z-index: 2;
+  overflow: hidden;
+  min-width: 280px;
 }
 
-.generate-btn .btn-icon {
-  font-size: 1.7rem;
-  transition: transform 0.4s ease;
-}
-
-.generate-btn:hover .btn-icon {
-  transform: scale(1.1);
-}
-
-.generate-btn .btn-text {
-  transition: transform 0.4s ease;
-}
-
-.generate-btn:hover .btn-text {
-  transform: translateX(5px);
-}
-
-.generate-btn.generating {
-  background: linear-gradient(135deg, #007bff, #00c6ff);
-  border-color: #007bff;
-  box-shadow: 0 10px 30px rgba(0, 123, 255, 0.6), 0 0 50px rgba(0, 198, 255, 0.3);
-}
-
-.generate-btn:hover:not(.generating) {
-  transform: translateY(-5px) scale(1.02);
-  box-shadow: 0 12px 35px rgba(40, 167, 69, 0.8), 0 0 70px rgba(40, 167, 69, 0.5);
+.generate-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 25px rgba(76, 175, 80, 0.6);
 }
 
 .generate-btn:disabled {
@@ -478,294 +445,352 @@ body {
   cursor: not-allowed;
 }
 
-.loading-animation {
-  position: absolute;
+.btn-content {
   display: flex;
-  gap: 5px;
-  bottom: 8px; /* Немного ниже */
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.loading-dot {
-  width: 7px;
-  height: 7px;
-  background: white;
-  border-radius: 50%;
-  animation: dotPulse 1.2s infinite ease-in-out;
-}
-
-/* Результат генерации - адаптировано */
-.result-display-card {
-  background: rgba(255, 255, 255, 0.05); /* Светлее фон */
-  backdrop-filter: blur(30px); /* Сильнее размытие */
-  border: 1px solid rgba(255, 255, 255, 0.12); /* Заметнее граница */
-  border-radius: 25px;
-  box-shadow: 0 15px 60px rgba(0, 0, 0, 0.4), 0 0 80px rgba(0, 198, 255, 0.15); /* Еще выраженнее тень */
-  padding: 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 25px;
-  width: 100%;
-  margin-top: 30px;
-}
-
-.generated-plan-image {
-  max-width: 100%;
-  max-height: 300px; /* Увеличим максимальную высоту */
-  border-radius: 15px;
-  object-fit: contain;
-  box-shadow: 0 0 30px rgba(0, 191, 255, 0.3); /* Сильнее свечение */
-}
-
-.download-button-3d, .reset-button-3d {
-  display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 15px 30px;
-  border: none;
-  border-radius: 60px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); /* Плавная анимация */
   position: relative;
-  overflow: hidden;
-  z-index: 1;
-  text-decoration: none; /* Для ссылки */
-  color: white;
+  z-index: 2;
 }
 
-.download-button-3d {
-  background: linear-gradient(135deg, #007bff, #00c6ff);
-  box-shadow: 0 8px 25px rgba(0, 123, 255, 0.5), 0 0 40px rgba(0, 198, 255, 0.2);
-  border: 1px solid #00c6ff;
-}
-
-.download-button-3d:hover {
-  transform: translateY(-5px) scale(1.03);
-  box-shadow: 0 12px 35px rgba(0, 123, 255, 0.7), 0 0 60px rgba(0, 198, 255, 0.4);
-}
-
-.reset-button-3d {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-}
-
-.reset-button-3d:hover {
-  transform: translateY(-3px) scale(1.01);
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.download-icon, .reset-icon {
+.btn-icon {
   font-size: 1.5rem;
 }
 
-.no-plan-placeholder {
-  text-align: center;
-  padding: 50px 20px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1.1rem;
-  animation: fadeInScale 1s ease-out forwards;
+.btn-text {
+  font-size: 1.2rem;
 }
 
-.placeholder-icon {
-  font-size: 3rem;
-  margin-bottom: 15px;
-  color: #00c6ff;
-  text-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
-}
-
-/* Новые 3D элементы планировки поверх фона */
-.architectural-grid-background {
+.loading-animation {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  perspective: 1000px; /* Перспектива для 3D */
-  pointer-events: none;
-  z-index: 1; /* Между фоном и основным контентом */
-}
-
-.architectural-grid-background .grid-layer {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border: 1px dashed rgba(0, 198, 255, 0.1); /* Тонкая пунктирная сетка */
-  box-shadow: 0 0 10px rgba(0, 198, 255, 0.05); /* Легкое свечение */
-  background: rgba(0, 198, 255, 0.02);
-  transform-style: preserve-3d;
-  opacity: 0;
-  animation: gridFadeIn 2s ease-out forwards; /* Анимация появления */
-}
-
-.architectural-grid-background .grid-layer.layer-1 {
-  transform: translateZ(-200px) rotateX(70deg);
-  animation-delay: 0.5s;
-}
-.architectural-grid-background .grid-layer.layer-2 {
-  transform: translateZ(-300px) rotateX(70deg) rotateY(10deg);
-  animation-delay: 1s;
-}
-.architectural-grid-background .grid-layer.layer-3 {
-  transform: translateZ(-400px) rotateX(70deg) rotateY(-10deg);
-  animation-delay: 1.5s;
-}
-
-.architectural-grid-background .grid-core {
-  position: absolute;
-  width: 80px;
-  height: 80px;
-  background: radial-gradient(circle, rgba(0, 255, 255, 0.5), transparent 70%);
-  border-radius: 50%;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) translateZ(-250px);
-  filter: blur(20px);
-  opacity: 0.8;
-  animation: corePulse 5s infinite alternate ease-in-out;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 5px;
+  z-index: 3;
 }
 
-@keyframes gridFadeIn {
-  from { opacity: 0; transform: translateZ(-500px) rotateX(90deg); }
-  to { opacity: 1; transform: translateZ(-200px) rotateX(70deg); }
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  animation: loading 1.4s infinite ease-in-out;
 }
 
-@keyframes corePulse {
-  0%, 100% { transform: translate(-50%, -50%) translateZ(-250px) scale(1); opacity: 0.8; }
-  50% { transform: translate(-50%, -50%) translateZ(-240px) scale(1.1); opacity: 1; }
+.loading-dot:nth-child(1) { animation-delay: -0.32s; }
+.loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+.btn-glow {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s ease;
 }
 
-/* Адаптивность для 3D сцены */
-@media (max-width: 1200px) {
-  .dashboard-panel {
-    width: 45%;
-    min-height: 450px;
-    padding: 30px;
-  }
-  .panel-title {
-    font-size: 2.2rem;
-  }
-  .panel-description {
-    font-size: 1rem;
-  }
-  .panel-left {
-    transform: translateZ(80px) translateX(-250px) rotateY(-10deg);
-  }
-  .panel-right {
-    transform: translateZ(80px) translateX(250px) rotateY(10deg);
-  }
+.generate-btn:hover .btn-glow {
+  left: 100%;
 }
 
-@media (max-width: 992px) {
-  .dashboard-3d-scene {
-    flex-direction: column; /* Панели теперь располагаются вертикально */
-    gap: 40px;
-    height: auto;
-    min-height: 100vh;
-    padding: 80px 20px;
+.btn-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: ripple 0.6s ease-out;
+}
+
+.result-section {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 30px;
+  margin-top: 30px;
+  animation: fadeInScale 0.8s ease-out 0.6s forwards;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.result-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.result-title .title-icon {
+  font-size: 2rem;
+}
+
+.result-title h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: white;
+}
+
+.result-title p {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.result-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.action-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 25px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-btn.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.action-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.plan-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.info-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.info-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.info-icon {
+  font-size: 1.8rem;
+  animation: pulse 2s infinite;
+}
+
+.info-content h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+}
+
+.info-content p {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.plan-container {
+  text-align: center;
+}
+
+.plan-wrapper {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.generated-plan {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.plan-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.plan-wrapper:hover .plan-overlay {
+  opacity: 1;
+}
+
+.download-btn {
+  padding: 10px 25px;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #4CAF50, #8BC34A);
+  color: white;
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.download-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
+}
+
+/* Адаптивность */
+@media (max-width: 1024px) {
+  .dashboard-navbar {
+    padding: 15px 30px;
   }
-  .dashboard-panel {
-    position: relative; /* Убираем абсолютное позиционирование */
-    width: 90%;
-    max-width: 550px;
-    height: auto;
-    min-height: 400px;
-    transform: none !important; /* Отключаем 3D-трансформации для панелей */
-    background: rgba(255, 255, 255, 0.1); /* Простой фон */
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+
+  .main-content {
+    padding: 40px 20px;
   }
-  .dashboard-panel:hover {
-    transform: translateY(-5px) scale(1.01) !important; /* Простое поднятие */
+
+  .page-title {
+    font-size: 2.5rem;
   }
-  .scene-center-orb, .scene-line {
-    display: none; /* Скрываем 3D элементы в мобильной версии */
+
+  .upload-container {
+    max-width: 500px;
   }
-  .upload-icon {
-    font-size: 3rem;
+
+  .upload-label {
+    padding: 40px 20px;
   }
-  .upload-title {
-    font-size: 1.4rem;
-  }
-  .preview-image {
-    max-height: 180px;
-  }
+
   .generate-btn {
-    font-size: 1.2rem;
+    min-width: 250px;
     padding: 12px 30px;
+    font-size: 1.1rem;
   }
-  .download-button-3d, .reset-button-3d {
-    font-size: 1rem;
-    padding: 10px 25px;
+
+  .btn-text {
+    font-size: 1.1rem;
+  }
+
+  .result-section {
+    padding: 20px;
+  }
+
+  .result-title h2 {
+    font-size: 1.5rem;
+  }
+
+  .plan-info {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .panel-title {
+  .dashboard-navbar {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .nav-content {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .back-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .main-content {
+    padding: 30px 15px;
+  }
+
+  .page-title {
     font-size: 2rem;
   }
-  .panel-description {
+
+  .page-description {
     font-size: 0.9rem;
   }
-  .upload-container {
-    min-height: 200px;
-  }
-  .upload-icon {
-    font-size: 2.5rem;
-  }
-  .upload-title {
-    font-size: 1.2rem;
-  }
-  .preview-image {
-    max-height: 150px;
-  }
-  .generated-plan-image {
-    max-height: 250px;
-  }
-}
 
-@media (max-width: 480px) {
-  .dashboard-panel {
-    width: 95%;
-    padding: 20px;
-    min-height: 350px;
-  }
-  .panel-title {
-    font-size: 1.8rem;
-  }
-  .panel-description {
-    font-size: 0.8rem;
-  }
-  .upload-icon {
-    font-size: 2rem;
-  }
   .upload-title {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
+
   .upload-description {
     font-size: 0.8rem;
   }
-  .feature-tag {
-    font-size: 0.7rem;
-  }
+
   .generate-btn {
-    font-size: 1rem;
-    padding: 10px 20px;
+    width: 100%;
   }
-  .generated-plan-image {
-    max-height: 200px;
+
+  .result-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
-  .download-button-3d, .reset-button-3d {
+
+  .result-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .result-title h2 {
+    font-size: 1.3rem;
+  }
+
+  .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .info-content h4 {
     font-size: 0.9rem;
-    padding: 8px 20px;
+  }
+
+  .info-content p {
+    font-size: 0.75rem;
+  }
+
+  .download-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
