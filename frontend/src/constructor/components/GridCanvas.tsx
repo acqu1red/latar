@@ -1077,12 +1077,14 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             />
           ))}
         </Layer>
-        <Layer>{renderRooms()}</Layer>
-        <Layer>{renderWalls()}</Layer>
-        <Layer>{renderFloatingWindows()}</Layer>
-        <Layer>{renderFloatingDoors()}</Layer>
-        <Layer>{renderWindows()}</Layer>
-        <Layer>{renderDoors()}</Layer>
+        <Layer>
+          {renderRooms()}
+          {renderWalls()}
+          {renderFloatingWindows()}
+          {renderFloatingDoors()}
+          {renderWindows()}
+          {renderDoors()}
+        </Layer>
         {draftWall && (
           <Layer listening={false}>
             <Shape

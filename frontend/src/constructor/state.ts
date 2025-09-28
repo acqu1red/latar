@@ -10,7 +10,7 @@ import {
   WallNode,
   WindowItem,
 } from './types';
-import { ensureAnchorSnap, generateId } from './utils';
+import { ensureAnchorSnap, generateId, snapToStep } from './utils';
 
 export const initialState: ConstructorState = {
   rooms: [],
@@ -156,14 +156,18 @@ export const constructorReducer = (
         windows: state.windows
           .filter((window) => !(window.wallId === action.wallId && window.segmentIndex === action.segmentIndex))
           .map((window) =>
-            window.wallId === action.wallId && window.segmentIndex > action.segmentIndex
+            window.wallId === action.wallId &&
+            window.segmentIndex !== null && // Добавлена проверка на null
+            window.segmentIndex > action.segmentIndex
               ? { ...window, segmentIndex: window.segmentIndex - 1 }
               : window,
           ),
         doors: state.doors
           .filter((door) => !(door.wallId === action.wallId && door.segmentIndex === action.segmentIndex))
           .map((door) =>
-            door.wallId === action.wallId && door.segmentIndex > action.segmentIndex
+            door.wallId === action.wallId &&
+            door.segmentIndex !== null && // Добавлена проверка на null
+            door.segmentIndex > action.segmentIndex
               ? { ...door, segmentIndex: door.segmentIndex - 1 }
               : door,
           ),
