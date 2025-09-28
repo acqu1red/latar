@@ -74,12 +74,16 @@ const HomePage: React.FC = () => {
           
           {/* 3D элемент - Абстрактная архитектурная модель */}
           <div className="hero-visual" style={{
-            transform: `perspective(1500px) rotateY(${(mousePosition.x - window.innerWidth / 2) * 0.03}deg) rotateX(${(mousePosition.y - window.innerHeight / 2) * 0.015}deg)`
+            transform: `perspective(2000px) rotateY(${(mousePosition.x - window.innerWidth / 2) * 0.03}deg) rotateX(${(mousePosition.y - window.innerHeight / 2) * 0.015}deg)`
           }}>
             <div className="abstract-model">
-              <div className="model-layer"></div>
-              <div className="model-layer"></div>
-              <div className="model-layer"></div>
+              <div className="model-floor"></div>
+              <div className="model-wall wall-1"></div>
+              <div className="model-wall wall-2"></div>
+              <div className="model-wall wall-3"></div>
+              <div className="model-wall wall-4"></div>
+              <div className="model-furniture furniture-1"></div>
+              <div className="model-furniture furniture-2"></div>
             </div>
           </div>
         </main>

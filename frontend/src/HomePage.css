@@ -229,45 +229,94 @@ body {
     position: relative;
     width: 500px;
     height: 500px;
-    perspective: 1500px;
+    perspective: 2000px; /* Увеличиваем перспективу для глубины */
     animation: fadeInScale 1s ease 0.5s both;
+    margin-top: -80px; /* Поднимаем модель выше */
 }
 
 .abstract-model {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) rotateX(45deg) rotateY(-45deg); /* Initial 3D orientation */
+    transform: translate(-50%, -50%) rotateX(60deg) rotateY(-30deg); /* Начальный поворот для лучшего обзора */
     transform-style: preserve-3d;
     animation: modelRotateNew 30s infinite linear;
 }
 
-.model-layer {
+.model-floor {
     position: absolute;
     width: 300px;
     height: 300px;
+    background: rgba(255, 255, 255, 0.05); /* Светлый пол */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transform: rotateX(90deg) translateZ(0px); /* Пол */
+    opacity: 0;
+    animation: floorAppear 1s ease forwards 0.8s;
+}
+
+.model-wall {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.1); /* Стены */
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-    transition: transform 0.5s ease-out;
-    animation: layerHover 10s infinite alternate ease-in-out;
+    opacity: 0;
+    animation: wallAppear 1s ease forwards;
 }
 
-.model-layer:nth-child(1) {
-    transform: rotateX(70deg) rotateY(10deg) translateZ(0px);
-    animation-delay: 0s;
+.wall-1 {
+    width: 300px;
+    height: 150px;
+    transform-origin: bottom;
+    transform: rotateX(90deg) rotateY(0deg) translateZ(-75px) translateY(-150px);
+    animation-delay: 1.2s;
 }
 
-.model-layer:nth-child(2) {
-    transform: rotateX(20deg) rotateY(60deg) translateZ(50px);
-    animation-delay: -3s;
+.wall-2 {
+    width: 300px;
+    height: 150px;
+    transform-origin: bottom;
+    transform: rotateX(90deg) rotateY(90deg) translateZ(-75px) translateX(-150px);
+    animation-delay: 1.4s;
 }
 
-.model-layer:nth-child(3) {
-    transform: rotateX(40deg) rotateY(120deg) translateZ(100px);
-    animation-delay: -6s;
+.wall-3 {
+    width: 300px;
+    height: 150px;
+    transform-origin: bottom;
+    transform: rotateX(90deg) rotateY(180deg) translateZ(-75px) translateY(150px);
+    animation-delay: 1.6s;
 }
 
-/* Glowing lines effect */
+.wall-4 {
+    width: 300px;
+    height: 150px;
+    transform-origin: bottom;
+    transform: rotateX(90deg) rotateY(-90deg) translateZ(-75px) translateX(150px);
+    animation-delay: 1.8s;
+}
+
+.model-furniture {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.15); /* Мебель */
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    opacity: 0;
+    animation: furnitureAppear 1s ease forwards;
+}
+
+.furniture-1 {
+    width: 80px;
+    height: 40px;
+    transform: rotateX(90deg) translateZ(10px) translateX(-120px) translateY(-120px);
+    animation-delay: 2.2s;
+}
+
+.furniture-2 {
+    width: 100px;
+    height: 50px;
+    transform: rotateX(90deg) translateZ(10px) translateX(80px) translateY(80px);
+    animation-delay: 2.5s;
+}
+
+/* Glowing lines effect - сохраняем, возможно для общей подсветки */
 .model-layer::before {
     content: '';
     position: absolute;
@@ -286,8 +335,23 @@ body {
 .model-layer:nth-child(3)::before { animation-delay: 5s; }
 
 @keyframes modelRotateNew {
-    0% { transform: translate(-50%, -50%) rotateX(45deg) rotateY(-45deg); }
-    100% { transform: translate(-50%, -50%) rotateX(45deg) rotateY(315deg); }
+    0% { transform: translate(-50%, -50%) rotateX(60deg) rotateY(-30deg); }
+    100% { transform: translate(-50%, -50%) rotateX(60deg) rotateY(330deg); }
+}
+
+@keyframes floorAppear {
+    from { transform: rotateX(90deg) translateZ(-200px); opacity: 0; }
+    to { transform: rotateX(90deg) translateZ(0px); opacity: 1; }
+}
+
+@keyframes wallAppear {
+    from { transform: scaleY(0); opacity: 0; }
+    to { transform: scaleY(1); opacity: 1; }
+}
+
+@keyframes furnitureAppear {
+    from { transform: rotateX(90deg) translateZ(-50px) scale(0); opacity: 0; }
+    to { transform: rotateX(90deg) translateZ(10px) scale(1); opacity: 1; }
 }
 
 @keyframes layerHover {
