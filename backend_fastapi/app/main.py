@@ -130,24 +130,28 @@ def get_app() -> FastAPI:
 
   @app.post("/upload-photo", response_model=PhotoResponse)
   async def upload_photo(roomId: str = Form(...), file: UploadFile = File(...)):
-    photo_id = f"{roomId}-{os.urandom(6).hex()}"
-    extension = Path(file.filename or "").suffix or ".jpg"
-    safe_extension = extension if extension.lower() in {".png", ".jpg", ".jpeg", ".webp"} else ".jpg"
-    target_dir = PHOTOS_DIR / roomId
-    target_dir.mkdir(parents=True, exist_ok=True)
-    file_path = target_dir / f"{photo_id}{safe_extension}"
+    try:
+      photo_id = f"{roomId}-{os.urandom(6).hex()}"
+      extension = Path(file.filename or "").suffix or ".jpg"
+      safe_extension = extension if extension.lower() in {".png", ".jpg", ".jpeg", ".webp"} else ".jpg"
+      target_dir = PHOTOS_DIR / roomId
+      target_dir.mkdir(parents=True, exist_ok=True)
+      file_path = target_dir / f"{photo_id}{safe_extension}"
 
-    content = await file.read()
-    file_path.write_bytes(content)
+      content = await file.read()
+      file_path.write_bytes(content)
 
-    photo = PhotoResponse(
-      id=photo_id,
-      room_id=roomId,
-      name=file.filename or file_path.name,
-      url=f"/uploads/photos/{roomId}/{file_path.name}",
-    )
+      photo = PhotoResponse(
+        id=photo_id,
+        roomId=roomId,
+        name=file.filename or file_path.name,
+        url=f"/uploads/photos/{roomId}/{file_path.name}",
+      )
 
-    return photo
+      return photo
+    except Exception as e:
+      print(f"Error uploading photo: {e}")
+      raise HTTPException(status_code=500, detail=f"Upload error: {str(e)}")
 
   @app.post("/save-layout")
   async def save_layout(request_body: SaveLayoutRequest):
