@@ -1,6 +1,8 @@
 import {
   ConstructorState,
   DoorItem,
+  FloatingDoor,
+  FloatingWindow,
   Room,
   RoomPhoto,
   Tool,
@@ -15,6 +17,8 @@ export const initialState: ConstructorState = {
   walls: [],
   windows: [],
   doors: [],
+  floatingWindows: [],
+  floatingDoors: [],
   activeTool: 'select',
   selectedRoomId: null,
   planImageUrl: null,
@@ -39,6 +43,12 @@ export type ConstructorAction =
   | { type: 'ADD_DOOR'; door: DoorItem }
   | { type: 'UPDATE_DOOR'; doorId: string; patch: Partial<DoorItem> }
   | { type: 'REMOVE_DOOR'; doorId: string }
+  | { type: 'ADD_FLOATING_WINDOW'; window: FloatingWindow }
+  | { type: 'UPDATE_FLOATING_WINDOW'; windowId: string; patch: Partial<FloatingWindow> }
+  | { type: 'REMOVE_FLOATING_WINDOW'; windowId: string }
+  | { type: 'ADD_FLOATING_DOOR'; door: FloatingDoor }
+  | { type: 'UPDATE_FLOATING_DOOR'; doorId: string; patch: Partial<FloatingDoor> }
+  | { type: 'REMOVE_FLOATING_DOOR'; doorId: string }
   | { type: 'SET_PLAN_IMAGE'; url: string | null }
   | { type: 'SET_IS_GENERATING'; value: boolean };
 
@@ -172,6 +182,20 @@ export const constructorReducer = (
         ...state,
         windows: state.windows.filter((item) => item.id !== action.windowId),
       };
+    case 'ADD_FLOATING_WINDOW':
+      return { ...state, floatingWindows: [...state.floatingWindows, action.window] };
+    case 'UPDATE_FLOATING_WINDOW':
+      return {
+        ...state,
+        floatingWindows: state.floatingWindows.map((item) =>
+          item.id === action.windowId ? { ...item, ...action.patch } : item,
+        ),
+      };
+    case 'REMOVE_FLOATING_WINDOW':
+      return {
+        ...state,
+        floatingWindows: state.floatingWindows.filter((item) => item.id !== action.windowId),
+      };
     case 'ADD_DOOR':
       return { ...state, doors: [...state.doors, action.door] };
     case 'UPDATE_DOOR':
@@ -185,6 +209,20 @@ export const constructorReducer = (
       return {
         ...state,
         doors: state.doors.filter((item) => item.id !== action.doorId),
+      };
+    case 'ADD_FLOATING_DOOR':
+      return { ...state, floatingDoors: [...state.floatingDoors, action.door] };
+    case 'UPDATE_FLOATING_DOOR':
+      return {
+        ...state,
+        floatingDoors: state.floatingDoors.map((item) =>
+          item.id === action.doorId ? { ...item, ...action.patch } : item,
+        ),
+      };
+    case 'REMOVE_FLOATING_DOOR':
+      return {
+        ...state,
+        floatingDoors: state.floatingDoors.filter((item) => item.id !== action.doorId),
       };
     case 'SET_PLAN_IMAGE':
       return { ...state, planImageUrl: action.url };
@@ -216,19 +254,51 @@ export const createWall = (roomId: string | null, start: WallNode, end: WallNode
   nodes: [ensureAnchorSnap({ ...start, kind: 'anchor' }), ensureAnchorSnap({ ...end, kind: 'anchor' })],
 });
 
-export const createWindow = (wallId: string, roomId: string | null, segmentIndex: number, length: number): WindowItem => ({
+interface WindowOptions {
+  wallId?: string | null;
+  roomId?: string | null;
+  segmentIndex?: number | null;
+  length?: number;
+  offset?: number;
+  rotation?: number;
+}
+
+interface DoorOptions {
+  wallId?: string | null;
+  roomId?: string | null;
+  segmentIndex?: number | null;
+  offset?: number;
+  rotation?: number;
+}
+
+export const createWindow = (options: WindowOptions = {}): WindowItem => ({
   id: generateId(),
-  wallId,
-  roomId,
-  segmentIndex,
-  offset: 0.1,
-  length,
+  wallId: options.wallId ?? null,
+  roomId: options.roomId ?? null,
+  segmentIndex: options.segmentIndex ?? null,
+  offset: options.offset ?? 0,
+  length: options.length ?? 1.5,
+  rotation: options.rotation ?? 0,
 });
 
-export const createDoor = (wallId: string, roomId: string | null, segmentIndex: number): DoorItem => ({
+export const createDoor = (options: DoorOptions = {}): DoorItem => ({
   id: generateId(),
-  wallId,
-  roomId,
-  segmentIndex,
-  offset: 0.1,
+  wallId: options.wallId ?? null,
+  roomId: options.roomId ?? null,
+  segmentIndex: options.segmentIndex ?? null,
+  offset: options.offset ?? 0,
+  rotation: options.rotation ?? 0,
+});
+
+export const createFloatingWindow = (position: { x: number; y: number }, length = 1.5): FloatingWindow => ({
+  id: generateId(),
+  position,
+  length,
+  rotation: 0,
+});
+
+export const createFloatingDoor = (position: { x: number; y: number }): FloatingDoor => ({
+  id: generateId(),
+  position,
+  rotation: 0,
 });

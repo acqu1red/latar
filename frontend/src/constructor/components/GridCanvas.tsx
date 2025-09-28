@@ -1,32 +1,42 @@
 import React, {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { Stage, Layer, Line, Rect, Text, Group, Circle } from 'react-konva';
+import { Stage, Layer, Rect, Text, Group, Circle, Shape } from 'react-konva';
 import Konva from 'konva';
 import { KonvaEventObject } from 'konva/lib/Node';
 import {
   ConstructorState,
+  DOOR_LENGTH,
   GRID_SIZE,
+  WORKSPACE_HEIGHT,
+  WORKSPACE_WIDTH,
+  WINDOW_MAX_RATIO,
+  DoorItem,
+  FloatingDoor,
+  FloatingWindow,
   Room,
   Wall,
   WallNode,
   WindowItem,
-  DoorItem,
-  WINDOW_MAX_RATIO,
-  DOOR_LENGTH,
 } from '../types';
-import { ConstructorAction, createDoor, createWall, createWindow } from '../state';
+import {
+  ConstructorAction,
+  createDoor,
+  createFloatingDoor,
+  createFloatingWindow,
+  createWall,
+  createWindow,
+} from '../state';
 import {
   clamp,
+  clampPointToWorkspace,
   findNearestSegment,
-  fromPixels,
+  getWallSegments,
   interpolatePoint,
-  projectPointToSegment,
   segmentAngleDeg,
   snapToStep,
   toPixels,
@@ -39,93 +49,125 @@ interface GridCanvasProps {
   onRequestPhoto: (roomId: string) => void;
 }
 
-interface Dimensions {
-  width: number;
-  height: number;
-}
-
-const GRID_PADDING = 2000;
+const WORKSPACE_PIXEL_WIDTH = WORKSPACE_WIDTH * GRID_SIZE;
+const WORKSPACE_PIXEL_HEIGHT = WORKSPACE_HEIGHT * GRID_SIZE;
+const SNAP_STEP = 0.5;
+const WINDOW_THICKNESS = GRID_SIZE * 0.18;
+const DOOR_THICKNESS = GRID_SIZE * 0.22;
+const ATTACH_THRESHOLD = 0.45; // in grid cells
 
 const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
-  const [dimensions, setDimensions] = useState<Dimensions>({ width: 1200, height: 800 });
-  const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
   const [draftWall, setDraftWall] = useState<WallNode[] | null>(null);
   const [selectedWindowId, setSelectedWindowId] = useState<string | null>(null);
   const [selectedDoorId, setSelectedDoorId] = useState<string | null>(null);
 
-  useLayoutEffect(() => {
-    const element = containerRef.current;
-    if (!element) {
-      return;
+  useEffect(() => {
+    if (state.activeTool !== 'select') {
+      setSelectedDoorId(null);
+      setSelectedWindowId(null);
     }
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) {
-        setDimensions({ width: entry.contentRect.width, height: entry.contentRect.height });
-      }
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
+  }, [state.activeTool]);
 
   const getStage = () => stageRef.current;
 
-  const getPointer = useCallback(() => {
+  const toGridPoint = useCallback((pixel: { x: number; y: number }) => {
     const stage = getStage();
     if (!stage) {
       return null;
     }
-    const pointer = stage.getPointerPosition();
-    if (!pointer) {
-      return null;
-    }
+    const transform = stage.getAbsoluteTransform().copy().invert();
+    const local = transform.point(pixel);
     return {
-      x: snapToStep(fromPixels(pointer.x), 0.5),
-      y: snapToStep(fromPixels(pointer.y), 0.5),
+      x: local.x / GRID_SIZE,
+      y: local.y / GRID_SIZE,
+    };
+  }, []);
+
+  const getPointer = useCallback(
+    (snap = true) => {
+      const stage = getStage();
+      if (!stage) {
+        return null;
+      }
+      const pointer = stage.getPointerPosition();
+      if (!pointer) {
+        return null;
+      }
+      const gridPoint = toGridPoint(pointer);
+      if (!gridPoint) {
+        return null;
+      }
+      const snapped = snap
+        ? {
+            x: snapToStep(gridPoint.x, SNAP_STEP),
+            y: snapToStep(gridPoint.y, SNAP_STEP),
+          }
+        : gridPoint;
+      return clampPointToWorkspace(snapped);
+    },
+    [toGridPoint],
+  );
+
+  const clampRoomPosition = useCallback((room: Room, position: { x: number; y: number }) => {
+    return {
+      x: clamp(position.x, 0, Math.max(0, WORKSPACE_WIDTH - room.length)),
+      y: clamp(position.y, 0, Math.max(0, WORKSPACE_HEIGHT - room.width)),
     };
   }, []);
 
   const gridLines = useMemo(() => {
-    const lines: { points: number[] }[] = [];
-    const columns = Math.ceil((dimensions.width + GRID_PADDING * 2) / GRID_SIZE);
-    const rows = Math.ceil((dimensions.height + GRID_PADDING * 2) / GRID_SIZE);
-
-    for (let i = -columns; i <= columns; i += 1) {
+    const lines: number[][] = [];
+    for (let i = 0; i <= WORKSPACE_WIDTH; i += 1) {
       const x = i * GRID_SIZE;
-      lines.push({ points: [x, -GRID_PADDING, x, dimensions.height + GRID_PADDING] });
+      lines.push([x, 0, x, WORKSPACE_PIXEL_HEIGHT]);
     }
-
-    for (let j = -rows; j <= rows; j += 1) {
+    for (let j = 0; j <= WORKSPACE_HEIGHT; j += 1) {
       const y = j * GRID_SIZE;
-      lines.push({ points: [-GRID_PADDING, y, dimensions.width + GRID_PADDING, y] });
+      lines.push([0, y, WORKSPACE_PIXEL_WIDTH, y]);
     }
-
     return lines;
-  }, [dimensions.height, dimensions.width]);
+  }, []);
 
   const handleStageMouseDown = useCallback(
     (event: KonvaEventObject<MouseEvent>) => {
-    if (state.activeTool !== 'wall') {
-      return;
-    }
-      if (event.target !== event.target.getStage()) {
+      const stage = event.target.getStage();
+      if (!stage) {
         return;
       }
-    const pointer = getPointer();
-    if (!pointer) {
-      return;
-    }
-    const anchor: WallNode = {
-      id: `${Date.now()}-start`,
-      x: pointer.x,
-      y: pointer.y,
-      kind: 'anchor',
-    };
-    setDraftWall([anchor, { ...anchor, id: `${Date.now()}-end` }]);
+      const pointer = getPointer();
+      if (!pointer) {
+        return;
+      }
+
+      if (state.activeTool === 'window' && event.target === stage) {
+        const floating = createFloatingWindow(pointer, 1.5);
+        dispatch({ type: 'ADD_FLOATING_WINDOW', window: floating });
+        setSelectedWindowId(floating.id);
+        return;
+      }
+
+      if (state.activeTool === 'door' && event.target === stage) {
+        const floating = createFloatingDoor(pointer);
+        dispatch({ type: 'ADD_FLOATING_DOOR', door: floating });
+        setSelectedDoorId(floating.id);
+        return;
+      }
+
+      if (state.activeTool !== 'wall' || event.target !== stage) {
+        return;
+      }
+
+      const anchor: WallNode = {
+        id: `anchor-${Date.now()}`,
+        x: pointer.x,
+        y: pointer.y,
+        kind: 'anchor',
+      };
+      setDraftWall([anchor, { ...anchor, id: `anchor-${Date.now()}-end` }]);
     },
-    [getPointer, state.activeTool],
+    [dispatch, getPointer, state.activeTool],
   );
 
   const handleStageMouseMove = useCallback(() => {
@@ -136,15 +178,11 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
     if (!pointer) {
       return;
     }
-    setDraftWall((current) => {
-      if (!current) {
-        return current;
-      }
-      const [start] = current;
+    setDraftWall(([start]) => {
       if (!start) {
-        return current;
+        return null;
       }
-      return [start, { ...pointer, kind: 'anchor', id: 'draft-end' }];
+      return [start, { ...pointer, id: 'draft-end', kind: 'anchor' }];
     });
   }, [draftWall, getPointer]);
 
@@ -152,17 +190,31 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
     if (!draftWall) {
       return;
     }
-    const [start, end] = draftWall;
-    if (!start || !end) {
+    const pointer = getPointer();
+    if (!pointer) {
       setDraftWall(null);
       return;
     }
+    const [start] = draftWall;
+    if (!start) {
+      setDraftWall(null);
+      return;
+    }
+    const end: WallNode = {
+      id: `anchor-${Date.now()}-final`,
+      x: pointer.x,
+      y: pointer.y,
+      kind: 'anchor',
+    };
     const distance = Math.hypot(end.x - start.x, end.y - start.y);
     if (distance >= 0.25) {
-      dispatch({ type: 'ADD_WALL', wall: createWall(state.selectedRoomId, start, end) });
+      dispatch({
+        type: 'ADD_WALL',
+        wall: createWall(state.selectedRoomId, start, end),
+      });
     }
     setDraftWall(null);
-  }, [dispatch, draftWall, state.selectedRoomId]);
+  }, [dispatch, draftWall, getPointer, state.selectedRoomId]);
 
   const handleStageContextMenu = useCallback((event: KonvaEventObject<PointerEvent>) => {
     event.evt.preventDefault();
@@ -172,12 +224,19 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
   const handleRoomDragEnd = useCallback(
     (room: Room, evt: KonvaEventObject<DragEvent>) => {
       const node = evt.target;
-      const x = snapToStep(fromPixels(node.x()), 0.5);
-      const y = snapToStep(fromPixels(node.y()), 0.5);
-      dispatch({ type: 'UPDATE_ROOM', roomId: room.id, patch: { position: { x, y } } });
-      node.position({ x: toPixels(x), y: toPixels(y) });
+      const raw = {
+        x: node.x() / GRID_SIZE,
+        y: node.y() / GRID_SIZE,
+      };
+      const snapped = {
+        x: snapToStep(raw.x, SNAP_STEP),
+        y: snapToStep(raw.y, SNAP_STEP),
+      };
+      const clamped = clampRoomPosition(room, snapped);
+      dispatch({ type: 'UPDATE_ROOM', roomId: room.id, patch: { position: clamped } });
+      node.position({ x: toPixels(clamped.x), y: toPixels(clamped.y) });
     },
-    [dispatch],
+    [clampRoomPosition, dispatch],
   );
 
   const handleRoomSelect = useCallback(
@@ -190,12 +249,13 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
   const handleRoomResize = useCallback(
     (room: Room, direction: 'horizontal' | 'vertical', pointerGrid: { x: number; y: number }) => {
       if (direction === 'horizontal') {
-        const newLength = clamp(pointerGrid.x - room.position.x, 1, room.area * 2);
-        if (newLength <= 0) {
+        const maxLength = Math.max(1, WORKSPACE_WIDTH - room.position.x);
+        const tentative = clamp(pointerGrid.x - room.position.x, 1, Math.min(room.area * 2, maxLength));
+        if (tentative <= 0) {
           return null;
         }
-        const width = room.area / newLength;
-        const lengthValue = Number(newLength.toFixed(3));
+        const width = clamp(room.area / tentative, 1, WORKSPACE_HEIGHT - room.position.y);
+        const lengthValue = Number(tentative.toFixed(3));
         const widthValue = Number(width.toFixed(3));
         dispatch({
           type: 'UPDATE_ROOM',
@@ -203,98 +263,87 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
           patch: { length: lengthValue, width: widthValue },
         });
         return { length: lengthValue, width: widthValue };
-      } else {
-        const newWidth = clamp(pointerGrid.y - room.position.y, 1, room.area * 2);
-        if (newWidth <= 0) {
-          return null;
-        }
-        const length = room.area / newWidth;
-        const widthValue = Number(newWidth.toFixed(3));
-        const lengthValue = Number(length.toFixed(3));
-        dispatch({
-          type: 'UPDATE_ROOM',
-          roomId: room.id,
-          patch: { width: widthValue, length: lengthValue },
-        });
-        return { length: lengthValue, width: widthValue };
       }
+      const maxWidth = Math.max(1, WORKSPACE_HEIGHT - room.position.y);
+      const tentative = clamp(pointerGrid.y - room.position.y, 1, Math.min(room.area * 2, maxWidth));
+      if (tentative <= 0) {
+        return null;
+      }
+      const length = clamp(room.area / tentative, 1, WORKSPACE_WIDTH - room.position.x);
+      const widthValue = Number(tentative.toFixed(3));
+      const lengthValue = Number(length.toFixed(3));
+      dispatch({
+        type: 'UPDATE_ROOM',
+        roomId: room.id,
+        patch: { width: widthValue, length: lengthValue },
+      });
+      return { length: lengthValue, width: widthValue };
     },
     [dispatch],
   );
 
-  const handleWallClick = useCallback(
-    (event: KonvaEventObject<MouseEvent>, wall: Wall) => {
-      const pointer = getPointer();
+  const handleWallDoubleClick = useCallback(
+    (event: KonvaEventObject<Event>, wall: Wall) => {
+      event.cancelBubble = true;
+      const pointer = getPointer(false);
       if (!pointer) {
         return;
       }
-      if (state.activeTool === 'wall') {
-        const { segmentIndex } = findNearestSegment(wall, pointer);
-        dispatch({ type: 'REMOVE_WALL_SEGMENT', wallId: wall.id, segmentIndex });
+      const result = findNearestSegment(wall, pointer);
+      const segment = result.segment;
+      if (!segment) {
         return;
       }
-      if (state.activeTool === 'window') {
-        const { segmentIndex, offset } = findNearestSegment(wall, pointer);
-        const segmentLength = wallSegmentLength(wall, segmentIndex);
-        if (segmentLength === 0) {
-          return;
-        }
-        const item = createWindow(wall.id, wall.roomId, segmentIndex, Math.min(2, segmentLength * WINDOW_MAX_RATIO));
-        const ratio = item.length / segmentLength;
-        const baseOffset = clamp(offset - ratio / 2, 0, Math.max(0, 1 - ratio));
-        dispatch({ type: 'ADD_WINDOW', window: { ...item, offset: baseOffset } });
-        setSelectedWindowId(item.id);
-        return;
+      const nodes = [...wall.nodes];
+      const controlPoint: WallNode = {
+        id: `control-${Date.now()}`,
+        x: pointer.x,
+        y: pointer.y,
+        kind: 'control',
+      };
+      if (segment.controlIndex !== null) {
+        nodes[segment.controlIndex] = controlPoint;
+      } else {
+        nodes.splice(segment.startIndex + 1, 0, controlPoint);
       }
-      if (state.activeTool === 'door') {
-        const { segmentIndex, offset } = findNearestSegment(wall, pointer);
-        const segmentLength = wallSegmentLength(wall, segmentIndex);
-        if (segmentLength === 0) {
-          return;
-        }
-        const door = createDoor(wall.id, wall.roomId, segmentIndex);
-        const ratio = Math.min(DOOR_LENGTH, segmentLength) / segmentLength;
-        const baseOffset = clamp(offset - ratio / 2, 0, Math.max(0, 1 - ratio));
-        dispatch({ type: 'ADD_DOOR', door: { ...door, offset: baseOffset } });
-        setSelectedDoorId(door.id);
-      }
+      dispatch({ type: 'UPDATE_WALL', wallId: wall.id, nodes });
     },
-    [dispatch, getPointer, state.activeTool],
+    [dispatch, getPointer],
   );
 
   const handleWallContextMenu = useCallback(
     (event: KonvaEventObject<PointerEvent>, wall: Wall) => {
       event.evt.preventDefault();
-      const pointer = getPointer();
+      const pointer = getPointer(false);
       if (!pointer) {
         return;
       }
-      const { segmentIndex } = findNearestSegment(wall, pointer);
-      const start = wall.nodes[segmentIndex];
-      const end = wall.nodes[segmentIndex + 1];
-      if (!start || !end) {
+      const result = findNearestSegment(wall, pointer);
+      const segment = result.segment;
+      if (!segment || segment.controlIndex === null) {
         return;
       }
-      const { point } = projectPointToSegment(pointer, start, end);
-      const updatedNodes = [...wall.nodes];
-      updatedNodes.splice(segmentIndex + 1, 0, {
-        id: `node-${Date.now()}`,
-        x: point.x,
-        y: point.y,
-        kind: 'control',
-      });
-      dispatch({ type: 'UPDATE_WALL', wallId: wall.id, nodes: updatedNodes });
+      const nodes = [...wall.nodes];
+      nodes.splice(segment.controlIndex, 1);
+      dispatch({ type: 'UPDATE_WALL', wallId: wall.id, nodes });
     },
     [dispatch, getPointer],
   );
 
   const handleWallNodeDrag = useCallback(
     (wall: Wall, nodeIndex: number) => (evt: KonvaEventObject<DragEvent>) => {
-      const node = evt.target;
-      const point = {
-        x: fromPixels(node.x()),
-        y: fromPixels(node.y()),
-      };
+      const stage = getStage();
+      if (!stage) {
+        return;
+      }
+      const nodeShape = evt.target;
+      const absolute = nodeShape.getAbsolutePosition();
+      const transform = stage.getAbsoluteTransform().copy().invert();
+      const local = transform.point(absolute);
+      const gridPoint = clampPointToWorkspace({
+        x: local.x / GRID_SIZE,
+        y: local.y / GRID_SIZE,
+      });
       const nodes = wall.nodes.map((existing, index) => {
         if (index !== nodeIndex) {
           return existing;
@@ -302,36 +351,194 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         if (existing.kind === 'anchor') {
           return {
             ...existing,
-            x: snapToStep(point.x, 0.5),
-            y: snapToStep(point.y, 0.5),
+            x: snapToStep(gridPoint.x, SNAP_STEP),
+            y: snapToStep(gridPoint.y, SNAP_STEP),
           };
         }
-        return { ...existing, ...point };
+        return { ...existing, x: gridPoint.x, y: gridPoint.y };
       });
       dispatch({ type: 'UPDATE_WALL', wallId: wall.id, nodes });
       const updated = nodes[nodeIndex];
-      node.position({ x: toPixels(updated.x), y: toPixels(updated.y) });
+      nodeShape.position({ x: toPixels(updated.x), y: toPixels(updated.y) });
     },
     [dispatch],
   );
 
-  const renderRooms = () => {
-    return state.rooms.map((room) => {
-      const x = toPixels(room.position.x);
-      const y = toPixels(room.position.y);
+  const findClosestWallSegment = useCallback(
+    (point: { x: number; y: number }) => {
+      let best:
+        | (ReturnType<typeof findNearestSegment> & { wall: Wall })
+        | null = null;
+      state.walls.forEach((wall) => {
+        const result = findNearestSegment(wall, point);
+        if (!result.segment) {
+          return;
+        }
+        if (!best || result.distance < best.distance) {
+          best = { ...result, wall };
+        }
+      });
+      return best;
+    },
+    [state.walls],
+  );
+
+  const tryAttachFloatingWindow = useCallback(
+    (floating: FloatingWindow, pointer: { x: number; y: number }) => {
+      const closest = findClosestWallSegment(pointer);
+      if (!closest || closest.distance > ATTACH_THRESHOLD || !closest.segment) {
+        return false;
+      }
+      const segmentLength = wallSegmentLength(closest.segment);
+      if (segmentLength === 0) {
+        return false;
+      }
+      const length = Math.min(floating.length, segmentLength * WINDOW_MAX_RATIO);
+      const ratio = length / segmentLength;
+      const baseOffset = clamp(closest.offset - ratio / 2, 0, Math.max(0, 1 - ratio));
+      const midOffset = baseOffset + ratio / 2;
+      const midPoint = interpolatePoint(closest.segment, midOffset);
+      const rotation = segmentAngleDeg(closest.segment, midOffset);
+      const attachedWindow = createWindow({
+        wallId: closest.wall.id,
+        roomId: closest.wall.roomId,
+        segmentIndex: closest.segmentIndex,
+        offset: baseOffset,
+        length,
+        rotation,
+      });
+      dispatch({ type: 'REMOVE_FLOATING_WINDOW', windowId: floating.id });
+      dispatch({ type: 'ADD_WINDOW', window: attachedWindow });
+      setSelectedWindowId(attachedWindow.id);
+      return true;
+    },
+    [dispatch, findClosestWallSegment],
+  );
+
+  const tryAttachFloatingDoor = useCallback(
+    (floating: FloatingDoor, pointer: { x: number; y: number }) => {
+      const closest = findClosestWallSegment(pointer);
+      if (!closest || closest.distance > ATTACH_THRESHOLD || !closest.segment) {
+        return false;
+      }
+      const segmentLength = wallSegmentLength(closest.segment);
+      if (segmentLength === 0) {
+        return false;
+      }
+      const effectiveLength = Math.min(DOOR_LENGTH, segmentLength);
+      const ratio = effectiveLength / segmentLength;
+      const baseOffset = clamp(closest.offset - ratio / 2, 0, Math.max(0, 1 - ratio));
+      const midOffset = baseOffset + ratio / 2;
+      const rotation = segmentAngleDeg(closest.segment, midOffset);
+      const attachedDoor = createDoor({
+        wallId: closest.wall.id,
+        roomId: closest.wall.roomId,
+        segmentIndex: closest.segmentIndex,
+        offset: baseOffset,
+        rotation,
+      });
+      dispatch({ type: 'REMOVE_FLOATING_DOOR', doorId: floating.id });
+      dispatch({ type: 'ADD_DOOR', door: attachedDoor });
+      setSelectedDoorId(attachedDoor.id);
+      return true;
+    },
+    [dispatch, findClosestWallSegment],
+  );
+
+  const updateAttachedWindow = useCallback(
+    (windowItem: WindowItem, pointer: { x: number; y: number }) => {
+      if (!windowItem.wallId || windowItem.segmentIndex === null) {
+        return null;
+      }
+      const wall = state.walls.find((item) => item.id === windowItem.wallId);
+      if (!wall) {
+        return null;
+      }
+      const result = findNearestSegment(wall, pointer);
+      const segment = result.segment;
+      if (!segment) {
+        return null;
+      }
+      const segmentLength = wallSegmentLength(segment);
+      if (segmentLength === 0) {
+        return null;
+      }
+      const length = Math.min(windowItem.length, segmentLength * WINDOW_MAX_RATIO);
+      const ratio = length / segmentLength;
+      const baseOffset = clamp(result.offset - ratio / 2, 0, Math.max(0, 1 - ratio));
+      const midOffset = baseOffset + ratio / 2;
+      const rotation = segmentAngleDeg(segment, midOffset);
+      const midPoint = interpolatePoint(segment, midOffset);
+      dispatch({
+        type: 'UPDATE_WINDOW',
+        windowId: windowItem.id,
+        patch: {
+          wallId: wall.id,
+          segmentIndex: result.segmentIndex,
+          offset: baseOffset,
+          length,
+          rotation,
+        },
+      });
+      return { midPoint, rotation, length };
+    },
+    [dispatch, state.walls],
+  );
+
+  const updateAttachedDoor = useCallback(
+    (door: DoorItem, pointer: { x: number; y: number }) => {
+      if (!door.wallId || door.segmentIndex === null) {
+        return null;
+      }
+      const wall = state.walls.find((item) => item.id === door.wallId);
+      if (!wall) {
+        return null;
+      }
+      const result = findNearestSegment(wall, pointer);
+      const segment = result.segment;
+      if (!segment) {
+        return null;
+      }
+      const segmentLength = wallSegmentLength(segment);
+      if (segmentLength === 0) {
+        return null;
+      }
+      const effectiveLength = Math.min(DOOR_LENGTH, segmentLength);
+      const ratio = effectiveLength / segmentLength;
+      const baseOffset = clamp(result.offset - ratio / 2, 0, Math.max(0, 1 - ratio));
+      const midOffset = baseOffset + ratio / 2;
+      const rotation = segmentAngleDeg(segment, midOffset);
+      const midPoint = interpolatePoint(segment, midOffset);
+      dispatch({
+        type: 'UPDATE_DOOR',
+        doorId: door.id,
+        patch: {
+          wallId: wall.id,
+          segmentIndex: result.segmentIndex,
+          offset: baseOffset,
+          rotation,
+        },
+      });
+      return { midPoint, rotation };
+    },
+    [dispatch, state.walls],
+  );
+
+  const renderRooms = () =>
+    state.rooms.map((room) => {
+      const roomX = toPixels(room.position.x);
+      const roomY = toPixels(room.position.y);
       const width = toPixels(room.length);
       const height = toPixels(room.width);
       const isSelected = state.selectedRoomId === room.id;
-
+      const photoButtonSize = 40;
       const center = {
         x: toPixels(room.position.x + room.length / 2),
         y: toPixels(room.position.y + room.width / 2),
       };
 
-      const photoButtonSize = 40;
-
       return (
-        <Group key={room.id} x={x} y={y} draggable onDragEnd={(evt) => handleRoomDragEnd(room, evt)}>
+        <Group key={room.id} x={roomX} y={roomY} draggable onDragEnd={(evt) => handleRoomDragEnd(room, evt)}>
           <Rect
             width={width}
             height={height}
@@ -348,8 +555,8 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             fill="#ffffff"
           />
           <Group
-            x={center.x - x - photoButtonSize / 2}
-            y={center.y - y - photoButtonSize / 2}
+            x={center.x - roomX - photoButtonSize / 2}
+            y={center.y - roomY - photoButtonSize / 2}
             onClick={() => onRequestPhoto(room.id)}
           >
             <Rect
@@ -360,14 +567,7 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
               stroke="rgba(255,255,255,0.5)"
               strokeWidth={1}
             />
-            <Text
-              x={0}
-              y={10}
-              width={photoButtonSize}
-              align="center"
-              text="📷"
-              fontSize={20}
-            />
+            <Text x={0} y={10} width={photoButtonSize} align="center" text="📷" fontSize={20} />
             {room.photos.length > 0 && (
               <Text
                 x={0}
@@ -381,7 +581,6 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             )}
           </Group>
 
-          {/* Horizontal handle */}
           <Circle
             x={width}
             y={height / 2}
@@ -389,24 +588,23 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             fill="#4fa7ff"
             draggable
             onDragMove={(evt) => {
-              const point = getPointer();
-              if (!point) {
+              const pointer = getPointer();
+              if (!pointer) {
                 return;
               }
-              handleRoomResize(room, 'horizontal', point);
+              handleRoomResize(room, 'horizontal', pointer);
             }}
             onDragEnd={(evt) => {
-              const point = getPointer();
-              if (!point) {
+              const pointer = getPointer();
+              if (!pointer) {
                 return;
               }
-              const result = handleRoomResize(room, 'horizontal', point);
+              const result = handleRoomResize(room, 'horizontal', pointer);
               const nextLength = result?.length ?? room.length;
               evt.target.position({ x: toPixels(nextLength), y: height / 2 });
             }}
           />
 
-          {/* Vertical handle */}
           <Circle
             x={width / 2}
             y={height}
@@ -414,18 +612,18 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             fill="#4fa7ff"
             draggable
             onDragMove={(evt) => {
-              const point = getPointer();
-              if (!point) {
+              const pointer = getPointer();
+              if (!pointer) {
                 return;
               }
-              handleRoomResize(room, 'vertical', point);
+              handleRoomResize(room, 'vertical', pointer);
             }}
             onDragEnd={(evt) => {
-              const point = getPointer();
-              if (!point) {
+              const pointer = getPointer();
+              if (!pointer) {
                 return;
               }
-              const result = handleRoomResize(room, 'vertical', point);
+              const result = handleRoomResize(room, 'vertical', pointer);
               const nextWidth = result?.width ?? room.width;
               evt.target.position({ x: width / 2, y: toPixels(nextWidth) });
             }}
@@ -433,291 +631,324 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         </Group>
       );
     });
-  };
 
-  const updateWindowOffset = useCallback(
-    (windowItem: WindowItem, position: { x: number; y: number }) => {
-      const wall = state.walls.find((item) => item.id === windowItem.wallId);
-      if (!wall) {
-        return null;
-      }
-      const start = wall.nodes[windowItem.segmentIndex];
-      const end = wall.nodes[windowItem.segmentIndex + 1];
-      if (!start || !end) {
-        return null;
-      }
-      const segmentLength = wallSegmentLength(wall, windowItem.segmentIndex);
-      if (segmentLength === 0) {
-        return null;
-      }
-      const { offset } = projectPointToSegment(position, start, end);
-      const ratio = windowItem.length / segmentLength;
-      const newOffset = clamp(offset - ratio / 2, 0, Math.max(0, 1 - ratio));
-      dispatch({ type: 'UPDATE_WINDOW', windowId: windowItem.id, patch: { offset: newOffset } });
-      return newOffset;
-    },
-    [dispatch, state.walls],
+  const renderWallShape = (wall: Wall) => (
+    <Shape
+      stroke="#ffffff"
+      strokeWidth={4}
+      lineCap="round"
+      listening
+      onDblClick={(event) => handleWallDoubleClick(event, wall)}
+      onContextMenu={(event) => handleWallContextMenu(event, wall)}
+      sceneFunc={(ctx, shape) => {
+        const nodes = wall.nodes;
+        if (!nodes.length) {
+          return;
+        }
+        const segments = getWallSegments(wall);
+        ctx.beginPath();
+        ctx.moveTo(toPixels(nodes[0].x), toPixels(nodes[0].y));
+        segments.forEach((segment) => {
+          if (segment.control) {
+            ctx.quadraticCurveTo(
+              toPixels(segment.control.x),
+              toPixels(segment.control.y),
+              toPixels(segment.end.x),
+              toPixels(segment.end.y),
+            );
+          } else {
+            ctx.lineTo(toPixels(segment.end.x), toPixels(segment.end.y));
+          }
+        });
+        ctx.strokeShape(shape);
+      }}
+    />
   );
 
-  const updateWindowLength = useCallback(
-    (windowItem: WindowItem, pointer: { x: number; y: number }) => {
-      const wall = state.walls.find((item) => item.id === windowItem.wallId);
-      if (!wall) {
-        return null;
-      }
-      const start = wall.nodes[windowItem.segmentIndex];
-      const end = wall.nodes[windowItem.segmentIndex + 1];
-      if (!start || !end) {
-        return null;
-      }
-      const segmentLength = wallSegmentLength(wall, windowItem.segmentIndex);
-      if (segmentLength === 0) {
-        return null;
-      }
-      const { point } = projectPointToSegment(pointer, start, end);
-      const baseStart = interpolatePoint(wall, windowItem.segmentIndex, windowItem.offset);
-      const dx = point.x - baseStart.x;
-      const dy = point.y - baseStart.y;
-      const newLength = clamp(Math.hypot(dx, dy), 0.5, segmentLength * WINDOW_MAX_RATIO);
-      dispatch({ type: 'UPDATE_WINDOW', windowId: windowItem.id, patch: { length: Number(newLength.toFixed(3)) } });
-      return newLength;
-    },
-    [dispatch, state.walls],
-  );
+  const renderWalls = () =>
+    state.walls.map((wall) => (
+      <Group key={wall.id}>
+        {renderWallShape(wall)}
+        {wall.nodes.map((node, index) => (
+          <Circle
+            key={node.id}
+            x={toPixels(node.x)}
+            y={toPixels(node.y)}
+            radius={node.kind === 'anchor' ? 6 : 5}
+            fill={node.kind === 'anchor' ? '#ffffff' : '#7cd3ff'}
+            stroke="rgba(0,0,0,0.4)"
+            strokeWidth={1}
+            draggable
+            onDragMove={handleWallNodeDrag(wall, index)}
+            onDragEnd={handleWallNodeDrag(wall, index)}
+          />
+        ))}
+      </Group>
+    ));
 
-  const updateDoorOffset = useCallback(
-    (door: DoorItem, position: { x: number; y: number }) => {
-      const wall = state.walls.find((item) => item.id === door.wallId);
-      if (!wall) {
-        return null;
-      }
-      const start = wall.nodes[door.segmentIndex];
-      const end = wall.nodes[door.segmentIndex + 1];
-      if (!start || !end) {
-        return null;
-      }
-      const segmentLength = wallSegmentLength(wall, door.segmentIndex);
-      if (segmentLength === 0) {
-        return null;
-      }
-      const { offset } = projectPointToSegment(position, start, end);
-      const ratio = Math.min(DOOR_LENGTH, segmentLength) / segmentLength;
-      const newOffset = clamp(offset - ratio / 2, 0, Math.max(0, 1 - ratio));
-      dispatch({ type: 'UPDATE_DOOR', doorId: door.id, patch: { offset: newOffset } });
-      return newOffset;
-    },
-    [dispatch, state.walls],
-  );
-
-  const renderWindows = () => {
-    return state.windows.map((windowItem) => {
-      const wall = state.walls.find((item) => item.id === windowItem.wallId);
-      if (!wall) {
-        return null;
-      }
-      const start = wall.nodes[windowItem.segmentIndex];
-      const end = wall.nodes[windowItem.segmentIndex + 1];
-      if (!start || !end) {
-        return null;
-      }
-      const segmentLength = wallSegmentLength(wall, windowItem.segmentIndex);
-      if (segmentLength === 0) {
-        return null;
-      }
-      const length = Math.min(windowItem.length, segmentLength * WINDOW_MAX_RATIO);
-      const actualOffset = clamp(windowItem.offset, 0, Math.max(0, 1 - length / segmentLength));
-      const windowStart = interpolatePoint(wall, windowItem.segmentIndex, actualOffset);
-      const direction = interpolatePoint(wall, windowItem.segmentIndex, actualOffset + length / segmentLength);
-      const angle = segmentAngleDeg(wall, windowItem.segmentIndex);
-
-      const isSelected = selectedWindowId === windowItem.id;
-
+  const renderFloatingWindows = () =>
+    state.floatingWindows.map((floating) => {
+      const lengthPx = floating.length * GRID_SIZE;
+      const isSelected = selectedWindowId === floating.id;
       return (
         <Group
-          key={windowItem.id}
-          x={toPixels(windowStart.x)}
-          y={toPixels(windowStart.y)}
-          rotation={angle}
+          key={floating.id}
+          x={toPixels(floating.position.x)}
+          y={toPixels(floating.position.y)}
           draggable
+          onClick={() => setSelectedWindowId(floating.id)}
           onDragMove={(evt) => {
-            const stage = evt.target.getStage();
+            const stage = getStage();
             if (!stage) {
               return;
             }
-            const pos = evt.target.position();
-            const updatedOffset = updateWindowOffset(windowItem, {
-              x: fromPixels(pos.x),
-              y: fromPixels(pos.y),
+            const absolute = evt.target.getAbsolutePosition();
+            const local = toGridPoint(absolute);
+            if (!local) {
+              return;
+            }
+            const clamped = clampPointToWorkspace(local);
+            dispatch({
+              type: 'UPDATE_FLOATING_WINDOW',
+              windowId: floating.id,
+              patch: { position: clamped },
             });
-            const ratio = length / segmentLength;
-            const effectiveOffset = updatedOffset ?? actualOffset;
-            const startPoint = interpolatePoint(wall, windowItem.segmentIndex, effectiveOffset);
-            evt.target.position({ x: toPixels(startPoint.x), y: toPixels(startPoint.y) });
+            evt.target.position({ x: toPixels(clamped.x), y: toPixels(clamped.y) });
           }}
-          onClick={() => setSelectedWindowId(windowItem.id)}
+          onDragEnd={(evt) => {
+            const absolute = evt.target.getAbsolutePosition();
+            const local = toGridPoint(absolute);
+            if (!local) {
+              return;
+            }
+            const clamped = clampPointToWorkspace(local);
+            if (!tryAttachFloatingWindow(floating, clamped)) {
+              dispatch({
+                type: 'UPDATE_FLOATING_WINDOW',
+                windowId: floating.id,
+                patch: { position: clamped },
+              });
+              evt.target.position({ x: toPixels(clamped.x), y: toPixels(clamped.y) });
+            }
+          }}
         >
-          <Line
-            points={[0, 0, toPixels(direction.x - windowStart.x), toPixels(direction.y - windowStart.y)]}
-            stroke={isSelected ? '#7cd3ff' : '#ffffff'}
-            strokeWidth={6}
-            lineCap="round"
-          />
-          <Circle
-            x={0}
-            y={0}
-            radius={6}
-            fill="#7cd3ff"
-            draggable
-            onDragMove={(evt) => {
-              const pos = evt.target.getAbsolutePosition();
-              const updatedOffset = updateWindowOffset(windowItem, {
-                x: fromPixels(pos.x),
-                y: fromPixels(pos.y),
-              });
-              if (updatedOffset !== null) {
-                const startPoint = interpolatePoint(wall, windowItem.segmentIndex, updatedOffset);
-                evt.target.absolutePosition({ x: toPixels(startPoint.x), y: toPixels(startPoint.y) });
-              }
-            }}
-            onDragEnd={(evt) => {
-              const pos = evt.target.getAbsolutePosition();
-              const updatedOffset = updateWindowOffset(windowItem, {
-                x: fromPixels(pos.x),
-                y: fromPixels(pos.y),
-              });
-              if (updatedOffset !== null) {
-                const startPoint = interpolatePoint(wall, windowItem.segmentIndex, updatedOffset);
-                evt.target.absolutePosition({ x: toPixels(startPoint.x), y: toPixels(startPoint.y) });
-              }
-            }}
-          />
-          <Circle
-            x={toPixels(direction.x - windowStart.x)}
-            y={toPixels(direction.y - windowStart.y)}
-            radius={6}
-            fill="#7cd3ff"
-            draggable
-            onDragMove={(evt) => {
-              const pos = evt.target.getAbsolutePosition();
-              const updatedLength = updateWindowLength(windowItem, {
-                x: fromPixels(pos.x),
-                y: fromPixels(pos.y),
-              });
-              const nextLength = updatedLength ?? length;
-              const startPoint = interpolatePoint(wall, windowItem.segmentIndex, actualOffset);
-              const endPoint = interpolatePoint(
-                wall,
-                windowItem.segmentIndex,
-                actualOffset + nextLength / segmentLength,
-              );
-              evt.target.absolutePosition({ x: toPixels(endPoint.x), y: toPixels(endPoint.y) });
-            }}
-            onDragEnd={(evt) => {
-              const pos = evt.target.getAbsolutePosition();
-              const updatedLength = updateWindowLength(windowItem, {
-                x: fromPixels(pos.x),
-                y: fromPixels(pos.y),
-              });
-              const nextLength = updatedLength ?? length;
-              const startPoint = interpolatePoint(wall, windowItem.segmentIndex, actualOffset);
-              const endPoint = interpolatePoint(
-                wall,
-                windowItem.segmentIndex,
-                actualOffset + nextLength / segmentLength,
-              );
-              evt.target.absolutePosition({ x: toPixels(endPoint.x), y: toPixels(endPoint.y) });
-            }}
+          <Rect
+            x={-lengthPx / 2}
+            y={-WINDOW_THICKNESS / 2}
+            width={lengthPx}
+            height={WINDOW_THICKNESS}
+            cornerRadius={4}
+            fill={isSelected ? 'rgba(124, 211, 255, 0.9)' : 'rgba(124, 211, 255, 0.6)'}
+            stroke={isSelected ? '#7cd3ff' : 'rgba(255,255,255,0.9)'}
+            strokeWidth={2}
           />
         </Group>
       );
     });
-  };
 
-  const renderDoors = () => {
-    return state.doors.map((door) => {
-      const wall = state.walls.find((item) => item.id === door.wallId);
-      if (!wall) {
-        return null;
-      }
-      const start = wall.nodes[door.segmentIndex];
-      const end = wall.nodes[door.segmentIndex + 1];
-      if (!start || !end) {
-        return null;
-      }
-      const segmentLength = wallSegmentLength(wall, door.segmentIndex);
-      if (segmentLength === 0) {
-        return null;
-      }
-      const effectiveLength = Math.min(DOOR_LENGTH, segmentLength);
-      const ratio = effectiveLength / segmentLength;
-      const offset = clamp(door.offset, 0, Math.max(0, 1 - ratio));
-      const doorStart = interpolatePoint(wall, door.segmentIndex, offset);
-      const direction = interpolatePoint(wall, door.segmentIndex, offset + ratio);
-      const angle = segmentAngleDeg(wall, door.segmentIndex);
-      const isSelected = selectedDoorId === door.id;
-
+  const renderFloatingDoors = () =>
+    state.floatingDoors.map((floating) => {
+      const isSelected = selectedDoorId === floating.id;
       return (
         <Group
-          key={door.id}
-          x={toPixels(doorStart.x)}
-          y={toPixels(doorStart.y)}
-          rotation={angle}
+          key={floating.id}
+          x={toPixels(floating.position.x)}
+          y={toPixels(floating.position.y)}
           draggable
+          onClick={() => setSelectedDoorId(floating.id)}
           onDragMove={(evt) => {
-            const pos = evt.target.position();
-            const updatedOffset = updateDoorOffset(door, {
-              x: fromPixels(pos.x),
-              y: fromPixels(pos.y),
+          const absolute = evt.target.getAbsolutePosition();
+          const local = toGridPoint(absolute);
+          if (!local) {
+            return;
+          }
+          const clamped = clampPointToWorkspace(local);
+          dispatch({
+            type: 'UPDATE_FLOATING_DOOR',
+            doorId: floating.id,
+            patch: { position: clamped },
+          });
+          evt.target.position({ x: toPixels(clamped.x), y: toPixels(clamped.y) });
+        }}
+        onDragEnd={(evt) => {
+          const absolute = evt.target.getAbsolutePosition();
+          const local = toGridPoint(absolute);
+          if (!local) {
+            return;
+          }
+          const clamped = clampPointToWorkspace(local);
+          if (!tryAttachFloatingDoor(floating, clamped)) {
+            dispatch({
+              type: 'UPDATE_FLOATING_DOOR',
+              doorId: floating.id,
+              patch: { position: clamped },
             });
-            const effectiveOffset = updatedOffset ?? offset;
-            const startPoint = interpolatePoint(wall, door.segmentIndex, effectiveOffset);
-            evt.target.position({ x: toPixels(startPoint.x), y: toPixels(startPoint.y) });
-          }}
-          onClick={() => setSelectedDoorId(door.id)}
-        >
-          <Line
-            points={[0, 0, toPixels(direction.x - doorStart.x), toPixels(direction.y - doorStart.y)]}
+            evt.target.position({ x: toPixels(clamped.x), y: toPixels(clamped.y) });
+          }
+        }}
+      >
+          <Rect
+            x={-DOOR_LENGTH * GRID_SIZE * 0.5}
+            y={-DOOR_THICKNESS / 2}
+            width={DOOR_LENGTH * GRID_SIZE}
+            height={DOOR_THICKNESS}
+            cornerRadius={4}
+            fill={isSelected ? 'rgba(255, 200, 150, 0.9)' : 'rgba(255, 226, 179, 0.7)'}
             stroke={isSelected ? '#ffad66' : '#ffe3b3'}
-            strokeWidth={6}
-            lineCap="round"
+            strokeWidth={2}
           />
         </Group>
       );
     });
-  };
 
-  const renderWalls = () => {
-    return state.walls.map((wall) => {
-      const points = wall.nodes.flatMap((node) => [toPixels(node.x), toPixels(node.y)]);
-      return (
-        <Group key={wall.id}>
-          <Line
-            points={points}
-            stroke="#ffffff"
-            strokeWidth={4}
-            lineCap="round"
-            onClick={(event) => handleWallClick(event, wall)}
-            onDblClick={() => dispatch({ type: 'REMOVE_WALL', wallId: wall.id })}
-            onContextMenu={(event) => handleWallContextMenu(event, wall)}
-          />
-          {wall.nodes.map((node, index) => (
-            <Circle
-              key={node.id}
-              x={toPixels(node.x)}
-              y={toPixels(node.y)}
-              radius={node.kind === 'anchor' ? 6 : 5}
-              fill={node.kind === 'anchor' ? '#ffffff' : '#7cd3ff'}
-              stroke="rgba(0,0,0,0.4)"
-              strokeWidth={1}
-              draggable
-              onDragMove={handleWallNodeDrag(wall, index)}
-              onDragEnd={handleWallNodeDrag(wall, index)}
+  const renderWindows = () =>
+    state.windows
+      .filter((windowItem) => windowItem.wallId && windowItem.segmentIndex !== null)
+      .map((windowItem) => {
+        const wall = state.walls.find((item) => item.id === windowItem.wallId);
+        if (!wall) {
+          return null;
+        }
+        const segments = getWallSegments(wall);
+        const segment = segments[windowItem.segmentIndex!];
+        if (!segment) {
+          return null;
+        }
+        const segmentLength = wallSegmentLength(segment);
+        if (segmentLength === 0) {
+          return null;
+        }
+        const length = Math.min(windowItem.length, segmentLength * WINDOW_MAX_RATIO);
+        const ratio = length / segmentLength;
+        const baseOffset = clamp(windowItem.offset, 0, Math.max(0, 1 - ratio));
+        const midOffset = baseOffset + ratio / 2;
+        const midPoint = interpolatePoint(segment, midOffset);
+        const rotation = segmentAngleDeg(segment, midOffset);
+        const pixelLength = length * GRID_SIZE;
+        const isSelected = selectedWindowId === windowItem.id;
+
+        return (
+          <Group
+            key={windowItem.id}
+            x={toPixels(midPoint.x)}
+            y={toPixels(midPoint.y)}
+            rotation={rotation}
+            draggable
+            onDragMove={(evt) => {
+              const stage = getStage();
+              if (!stage) {
+                return;
+              }
+              const absolute = evt.target.getAbsolutePosition();
+              const local = toGridPoint(absolute);
+              if (!local) {
+                return;
+              }
+              const result = updateAttachedWindow(windowItem, local);
+              if (result) {
+                evt.target.position({ x: toPixels(result.midPoint.x), y: toPixels(result.midPoint.y) });
+                evt.target.rotation(result.rotation);
+              }
+            }}
+            onDragEnd={(evt) => {
+              const absolute = evt.target.getAbsolutePosition();
+              const local = toGridPoint(absolute);
+              if (!local) {
+                return;
+              }
+              const result = updateAttachedWindow(windowItem, local);
+              if (result) {
+                evt.target.position({ x: toPixels(result.midPoint.x), y: toPixels(result.midPoint.y) });
+                evt.target.rotation(result.rotation);
+              }
+            }}
+            onClick={() => setSelectedWindowId(windowItem.id)}
+          >
+            <Rect
+              x={-pixelLength / 2}
+              y={-WINDOW_THICKNESS / 2}
+              width={pixelLength}
+              height={WINDOW_THICKNESS}
+              cornerRadius={4}
+              fill={isSelected ? 'rgba(124, 211, 255, 0.8)' : 'rgba(124, 211, 255, 0.45)'}
+              stroke={isSelected ? '#7cd3ff' : 'rgba(255,255,255,0.9)'}
+              strokeWidth={2}
             />
-          ))}
-        </Group>
-      );
-    });
-  };
+          </Group>
+        );
+      });
+
+  const renderDoors = () =>
+    state.doors
+      .filter((door) => door.wallId && door.segmentIndex !== null)
+      .map((door) => {
+        const wall = state.walls.find((item) => item.id === door.wallId);
+        if (!wall) {
+          return null;
+        }
+        const segments = getWallSegments(wall);
+        const segment = segments[door.segmentIndex!];
+        if (!segment) {
+          return null;
+        }
+        const segmentLength = wallSegmentLength(segment);
+        if (segmentLength === 0) {
+          return null;
+        }
+        const effectiveLength = Math.min(DOOR_LENGTH, segmentLength);
+        const ratio = effectiveLength / segmentLength;
+        const baseOffset = clamp(door.offset, 0, Math.max(0, 1 - ratio));
+        const midOffset = baseOffset + ratio / 2;
+        const midPoint = interpolatePoint(segment, midOffset);
+        const rotation = segmentAngleDeg(segment, midOffset);
+        const isSelected = selectedDoorId === door.id;
+
+        return (
+          <Group
+            key={door.id}
+            x={toPixels(midPoint.x)}
+            y={toPixels(midPoint.y)}
+            rotation={rotation}
+            draggable
+            onDragMove={(evt) => {
+              const absolute = evt.target.getAbsolutePosition();
+              const local = toGridPoint(absolute);
+              if (!local) {
+                return;
+              }
+              const result = updateAttachedDoor(door, local);
+              if (result) {
+                evt.target.position({ x: toPixels(result.midPoint.x), y: toPixels(result.midPoint.y) });
+                evt.target.rotation(result.rotation);
+              }
+            }}
+            onDragEnd={(evt) => {
+              const absolute = evt.target.getAbsolutePosition();
+              const local = toGridPoint(absolute);
+              if (!local) {
+                return;
+              }
+              const result = updateAttachedDoor(door, local);
+              if (result) {
+                evt.target.position({ x: toPixels(result.midPoint.x), y: toPixels(result.midPoint.y) });
+                evt.target.rotation(result.rotation);
+              }
+            }}
+            onClick={() => setSelectedDoorId(door.id)}
+          >
+            <Rect
+              x={-(DOOR_LENGTH * GRID_SIZE) / 2}
+              y={-DOOR_THICKNESS / 2}
+              width={DOOR_LENGTH * GRID_SIZE}
+              height={DOOR_THICKNESS}
+              cornerRadius={4}
+              fill={isSelected ? 'rgba(255, 200, 150, 0.85)' : 'rgba(255, 226, 179, 0.6)'}
+              stroke={isSelected ? '#ffad66' : '#ffe3b3'}
+              strokeWidth={2}
+            />
+          </Group>
+        );
+      });
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -726,41 +957,64 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
       }
       if (state.selectedRoomId) {
         dispatch({ type: 'REMOVE_ROOM', roomId: state.selectedRoomId });
-      } else if (selectedWindowId) {
-        dispatch({ type: 'REMOVE_WINDOW', windowId: selectedWindowId });
+        return;
+      }
+      if (selectedWindowId) {
+        const floatingWindow = state.floatingWindows.find((item) => item.id === selectedWindowId);
+        if (floatingWindow) {
+          dispatch({ type: 'REMOVE_FLOATING_WINDOW', windowId: floatingWindow.id });
+        } else {
+          dispatch({ type: 'REMOVE_WINDOW', windowId: selectedWindowId });
+        }
         setSelectedWindowId(null);
-      } else if (selectedDoorId) {
-        dispatch({ type: 'REMOVE_DOOR', doorId: selectedDoorId });
+        return;
+      }
+      if (selectedDoorId) {
+        const floatingDoor = state.floatingDoors.find((item) => item.id === selectedDoorId);
+        if (floatingDoor) {
+          dispatch({ type: 'REMOVE_FLOATING_DOOR', doorId: floatingDoor.id });
+        } else {
+          dispatch({ type: 'REMOVE_DOOR', doorId: selectedDoorId });
+        }
         setSelectedDoorId(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [dispatch, selectedDoorId, selectedWindowId, state.selectedRoomId]);
+  }, [dispatch, selectedDoorId, selectedWindowId, state.floatingDoors, state.floatingWindows, state.selectedRoomId]);
 
   return (
     <div ref={containerRef} className="constructor-canvas">
       <Stage
-        width={dimensions.width}
-        height={dimensions.height}
-        draggable={state.activeTool === 'pan'}
-        x={stagePosition.x}
-        y={stagePosition.y}
-        onDragEnd={(evt) => setStagePosition({ x: evt.target.x(), y: evt.target.y() })}
         ref={stageRef}
+        width={WORKSPACE_PIXEL_WIDTH}
+        height={WORKSPACE_PIXEL_HEIGHT}
         onMouseDown={handleStageMouseDown}
         onMouseMove={handleStageMouseMove}
         onMouseUp={handleStageMouseUp}
         onContextMenu={handleStageContextMenu}
       >
-        <Layer>
-          {gridLines.map((line, index) => (
-            <Line
-              key={index}
-              points={line.points}
+        <Layer listening={false}>
+          <Rect
+            x={0}
+            y={0}
+            width={WORKSPACE_PIXEL_WIDTH}
+            height={WORKSPACE_PIXEL_HEIGHT}
+            fill="rgba(4, 9, 16, 0.95)"
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth={2}
+          />
+          {gridLines.map((points, index) => (
+            <Shape
+              key={`grid-${index}`}
               stroke="rgba(255,255,255,0.05)"
               strokeWidth={1}
-              listening={false}
+              sceneFunc={(ctx, shape) => {
+                ctx.beginPath();
+                ctx.moveTo(points[0], points[1]);
+                ctx.lineTo(points[2], points[3]);
+                ctx.strokeShape(shape);
+              }}
             />
           ))}
         </Layer>
@@ -768,13 +1022,26 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         <Layer>{renderWalls()}</Layer>
         <Layer>{renderWindows()}</Layer>
         <Layer>{renderDoors()}</Layer>
+        <Layer>{renderFloatingWindows()}</Layer>
+        <Layer>{renderFloatingDoors()}</Layer>
         {draftWall && (
-          <Layer>
-            <Line
-              points={draftWall.flatMap((node) => [toPixels(node.x), toPixels(node.y)])}
+          <Layer listening={false}>
+            <Shape
               stroke="#7cd3ff"
               strokeWidth={3}
               dash={[10, 10]}
+              sceneFunc={(ctx, shape) => {
+                const nodes = draftWall;
+                if (!nodes.length) {
+                  return;
+                }
+                ctx.beginPath();
+                ctx.moveTo(toPixels(nodes[0].x), toPixels(nodes[0].y));
+                nodes.slice(1).forEach((node) => {
+                  ctx.lineTo(toPixels(node.x), toPixels(node.y));
+                });
+                ctx.strokeShape(shape);
+              }}
             />
           </Layer>
         )}
@@ -784,3 +1051,4 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
 };
 
 export default GridCanvas;
+// new content will be inserted

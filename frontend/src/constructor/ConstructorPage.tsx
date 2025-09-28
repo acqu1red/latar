@@ -36,40 +36,54 @@ const buildPayload = (state: ConstructorState) => {
           id: wall.id,
           nodes: wall.nodes,
         })),
-        windows: relatedWindows.map((window) => ({
-          id: window.id,
-          wallId: window.wallId,
-          segmentIndex: window.segmentIndex,
-          offset: window.offset,
-          length: window.length,
-        })),
-        doors: relatedDoors.map((door) => ({
-          id: door.id,
-          wallId: door.wallId,
-          segmentIndex: door.segmentIndex,
-          offset: door.offset,
-        })),
+        windows: relatedWindows
+          .filter((window) => window.wallId && window.segmentIndex !== null)
+          .map((window) => ({
+            id: window.id,
+            wallId: window.wallId,
+            segmentIndex: window.segmentIndex,
+            offset: window.offset,
+            length: window.length,
+            rotation: window.rotation,
+          })),
+        doors: relatedDoors
+          .filter((door) => door.wallId && door.segmentIndex !== null)
+          .map((door) => ({
+            id: door.id,
+            wallId: door.wallId,
+            segmentIndex: door.segmentIndex,
+            offset: door.offset,
+            rotation: door.rotation,
+          })),
         photos: room.photos.map((photo) => photo.url),
       };
     }),
     detachedWalls: state.walls
       .filter((wall) => !wall.roomId)
       .map((wall) => ({ id: wall.id, nodes: wall.nodes })),
-    windows: state.windows.map((window) => ({
-      id: window.id,
-      wallId: window.wallId,
-      roomId: window.roomId,
-      segmentIndex: window.segmentIndex,
-      offset: window.offset,
-      length: window.length,
-    })),
-    doors: state.doors.map((door) => ({
-      id: door.id,
-      wallId: door.wallId,
-      roomId: door.roomId,
-      segmentIndex: door.segmentIndex,
-      offset: door.offset,
-    })),
+    windows: state.windows
+      .filter((window) => window.wallId && window.segmentIndex !== null)
+      .map((window) => ({
+        id: window.id,
+        wallId: window.wallId,
+        roomId: window.roomId,
+        segmentIndex: window.segmentIndex,
+        offset: window.offset,
+        length: window.length,
+        rotation: window.rotation,
+      })),
+    doors: state.doors
+      .filter((door) => door.wallId && door.segmentIndex !== null)
+      .map((door) => ({
+        id: door.id,
+        wallId: door.wallId,
+        roomId: door.roomId,
+        segmentIndex: door.segmentIndex,
+        offset: door.offset,
+        rotation: door.rotation,
+      })),
+    floatingWindows: state.floatingWindows,
+    floatingDoors: state.floatingDoors,
     wallsById,
   };
 };
