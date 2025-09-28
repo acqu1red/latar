@@ -257,10 +257,11 @@ const ConstructorPage: React.FC = () => {
         onResetPlan={handleResetPlan}
         isGenerating={state.isGenerating}
         hasPlan={Boolean(state.planImageUrl)}
+        onShowNotification={showNotification}
       />
 
       <main className="constructor-content">
-        <GridCanvas state={state} dispatch={dispatch} onRequestPhoto={handleRequestPhoto} />
+        <GridCanvas state={state} dispatch={dispatch} onRequestPhoto={handleRequestPhoto} onShowNotification={showNotification} />
         <aside className="constructor-preview">
           {state.planImageUrl ? (
             <div className="plan-preview">

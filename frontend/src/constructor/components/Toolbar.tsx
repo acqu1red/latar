@@ -10,6 +10,7 @@ interface ToolbarProps {
   onResetPlan: () => void;
   isGenerating: boolean;
   hasPlan: boolean;
+  onShowNotification: (message: string) => void;
 }
 
 const TOOL_LABELS: Array<{ tool: Tool; label: string; emoji: string }> = [
@@ -29,6 +30,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onResetPlan,
   isGenerating,
   hasPlan,
+  onShowNotification,
 }) => {
   return (
     <header className="constructor-toolbar">
@@ -45,6 +47,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 return;
               }
               onSelectTool(tool);
+              if (tool === 'window' || tool === 'door') {
+                onShowNotification('Нажмите на стену/стык стен, чтобы вставить');
+              }
             }}
           >
             <span className="toolbar-icon">{emoji}</span>

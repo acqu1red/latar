@@ -203,7 +203,12 @@ export const findNearestSegment = (wall: Wall, point: { x: number; y: number }) 
   return { segmentIndex: bestIndex, offset: bestOffset, distance: bestDistance, segment: segments[bestIndex] };
 };
 
-export type FindNearestSegmentResult = ReturnType<typeof findNearestSegment>;
+export type FindNearestSegmentResult = {
+  segmentIndex: number;
+  offset: number;
+  distance: number;
+  segment: WallSegment;
+} | null;
 
 export type FindClosestWallSegmentResult = NonNullable<FindNearestSegmentResult> & { wall: Wall };
 

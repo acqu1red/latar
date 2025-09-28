@@ -1,6 +1,6 @@
 export const GRID_SIZE = 48;
-export const WORKSPACE_WIDTH = 40; // in grid cells
-export const WORKSPACE_HEIGHT = 26; // in grid cells
+export const WORKSPACE_WIDTH = 25; // in grid cells
+export const WORKSPACE_HEIGHT = 18; // in grid cells
 export const WINDOW_MAX_RATIO = 0.8;
 export const DOOR_LENGTH = 1.2;
 

@@ -49,6 +49,7 @@ interface GridCanvasProps {
   state: ConstructorState;
   dispatch: React.Dispatch<ConstructorAction>;
   onRequestPhoto: (roomId: string) => void;
+  onShowNotification: (message: string) => void;
 }
 
 const WORKSPACE_PIXEL_WIDTH = WORKSPACE_WIDTH * GRID_SIZE;
@@ -58,7 +59,7 @@ const WINDOW_THICKNESS = GRID_SIZE * 0.18;
 const DOOR_THICKNESS = GRID_SIZE * 0.22;
 const ATTACH_THRESHOLD = 0.45; // in grid cells
 
-const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto }) => {
+const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto, onShowNotification }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
   const [draftWall, setDraftWall] = useState<WallNode[] | null>(null);
@@ -140,6 +141,12 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
       }
       const pointer = getPointer(); // Теперь по умолчанию snap=false
       if (!pointer) {
+        return;
+      }
+
+      if ((state.activeTool === 'window' || state.activeTool === 'door') && event.target === stage) {
+        // Если клик по пустому пространству при активном инструменте окна/двери
+        onShowNotification('Для вставки окна/двери нужно нажать только на стену или стык стен');
         return;
       }
 
@@ -258,13 +265,13 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
     (room: Room, direction: 'horizontal' | 'vertical', pointerGrid: { x: number; y: number }) => {
       if (direction === 'horizontal') {
         const maxLength = Math.max(1, WORKSPACE_WIDTH - room.position.x);
-        const tentative = clamp(pointerGrid.x - room.position.x, 1, Math.min(room.area * 2, maxLength));
+        const tentative = snapToStep(clamp(pointerGrid.x - room.position.x, 1, Math.min(room.area * 2, maxLength)));
         if (tentative <= 0) {
           return null;
         }
-        const width = clamp(room.area / tentative, 1, WORKSPACE_HEIGHT - room.position.y);
-        const lengthValue = Number(tentative.toFixed(3));
-        const widthValue = Number(width.toFixed(3));
+        const width = snapToStep(clamp(room.area / tentative, 1, WORKSPACE_HEIGHT - room.position.y));
+        const lengthValue = tentative; // Уже округлено
+        const widthValue = width; // Уже округлено
         dispatch({
           type: 'UPDATE_ROOM',
           roomId: room.id,
@@ -273,13 +280,13 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         return { length: lengthValue, width: widthValue };
       }
       const maxWidth = Math.max(1, WORKSPACE_HEIGHT - room.position.y);
-      const tentative = clamp(pointerGrid.y - room.position.y, 1, Math.min(room.area * 2, maxWidth));
+      const tentative = snapToStep(clamp(pointerGrid.y - room.position.y, 1, Math.min(room.area * 2, maxWidth)));
       if (tentative <= 0) {
         return null;
       }
-      const length = clamp(room.area / tentative, 1, WORKSPACE_WIDTH - room.position.x);
-      const widthValue = Number(tentative.toFixed(3));
-      const lengthValue = Number(length.toFixed(3));
+      const length = snapToStep(clamp(room.area / tentative, 1, WORKSPACE_WIDTH - room.position.x));
+      const widthValue = tentative; // Уже округлено
+      const lengthValue = length; // Уже округлено
       dispatch({
         type: 'UPDATE_ROOM',
         roomId: room.id,
@@ -389,7 +396,7 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
           return;
         }
         if (!best || result.distance < best.distance) {
-          best = { ...result, wall };
+          best = { wall, ...result };
         }
       });
       return best;
@@ -608,12 +615,17 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             radius={8}
             fill="#4fa7ff"
             draggable
-            onDragMove={() => {
+            onDragMove={(evt) => {
               const pointer = getPointer();
               if (!pointer) {
                 return;
               }
-              handleRoomResize(room, 'horizontal', pointer);
+              const result = handleRoomResize(room, 'horizontal', pointer);
+              const nextLength = result?.length ?? room.length;
+              const nextWidth = result?.width ?? room.width;
+              // Ensure the resizer also snaps to the new position
+              // by updating its position based on the new room dimensions.
+              evt.target.position({ x: toPixels(nextLength), y: toPixels(nextWidth / 2) });
             }}
             onDragEnd={() => {
               const pointer = getPointer();
@@ -621,9 +633,6 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
                 return;
               }
               handleRoomResize(room, 'horizontal', pointer);
-              // Ensure the resizer also snaps to the new position
-              // by updating its position based on the new room dimensions.
-              // evt.target.position({ x: toPixels(nextLength), y: toPixels(nextWidth / 2) });
             }}
           />
 
@@ -646,9 +655,6 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
                 return;
               }
               handleRoomResize(room, 'vertical', pointer);
-              // Ensure the resizer also snaps to the new position
-              // by updating its position based on the new room dimensions.
-              // evt.target.position({ x: toPixels(nextLength / 2), y: toPixels(nextWidth) });
             }}
           />
         </Group>
