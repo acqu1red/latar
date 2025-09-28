@@ -32,13 +32,13 @@ const HomePage: React.FC = () => {
     <div className="homepage">
       {/* Анимированный фон */}
       <div className="background-animation">
-        <div className="gradient-orb orb-1"></div>
-        <div className="gradient-orb orb-2"></div>
-        <div className="gradient-orb orb-3"></div>
-        <div className="floating-shapes">
-          <div className="shape shape-1"></div>
-          <div className="shape shape-2"></div>
-          <div className="shape shape-3"></div>
+        <div className="animated-grid"></div>
+        <div className="floating-particles">
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
         </div>
       </div>
 
@@ -56,13 +56,13 @@ const HomePage: React.FC = () => {
         <main className="hero-section">
           <div className="hero-content">
             <h1 className="hero-title">
-              <span className="title-line">Создавайте</span>
-              <span className="title-line highlight">Технические Планы</span>
+              <span className="title-line">Превратите идеи</span>
+              <span className="title-line highlight">в идеальные планы</span>
               <span className="title-line">с помощью ИИ</span>
             </h1>
             <p className="hero-description">
-              Превратите ваши идеи в профессиональные технические планы помещений за считанные секунды.
-              Наша передовая AI-технология создает точные, детализированные архитектурные чертежи с безупречным качеством.
+              Используйте передовую AI-технологию для мгновенного создания точных и детализированных архитектурных чертежей.
+              От концепции до готового плана — всего за несколько секунд. Инновации, доступные каждому.
             </p>
             <div className="hero-cta">
               <button className="cta-button primary large" onClick={handleTexSchemeRedirect}>
@@ -72,18 +72,14 @@ const HomePage: React.FC = () => {
             </div>
           </div>
           
-          {/* 3D элемент */}
+          {/* 3D элемент - Абстрактная архитектурная модель */}
           <div className="hero-visual" style={{
-            transform: `perspective(1000px) rotateY(${(mousePosition.x - window.innerWidth / 2) * 0.05}deg) rotateX(${(mousePosition.y - window.innerHeight / 2) * 0.02}deg)`
+            transform: `perspective(1500px) rotateY(${(mousePosition.x - window.innerWidth / 2) * 0.03}deg) rotateX(${(mousePosition.y - window.innerHeight / 2) * 0.015}deg)`
           }}>
-            <div className="hero-3d-model">
-              <div className="model-face front"></div>
-              <div className="model-face back"></div>
-              <div className="model-face left"></div>
-              <div className="model-face right"></div>
-              <div className="model-face top"></div>
-              <div className="model-face bottom"></div>
-              <div className="model-glow"></div>
+            <div className="abstract-model">
+              <div className="model-layer"></div>
+              <div className="model-layer"></div>
+              <div className="model-layer"></div>
             </div>
           </div>
         </main>
