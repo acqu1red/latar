@@ -193,6 +193,14 @@ body {
     margin-right: auto;
 }
 
+.hero-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
 .hero-cta .cta-button {
     display: inline-flex;
     align-items: center;
@@ -213,6 +221,18 @@ body {
     transform: translateY(-5px) scale(1.02);
     box-shadow: 0 15px 40px rgba(255, 255, 255, 0.4);
     background: var(--color-text-light);
+}
+
+.hero-cta .cta-button.secondary {
+    background: transparent;
+    color: var(--color-text-light);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: none;
+}
+
+.hero-cta .cta-button.secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 30px rgba(255, 255, 255, 0.15);
 }
 
 .cta-icon {

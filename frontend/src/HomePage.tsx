@@ -28,6 +28,10 @@ const HomePage: React.FC = () => {
     navigate('/texscheme');
   };
 
+  const handleConstructorRedirect = () => {
+    navigate('/constructor');
+  };
+
   return (
     <div className="homepage">
       {/* Анимированный фон */}
@@ -68,6 +72,10 @@ const HomePage: React.FC = () => {
               <button className="cta-button primary large" onClick={handleTexSchemeRedirect}>
                 <span>AI по техническому плану</span>
                 <span className="cta-icon">→</span>
+              </button>
+              <button className="cta-button secondary large" onClick={handleConstructorRedirect}>
+                <span>AI Конструктор</span>
+                <span className="cta-icon">🧩</span>
               </button>
             </div>
           </div>
