@@ -12,14 +12,6 @@ const TexSchemePage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // В реальном приложении здесь будет проверка авторизации
-    const isAuthenticated = true; // Заглушка: считаем пользователя авторизованным
-
-    if (!isAuthenticated) {
-      navigate('/login'); // Перенаправить на страницу входа, если не авторизован
-      return;
-    }
-
     const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 100);
@@ -27,7 +19,7 @@ const TexSchemePage: React.FC = () => {
     return () => {
       clearTimeout(timer);
     };
-  }, [navigate]); // Добавляем navigate в зависимости useEffect
+  }, []);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -77,8 +69,8 @@ const TexSchemePage: React.FC = () => {
     setGeneratedPlan(null);
   };
 
-  const goToDashboard = () => {
-    navigate('/dashboard'); // Перенаправляем на личный кабинет
+  const goHome = () => {
+    navigate('/');
   };
 
   return (
@@ -100,9 +92,9 @@ const TexSchemePage: React.FC = () => {
         {/* Навигация */}
         <nav className="dashboard-navbar">
           <div className="nav-content">
-            <button className="back-button" onClick={goToDashboard}>
+            <button className="back-button" onClick={goHome}>
               <span className="back-icon">←</span>
-              <span>В личный кабинет</span>
+              <span>На главную</span>
             </button>
             <div className="nav-title">
               <div className="title-icon">📐</div>

@@ -24,8 +24,8 @@ const HomePage: React.FC = () => {
     };
   }, []);
 
-  const handleAuthRedirect = (path: string) => {
-    navigate(path);
+  const handleTexSchemeRedirect = () => {
+    navigate('/texscheme');
   };
 
   return (
@@ -50,10 +50,6 @@ const HomePage: React.FC = () => {
             <span className="brand-icon">🏗️</span>
             <span className="brand-text">FlatMap AI</span>
           </div>
-          <div className="nav-actions">
-            <button className="nav-button secondary" onClick={() => handleAuthRedirect('/login')}>Войти</button>
-            <button className="nav-button primary" onClick={() => handleAuthRedirect('/register')}>Регистрация</button>
-          </div>
         </nav>
 
         {/* Герой-секция */}
@@ -69,8 +65,8 @@ const HomePage: React.FC = () => {
               Наша передовая AI-технология создает точные, детализированные архитектурные чертежи с безупречным качеством.
             </p>
             <div className="hero-cta">
-              <button className="cta-button primary large" onClick={() => handleAuthRedirect('/register')}>
-                <span>Начать бесплатно</span>
+              <button className="cta-button primary large" onClick={handleTexSchemeRedirect}>
+                <span>AI по техническому плану</span>
                 <span className="cta-icon">→</span>
               </button>
             </div>
