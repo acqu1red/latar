@@ -604,14 +604,8 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
                    let newLength = snapToStep(Math.max(1, Math.abs(pointer.x - fixedX)), SNAP_STEP);
                    let newWidth = snapToStep(Math.max(1, Math.abs(pointer.y - fixedY)), SNAP_STEP);
 
-                   // Сохраняем площадь, пересчитывая одну из сторон
-                   if (i === 0 || i === 1) {
-                     // Изменяем длину, пересчитываем ширину
-                     newWidth = snapToStep(room.area / newLength, SNAP_STEP);
-                   } else {
-                     // Изменяем ширину, пересчитываем длину
-                     newLength = snapToStep(room.area / newWidth, SNAP_STEP);
-                   }
+                   // Всегда изменяем длину, пересчитываем ширину для сохранения площади
+                   newWidth = snapToStep(room.area / newLength, SNAP_STEP);
 
                    // Вычисляем новую позицию, чтобы фиксированный угол остался на месте
                    let newX = room.position.x;
