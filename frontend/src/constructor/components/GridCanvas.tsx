@@ -41,6 +41,8 @@ import {
   snapToStep,
   toPixels,
   wallSegmentLength,
+  FindClosestWallSegmentResult,
+  isFindClosestWallSegmentResult,
 } from '../utils';
 
 interface GridCanvasProps {
@@ -86,7 +88,7 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
   }, []);
 
   const getPointer = useCallback(
-    (snap = true) => {
+    (snap = false) => {
       const stage = getStage();
       if (!stage) {
         return null;
@@ -136,7 +138,7 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
       if (!stage) {
         return;
       }
-      const pointer = getPointer();
+      const pointer = getPointer(); // Теперь по умолчанию snap=false
       if (!pointer) {
         return;
       }
@@ -159,10 +161,15 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         return;
       }
 
+      const snappedPointer = getPointer(true); // Для стен всегда делаем snap=true
+      if (!snappedPointer) {
+        return;
+      }
+
       const anchor: WallNode = {
         id: `anchor-${Date.now()}`,
-        x: pointer.x,
-        y: pointer.y,
+        x: snappedPointer.x,
+        y: snappedPointer.y,
         kind: 'anchor',
       };
       setDraftWall([anchor, { ...anchor, id: `anchor-${Date.now()}-end` }]);
@@ -174,28 +181,29 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
     if (!draftWall) {
       return;
     }
-    const pointer = getPointer();
+    const pointer = getPointer(true);
     if (!pointer) {
       return;
     }
-    setDraftWall(([start]) => {
-      if (!start) {
+    setDraftWall((currentDraftWall) => {
+      if (!currentDraftWall || !currentDraftWall[0]) {
         return null;
       }
+      const [start] = currentDraftWall;
       return [start, { ...pointer, id: 'draft-end', kind: 'anchor' }];
     });
-  }, [draftWall, getPointer]);
+  }, [getPointer]);
 
   const handleStageMouseUp = useCallback(() => {
     if (!draftWall) {
       return;
     }
-    const pointer = getPointer();
+    const pointer = getPointer(true);
     if (!pointer) {
       setDraftWall(null);
       return;
     }
-    const [start] = draftWall;
+    const start = draftWall[0];
     if (!start) {
       setDraftWall(null);
       return;
@@ -290,6 +298,9 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         return;
       }
       const result = findNearestSegment(wall, pointer);
+      if (!result) {
+        return;
+      }
       const segment = result.segment;
       if (!segment) {
         return;
@@ -302,8 +313,10 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         kind: 'control',
       };
       if (segment.controlIndex !== null) {
+        // Если уже есть контрольная точка, обновляем её
         nodes[segment.controlIndex] = controlPoint;
       } else {
+        // Иначе вставляем новую контрольную точку в середину сегмента
         nodes.splice(segment.startIndex + 1, 0, controlPoint);
       }
       dispatch({ type: 'UPDATE_WALL', wallId: wall.id, nodes });
@@ -319,12 +332,15 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         return;
       }
       const result = findNearestSegment(wall, pointer);
+      if (!result) { // Добавляем эту проверку
+        return;
+      }
       const segment = result.segment;
       if (!segment || segment.controlIndex === null) {
         return;
       }
       const nodes = [...wall.nodes];
-      nodes.splice(segment.controlIndex, 1);
+      nodes.splice(segment.controlIndex, 1); // Удаляем контрольную точку
       dispatch({ type: 'UPDATE_WALL', wallId: wall.id, nodes });
     },
     [dispatch, getPointer],
@@ -365,13 +381,11 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
   );
 
   const findClosestWallSegment = useCallback(
-    (point: { x: number; y: number }) => {
-      let best:
-        | (ReturnType<typeof findNearestSegment> & { wall: Wall })
-        | null = null;
+    (point: { x: number; y: number }): FindClosestWallSegmentResult | null => {
+      let best: FindClosestWallSegmentResult | null = null;
       state.walls.forEach((wall) => {
         const result = findNearestSegment(wall, point);
-        if (!result.segment) {
+        if (!result) {
           return;
         }
         if (!best || result.distance < best.distance) {
@@ -385,24 +399,24 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
 
   const tryAttachFloatingWindow = useCallback(
     (floating: FloatingWindow, pointer: { x: number; y: number }) => {
-      const closest = findClosestWallSegment(pointer);
-      if (!closest || closest.distance > ATTACH_THRESHOLD || !closest.segment) {
+      const closestResult = findClosestWallSegment(pointer);
+      if (!isFindClosestWallSegmentResult(closestResult) || closestResult.distance > ATTACH_THRESHOLD) {
         return false;
       }
-      const segmentLength = wallSegmentLength(closest.segment);
+      const { wall, segment, segmentIndex, offset } = closestResult;
+      const segmentLength = wallSegmentLength(segment);
       if (segmentLength === 0) {
         return false;
       }
       const length = Math.min(floating.length, segmentLength * WINDOW_MAX_RATIO);
       const ratio = length / segmentLength;
-      const baseOffset = clamp(closest.offset - ratio / 2, 0, Math.max(0, 1 - ratio));
+      const baseOffset = clamp(offset - ratio / 2, 0, Math.max(0, 1 - ratio));
       const midOffset = baseOffset + ratio / 2;
-      const midPoint = interpolatePoint(closest.segment, midOffset);
-      const rotation = segmentAngleDeg(closest.segment, midOffset);
+      const rotation = segmentAngleDeg(segment, midOffset);
       const attachedWindow = createWindow({
-        wallId: closest.wall.id,
-        roomId: closest.wall.roomId,
-        segmentIndex: closest.segmentIndex,
+        wallId: wall.id,
+        roomId: wall.roomId,
+        segmentIndex: segmentIndex,
         offset: baseOffset,
         length,
         rotation,
@@ -417,23 +431,24 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
 
   const tryAttachFloatingDoor = useCallback(
     (floating: FloatingDoor, pointer: { x: number; y: number }) => {
-      const closest = findClosestWallSegment(pointer);
-      if (!closest || closest.distance > ATTACH_THRESHOLD || !closest.segment) {
+      const closestResult = findClosestWallSegment(pointer);
+      if (!isFindClosestWallSegmentResult(closestResult) || closestResult.distance > ATTACH_THRESHOLD) {
         return false;
       }
-      const segmentLength = wallSegmentLength(closest.segment);
+      const { wall, segment, segmentIndex, offset } = closestResult;
+      const segmentLength = wallSegmentLength(segment);
       if (segmentLength === 0) {
         return false;
       }
       const effectiveLength = Math.min(DOOR_LENGTH, segmentLength);
       const ratio = effectiveLength / segmentLength;
-      const baseOffset = clamp(closest.offset - ratio / 2, 0, Math.max(0, 1 - ratio));
+      const baseOffset = clamp(offset - ratio / 2, 0, Math.max(0, 1 - ratio));
       const midOffset = baseOffset + ratio / 2;
-      const rotation = segmentAngleDeg(closest.segment, midOffset);
+      const rotation = segmentAngleDeg(segment, midOffset);
       const attachedDoor = createDoor({
-        wallId: closest.wall.id,
-        roomId: closest.wall.roomId,
-        segmentIndex: closest.segmentIndex,
+        wallId: wall.id,
+        roomId: wall.roomId,
+        segmentIndex: segmentIndex,
         offset: baseOffset,
         rotation,
       });
@@ -455,6 +470,9 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         return null;
       }
       const result = findNearestSegment(wall, pointer);
+      if (!result) { // Добавляем эту проверку
+        return null;
+      }
       const segment = result.segment;
       if (!segment) {
         return null;
@@ -495,6 +513,9 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         return null;
       }
       const result = findNearestSegment(wall, pointer);
+      if (!result) { // Добавляем эту проверку
+        return null;
+      }
       const segment = result.segment;
       if (!segment) {
         return null;
@@ -587,21 +608,22 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             radius={8}
             fill="#4fa7ff"
             draggable
-            onDragMove={(evt) => {
+            onDragMove={() => {
               const pointer = getPointer();
               if (!pointer) {
                 return;
               }
               handleRoomResize(room, 'horizontal', pointer);
             }}
-            onDragEnd={(evt) => {
+            onDragEnd={() => {
               const pointer = getPointer();
               if (!pointer) {
                 return;
               }
-              const result = handleRoomResize(room, 'horizontal', pointer);
-              const nextLength = result?.length ?? room.length;
-              evt.target.position({ x: toPixels(nextLength), y: height / 2 });
+              handleRoomResize(room, 'horizontal', pointer);
+              // Ensure the resizer also snaps to the new position
+              // by updating its position based on the new room dimensions.
+              // evt.target.position({ x: toPixels(nextLength), y: toPixels(nextWidth / 2) });
             }}
           />
 
@@ -611,21 +633,22 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             radius={8}
             fill="#4fa7ff"
             draggable
-            onDragMove={(evt) => {
+            onDragMove={() => {
               const pointer = getPointer();
               if (!pointer) {
                 return;
               }
               handleRoomResize(room, 'vertical', pointer);
             }}
-            onDragEnd={(evt) => {
+            onDragEnd={() => {
               const pointer = getPointer();
               if (!pointer) {
                 return;
               }
-              const result = handleRoomResize(room, 'vertical', pointer);
-              const nextWidth = result?.width ?? room.width;
-              evt.target.position({ x: width / 2, y: toPixels(nextWidth) });
+              handleRoomResize(room, 'vertical', pointer);
+              // Ensure the resizer also snaps to the new position
+              // by updating its position based on the new room dimensions.
+              // evt.target.position({ x: toPixels(nextLength / 2), y: toPixels(nextWidth) });
             }}
           />
         </Group>
@@ -741,6 +764,9 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             fill={isSelected ? 'rgba(124, 211, 255, 0.9)' : 'rgba(124, 211, 255, 0.6)'}
             stroke={isSelected ? '#7cd3ff' : 'rgba(255,255,255,0.9)'}
             strokeWidth={2}
+            shadowColor={isSelected ? '#7cd3ff' : 'black'}
+            shadowBlur={isSelected ? 10 : 0}
+            shadowOpacity={isSelected ? 0.8 : 0.4}
           />
         </Group>
       );
@@ -796,6 +822,9 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             fill={isSelected ? 'rgba(255, 200, 150, 0.9)' : 'rgba(255, 226, 179, 0.7)'}
             stroke={isSelected ? '#ffad66' : '#ffe3b3'}
             strokeWidth={2}
+            shadowColor={isSelected ? '#ffad66' : 'black'}
+            shadowBlur={isSelected ? 10 : 0}
+            shadowOpacity={isSelected ? 0.8 : 0.4}
           />
         </Group>
       );

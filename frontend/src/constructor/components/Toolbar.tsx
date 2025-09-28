@@ -18,7 +18,6 @@ const TOOL_LABELS: Array<{ tool: Tool; label: string; emoji: string }> = [
   { tool: 'wall', label: 'Стены', emoji: '✏️' },
   { tool: 'window', label: 'Окно', emoji: '🪟' },
   { tool: 'door', label: 'Дверь', emoji: '🚪' },
-  { tool: 'pan', label: 'Перемещение', emoji: '✋' },
 ];
 
 const Toolbar: React.FC<ToolbarProps> = ({

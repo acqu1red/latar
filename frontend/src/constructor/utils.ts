@@ -154,8 +154,10 @@ export const projectPointToSegment = (segment: WallSegment, point: { x: number; 
     const offset = clamp(t, 0, 1);
     return {
       point: {
+        id: generateId(),
         x: segment.start.x + dx * offset,
         y: segment.start.y + dy * offset,
+        kind: 'anchor',
       },
       offset,
     };
@@ -172,7 +174,7 @@ export const projectPointToSegment = (segment: WallSegment, point: { x: number; 
     if (distance < bestDistance) {
       bestDistance = distance;
       bestOffset = t;
-      bestPoint = samplePoint;
+      bestPoint = { ...samplePoint, id: generateId(), kind: 'anchor' }; // Создаем WallNode
     }
   }
   return { point: bestPoint, offset: bestOffset };
@@ -183,6 +185,10 @@ export const findNearestSegment = (wall: Wall, point: { x: number; y: number }) 
   let bestIndex = 0;
   let bestDistance = Number.POSITIVE_INFINITY;
   let bestOffset = 0;
+
+  if (!segments.length) {
+    return null;
+  }
 
   segments.forEach((segment, index) => {
     const { point: projected, offset } = projectPointToSegment(segment, point);
@@ -195,4 +201,14 @@ export const findNearestSegment = (wall: Wall, point: { x: number; y: number }) 
   });
 
   return { segmentIndex: bestIndex, offset: bestOffset, distance: bestDistance, segment: segments[bestIndex] };
+};
+
+export type FindNearestSegmentResult = ReturnType<typeof findNearestSegment>;
+
+export type FindClosestWallSegmentResult = NonNullable<FindNearestSegmentResult> & { wall: Wall };
+
+export const isFindClosestWallSegmentResult = (
+  result: FindClosestWallSegmentResult | null,
+): result is FindClosestWallSegmentResult => {
+  return !!result;
 };
