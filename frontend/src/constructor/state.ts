@@ -10,7 +10,7 @@ import {
   WallNode,
   WindowItem,
 } from './types';
-import { ensureAnchorSnap, generateId, snapToStep } from './utils';
+import { ensureAnchorSnap, generateId } from './utils';
 
 export const initialState: ConstructorState = {
   rooms: [],
@@ -156,18 +156,14 @@ export const constructorReducer = (
         windows: state.windows
           .filter((window) => !(window.wallId === action.wallId && window.segmentIndex === action.segmentIndex))
           .map((window) =>
-            window.wallId === action.wallId &&
-            window.segmentIndex !== null && // Добавлена проверка на null
-            window.segmentIndex > action.segmentIndex
+            window.wallId === action.wallId && window.segmentIndex !== null && window.segmentIndex > action.segmentIndex
               ? { ...window, segmentIndex: window.segmentIndex - 1 }
               : window,
           ),
         doors: state.doors
           .filter((door) => !(door.wallId === action.wallId && door.segmentIndex === action.segmentIndex))
           .map((door) =>
-            door.wallId === action.wallId &&
-            door.segmentIndex !== null && // Добавлена проверка на null
-            door.segmentIndex > action.segmentIndex
+            door.wallId === action.wallId && door.segmentIndex !== null && door.segmentIndex > action.segmentIndex
               ? { ...door, segmentIndex: door.segmentIndex - 1 }
               : door,
           ),
@@ -239,19 +235,15 @@ export const constructorReducer = (
 
 export const createRoom = (area: number, position: { x: number; y: number }): Room => {
   const length = Math.sqrt(area);
-  const snappedLength = snapToStep(Math.max(1, length), 0.5); // Привязка к сетке
-  const width = snapToStep(Math.max(1, area / snappedLength), 0.5); // Привязка к сетке
-  const snappedPosition = {
-    x: snapToStep(position.x, 0.5),
-    y: snapToStep(position.y, 0.5),
-  }; // Привязка позиции к сетке
+  const snappedLength = Math.max(1, Math.round(length * 2) / 2);
+  const width = Math.round((area / snappedLength) * 2) / 2;
   return {
     id: generateId(),
     label: 'Комната',
     area,
     length: snappedLength,
     width,
-    position: snappedPosition,
+    position,
     photos: [],
   };
 };

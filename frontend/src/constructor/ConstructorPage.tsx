@@ -91,17 +91,12 @@ const buildPayload = (state: ConstructorState) => {
 const ConstructorPage: React.FC = () => {
   const [state, dispatch] = useReducer(constructorReducer, initialState);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [pendingPhotoRoomId, setPendingPhotoRoomId] = useState<string | null>(null);
 
-  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  const showNotification = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
-    // Добавляем класс в зависимости от типа уведомления
-    const toastElement = document.querySelector('.toast');
-    if (toastElement) {
-      toastElement.className = `toast ${type}`;
-    }
     window.setTimeout(() => setNotification(null), 2400);
   }, []);
 
@@ -299,9 +294,11 @@ const ConstructorPage: React.FC = () => {
         onChange={handlePhotoInputChange}
       />
 
-      {notification && <div className={`toast ${notification.type}`}>
-        {notification.message}
-      </div>}
+      {notification && (
+        <div className={`toast ${notification.type === 'error' ? 'toast-error' : 'toast-success'}`}>
+          {notification.message}
+        </div>
+      )}
     </div>
   );
 };

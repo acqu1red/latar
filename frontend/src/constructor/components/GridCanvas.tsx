@@ -49,7 +49,7 @@ interface GridCanvasProps {
   state: ConstructorState;
   dispatch: React.Dispatch<ConstructorAction>;
   onRequestPhoto: (roomId: string) => void;
-  onShowNotification: (message: string) => void;
+  onShowNotification: (message: string, type?: 'success' | 'error') => void;
 }
 
 const WORKSPACE_PIXEL_WIDTH = WORKSPACE_WIDTH * GRID_SIZE;
@@ -144,23 +144,32 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
         return;
       }
 
-      if ((state.activeTool === 'window' || state.activeTool === 'door') && event.target === stage) {
-        // Если клик по пустому пространству при активном инструменте окна/двери
-        onShowNotification('Для вставки окна/двери нужно нажать только на стену или стык стен');
-        return;
-      }
 
-      if (state.activeTool === 'window' && event.target === stage) {
+      if (state.activeTool === 'window') {
+        if (event.target === stage) {
+          // Клик по пустому месту - показываем ошибку
+          onShowNotification('Нажмите на стену или стык стен, чтобы добавить окно', 'error');
+          return;
+        }
+        // Клик по стене - создаем плавающее окно
         const floating = createFloatingWindow(pointer, 1.5);
         dispatch({ type: 'ADD_FLOATING_WINDOW', window: floating });
         setSelectedWindowId(floating.id);
+        onShowNotification('Окно создано. Перетащите его на стену для привязки', 'success');
         return;
       }
 
-      if (state.activeTool === 'door' && event.target === stage) {
+      if (state.activeTool === 'door') {
+        if (event.target === stage) {
+          // Клик по пустому месту - показываем ошибку
+          onShowNotification('Нажмите на стену или стык стен, чтобы добавить дверь', 'error');
+          return;
+        }
+        // Клик по стене - создаем плавающую дверь
         const floating = createFloatingDoor(pointer);
         dispatch({ type: 'ADD_FLOATING_DOOR', door: floating });
         setSelectedDoorId(floating.id);
+        onShowNotification('Дверь создана. Перетащите её на стену для привязки', 'success');
         return;
       }
 
@@ -249,7 +258,7 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
       };
       const clamped = clampRoomPosition(room, snapped);
       dispatch({ type: 'UPDATE_ROOM', roomId: room.id, patch: { position: clamped } });
-      node.position({ x: toPixels(snapped.x), y: toPixels(snapped.y) });
+      node.position({ x: toPixels(clamped.x), y: toPixels(clamped.y) });
     },
     [clampRoomPosition, dispatch],
   );
@@ -583,101 +592,59 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
                 radius={8}
                 fill="#4fa7ff"
                 draggable
-                onDragMove={(evt) => {
-                  const pointer = getPointer(true);
-                  if (!pointer) return;
+                 onDragMove={(evt) => {
+                   const pointer = getPointer(true);
+                   if (!pointer) return;
 
-                  // Вычисляем новую длину и ширину
-                  const newLength = snapToStep(
-                    Math.max(1, i === 0 ? room.position.x + room.length - pointer.x : pointer.x - room.position.x),
-                    SNAP_STEP,
-                  );
-                  const newWidth = snapToStep(
-                    Math.max(1, j === 0 ? room.position.y + room.width - pointer.y : pointer.y - room.position.y),
-                    SNAP_STEP,
-                  );
+                   // Определяем фиксированный угол (противоположный перетаскиваемому)
+                   const fixedX = i === 0 ? room.position.x + room.length : room.position.x;
+                   const fixedY = j === 0 ? room.position.y + room.width : room.position.y;
 
-                  let finalLength = newLength;
-                  let finalWidth = newWidth;
+                   // Вычисляем новые размеры относительно фиксированного угла
+                   let newLength = snapToStep(Math.max(1, Math.abs(pointer.x - fixedX)), SNAP_STEP);
+                   let newWidth = snapToStep(Math.max(1, Math.abs(pointer.y - fixedY)), SNAP_STEP);
 
-                  if (i === 0) { // Изменение левого края
-                    finalLength = newLength;
-                    finalWidth = snapToStep(room.area / finalLength, SNAP_STEP);
-                  } else { // Изменение правого края
-                    finalLength = newLength;
-                    finalWidth = snapToStep(room.area / finalLength, SNAP_STEP);
-                  }
+                   // Сохраняем площадь, пересчитывая одну из сторон
+                   if (i === 0 || i === 1) {
+                     // Изменяем длину, пересчитываем ширину
+                     newWidth = snapToStep(room.area / newLength, SNAP_STEP);
+                   } else {
+                     // Изменяем ширину, пересчитываем длину
+                     newLength = snapToStep(room.area / newWidth, SNAP_STEP);
+                   }
 
-                  if (j === 0) { // Изменение верхнего края
-                    finalWidth = newWidth;
-                    finalLength = snapToStep(room.area / finalWidth, SNAP_STEP);
-                  } else { // Изменение нижнего края
-                    finalWidth = newWidth;
-                    finalLength = snapToStep(room.area / finalWidth, SNAP_STEP);
-                  }
+                   // Вычисляем новую позицию, чтобы фиксированный угол остался на месте
+                   let newX = room.position.x;
+                   let newY = room.position.y;
 
-                  // Корректируем позицию для сохранения "неподвижного" угла
-                  let newX = room.position.x;
-                  let newY = room.position.y;
+                   if (i === 0) {
+                     // Левый ресайзер - фиксируем правый угол
+                     newX = snapToStep(fixedX - newLength, SNAP_STEP);
+                   }
+                   if (j === 0) {
+                     // Верхний ресайзер - фиксируем нижний угол
+                     newY = snapToStep(fixedY - newWidth, SNAP_STEP);
+                   }
 
-                  if (i === 0) {
-                    newX = snapToStep(room.position.x + room.length - finalLength, SNAP_STEP);
-                  }
-                  if (j === 0) {
-                    newY = snapToStep(room.position.y + room.width - finalWidth, SNAP_STEP);
-                  }
+                   // Ограничиваем границами рабочей области
+                   newX = Math.max(0, Math.min(newX, WORKSPACE_WIDTH - newLength));
+                   newY = Math.max(0, Math.min(newY, WORKSPACE_HEIGHT - newWidth));
 
-                  dispatch({
-                    type: 'UPDATE_ROOM',
-                    roomId: room.id,
-                    patch: { length: finalLength, width: finalWidth, position: { x: newX, y: newY } },
-                  });
+                   dispatch({
+                     type: 'UPDATE_ROOM',
+                     roomId: room.id,
+                     patch: { length: newLength, width: newWidth, position: { x: newX, y: newY } },
+                   });
 
-                  // Обновляем позицию ресайзера, чтобы он оставался привязанным к углу
-                  evt.target.position({
-                    x: i === 0 ? toPixels(0) : toPixels(finalLength),
-                    y: j === 0 ? toPixels(0) : toPixels(finalWidth),
-                  });
-                }}
-                onDragEnd={(evt) => {
-                  // Просто диспатчим, так как onDragMove уже делает всю работу
-                  // Мы не хотим повторно вызывать handleRoomResize, чтобы избежать двойного обновления
-                  // И привязываем ресайзер к новой позиции
-                  const finalLength = snapToStep(
-                    Math.max(
-                      1,
-                      i === 0
-                        ? room.position.x + room.length - evt.target.x() / GRID_SIZE
-                        : evt.target.x() / GRID_SIZE - room.position.x,
-                    ),
-                    SNAP_STEP,
-                  );
-                  const finalWidth = snapToStep(
-                    Math.max(
-                      1,
-                      j === 0
-                        ? room.position.y + room.width - evt.target.y() / GRID_SIZE
-                        : evt.target.y() / GRID_SIZE - room.position.y,
-                    ),
-                    SNAP_STEP,
-                  );
-
-                  let newX = room.position.x;
-                  let newY = room.position.y;
-
-                  if (i === 0) {
-                    newX = snapToStep(room.position.x + room.length - finalLength, SNAP_STEP);
-                  }
-                  if (j === 0) {
-                    newY = snapToStep(room.position.y + room.width - finalWidth, SNAP_STEP);
-                  }
-
-                  dispatch({
-                    type: 'UPDATE_ROOM',
-                    roomId: room.id,
-                    patch: { length: finalLength, width: finalWidth, position: { x: newX, y: newY } },
-                  });
-                }}
+                   // Обновляем позицию ресайзера
+                   evt.target.position({
+                     x: i === 0 ? toPixels(0) : toPixels(newLength),
+                     y: j === 0 ? toPixels(0) : toPixels(newWidth),
+                   });
+                 }}
+                 onDragEnd={() => {
+                   // onDragMove уже обновил состояние, здесь просто фиксируем позицию ресайзера
+                 }}
               />
             )),
           )}
@@ -1077,14 +1044,12 @@ const GridCanvas: React.FC<GridCanvasProps> = ({ state, dispatch, onRequestPhoto
             />
           ))}
         </Layer>
-        <Layer>
-          {renderRooms()}
-          {renderWalls()}
-          {renderFloatingWindows()}
-          {renderFloatingDoors()}
-          {renderWindows()}
-          {renderDoors()}
-        </Layer>
+        <Layer>{renderRooms()}</Layer>
+        <Layer>{renderWalls()}</Layer>
+        <Layer>{renderWindows()}</Layer>
+        <Layer>{renderDoors()}</Layer>
+        <Layer>{renderFloatingWindows()}</Layer>
+        <Layer>{renderFloatingDoors()}</Layer>
         {draftWall && (
           <Layer listening={false}>
             <Shape
