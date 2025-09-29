@@ -349,7 +349,7 @@ const HomePage: React.FC = () => {
             {/* Diagonal Folding visual */}
             <motion.div style={{ y }} className="mt-16 md:mt-24">
               <FoldingHero
-                src="/assets/hero.jpg"
+                src="/hero.jpg"
                 alt="FlatMap AI — диагональный коллаж"
               />
             </motion.div>
@@ -483,20 +483,20 @@ const HomePage: React.FC = () => {
           </Title>
           <div className="mt-10 grid grid-cols-1 gap-8">
             <BeforeAfterSlider
-              before="/assets/do1.jpg"
-              after="/assets/postle1.jpg"
+              before="/do1.jpg"
+              after="/postle1.jpg"
               captionBefore="Исходник"
               captionAfter="Очистка"
             />
             <BeforeAfterSlider
-              before="/assets/do2.jpg"
-              after="/assets/postle2.jpg"
+              before="/do2.jpg"
+              after="/postle2.jpg"
               captionBefore="С мебелью"
               captionAfter="Без мебели"
             />
             <BeforeAfterSlider
-              before="/assets/do3.jpg"
-              after="/assets/postle3.jpg"
+              before="/do3.jpg"
+              after="/postle3.jpg"
               captionBefore="Техплан"
               captionAfter="Схематичный план"
             />
@@ -516,7 +516,7 @@ const HomePage: React.FC = () => {
               <FadeIn key={i} delay={(i % 5) * 0.03}>
                 <div className="aspect-[3/1] rounded-xl border border-white/10 bg-white/[0.02] grid place-content-center text-zinc-500 text-sm">
                   {i === 0 ? (
-                    <img src="/assets/alatartsev.svg" alt="Alatartsev" className="h-8 w-auto" />
+                    <img src="/alatartsev.svg" alt="Alatartsev" className="h-8 w-auto" />
                   ) : (
                     `Лого ${i + 1}`
                   )}
