@@ -326,7 +326,7 @@ const HomePage: React.FC = () => {
             <FadeIn delay={0.05}>
               <h1 className="mt-6 text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight">
                 FlatMap AI — быстрый и эстетичный способ оживить планы квартир и фото помещений
-              </h1>
+            </h1>
             </FadeIn>
 
             <FadeIn delay={0.1}>
@@ -339,17 +339,17 @@ const HomePage: React.FC = () => {
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 <button onClick={handleTexSchemeRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-100 text-zinc-950 px-6 py-3 font-medium hover:opacity-90 transition">
                   Попробовать демо <MousePointer className="h-4 w-4" />
-                </button>
+              </button>
                 <button onClick={handleConstructorRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-3 font-medium hover:bg-white/10 transition">
                   Загрузить фото <Upload className="h-4 w-4" />
-                </button>
-              </div>
+              </button>
+            </div>
             </FadeIn>
 
             {/* Diagonal Folding visual */}
             <motion.div style={{ y }} className="mt-16 md:mt-24">
               <FoldingHero
-                src="/hero.jpg"
+                src="/latar/hero.jpg"
                 alt="FlatMap AI — диагональный коллаж"
               />
             </motion.div>
@@ -483,20 +483,20 @@ const HomePage: React.FC = () => {
           </Title>
           <div className="mt-10 grid grid-cols-1 gap-8">
             <BeforeAfterSlider
-              before="/do1.jpg"
-              after="/postle1.jpg"
+              before="/latar/do1.jpg"
+              after="/latar/postle1.jpg"
               captionBefore="Исходник"
               captionAfter="Очистка"
             />
             <BeforeAfterSlider
-              before="/do2.jpg"
-              after="/postle2.jpg"
+              before="/latar/do2.jpg"
+              after="/latar/postle2.jpg"
               captionBefore="С мебелью"
               captionAfter="Без мебели"
             />
             <BeforeAfterSlider
-              before="/do3.jpg"
-              after="/postle3.jpg"
+              before="/latar/do3.jpg"
+              after="/latar/postle3.jpg"
               captionBefore="Техплан"
               captionAfter="Схематичный план"
             />
@@ -516,7 +516,7 @@ const HomePage: React.FC = () => {
               <FadeIn key={i} delay={(i % 5) * 0.03}>
                 <div className="aspect-[3/1] rounded-xl border border-white/10 bg-white/[0.02] grid place-content-center text-zinc-500 text-sm">
                   {i === 0 ? (
-                    <img src="/alatartsev.svg" alt="Alatartsev" className="h-8 w-auto" />
+                    <img src="/latar/alatartsev.svg" alt="Alatartsev" className="h-8 w-auto" />
                   ) : (
                     `Лого ${i + 1}`
                   )}
@@ -547,8 +547,8 @@ const HomePage: React.FC = () => {
                 <div>
                   <div className="text-zinc-200 font-medium">Ирина Коваль</div>
                   <div className="text-zinc-500 text-sm">Head of Sales, PropTech Co.</div>
-                </div>
-              </div>
+      </div>
+    </div>
             </FadeIn>
           </div>
         </Container>
