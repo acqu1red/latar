@@ -324,14 +324,14 @@ const HomePage: React.FC = () => {
             </FadeIn>
 
             <FadeIn delay={0.05}>
-              <h1 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">
+              <h1 className="mt-6 text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight">
                 FlatMap AI — быстрый и эстетичный способ оживить планы квартир и фото помещений
               </h1>
             </FadeIn>
 
             <FadeIn delay={0.1}>
               <p className="mt-6 max-w-2xl text-zinc-400">
-                FlatMap AI ускоряет подготовку объявлений: создавайте схематичные планы, очищайте фотографии от лишних объектов и собирайте идеальные варианты с помощью простого конструктора и встроенного ИИ.
+                Загрузи фото — и AI превратит его в идеальный 2D план, очистит комнату от хлама и создаст интерьер мечты в конструкторе.
               </p>
             </FadeIn>
 
@@ -349,7 +349,7 @@ const HomePage: React.FC = () => {
             {/* Diagonal Folding visual */}
             <motion.div style={{ y }} className="mt-16 md:mt-24">
               <FoldingHero
-                src="https://images.unsplash.com/photo-1505692794403-34d4982f88aa?q=80&w=2000&auto=format&fit=crop"
+                src="/assets/hero.jpg"
                 alt="FlatMap AI — диагональный коллаж"
               />
             </motion.div>
@@ -483,20 +483,20 @@ const HomePage: React.FC = () => {
           </Title>
           <div className="mt-10 grid grid-cols-1 gap-8">
             <BeforeAfterSlider
-              before="https://images.unsplash.com/photo-1519710164239-da123dc03ef4?q=80&w=2000&auto=format&fit=crop"
-              after="https://images.unsplash.com/photo-1600585154154-6da4b6d887e8?q=80&w=2000&auto=format&fit=crop"
+              before="/assets/do1.jpg"
+              after="/assets/postle1.jpg"
               captionBefore="Исходник"
               captionAfter="Очистка"
             />
             <BeforeAfterSlider
-              before="https://images.unsplash.com/photo-1501183638710-841dd1904471?q=80&w=2000&auto=format&fit=crop"
-              after="https://images.unsplash.com/photo-1582582429416-0b3cb9f4fc57?q=80&w=2000&auto=format&fit=crop"
+              before="/assets/do2.jpg"
+              after="/assets/postle2.jpg"
               captionBefore="С мебелью"
               captionAfter="Без мебели"
             />
             <BeforeAfterSlider
-              before="https://images.unsplash.com/photo-1523419409543-a7bc9e80904b?q=80&w=2000&auto=format&fit=crop"
-              after="https://images.unsplash.com/photo-1581093588401-16c1a0dbcf0c?q=80&w=2000&auto=format&fit=crop"
+              before="/assets/do3.jpg"
+              after="/assets/postle3.jpg"
               captionBefore="Техплан"
               captionAfter="Схематичный план"
             />
@@ -515,7 +515,11 @@ const HomePage: React.FC = () => {
             {[...Array(10)].map((_, i) => (
               <FadeIn key={i} delay={(i % 5) * 0.03}>
                 <div className="aspect-[3/1] rounded-xl border border-white/10 bg-white/[0.02] grid place-content-center text-zinc-500 text-sm">
-                  Лого {i + 1}
+                  {i === 0 ? (
+                    <img src="/assets/alatartsev.svg" alt="Alatartsev" className="h-8 w-auto" />
+                  ) : (
+                    `Лого ${i + 1}`
+                  )}
                 </div>
               </FadeIn>
             ))}
