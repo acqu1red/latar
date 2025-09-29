@@ -324,8 +324,8 @@ const HomePage: React.FC = () => {
             </FadeIn>
 
             <FadeIn delay={0.05}>
-              <h1 className="mt-6 text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight">
-                2D-планы из фото. Чистые интерьеры. <span className="block text-zinc-400">AI-конструктор для быстрых презентаций.</span>
+              <h1 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">
+                FlatMap AI — быстрый и эстетичный способ оживить планы квартир и фото помещений
               </h1>
             </FadeIn>
 
