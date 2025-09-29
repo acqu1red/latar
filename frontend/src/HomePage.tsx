@@ -356,7 +356,7 @@ const HomePage: React.FC = () => {
 
             <FadeIn delay={0.2}>
               <p className="mt-6 text-xs text-zinc-500">
-                * Замените изображение на ваш скриншот интерфейса FlatMap AI.
+                * FlatMap AI.
               </p>
             </FadeIn>
           </Container>
