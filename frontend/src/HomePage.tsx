@@ -481,25 +481,31 @@ const HomePage: React.FC = () => {
           <Title kicker="До/После" sub="Двигайте ползунок — он привязан к курсору без задержек.">
             Визуальная разница за секунды
           </Title>
-          <div className="mt-10 grid grid-cols-1 gap-8">
+          <div className="mt-10 space-y-8">
+            {/* Первый блок - полная ширина */}
             <BeforeAfterSlider
               before="/latar/do1.jpg"
               after="/latar/postle1.jpg"
               captionBefore="Исходник"
               captionAfter="Очистка"
             />
-            <BeforeAfterSlider
-              before="/latar/do2.jpg"
-              after="/latar/postle2.jpg"
-              captionBefore="С мебелью"
-              captionAfter="Без мебели"
-            />
-            <BeforeAfterSlider
-              before="/latar/do3.jpg"
-              after="/latar/postle3.jpg"
-              captionBefore="Техплан"
-              captionAfter="Схематичный план"
-            />
+            
+            {/* Второй и третий блоки - горизонтально рядом */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <BeforeAfterSlider
+                before="/latar/do2.jpg"
+                after="/latar/postle2.jpg"
+                captionBefore="С мебелью"
+                captionAfter="Без мебели"
+              />
+              <BeforeAfterSlider
+                before="/latar/do3.jpg"
+                after="/latar/postle3.jpg"
+                captionBefore="Техплан"
+                captionAfter="Схематичный план"
+              />
+            </div>
+            
             <p className="text-center text-zinc-400">Примеры наших схематичных планов</p>
           </div>
         </Container>
@@ -533,20 +539,20 @@ const HomePage: React.FC = () => {
           <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 md:p-12">
             <FadeIn>
               <div className="flex items-center gap-3 text-zinc-400 text-sm">
-                <Shield className="h-4 w-4" /> Команды по всему миру ускоряют препродакшен с FlatMap AI
+                <Shield className="h-4 w-4" /> Агенства по всей России ускоряют свою работу с FlatMap AI
               </div>
             </FadeIn>
             <FadeIn delay={0.05}>
               <blockquote className="mt-6 text-2xl md:text-3xl leading-relaxed text-zinc-100">
-                «Готовим материалы к публикации в разы быстрее: план, чистые фото и варианты меблировки — всё в одном месте».
+                «Каждый сэкономленный цент - это заработанный цент. Зарабатывай быстро - вместе с FlatMap AI».
               </blockquote>
             </FadeIn>
             <FadeIn delay={0.1}>
               <div className="mt-6 flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-white/10" />
                 <div>
-                  <div className="text-zinc-200 font-medium">Ирина Коваль</div>
-                  <div className="text-zinc-500 text-sm">Head of Sales, PropTech Co.</div>
+                  <div className="text-zinc-200 font-medium">Илья Андреевич Белоусов</div>
+                  <div className="text-zinc-500 text-sm">CEO, Маркетолог, Инвестор</div>
       </div>
     </div>
             </FadeIn>
