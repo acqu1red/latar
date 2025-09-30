@@ -281,19 +281,19 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
           className="pointer-events-none absolute inset-0" 
           style={{
             background: `
-              linear-gradient(to right, rgba(10,13,18,0) 0%, rgba(10,13,18,0) 70%, rgba(10,13,18,0.1) 80%, rgba(10,13,18,0.3) 85%, rgba(10,13,18,0.6) 90%, rgba(10,13,18,0.8) 95%, rgba(10,13,18,0.95) 98%, rgba(10,13,18,1) 100%),
+              linear-gradient(to right, rgba(10,13,18,0) 0%, rgba(10,13,18,0) 50%, rgba(10,13,18,0.2) 60%, rgba(10,13,18,0.4) 65%, rgba(10,13,18,0.6) 70%, rgba(10,13,18,0.75) 75%, rgba(10,13,18,0.85) 80%, rgba(10,13,18,0.92) 85%, rgba(10,13,18,0.96) 90%, rgba(10,13,18,0.98) 95%, rgba(10,13,18,1) 100%),
               linear-gradient(to left, rgba(10,13,18,0) 0%, rgba(10,13,18,0) 95%, rgba(10,13,18,0.8) 98%, rgba(10,13,18,1) 100%),
               linear-gradient(to bottom, rgba(10,13,18,0) 0%, rgba(10,13,18,0) 90%, rgba(10,13,18,0.5) 95%, rgba(10,13,18,0.8) 98%, rgba(10,13,18,1) 100%),
               linear-gradient(to top, rgba(10,13,18,0) 0%, rgba(10,13,18,0) 90%, rgba(10,13,18,0.5) 95%, rgba(10,13,18,0.8) 98%, rgba(10,13,18,1) 100%)
             `,
             mask: `
-              linear-gradient(to right, black 0%, black 70%, rgba(0,0,0,0.9) 80%, rgba(0,0,0,0.8) 85%, rgba(0,0,0,0.6) 90%, rgba(0,0,0,0.4) 95%, rgba(0,0,0,0.2) 98%, transparent 100%),
+              linear-gradient(to right, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 65%, rgba(0,0,0,0.8) 70%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.5) 85%, rgba(0,0,0,0.4) 90%, rgba(0,0,0,0.3) 95%, rgba(0,0,0,0.1) 98%, transparent 100%),
               linear-gradient(to left, black 0%, black 95%, rgba(0,0,0,0.3) 98%, transparent 100%),
               linear-gradient(to bottom, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%),
               linear-gradient(to top, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%)
             `,
             WebkitMask: `
-              linear-gradient(to right, black 0%, black 70%, rgba(0,0,0,0.9) 80%, rgba(0,0,0,0.8) 85%, rgba(0,0,0,0.6) 90%, rgba(0,0,0,0.4) 95%, rgba(0,0,0,0.2) 98%, transparent 100%),
+              linear-gradient(to right, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 65%, rgba(0,0,0,0.8) 70%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.5) 85%, rgba(0,0,0,0.4) 90%, rgba(0,0,0,0.3) 95%, rgba(0,0,0,0.1) 98%, transparent 100%),
               linear-gradient(to left, black 0%, black 95%, rgba(0,0,0,0.3) 98%, transparent 100%),
               linear-gradient(to bottom, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%),
               linear-gradient(to top, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%)
