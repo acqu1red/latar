@@ -1,12 +1,12 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./AuthContext";
+import HeroDiagonal from "./hero_diagonal";
 import {
   ArrowRight,
   Check,
-  Sparkles,
   Shield,
-  MousePointer,
   Upload,
   Eraser,
   Wand2,
@@ -14,6 +14,9 @@ import {
   Building2,
   Layers,
   Share2,
+  LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 
 /* =============================
@@ -54,6 +57,21 @@ const FadeIn = ({ delay = 0, children, className = "" }: { delay?: number; child
   </motion.div>
 );
 
+const SlideInFromLeft = ({ delay = 0, children, className = "" }: { delay?: number; children: React.ReactNode; className?: string }) => (
+  <motion.div
+    className={className}
+    initial={{ opacity: 0, x: -100, filter: "blur(20px)" }}
+    animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+    transition={{ 
+      duration: 1.2, 
+      delay,
+      ease: [0.16, 1, 0.3, 1] 
+    }}
+  >
+    {children}
+  </motion.div>
+);
+
 const Grain = () => (
   <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.08] mix-blend-overlay [background-image:radial-gradient(black_1px,transparent_1px)] [background-size:6px_6px]" />
 );
@@ -63,50 +81,8 @@ const Glow = ({ className = "" }: { className?: string }) => (
 );
 
 /* =============================
-   Diagonal Folding Hero
+   Old FoldingHero component removed - replaced with HeroDiagonal
    ============================= */
-const FoldingHero = ({ src, alt }: { src: string; alt: string }) => (
-  <div className="relative">
-    <div
-      className="relative rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl bg-black/30"
-      style={{ perspective: 1200 }}
-    >
-      {/* Left diagonal half */}
-      <motion.img
-        src={src}
-        alt={alt}
-        className="absolute inset-0 w-full h-[420px] md:h-[520px] object-cover"
-        initial={{ x: -80, rotateY: 22, opacity: 0.9 }}
-        whileInView={{ x: 0, rotateY: 0, opacity: 1 }}
-        viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
-        style={{
-          clipPath: "polygon(0 0, 100% 0, 0 100%)",
-          transformOrigin: "70% 50%",
-        }}
-      />
-      {/* Right diagonal half */}
-      <motion.img
-        src={src}
-        alt=""
-        className="absolute inset-0 w-full h-[420px] md:h-[520px] object-cover"
-        initial={{ x: 80, rotateY: -22, opacity: 0.9 }}
-        whileInView={{ x: 0, rotateY: 0, opacity: 1 }}
-        viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-        style={{
-          clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-          transformOrigin: "30% 50%",
-        }}
-      />
-      {/* Diagonal seam */}
-      <div className="absolute left-1/2 top-[-30%] h-[160%] w-px rotate-45 bg-gradient-to-b from-white/10 via-white/70 to-white/10" />
-      {/* Top highlight */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-      <div className="relative h-[420px] md:h-[520px]" />
-    </div>
-  </div>
-);
 
 /* =============================
    Before/After slider — zero-lag, bound to pointer
@@ -273,43 +249,176 @@ function ContactForm() {
    ============================= */
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleTexSchemeRedirect = () => {
-    navigate('/texscheme');
+    navigate('/new');
   };
 
   const handleConstructorRedirect = () => {
     navigate('/constructor');
   };
 
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <main className="relative min-h-screen bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-300 selection:text-zinc-900">
       <Grain />
 
       {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-zinc-950/60 border-b border-white/5">
+      <header className={`sticky top-0 z-40 transition-all duration-300 ${
+        isScrolled 
+          ? 'backdrop-blur-md bg-zinc-950/80 border-b border-white/10' 
+          : 'backdrop-blur supports-[backdrop-filter]:bg-zinc-950/60 border-b border-white/5'
+      }`}>
         <Container className="flex h-16 items-center justify-between">
           <a href="#" className="group inline-flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-zinc-100 text-zinc-900 grid place-content-center text-[10px] font-bold">FM</div>
-            <span className="font-medium text-zinc-200 group-hover:text-white transition">FlatMap AI</span>
+            <span className="font-medium text-zinc-200 group-hover:text-white transition">Plan 2D</span>
           </a>
+          
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
             <a className="hover:text-zinc-100 transition" href="#demo">Демо</a>
             <a className="hover:text-zinc-100 transition" href="#features">Возможности</a>
             <a className="hover:text-zinc-100 transition" href="#how">Как это работает</a>
             <a className="hover:text-zinc-100 transition" href="#examples">Примеры</a>
-            <a className="hover:text-zinc-100 transition" href="#partners">Сотрудничество</a>
+            <a className="hover:text-zinc-100 transition" href="#contact">Сотрудничество</a>
           </nav>
+          
           <div className="flex items-center gap-3">
-            <a href="#contact" className="hidden sm:inline text-sm text-zinc-300 hover:text-white transition">Связаться</a>
-            <button onClick={handleTexSchemeRedirect} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium hover:bg-white/10 transition">
-              Попробовать демо
-              <ArrowRight className="h-4 w-4" />
+            {/* Desktop Auth Buttons */}
+            <div className="hidden md:flex items-center gap-3">
+              {user ? (
+                <>
+                  <span className="text-sm text-zinc-300">Привет, {user.name}</span>
+                  <button onClick={logout} className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
+                    <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Выйти</span>
+                    <LogOut className="h-4 w-4 relative z-10 text-white/60 group-hover:text-white transition-all duration-300" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => navigate('/login')} className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
+                    <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Войти</span>
+                  </button>
+                  <button onClick={() => navigate('/register')} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition">
+                    Регистрация
+                  </button>
+                </>
+              )}
+            </div>
+            
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all duration-300"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-5 w-5 text-zinc-300" />
+              ) : (
+                <Menu className="h-5 w-5 text-zinc-300" />
+              )}
             </button>
           </div>
         </Container>
+        
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="md:hidden border-t border-white/10 bg-zinc-950/95 backdrop-blur-md"
+          >
+            <Container className="py-4">
+              <nav className="flex flex-col space-y-4">
+                <a 
+                  className="text-zinc-400 hover:text-zinc-100 transition py-2" 
+                  href="#demo"
+                  onClick={closeMobileMenu}
+                >
+                  Демо
+                </a>
+                <a 
+                  className="text-zinc-400 hover:text-zinc-100 transition py-2" 
+                  href="#features"
+                  onClick={closeMobileMenu}
+                >
+                  Возможности
+                </a>
+                <a 
+                  className="text-zinc-400 hover:text-zinc-100 transition py-2" 
+                  href="#how"
+                  onClick={closeMobileMenu}
+                >
+                  Как это работает
+                </a>
+                <a 
+                  className="text-zinc-400 hover:text-zinc-100 transition py-2" 
+                  href="#examples"
+                  onClick={closeMobileMenu}
+                >
+                  Примеры
+                </a>
+                <a 
+                  className="text-zinc-400 hover:text-zinc-100 transition py-2" 
+                  href="#contact"
+                  onClick={closeMobileMenu}
+                >
+                  Сотрудничество
+                </a>
+                
+                {/* Mobile Auth Buttons */}
+                <div className="pt-4 border-t border-white/10">
+                  {user ? (
+                    <div className="flex flex-col space-y-3">
+                      <span className="text-sm text-zinc-300">Привет, {user.name}</span>
+                      <button 
+                        onClick={() => { logout(); closeMobileMenu(); }} 
+                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15"
+                      >
+                        <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Выйти</span>
+                        <LogOut className="h-4 w-4 relative z-10 text-white/60 group-hover:text-white transition-all duration-300" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col space-y-3">
+                      <button 
+                        onClick={() => { navigate('/login'); closeMobileMenu(); }} 
+                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15"
+                      >
+                        <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Войти</span>
+                      </button>
+                      <button 
+                        onClick={() => { navigate('/register'); closeMobileMenu(); }} 
+                        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition"
+                      >
+                        Регистрация
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </nav>
+            </Container>
+          </motion.div>
+        )}
       </header>
 
       {/* Hero */}
@@ -317,50 +426,77 @@ const HomePage: React.FC = () => {
         <div className="relative">
           <Glow />
           <Container className="pt-20 pb-28 md:pt-28 md:pb-36">
-            <FadeIn>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300">
-                <Sparkles className="h-3.5 w-3.5" /> Для агентств недвижимости
-              </div>
-            </FadeIn>
 
-            <FadeIn delay={0.05}>
-              <h1 className="mt-6 text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight">
-                FlatMap AI — быстрый и эстетичный способ оживить планы квартир и фото помещений
+            <SlideInFromLeft delay={0.2}>
+              <h1 className="mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-tight" style={{ fontFamily: 'New York, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+                Plan AI — превращает фотографии<br />
+                в идеальные планировки за секунды
             </h1>
-            </FadeIn>
+            </SlideInFromLeft>
 
-            <FadeIn delay={0.1}>
+            <SlideInFromLeft delay={0.6}>
               <p className="mt-6 max-w-2xl text-zinc-400">
-                Загрузи фото — и AI превратит его в идеальный 2D план, очистит комнату от хлама и создаст интерьер мечты в конструкторе.
+              Система создания планировки и очистки помещений.<br />
+              Оптимизация задач и надежность результата.
               </p>
-            </FadeIn>
+            </SlideInFromLeft>
 
-            <FadeIn delay={0.15}>
+            <SlideInFromLeft delay={1.0}>
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                <button onClick={handleTexSchemeRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-100 text-zinc-950 px-6 py-3 font-medium hover:opacity-90 transition">
-                  Попробовать демо <MousePointer className="h-4 w-4" />
+                <button onClick={handleTexSchemeRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-100 text-zinc-950 px-6 py-2.5 font-medium hover:opacity-90 transition">
+                Начать создание
               </button>
-                <button onClick={handleConstructorRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-3 font-medium hover:bg-white/10 transition">
-                  Загрузить фото <Upload className="h-4 w-4" />
+                <button onClick={handleConstructorRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-2.5 font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
+                  <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Попробовать демо</span>
+                  <ArrowRight className="h-4 w-4 relative z-10 text-white/60 group-hover:text-white transition-all duration-300" />
               </button>
             </div>
-            </FadeIn>
+            </SlideInFromLeft>
 
-            {/* Diagonal Folding visual */}
+            {/* Diagonal Hero visual */}
             <motion.div style={{ y }} className="mt-16 md:mt-24">
-              <FoldingHero
-                src="/latar/hero.jpg"
-                alt="FlatMap AI — диагональный коллаж"
-              />
+            <HeroDiagonal
+              images={{
+                hero1: "/latar/uploads/hero1.webp",
+                hero2: "/latar/uploads/hero2_cropped.webp",
+                hero3: "/latar/uploads/hero3_cropped.webp",
+                hero4: "/latar/uploads/hero4_cropped.webp",
+                hero5: "/latar/uploads/hero5_cropped.webp",
+                hero6: "/latar/uploads/hero6.webp",
+              }}
+              className="h-[420px] md:h-[520px]"
+            />
             </motion.div>
 
             <FadeIn delay={0.2}>
               <p className="mt-6 text-xs text-zinc-500">
-                * FlatMap AI.
+                * Plan AI.
               </p>
             </FadeIn>
           </Container>
         </div>
+      </Section>
+
+      {/* Partners */}
+      <Section id="partners" className="py-12 md:py-20">
+        <Container>
+          <Title center kicker="Партнёрство" sub="Мы работаем с девелоперами, агентствами и proptech-компаниями.">
+            Наши партнёры
+          </Title>
+          <div className="mt-10 grid grid-cols-3 gap-6">
+            {[
+              { src: "/latar/alatartsev.jpg", alt: "Alatartsev" },
+              { src: "/latar/alatartsev.jpg", alt: "Partner 2" },
+              { src: "/latar/alatartsev.jpg", alt: "Partner 3" }
+            ].map((partner, i) => (
+              <FadeIn key={i} delay={i * 0.1}>
+                <div className="aspect-[4/1] rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                  <img src={partner.src} alt={partner.alt} className="w-full h-full object-cover" />
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </Container>
       </Section>
 
       {/* Quick Demo */}
@@ -380,8 +516,8 @@ const HomePage: React.FC = () => {
         <Container className="pb-8 md:pb-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
             {[
-              { icon: <Building2 className="h-4 w-4" />, t: "Для агентств", d: "Единый поток: фото → план → чистка → презентация." },
-              { icon: <Layers className="h-4 w-4" />, t: "Командная работа", d: "Совместный доступ и единые пресеты оформления объявлений." },
+              { icon: <Building2 className="h-4 w-4" />, t: "Для агентств", d: "Единый поток: загрузка → создание → результат." },
+              { icon: <Layers className="h-4 w-4" />, t: "Для других организаций", d: "Совместный доступ и единые алгоритмы создания." },
               { icon: <Share2 className="h-4 w-4" />, t: "Экспорт без трения", d: "PNG, SVG, PDF и ссылки для быстрой отправки клиентам." },
             ].map((m, i) => (
               <FadeIn key={m.t} delay={i * 0.04}>
@@ -406,14 +542,14 @@ const HomePage: React.FC = () => {
             kicker="Возможности"
             sub="Три ключевых инструмента: AI-план, очистка фото и конструктор с ИИ."
           >
-            Всё, что нужно агентствам
+            Всё, что необходимо
           </Title>
 
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { icon: <Ruler className="h-5 w-5" />, title: "AI 2D-план", desc: "Перерисовка техплана: чёткий, читаемый результат, с мебелью или без." },
               { icon: <Eraser className="h-5 w-5" />, title: "Очистка фото", desc: "Убираем мебель, гарнитуры и мусор. Оставляем стены и декор." },
-              { icon: <Wand2 className="h-5 w-5" />, title: "Конструктор + ИИ", desc: "Соберите план из блоков, добавьте фото — ИИ расставит мебель." },
+              { icon: <Wand2 className="h-5 w-5" />, title: "Конструктор + ИИ", desc: "Соберите план в конструкторе, добавьте фото — ИИ расставит мебель." },
             ].map((f, i) => (
               <FadeIn key={i} delay={i * 0.05}>
                 <div className="group relative h-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6">
@@ -446,7 +582,7 @@ const HomePage: React.FC = () => {
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300"><Ruler className="h-4 w-4" /> 2D-план</div>
               <h3 className="mt-3 text-xl font-medium text-zinc-100">AI создание 2D плана</h3>
               <ol className="mt-3 list-decimal list-inside text-zinc-400 space-y-2">
-                <li>Загрузите фото техплана, сделанное на телефон.</li>
+                <li>Загрузите фото техплана (в том числе сделанное на телефон).</li>
                 <li>Выберите: с мебелью или без мебели.</li>
                 <li>Получите аккуратный 2D-план (PNG/SVG) и экспортируйте.</li>
               </ol>
@@ -457,7 +593,7 @@ const HomePage: React.FC = () => {
               <h3 className="mt-3 text-xl font-medium text-zinc-100">Очистка ненужных объектов</h3>
               <ol className="mt-3 list-decimal list-inside text-zinc-400 space-y-2">
                 <li>Загрузите фото помещения/комнаты.</li>
-                <li>FlatMap AI удалит мебель, гарнитуры и мусор; стены и декор сохранятся.</li>
+                <li>Plan AI удалит мебель, гарнитуры и мусор; стены и декор сохранятся.</li>
                 <li>Скачайте чистое изображение помещения.</li>
               </ol>
             </div>
@@ -511,27 +647,6 @@ const HomePage: React.FC = () => {
         </Container>
       </Section>
 
-      {/* Partners */}
-      <Section id="partners" className="py-12 md:py-20">
-        <Container>
-          <Title center kicker="Сотрудничество" sub="Мы работаем с девелоперами, агентствами и proptech-компаниями.">
-            Партнёры и клиенты
-          </Title>
-          <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-            {[...Array(10)].map((_, i) => (
-              <FadeIn key={i} delay={(i % 5) * 0.03}>
-                <div className="aspect-[3/1] rounded-xl border border-white/10 bg-white/[0.02] grid place-content-center text-zinc-500 text-sm">
-                  {i === 0 ? (
-                    <img src="/latar/alatartsev.svg" alt="Alatartsev" className="h-8 w-auto" />
-                  ) : (
-                    `Лого ${i + 1}`
-                  )}
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </Container>
-      </Section>
 
       {/* Testimonial */}
       <Section id="testimonial" className="py-16 md:py-28">
@@ -539,12 +654,12 @@ const HomePage: React.FC = () => {
           <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 md:p-12">
             <FadeIn>
               <div className="flex items-center gap-3 text-zinc-400 text-sm">
-                <Shield className="h-4 w-4" /> Агенства по всей России ускоряют свою работу с FlatMap AI
+                <Shield className="h-4 w-4" /> Агенства по всей России ускоряют свою работу с Plan AI
               </div>
             </FadeIn>
             <FadeIn delay={0.05}>
               <blockquote className="mt-6 text-2xl md:text-3xl leading-relaxed text-zinc-100">
-                «Каждый сэкономленный цент - это заработанный цент. Зарабатывай быстро - вместе с FlatMap AI».
+                «Каждый сэкономленный цент - это заработанный цент. Зарабатывай быстро - вместе с Plan AI».
               </blockquote>
             </FadeIn>
             <FadeIn delay={0.1}>
@@ -568,7 +683,7 @@ const HomePage: React.FC = () => {
           </Title>
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
             {[
-              { q: "Можно ли интегрировать с CRM агентства?", a: "Да — экспорт по API/вебхукам. Мы поможем связать ваши карточки объектов с FlatMap AI." },
+              { q: "Какая стоимость для организаций?", a: "Стоимость расчитывается индивидуально для каждой организации с учетом объемов и сложности задач." },
               { q: "Нужна ли подписка?", a: "Нет. Сайт и продукт ориентированы на корпоративное внедрение и пилоты, без публичных тарифов." },
               { q: "Как перенести стиль в бренд агентства?", a: "Пресеты: логотип, шрифты и цвет акцентов — применяются к экспортам." },
               { q: "Можно ли обучить модели под наши планы?", a: "Да, поддерживаем дообучение на ваших данных и типовых планировках." },
@@ -593,7 +708,7 @@ const HomePage: React.FC = () => {
               <div className="text-sm uppercase tracking-[0.2em] text-zinc-500">Готовы к пилоту?</div>
             </FadeIn>
             <FadeIn delay={0.05}>
-              <h3 className="mt-3 text-3xl md:text-4xl font-semibold text-zinc-50">Запустим FlatMap AI в вашем агентстве</h3>
+              <h3 className="mt-3 text-3xl md:text-4xl font-semibold text-zinc-50">Запустим Plan AI в вашем агентстве</h3>
             </FadeIn>
             <FadeIn delay={0.1}>
               <p className="mt-3 text-zinc-400 max-w-2xl">Оставьте контакты — подготовим демо на ваших данных и обсудим интеграцию.</p>
@@ -610,7 +725,7 @@ const HomePage: React.FC = () => {
         <Container className="py-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2 text-zinc-400">
             <div className="h-6 w-6 rounded-lg bg-zinc-100 text-zinc-900 grid place-content-center text-[10px] font-bold">FM</div>
-            <span>© {new Date().getFullYear()} FlatMap AI</span>
+            <span>© {new Date().getFullYear()} Plan AI</span>
           </div>
           <div className="text-zinc-500 text-sm">Сделано для агентств недвижимости</div>
         </Container>
