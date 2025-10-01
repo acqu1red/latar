@@ -19,6 +19,8 @@ export type HeroImages = {
   hero4: string; // bottom left
   hero5: string; // bottom right
   hero6: string; // furniture
+  debug_struct_full: string; // structure overlay
+  debug_plan_roi: string; // final plan
 };
 
 interface HeroDiagonalProps {
@@ -40,12 +42,13 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
 
   return (
     <section
-      className={`relative isolate w-full overflow-hidden bg-[#0a0d12] rounded-2xl ${className}`}
+      className={`relative isolate w-full overflow-hidden bg-black rounded-2xl ${className}`}
       style={{
         boxShadow: "0 0 0 1px rgba(255,255,255,0.06) inset, 0 40px 120px rgba(0,0,0,0.5)",
         transform: "perspective(1000px) rotateX(20deg) rotateY(-18deg) translateZ(30px)",
         transformOrigin: "left bottom",
-        transformStyle: "preserve-3d"
+        transformStyle: "preserve-3d",
+        clipPath: "polygon(0 0, 85% 0, 85% 100%, 0 100%)"
       }}
       aria-label="Plan assembly hero"
     >
@@ -257,17 +260,88 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
             src={images.hero6} 
             alt="Furniture overlay" 
             className="w-full h-full object-cover"
-            style={{ 
-              objectPosition: "center",
-              transform: "scale(1.1)", // Увеличенное масштабирование
-              mixBlendMode: "overlay", // Режим смешивания для лучшей интеграции
-              opacity: 0.9 // Немного прозрачности для естественного вида
-            }}
+             style={{ 
+               objectPosition: "center",
+               transform: "scale(1.1) translateX(3px)", // Увеличенное масштабирование + сдвиг вправо на 3px
+               mixBlendMode: "overlay", // Режим смешивания для лучшей интеграции
+               opacity: 0.9 // Немного прозрачности для естественного вида
+             }}
             onError={(e) => console.error('Failed to load hero6:', e)}
             onLoad={() => console.log('Hero6 loaded successfully')}
           />
           {/* Overlay для лучшего смешивания с планом */}
           <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/20" />
+        </motion.div>
+
+        {/* debug_struct_full – STRUCTURE OVERLAY (структура поверх мебели) */}
+        <motion.div
+          className="absolute left-1/2 top-1/2 w-11/12 h-11/12 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg"
+          style={{
+            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1)"
+          }}
+          initial={{ 
+            opacity: 0, 
+            filter: "blur(20px)",
+            y: -200,
+            scale: 0.5,
+            rotateX: -30
+          }}
+          animate={{ 
+            opacity: 1, 
+            filter: "blur(0px)",
+            y: 0,
+            scale: 0.7,
+            rotateX: 0
+          }}
+          transition={{ 
+            duration: 1.2, 
+            delay: 1.2, 
+            ease: [0.22, 1, 0.36, 1],
+            y: { duration: 1.0, ease: "easeOut" },
+            opacity: { duration: 0.8, ease: "easeOut" },
+            filter: { duration: 1.0, ease: "easeOut" },
+            scale: { duration: 1.0, ease: "easeOut" },
+            rotateX: { duration: 1.0, ease: "easeOut" }
+          }}
+        >
+          <img 
+            src={images.debug_struct_full} 
+            alt="Structure overlay" 
+            className="w-full h-full object-cover"
+            style={{ 
+              objectPosition: "center",
+              transform: "scale(0.7) translateX(8px)",
+              mixBlendMode: "overlay",
+              opacity: 0.8
+            }}
+            onError={(e) => console.error('Failed to load debug_struct_full:', e)}
+            onLoad={() => console.log('Debug_struct_full loaded successfully')}
+          />
+        </motion.div>
+
+        {/* debug_plan_roi – FINAL PLAN (итоговый план) */}
+        <motion.div
+          className="absolute left-1/2 top-1/2 w-11/12 h-11/12 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg"
+          style={{
+            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1)"
+          }}
+          initial={{ opacity: 0, filter: "blur(15px)" }}
+          animate={{ opacity: 1, filter: "blur(0px)" }}
+          transition={{ duration: 1.0, delay: 1.6, ease: "easeOut" }}
+        >
+          <img 
+            src={images.debug_plan_roi} 
+            alt="Final plan" 
+            className="w-full h-full object-cover"
+            style={{ 
+              objectPosition: "center",
+              transform: "scale(0.7) translateX(8px)",
+              mixBlendMode: "overlay",
+              opacity: 0.9
+            }}
+            onError={(e) => console.error('Failed to load debug_plan_roi:', e)}
+            onLoad={() => console.log('Debug_plan_roi loaded successfully')}
+          />
         </motion.div>
 
         {/* soft vignette */}
@@ -281,20 +355,20 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
           className="pointer-events-none absolute inset-0" 
           style={{
             background: `
-              linear-gradient(to right, rgba(10,13,18,0) 0%, rgba(10,13,18,0) 50%, rgba(10,13,18,0.2) 60%, rgba(10,13,18,0.4) 65%, rgba(10,13,18,0.6) 70%, rgba(10,13,18,0.75) 75%, rgba(10,13,18,0.85) 80%, rgba(10,13,18,0.92) 85%, rgba(10,13,18,0.96) 90%, rgba(10,13,18,0.98) 95%, rgba(10,13,18,1) 100%),
-              linear-gradient(to left, rgba(10,13,18,0) 0%, rgba(10,13,18,0) 95%, rgba(10,13,18,0.8) 98%, rgba(10,13,18,1) 100%),
-              linear-gradient(to bottom, rgba(10,13,18,0) 0%, rgba(10,13,18,0) 90%, rgba(10,13,18,0.5) 95%, rgba(10,13,18,0.8) 98%, rgba(10,13,18,1) 100%),
-              linear-gradient(to top, rgba(10,13,18,0) 0%, rgba(10,13,18,0) 90%, rgba(10,13,18,0.5) 95%, rgba(10,13,18,0.8) 98%, rgba(10,13,18,1) 100%)
+              linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.75) 85%, rgba(0,0,0,0.85) 90%, rgba(0,0,0,0.92) 93%, rgba(0,0,0,0.96) 96%, rgba(0,0,0,0.98) 98%, rgba(0,0,0,1) 100%),
+              linear-gradient(to left, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.75) 85%, rgba(0,0,0,0.85) 90%, rgba(0,0,0,0.92) 93%, rgba(0,0,0,0.96) 96%, rgba(0,0,0,0.98) 98%, rgba(0,0,0,1) 100%),
+              linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.8) 98%, rgba(0,0,0,1) 100%),
+              linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.8) 98%, rgba(0,0,0,1) 100%)
             `,
             mask: `
-              linear-gradient(to right, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 65%, rgba(0,0,0,0.8) 70%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.5) 85%, rgba(0,0,0,0.4) 90%, rgba(0,0,0,0.3) 95%, rgba(0,0,0,0.1) 98%, transparent 100%),
-              linear-gradient(to left, black 0%, black 95%, rgba(0,0,0,0.3) 98%, transparent 100%),
+              linear-gradient(to right, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.4) 93%, rgba(0,0,0,0.3) 96%, rgba(0,0,0,0.2) 98%, transparent 100%),
+              linear-gradient(to left, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.4) 93%, rgba(0,0,0,0.3) 96%, rgba(0,0,0,0.2) 98%, transparent 100%),
               linear-gradient(to bottom, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%),
               linear-gradient(to top, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%)
             `,
             WebkitMask: `
-              linear-gradient(to right, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 65%, rgba(0,0,0,0.8) 70%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.5) 85%, rgba(0,0,0,0.4) 90%, rgba(0,0,0,0.3) 95%, rgba(0,0,0,0.1) 98%, transparent 100%),
-              linear-gradient(to left, black 0%, black 95%, rgba(0,0,0,0.3) 98%, transparent 100%),
+              linear-gradient(to right, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.4) 93%, rgba(0,0,0,0.3) 96%, rgba(0,0,0,0.2) 98%, transparent 100%),
+              linear-gradient(to left, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.4) 93%, rgba(0,0,0,0.3) 96%, rgba(0,0,0,0.2) 98%, transparent 100%),
               linear-gradient(to bottom, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%),
               linear-gradient(to top, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%)
             `

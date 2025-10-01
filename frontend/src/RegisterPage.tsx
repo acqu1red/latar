@@ -5,10 +5,12 @@ import { ArrowLeft } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [newEmail, setNewEmail] = useState(''); // Новое состояние для Email
+  const [telegramUsername, setTelegramUsername] = useState(''); // Переименованное состояние для Telegram
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // Добавлено состояние для показа пароля
   const { register, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -26,7 +28,8 @@ const RegisterPage: React.FC = () => {
       return;
     }
     
-    const success = await register(name, email, password);
+    // Передаем newEmail вместо email
+    const success = await register(name, newEmail, password);
     if (success) {
       navigate('/');
     } else {
@@ -64,15 +67,19 @@ const RegisterPage: React.FC = () => {
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 pt-20 pb-28">
           <div className="max-w-md mx-auto">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-semibold text-zinc-50 mb-2">Регистрация</h1>
-              <p className="text-zinc-400">Создайте аккаунт для доступа к функциям</p>
+              <h1 className="text-3xl font-semibold text-zinc-50 mb-2">Запустить Plan AI</h1>
+              <p className="text-zinc-400 mb-4">Начнем работу с Вашей организацией по созданию планировок с AI</p>
+              <div className="flex flex-wrap justify-center gap-4 text-sm text-zinc-500">
+                <div className="flex items-center gap-2">
+                </div>
+              </div>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-zinc-200 mb-2">
-                    Имя
+                    Название организации
                   </label>
                   <input
                     id="name"
@@ -81,20 +88,20 @@ const RegisterPage: React.FC = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10 text-zinc-100 placeholder-zinc-500"
-                    placeholder="Ваше имя"
+                    placeholder="Как называется Ваша организация?"
                   />
                 </div>
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-zinc-200 mb-2">
-                    Email
+                    Email для входа
                   </label>
                   <input
                     id="email"
                     type="email"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10 text-zinc-100 placeholder-zinc-500"
                     placeholder="your@email.com"
                   />
@@ -102,31 +109,72 @@ const RegisterPage: React.FC = () => {
 
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-zinc-200 mb-2">
-                    Пароль
+                    Пароль для входа
                   </label>
-                  <input
-                    id="password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10 text-zinc-100 placeholder-zinc-500"
-                    placeholder="••••••••"
-                  />
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10 text-zinc-100 placeholder-zinc-500 pr-12"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 px-4 flex items-center text-zinc-400 hover:text-zinc-100 transition"
+                    >
+                      {showPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off"><path d="M10.61 10.61A4.705 4.705 0 0 0 12 17a5 5 0 0 1-5-5c0-.47-.1-.92-.28-1.34L2 12s3-7 10-7c1.5 0 2.97.42 4.23 1.18l-1.34 1.34z"/><path d="M21 12s-3 7-10 7c-.75 0-1.47-.14-2.16-.43l-1.97 1.97"/><path d="M15.46 15.46L19 19"/><path d="M4.77 4.77 2 2"/><path d="M22 2 15.24 8.76"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
                   <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-200 mb-2">
                     Подтвердите пароль
                   </label>
+                  <div className="relative">
+                    <input
+                      id="confirmPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10 text-zinc-100 placeholder-zinc-500 pr-12"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 px-4 flex items-center text-zinc-400 hover:text-zinc-100 transition"
+                    >
+                      {showPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off"><path d="M10.61 10.61A4.705 4.705 0 0 0 12 17a5 5 0 0 1-5-5c0-.47-.1-.92-.28-1.34L2 12s3-7 10-7c1.5 0 2.97.42 4.23 1.18l-1.34 1.34z"/><path d="M21 12s-3 7-10 7c-.75 0-1.47-.14-2.16-.43l-1.97 1.97"/><path d="M15.46 15.46L19 19"/><path d="M4.77 4.77 2 2"/><path d="M22 2 15.24 8.76"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="telegram_username" className="block text-sm font-medium text-zinc-200 mb-2">
+                    Telegram для связи
+                  </label>
                   <input
-                    id="confirmPassword"
-                    type="password"
+                    id="telegram_username"
+                    type="text"
                     required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    value={telegramUsername}
+                    onChange={(e) => setTelegramUsername(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10 text-zinc-100 placeholder-zinc-500"
-                    placeholder="••••••••"
+                    placeholder="@example"
                   />
                 </div>
 
@@ -141,15 +189,15 @@ const RegisterPage: React.FC = () => {
                   disabled={loading}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-3 text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
                 >
-                  {loading ? 'Регистрация...' : 'Зарегистрироваться'}
+                  {loading ? 'Запуск...' : 'Запустить Plan AI'}
                 </button>
               </form>
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-zinc-400">
-                  Уже есть аккаунт?{' '}
+                  Уже работаете с нами?{' '}
                   <Link to="/login" className="text-zinc-200 hover:text-white transition">
-                    Войти
+                    Войти в систему
                   </Link>
                 </p>
               </div>

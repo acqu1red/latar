@@ -571,7 +571,7 @@ export default function MonochromeClaudeStyle() {
             {/* top label */}
             <div className="pt-16 flex justify-center">
               <span className="inline-flex items-center gap-2 rounded-full theme-border theme-panel px-3 py-1 text-xs theme-text-muted">
-                FlatMap AI
+                Plan AI
                 <span className="opacity-50">·</span>
                 <span className="uppercase tracking-wider">Стиль: {STYLE_OPTIONS.find((s) => s.id === siteStyle)?.label}</span>
               </span>

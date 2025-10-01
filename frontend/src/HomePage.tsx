@@ -3,11 +3,11 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import HeroDiagonal from "./hero_diagonal";
+import * as THREE from "three";
 import {
   ArrowRight,
   Check,
   Shield,
-  Upload,
   Eraser,
   Wand2,
   Ruler,
@@ -17,7 +17,260 @@ import {
   LogOut,
   Menu,
   X,
+  Paperclip,
+  ArrowUp,
+  ChevronDown,
 } from "lucide-react";
+// import { cn } from "@/lib/utils"; // Удален неверный импорт
+
+/* =============================
+   VENOM Background Components (from NewPage.jsx)
+   ============================= */
+
+// === Animated liquid backdrop (VENOM, extra dim via prop) ===
+function LiquidBackdrop({ dim = 1, enabled = true }: { dim?: number; enabled?: boolean }) {
+  const mountRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    const mount = mountRef.current;
+    if (!mount) return;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    Object.assign(renderer.domElement.style, {
+      position: "absolute",
+      inset: "0",
+      zIndex: "0",
+      pointerEvents: "none",
+    });
+    mount.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    const uniforms = {
+      u_time: { value: 0 },
+      u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+      u_dim: { value: dim },
+    };
+
+    const vertex = /* glsl */ `
+      void main() { gl_Position = vec4(position, 1.0); }
+    `;
+
+    const fragment = /* glsl */ `
+      precision highp float;
+      uniform vec2 u_resolution; 
+      uniform float u_time;
+      uniform float u_dim;
+
+      mat2 rot(float a){ float s=sin(a), c=cos(a); return mat2(c,-s,s,c); }
+
+      float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+      float noise(vec2 p){
+        vec2 i=floor(p), f=fract(p);
+        float a=hash(i), b=hash(i+vec2(1,0)), c=hash(i+vec2(0,1)), d=hash(i+vec2(1,1));
+        vec2 u=f*f*(3.0-2.0*f);
+        return mix(a,b,u.x)+ (c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;
+      }
+      float fbm(vec2 p){ float v=0.0, a=0.5; for(int i=0;i<5;i++){ v+=a*noise(p); p*=2.0; a*=0.5; } return v; }
+
+      float stripes(vec2 p, float freq, float thickness){
+        float s = sin(p.x*freq + fbm(p*2.0)*3.14159);
+        float w = fwidth(s) * 1.2;
+        return smoothstep(thickness + w, thickness - w, abs(s));
+      }
+
+      void main(){
+        vec2 res = u_resolution; 
+        vec2 uv = gl_FragCoord.xy / res.xy;
+        vec2 p = uv - 0.5; p.x *= res.x/res.y; 
+
+        float t = u_time * 0.25;
+        vec2 flow = vec2(fbm(p*1.2 + t*0.3), fbm(p*1.4 - t*0.25));
+        p += (flow-0.5)*0.35;
+
+        float a = 0.35 + 0.15*sin(t*0.7);
+        p = rot(a)*p;
+
+        float L1 = stripes(p + vec2(0.0, t*0.8), 9.0, 0.06);
+        float L2 = stripes(rot(1.2)*p + vec2(0.0, -t*0.6), 15.0, 0.045);
+        float L3 = stripes(rot(-0.8)*p + vec2(0.0, t*0.4), 22.0, 0.035);
+
+        float lines = clamp(L1*0.9 + L2*0.8 + L3*0.7, 0.0, 1.0);
+        float glow = smoothstep(0.6, 1.0, lines);
+        float alpha = (pow(lines, 1.35)*0.06 + glow*0.016) * u_dim; 
+        gl_FragColor = vec4(vec3(1.0), alpha);
+      }
+    `;
+
+    const mat = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: vertex,
+      fragmentShader: fragment,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const geo = new THREE.PlaneGeometry(2, 2);
+    const mesh = new THREE.Mesh(geo, mat);
+    scene.add(mesh);
+
+    let start = performance.now();
+    let running = true;
+
+    const onResize = () => {
+      uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+
+    const animate = () => {
+      if (!running) return;
+      uniforms.u_time.value = (performance.now() - start)/1000.0;
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    };
+
+    const onVisibility = () => {
+      running = !document.hidden;
+      if (running) {
+        start = performance.now() - uniforms.u_time.value*1000.0;
+        requestAnimationFrame(animate);
+      }
+    };
+
+    window.addEventListener("resize", onResize);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    requestAnimationFrame(animate);
+
+    return () => {
+      running = false;
+      window.removeEventListener("resize", onResize);
+      document.removeEventListener("visibilitychange", onVisibility);
+      const el = renderer.domElement;
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+      renderer.dispose();
+      geo.dispose();
+      mat.dispose();
+    };
+  }, [enabled, dim]);
+
+  if (!enabled) return null;
+  return <div ref={mountRef} />;
+}
+
+// === Venom DNA Goo: subtle dark "liquid strands" drifting across the background ===
+function VenomDNA({ enabled = true, amount = 3, opacity = 0.14, scale = 1 }: { enabled?: boolean; amount?: number; opacity?: number; scale?: number }) {
+  const mountRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    const mount = mountRef.current; if (!mount) return;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    Object.assign(renderer.domElement.style, {
+      position: 'absolute', inset: '0', zIndex: '0', pointerEvents: 'none'
+    });
+    mount.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    const uniforms = {
+      u_time: { value: 0 },
+      u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+      u_amount: { value: amount },
+      u_opacity: { value: opacity },
+      u_scale: { value: scale },
+    };
+
+    const vtx = /* glsl */`void main(){ gl_Position = vec4(position,1.0); }`;
+    const frg = /* glsl */`
+      precision highp float; 
+      uniform vec2 u_resolution; 
+      uniform float u_time; 
+      uniform float u_amount; 
+      uniform float u_opacity; 
+      uniform float u_scale;
+
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+      mat2 rot(float a){ float s=sin(a), c=cos(a); return mat2(c,-s,s,c); }
+
+      float bead(vec2 p, vec2 c, float r){
+        vec2 d = p - c; 
+        float v = exp(-dot(d,d)/(r*r));
+        return v;
+      }
+
+      float chainField(vec2 p, float seed){
+        float N = 12.0;
+        float field = 0.0;
+        float ang = radians(20.0 + seed*37.0);
+        vec2 base = vec2(0.0);
+        vec2 sp = rot(ang) * vec2(1.0, 0.0);
+        float t = u_time * (0.07 + 0.03*seed);
+        for (float i=0.0; i<12.0; i+=1.0){
+          float s = i/(N-1.0);
+          vec2 path = (s*2.2-1.1) * sp;
+          float wob = 0.28*sin(6.283*s*3.0 + t*3.0 + seed*5.0);
+          path += rot(ang+1.5708) * vec2(0.0, wob);
+          vec2 drift = 0.18*vec2(sin(t*0.9+seed*5.0), cos(t*0.6+seed*3.0));
+          vec2 c = (path + drift) * u_scale; 
+          field += bead(p, c, 0.10);
+        }
+        return field;
+      }
+
+      void main(){
+        vec2 res = u_resolution; 
+        vec2 uv = (gl_FragCoord.xy / res.xy); 
+        vec2 p = uv*2.0 - 1.0; p.x *= res.x/res.y;
+
+        float f = 0.0;
+        f += chainField(p, 0.13);
+        if (u_amount > 1.0) f += chainField(p*0.98 + vec2(0.03, -0.01), 0.57);
+        if (u_amount > 2.0) f += chainField(p*1.02 + vec2(-0.02, 0.02), 0.91);
+
+        float m = smoothstep(0.65, 0.85, f);
+        float alpha = m * u_opacity;
+
+        float edge = clamp((f - 0.7)*2.2, 0.0, 1.0);
+        vec3 col = mix(vec3(0.0), vec3(0.14), edge*0.25);
+
+        gl_FragColor = vec4(col, alpha);
+      }
+    `;
+
+    const mat = new THREE.ShaderMaterial({
+      uniforms, vertexShader: vtx, fragmentShader: frg,
+      transparent: true, depthTest: false, depthWrite: false, blending: THREE.NormalBlending
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2,2), mat);
+    scene.add(mesh);
+
+    let start = performance.now();
+    let running = true;
+    const onResize = () => { uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight); renderer.setSize(window.innerWidth, window.innerHeight); };
+    const animate = () => { if(!running) return; uniforms.u_time.value = (performance.now()-start)/1000.0; renderer.render(scene,camera); requestAnimationFrame(animate); };
+    const onVis = () => { running = !document.hidden; if (running) { start = performance.now() - uniforms.u_time.value*1000.0; requestAnimationFrame(animate);} };
+    window.addEventListener('resize', onResize);
+    document.addEventListener('visibilitychange', onVis);
+    requestAnimationFrame(animate);
+
+    return () => {
+      running=false; window.removeEventListener('resize', onResize); document.removeEventListener('visibilitychange', onVis);
+      const el=renderer.domElement; if(el&&el.parentNode) el.parentNode.removeChild(el); renderer.dispose(); mesh.geometry.dispose(); mat.dispose();
+    };
+  }, [enabled, amount, opacity, scale]);
+  if (!enabled) return null;
+  return <div ref={mountRef} />;
+}
 
 /* =============================
    Helpers & effects
@@ -70,10 +323,6 @@ const SlideInFromLeft = ({ delay = 0, children, className = "" }: { delay?: numb
   >
     {children}
   </motion.div>
-);
-
-const Grain = () => (
-  <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.08] mix-blend-overlay [background-image:radial-gradient(black_1px,transparent_1px)] [background-size:6px_6px]" />
 );
 
 const Glow = ({ className = "" }: { className?: string }) => (
@@ -143,61 +392,6 @@ const BeforeAfterSlider = ({ before, after, captionBefore = "До", captionAfter
   );
 };
 
-/* =============================
-   Quick Demo (upload + generate)
-   ============================= */
-function QuickDemo() {
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const url = URL.createObjectURL(f);
-    setFileUrl(url);
-  };
-  const pick = () => inputRef.current?.click();
-  const generate = () => {
-    if (!fileUrl) return;
-    setGenerating(true);
-    setTimeout(() => setGenerating(false), 900); // имитация обработки
-  };
-
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button onClick={pick} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium hover:bg-white/10 transition">
-          <Upload className="h-4 w-4" /> Загрузить фото
-        </button>
-        <input ref={inputRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
-        <button onClick={generate} disabled={!fileUrl} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition disabled:opacity-50">
-          <Wand2 className="h-4 w-4" /> Сгенерировать
-        </button>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-        <div className="aspect-video rounded-xl ring-1 ring-white/10 bg-white/[0.02] overflow-hidden grid place-content-center text-zinc-500">
-          {fileUrl ? (
-            <img src={fileUrl} alt="uploaded" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-xs">Загрузите фото помещения</span>
-          )}
-        </div>
-        <div className="relative aspect-video rounded-xl ring-1 ring-white/10 bg-white/[0.02] overflow-hidden grid place-content-center text-zinc-500">
-          {fileUrl ? (
-            <img src={fileUrl} alt="result" className="w-full h-full object-cover" style={{ filter: "grayscale(100%) contrast(1.15)" }} />
-          ) : (
-            <span className="text-xs">Здесь появится результат</span>
-          )}
-          {generating && (
-            <div className="absolute inset-0 grid place-content-center bg-black/40 text-white text-sm">Генерация…</div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* =============================
    Contact form (dummy)
@@ -247,6 +441,13 @@ function ContactForm() {
 /* =============================
    Main HomePage Component
    ============================= */
+// === Models (RU) ===
+const MODEL_OPTIONS = [
+  { id: "remove", label: "Удаление объектов" },
+  { id: "plan", label: "Создание по техплану" },
+  { id: "builder", label: "AI Конструктор" },
+];
+
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -254,6 +455,60 @@ const HomePage: React.FC = () => {
   const y = useTransform(scrollYProgress, [0, 1], [0, -120]);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  
+  // Состояния для полной функциональности из NewPage.jsx
+  const [model, setModel] = useState(MODEL_OPTIONS[0]);
+  const [showModelMenu, setShowModelMenu] = useState(false);
+  const [removeDepth, setRemoveDepth] = useState<string | null>(null); // 'surface' | 'partial' | 'full'
+  const [planFurniture, setPlanFurniture] = useState<string | null>(null); // 'with' | 'without'
+  const [attachments, setAttachments] = useState<Array<{id: string, name: string, size: number, url: string, file: File}>>([]);
+
+  // Функции для работы с файлами
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    setFileUrl(url);
+    
+    // Добавляем в attachments как в NewPage.jsx
+    const item = {
+      id: `${f.name}-${f.size}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name: f.name,
+      size: f.size,
+      url: url,
+      file: f,
+    };
+    setAttachments([item]);
+  };
+  
+  const pick = () => inputRef.current?.click();
+  
+  const generate = () => {
+    if (!fileUrl) return;
+    setGenerating(true);
+    setTimeout(() => setGenerating(false), 900);
+  };
+  
+  // Функции для работы с вложениями
+  
+  const removeAttachment = (id: string) => {
+    setAttachments((prev) => {
+      const item = prev.find((x) => x.id === id);
+      if (item) URL.revokeObjectURL(item.url);
+      return prev.filter((x) => x.id !== id);
+    });
+  };
+  
+  // Логика для определения режимов
+  const isRemove = model.id === "remove";
+  const isPlan = model.id === "plan";
+  
+  const canSend = (isRemove || isPlan)
+    ? attachments.length > 0
+    : attachments.length > 0;
 
   const handleTexSchemeRedirect = () => {
     navigate('/new');
@@ -277,9 +532,17 @@ const HomePage: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Cleanup attachments on unmount
+  useEffect(() => () => { 
+    attachments.forEach((a) => URL.revokeObjectURL(a.url)); 
+  }, [attachments]);
+
+
   return (
     <main className="relative min-h-screen bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-300 selection:text-zinc-900">
-      <Grain />
+      {/* Background effects */}
+      {/* <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.08] mix-blend-overlay [background-image:radial-gradient(black_1px,transparent_1px)] [background-size:6px_6px]" /> */}
+      <div className="pointer-events-none absolute -inset-x-10 -top-24 h-64 rounded-full blur-3xl opacity-40 bg-gradient-to-r from-white/10 to-white/0" />
 
       {/* Header */}
       <header className={`sticky top-0 z-40 transition-all duration-300 ${
@@ -319,7 +582,7 @@ const HomePage: React.FC = () => {
                     <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Войти</span>
                   </button>
                   <button onClick={() => navigate('/register')} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition">
-                    Регистрация
+                    Запустить
                   </button>
                 </>
               )}
@@ -410,7 +673,7 @@ const HomePage: React.FC = () => {
                         onClick={() => { navigate('/register'); closeMobileMenu(); }} 
                         className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition"
                       >
-                        Регистрация
+                        Запустить
                       </button>
                     </div>
                   )}
@@ -425,24 +688,22 @@ const HomePage: React.FC = () => {
       <Section id="hero" className="overflow-hidden">
         <div className="relative">
           <Glow />
-          <Container className="pt-20 pb-28 md:pt-28 md:pb-36">
+          <Container className="pt-10 pb-14 md:pt-14 md:pb-18">
 
             <SlideInFromLeft delay={0.2}>
               <h1 className="mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-tight" style={{ fontFamily: 'New York, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-                Plan AI — превращает фотографии<br />
-                в идеальные планировки за секунды
+                Plan AI — превращает фотографии в идеальные планировки за секунды
             </h1>
             </SlideInFromLeft>
 
             <SlideInFromLeft delay={0.6}>
-              <p className="mt-6 max-w-2xl text-zinc-400">
-              Система создания планировки и очистки помещений.<br />
-              Оптимизация задач и надежность результата.
+              <p className="mt-3 max-w-2xl text-zinc-400">
+              Система создания планировки и очистки помещений. Оптимизация задач и надежность результата.
               </p>
             </SlideInFromLeft>
 
             <SlideInFromLeft delay={1.0}>
-              <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <div className="mt-4 flex flex-col sm:flex-row gap-3">
                 <button onClick={handleTexSchemeRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-100 text-zinc-950 px-6 py-2.5 font-medium hover:opacity-90 transition">
                 Начать создание
               </button>
@@ -454,7 +715,7 @@ const HomePage: React.FC = () => {
             </SlideInFromLeft>
 
             {/* Diagonal Hero visual */}
-            <motion.div style={{ y }} className="mt-16 md:mt-24">
+            <motion.div style={{ y }} className="mt-8 md:mt-12">
             <HeroDiagonal
               images={{
                 hero1: "/latar/uploads/hero1.webp",
@@ -463,13 +724,15 @@ const HomePage: React.FC = () => {
                 hero4: "/latar/uploads/hero4_cropped.webp",
                 hero5: "/latar/uploads/hero5_cropped.webp",
                 hero6: "/latar/uploads/hero6.webp",
+                debug_struct_full: "/latar/uploads/debug_struct_full.webp",
+                debug_plan_roi: "/latar/uploads/debug_plan_roi.webp",
               }}
               className="h-[420px] md:h-[520px]"
-            />
+              />
             </motion.div>
 
             <FadeIn delay={0.2}>
-              <p className="mt-6 text-xs text-zinc-500">
+              <p className="mt-3 text-xs text-zinc-500">
                 * Plan AI.
               </p>
             </FadeIn>
@@ -478,12 +741,12 @@ const HomePage: React.FC = () => {
       </Section>
 
       {/* Partners */}
-      <Section id="partners" className="py-12 md:py-20">
+      <Section id="partners" className="py-6 md:py-10">
         <Container>
           <Title center kicker="Партнёрство" sub="Мы работаем с девелоперами, агентствами и proptech-компаниями.">
             Наши партнёры
           </Title>
-          <div className="mt-10 grid grid-cols-3 gap-6">
+          <div className="mt-5 grid grid-cols-3 gap-2">
             {[
               { src: "/latar/alatartsev.jpg", alt: "Alatartsev" },
               { src: "/latar/alatartsev.jpg", alt: "Partner 2" },
@@ -500,21 +763,221 @@ const HomePage: React.FC = () => {
       </Section>
 
       {/* Quick Demo */}
-      <Section id="demo" className="py-10 md:py-16">
+      <Section id="demo" className="py-6 md:py-10">
         <Container>
           <Title kicker="Быстрое демо" sub="Загрузите фото → нажмите «Сгенерировать».">
             Попробуйте на своём фото
           </Title>
-          <div className="mt-6">
-            <QuickDemo />
+          <div className="mt-3">
+            {/* Красивая рамка со свечением и VENOM фоном */}
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-6xl mx-auto"
+              style={{
+                boxShadow: "0 0 0 1px rgba(255,255,255,0.06) inset, 0 40px 120px rgba(0,0,0,0.5)"
+              }}
+            >
+              {/* АНИМИРОВАННЫЙ VENOM ФОН ТОЛЬКО ВНУТРИ РАМКИ */}
+              <LiquidBackdrop enabled={true} dim={5} />
+              <VenomDNA enabled={true} amount={3} opacity={0.25} scale={0.9} />
+              
+              {/* ТОЧНО ТАКОЙ ЖЕ ДИЗАЙН СТРОКИ ИЗ NewPage.jsx */}
+              <div className="relative z-10 flex justify-center">
+                <div className="w-full max-w-2xl rounded-2xl backdrop-blur relative border border-white/10 bg-white/[0.02] shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]">
+                  <div className="p-3 sm:p-4">
+                    <div className="flex items-start gap-3">
+                      {/* left: attach */}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={pick}
+                          className="h-8 w-8 rounded-lg grid place-items-center border border-white/10 bg-white/5 hover:opacity-90"
+                          title="Прикрепить файл"
+                        >
+                          <Paperclip className="h-4 w-4" />
+                        </button>
+                        <input
+                          ref={inputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={onFile}
+                        />
+                      </div>
+
+                      {/* center: content - РЕЖИМЫ КАК В NewPage.jsx */}
+                      {isPlan ? (
+                        <div className="flex w-full items-center gap-2">
+                          <button
+                            onClick={() => { setPlanFurniture("with"); } }
+                            className={`rounded-xl border px-3 py-2 text-sm ${
+                              planFurniture === "with" 
+                                ? "border-white/20 bg-zinc-100 text-zinc-950" 
+                                : "border-white/10 bg-white/5 text-zinc-300"
+                            }`}
+                          >
+                            С мебелью
+                          </button>
+                          <button
+                            onClick={() => { setPlanFurniture("without"); } }
+                            className={`rounded-xl border px-3 py-2 text-sm ${
+                              planFurniture === "without" 
+                                ? "border-white/20 bg-zinc-100 text-zinc-950" 
+                                : "border-white/10 bg-white/5 text-zinc-300"
+                            }`}
+                          >
+                            Без мебели
+                          </button>
+                        </div>
+                      ) : isRemove ? (
+                        <div className="flex w-full items-center gap-2">
+                          <button
+                            onClick={() => { setRemoveDepth("surface"); } }
+                            className={`rounded-xl px-3 py-2 text-sm border ${
+                              removeDepth === "surface" 
+                                ? "border-white/20 bg-zinc-100 text-zinc-950" 
+                                : "border-white/10 bg-white/5 text-zinc-300"
+                            }`}
+                          >
+                            Поверхностно
+                          </button>
+                          <button
+                            onClick={() => { setRemoveDepth("partial"); } }
+                            className={`rounded-xl px-3 py-2 text-sm border ${
+                              removeDepth === "partial" 
+                                ? "border-white/20 bg-zinc-100 text-zinc-950" 
+                                : "border-white/10 bg-white/5 text-zinc-300"
+                            }`}
+                          >
+                            Частично
+                          </button>
+                          <button
+                            onClick={() => { setRemoveDepth("full"); } }
+                            className={`rounded-xl px-3 py-2 text-sm border ${
+                              removeDepth === "full" 
+                                ? "border-white/20 bg-zinc-100 text-zinc-950" 
+                                : "border-white/10 bg-white/5 text-zinc-300"
+                            }`}
+                          >
+                            Полностью
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex w-full items-center gap-2">
+                          {fileUrl ? (
+                            <div className="relative w-full aspect-video rounded-xl ring-1 ring-white/10 bg-white/[0.02] overflow-hidden grid place-content-center text-zinc-500">
+                              <img src={fileUrl} alt="uploaded" className="w-full h-full object-cover" />
+                              {generating && (
+                                <div className="absolute inset-0 grid place-content-center bg-black/40 text-white text-sm">Генерация…</div>
+                              )}
+                            </div>
+                          ) : (
+                            <textarea
+                              rows={1}
+                              placeholder="Загрузите фото для демо…"
+                              className="min-h-[40px] w-full resize-none bg-transparent text-[15px] leading-6 outline-none placeholder:text-zinc-500"
+                              disabled
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {/* right: Model then Send (в одну линию) */}
+                      <div className="flex shrink-0 items-center gap-2 self-end pb-1 relative">
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowModelMenu((v) => !v)}
+                            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm border border-white/10 bg-white/5 hover:opacity-90"
+                          >
+                            {model.label}
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                          {showModelMenu && (
+                            <div className="absolute right-0 top-10 z-20 w-56 rounded-xl border border-white/10 bg-white/[0.02] shadow-lg">
+                              {MODEL_OPTIONS.map((opt) => (
+                                <button
+                                  key={opt.id}
+                                  onClick={() => {
+                                    setModel(opt);
+                                    setShowModelMenu(false);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-sm hover:opacity-90 ${
+                                    opt.id === model.id ? "opacity-100" : ""
+                                  }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={generate}
+                          disabled={!canSend}
+                          className={`h-9 w-9 rounded-xl grid place-items-center border ${
+                            canSend 
+                              ? "border-white/20 bg-zinc-100 text-zinc-950 hover:opacity-90" 
+                              : "border-white/10 bg-white/5 text-zinc-500"
+                          }`}
+                          title="Сгенерировать"
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Hint для прикрепления файлов */}
+                    {((isRemove || isPlan) && attachments.length === 0) && (
+                      <motion.div 
+                        initial={{opacity:0, y:-4}} 
+                        animate={{opacity:1, y:0}} 
+                        transition={{duration:0.25}}
+                        className="mt-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-500"
+                      >
+                        Чтобы сгенерировать — прикрепите хотя бы одну фотографию.
+                      </motion.div>
+                    )}
+
+                    {/* attachments preview */}
+                    {attachments.length > 0 && (
+                      <div className="mt-3">
+                        <div className="text-xs text-zinc-500 mb-2">Вложения: {attachments.length}</div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {attachments.map((a) => (
+                            <div key={a.id} className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                              <img src={a.url} alt={a.name} className="h-24 w-full object-cover" loading="lazy" />
+                              <button
+                                onClick={() => removeAttachment(a.id)}
+                                className="absolute top-1 right-1 hidden group-hover:flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 backdrop-blur"
+                                title="Удалить"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* bottom area: status */}
+                  <div className="flex items-center justify-between px-3 py-2 text-xs border-t border-white/10 text-zinc-500">
+                    <div>
+                      {isRemove && <>{removeDepth ? ('Режим удаления: ' + (removeDepth === 'surface' ? 'Поверхностно' : removeDepth === 'partial' ? 'Частично' : 'Полностью')) : 'Выберите режим удаления'}</>}
+                      {isPlan && <>{planFurniture ? `Выбрано: ${planFurniture === 'with' ? 'С мебелью' : 'Без мебели'}` : 'Выберите режим: «С мебелью» или «Без мебели»'}</>}
+                      {!isRemove && !isPlan && <>Enter — отправить • Shift+Enter — новая строка</>}
+                    </div>
+                    <div>Модель: {model.label}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </Container>
       </Section>
 
       {/* Value for RE agencies */}
       <Section id="solutions">
-        <Container className="pb-8 md:pb-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+        <Container className="pb-4 md:pb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
             {[
               { icon: <Building2 className="h-4 w-4" />, t: "Для агентств", d: "Единый поток: загрузка → создание → результат." },
               { icon: <Layers className="h-4 w-4" />, t: "Для других организаций", d: "Совместный доступ и единые алгоритмы создания." },
@@ -535,7 +998,7 @@ const HomePage: React.FC = () => {
       </Section>
 
       {/* Features */}
-      <Section id="features" className="py-16 md:py-28">
+      <Section id="features" className="py-8 md:py-14">
         <Container>
           <Title
             center
@@ -545,7 +1008,7 @@ const HomePage: React.FC = () => {
             Всё, что необходимо
           </Title>
 
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-2">
             {[
               { icon: <Ruler className="h-5 w-5" />, title: "AI 2D-план", desc: "Перерисовка техплана: чёткий, читаемый результат, с мебелью или без." },
               { icon: <Eraser className="h-5 w-5" />, title: "Очистка фото", desc: "Убираем мебель, гарнитуры и мусор. Оставляем стены и декор." },
@@ -571,12 +1034,12 @@ const HomePage: React.FC = () => {
       </Section>
 
       {/* How it works */}
-      <Section id="how" className="py-12 md:py-20">
+      <Section id="how" className="py-6 md:py-10">
         <Container>
           <Title kicker="Как это работает" center sub="Три режима под разные задачи агентств: 2D-план, очистка фото и конструктор с ИИ.">
             Простые шаги для каждой функции
           </Title>
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-2">
             {/* 1. AI создание 2D плана */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300"><Ruler className="h-4 w-4" /> 2D-план</div>
@@ -612,12 +1075,12 @@ const HomePage: React.FC = () => {
       </Section>
 
       {/* Before/After (3 sliders) */}
-      <Section id="examples" className="py-12 md:py-20">
+      <Section id="examples" className="py-6 md:py-10">
         <Container>
           <Title kicker="До/После" sub="Двигайте ползунок — он привязан к курсору без задержек.">
             Визуальная разница за секунды
           </Title>
-          <div className="mt-10 space-y-8">
+          <div className="mt-5 space-y-4">
             {/* Первый блок - полная ширина */}
             <BeforeAfterSlider
               before="/latar/do1.jpg"
@@ -627,7 +1090,7 @@ const HomePage: React.FC = () => {
             />
             
             {/* Второй и третий блоки - горизонтально рядом */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <BeforeAfterSlider
                 before="/latar/do2.jpg"
                 after="/latar/postle2.jpg"
@@ -649,7 +1112,7 @@ const HomePage: React.FC = () => {
 
 
       {/* Testimonial */}
-      <Section id="testimonial" className="py-16 md:py-28">
+      <Section id="testimonial" className="py-8 md:py-14">
         <Container>
           <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 md:p-12">
             <FadeIn>
@@ -658,12 +1121,12 @@ const HomePage: React.FC = () => {
               </div>
             </FadeIn>
             <FadeIn delay={0.05}>
-              <blockquote className="mt-6 text-2xl md:text-3xl leading-relaxed text-zinc-100">
+              <blockquote className="mt-3 text-2xl md:text-3xl leading-relaxed text-zinc-100">
                 «Каждый сэкономленный цент - это заработанный цент. Зарабатывай быстро - вместе с Plan AI».
               </blockquote>
             </FadeIn>
             <FadeIn delay={0.1}>
-              <div className="mt-6 flex items-center gap-3">
+              <div className="mt-3 flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-white/10" />
                 <div>
                   <div className="text-zinc-200 font-medium">Илья Андреевич Белоусов</div>
@@ -676,12 +1139,12 @@ const HomePage: React.FC = () => {
       </Section>
 
       {/* FAQ */}
-      <Section id="faq" className="py-12 md:py-20">
+      <Section id="faq" className="py-6 md:py-10">
         <Container>
           <Title center kicker="FAQ" sub="О внедрении в агентства и кастомизации под ваши процессы.">
             Частые вопросы
           </Title>
-          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-2">
             {[
               { q: "Какая стоимость для организаций?", a: "Стоимость расчитывается индивидуально для каждой организации с учетом объемов и сложности задач." },
               { q: "Нужна ли подписка?", a: "Нет. Сайт и продукт ориентированы на корпоративное внедрение и пилоты, без публичных тарифов." },
@@ -691,7 +1154,7 @@ const HomePage: React.FC = () => {
               <FadeIn key={i} delay={i * 0.04}>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
                   <div className="text-zinc-100 font-medium">{item.q}</div>
-                  <p className="mt-2 text-zinc-400">{item.a}</p>
+                  <p className="mt-1 text-zinc-400">{item.a}</p>
                 </div>
               </FadeIn>
             ))}
@@ -700,7 +1163,7 @@ const HomePage: React.FC = () => {
       </Section>
 
       {/* CTA & Contact */}
-      <Section id="contact" className="py-16 md:py-28">
+      <Section id="contact" className="py-8 md:py-14">
         <Container>
           <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-10 md:p-14">
             <Glow className="-top-10" />
@@ -708,10 +1171,10 @@ const HomePage: React.FC = () => {
               <div className="text-sm uppercase tracking-[0.2em] text-zinc-500">Готовы к пилоту?</div>
             </FadeIn>
             <FadeIn delay={0.05}>
-              <h3 className="mt-3 text-3xl md:text-4xl font-semibold text-zinc-50">Запустим Plan AI в вашем агентстве</h3>
+              <h3 className="mt-2 text-3xl md:text-4xl font-semibold text-zinc-50">Запустим Plan AI в вашем агентстве</h3>
             </FadeIn>
             <FadeIn delay={0.1}>
-              <p className="mt-3 text-zinc-400 max-w-2xl">Оставьте контакты — подготовим демо на ваших данных и обсудим интеграцию.</p>
+              <p className="mt-2 text-zinc-400 max-w-2xl">Оставьте контакты — подготовим демо на ваших данных и обсудим интеграцию.</p>
             </FadeIn>
             <FadeIn delay={0.15}>
               <ContactForm />
