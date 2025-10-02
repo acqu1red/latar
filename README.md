@@ -1,139 +1,86 @@
-# Генератор планов квартир
+# Latar - Генератор планов квартир с AI
 
-Система для генерации профессиональных планов квартир на основе загруженных фотографий с использованием Scribble Diffusion API.
-
-## Функциональность
-
-- Загрузка фотографии плана квартиры
-- Анализ изображения с помощью AI
-- Создание эскиза из загруженного изображения
-- Генерация профессионального плана с помощью Scribble Diffusion API
-- Современный и отзывчивый интерфейс
-
-## Установка и запуск
-
-### Backend
-
-1. Перейдите в папку backend:
-```bash
-cd backend
-```
-
-2. Установите зависимости:
-```bash
-npm install
-```
-
-3. Создайте файл `.env` в папке `backend/` и добавьте переменные окружения:
-```env
-# Scribble Diffusion API Configuration
-SCRIBBLE_DIFFUSION_API_KEY=ваш_scribble_diffusion_api_ключ_здесь
-
-# Server Configuration
-NODE_ENV=development
-PORT=3001
-```
-
-**Как получить Scribble Diffusion API ключ:**
-1. Зарегистрируйтесь у вашего провайдера Scribble Diffusion API
-2. Получите API ключ в личном кабинете
-3. Вставьте его в файл `.env`
-
-**Важно:** API ключ обязателен! Без него приложение не запустится.
-
-5. Запустите сервер:
-```bash
-npm start
-```
-
-Сервер будет доступен на `http://localhost:3001`
-
-### Frontend
-
-1. Перейдите в папку frontend:
-```bash
-cd frontend
-```
-
-2. Установите зависимости:
-```bash
-npm install
-```
-
-3. Запустите dev сервер:
-```bash
-npm run dev
-```
-
-Приложение будет доступно на `http://localhost:5173`
-
-## Использование
-
-1. Откройте приложение в браузере
-2. Загрузите фотографию плана квартиры
-3. Нажмите "Сгенерировать"
-4. Система автоматически:
-   - Создаст эскиз из вашего изображения
-   - Сгенерирует профессиональный план с помощью Scribble Diffusion API
-5. Скачайте готовый план
-
-## Технологии
-
-- **Frontend**: React, TypeScript, Vite
-- **Backend**: Node.js, Express, Multer
-- **AI**: Scribble Diffusion API
-- **Обработка изображений**: Sharp
-- **Стили**: CSS3 с градиентами и анимациями
+Проект для генерации технических планов помещений с помощью искусственного интеллекта.
 
 ## Структура проекта
 
 ```
-├── frontend/          # React приложение
-│   ├── src/
-│   │   ├── App.tsx    # Главный компонент
-│   │   ├── App.css    # Стили
-│   │   └── config.ts  # Конфигурация API
-├── backend/           # Express сервер
-│   ├── src/
-│   │   ├── scribbleDiffusionGenerator.mjs  # Основной модуль генерации
-│   │   ├── imageAnalyzer.mjs               # Анализ изображений
-│   │   └── localImageGenerator.mjs         # Создание эскизов
-│   └── server.mjs     # Express сервер
-└── koyeb.yaml        # Конфигурация для Koyeb
+latar/
+├── frontend/          # React + Vite приложение
+│   ├── src/          # Исходный код frontend
+│   ├── dist/         # Собранное приложение
+│   └── package.json  # Зависимости frontend
+├── backend/          # Node.js + Express сервер
+│   ├── src/          # Исходный код backend
+│   ├── server.mjs    # Главный файл сервера
+│   └── package.json  # Зависимости backend
+├── uploads/          # Загруженные файлы
+└── package.json      # Корневой package.json для управления проектом
 ```
 
-## Генерация планов
+## Установка и запуск
 
-Система использует простой и эффективный подход к генерации:
+### Установка всех зависимостей
+```bash
+npm run install:all
+```
 
-1. **Анализ изображения**: AI анализирует загруженное фото плана
-2. **Создание эскиза**: Автоматическое создание контурного эскиза
-3. **Scribble Diffusion API**: Генерация профессионального плана
+### Разработка (запуск frontend и backend одновременно)
+```bash
+npm run dev
+```
 
-## Развертывание
+### Разработка только frontend
+```bash
+npm run dev:frontend
+```
 
-### Timeweb (рекомендуется)
+### Разработка только backend
+```bash
+npm run dev:backend
+```
 
-Для развертывания на Timeweb используйте файл `TIMEWEB_DEPLOY.md` с подробными инструкциями.
+### Сборка для продакшена
+```bash
+npm run build
+```
 
-**Быстрый старт:**
-1. Подключите Git репозиторий в Timeweb
-2. Установите корневую папку как `backend`
-3. Добавьте переменные окружения:
-   - `NODE_ENV=production`
-   - `PORT=3001`
-   - `SCRIBBLE_DIFFUSION_API_KEY=ваш_ключ_здесь`
+### Запуск в продакшене
+```bash
+npm start
+```
 
-### Koyeb
+## API Endpoints
 
-Для развертывания на Koyeb используйте файл `koyeb.yaml` в корне проекта.
-
-## Требования
-
-- Node.js 18+
-- Scribble Diffusion API ключ (обязательно)
-- Современный браузер с поддержкой ES6+
+- `GET /healthz` - проверка здоровья сервера
+- `POST /api/generate-photo` - генерация фотографии из эскиза
+- `GET /api/furniture` - получение данных мебели
 
 ## Переменные окружения
 
-См. файл `ENV_EXAMPLE.md` для примера настройки переменных окружения.# Test
+Создайте файл `.env` в папке `backend/`:
+
+```env
+SCRIBBLE_DIFFUSION_API_KEY=your_replicate_api_key_here
+PORT=3001
+NODE_ENV=production
+```
+
+## Технологии
+
+### Frontend
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- Framer Motion
+- React Router DOM
+- Konva (для работы с канвасом)
+
+### Backend
+- Node.js
+- Express
+- Multer (загрузка файлов)
+- Sharp (обработка изображений)
+- CORS
+- Replicate API (генерация изображений)

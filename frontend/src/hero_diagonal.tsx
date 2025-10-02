@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
+import React from "react";
 
 /**
  * HeroDiagonal – plan assembly animation
@@ -45,10 +46,10 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
       className={`relative isolate w-full overflow-hidden bg-black rounded-2xl ${className}`}
       style={{
         boxShadow: "0 0 0 1px rgba(255,255,255,0.06) inset, 0 40px 120px rgba(0,0,0,0.5)",
-        transform: "perspective(1000px) rotateX(20deg) rotateY(-18deg) translateZ(30px)",
+        transform: "perspective(1000px) rotateX(30deg) rotateY(-18deg) translateZ(30px) translateX(-10%) scale(1.15)",
         transformOrigin: "left bottom",
         transformStyle: "preserve-3d",
-        clipPath: "polygon(0 0, 85% 0, 85% 100%, 0 100%)"
+        clipPath: "polygon(0 0, 95% 0, 95% 100%, 0 100%)"
       }}
       aria-label="Plan assembly hero"
     >
@@ -66,15 +67,15 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
       <div className="relative w-full h-full" style={{
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1), 0 20px 60px rgba(0,0,0,0.3)"
       }}>
-        {/* hero1 – big background */}
-        <motion.img
-          src={images.hero1}
-          alt="Hero background"
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-90"
-          initial={{ scale: 1.08, opacity: 0 }}
-          animate={{ scale: 1, opacity: 0.9 }}
-          transition={{ ...t, duration: DURATION * 1.1 }}
-          onError={(e) => console.error('Failed to load hero1:', e)}
+          {/* hero1 – big background */}
+          <motion.img
+            src={images.hero1}
+            alt="Hero background"
+            className="absolute inset-0 w-full h-full object-cover object-center"
+            initial={{ scale: 1.08, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ ...t, duration: DURATION * 1.1 }}
+          onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => console.error('Failed to load hero1:', e)}
           onLoad={() => console.log('Hero1 loaded successfully')}
         />
 
@@ -111,11 +112,11 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
           }}
         >
           <img 
-            src={images.hero2} 
+            src={images.hero2}
             alt="Top left plan quarter" 
             className="w-full h-full object-cover"
             style={{ objectPosition: "right bottom" }}
-            onError={(e) => console.error('Failed to load hero2:', e)}
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => console.error('Failed to load hero2:', e)}
             onLoad={() => console.log('Hero2 loaded successfully')}
           />
         </motion.div>
@@ -153,11 +154,11 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
           }}
         >
           <img 
-            src={images.hero3} 
+            src={images.hero3}
             alt="Top right plan quarter" 
             className="w-full h-full object-cover"
             style={{ objectPosition: "left bottom" }}
-            onError={(e) => console.error('Failed to load hero3:', e)}
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => console.error('Failed to load hero3:', e)}
             onLoad={() => console.log('Hero3 loaded successfully')}
           />
         </motion.div>
@@ -195,11 +196,11 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
           }}
         >
           <img 
-            src={images.hero4} 
+            src={images.hero4}
             alt="Bottom left plan quarter" 
             className="w-full h-full object-cover"
             style={{ objectPosition: "right top" }}
-            onError={(e) => console.error('Failed to load hero4:', e)}
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => console.error('Failed to load hero4:', e)}
             onLoad={() => console.log('Hero4 loaded successfully')}
           />
         </motion.div>
@@ -237,11 +238,11 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
           }}
         >
           <img 
-            src={images.hero5} 
+            src={images.hero5}
             alt="Bottom right plan quarter" 
             className="w-full h-full object-cover"
             style={{ objectPosition: "left top" }}
-            onError={(e) => console.error('Failed to load hero5:', e)}
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => console.error('Failed to load hero5:', e)}
             onLoad={() => console.log('Hero5 loaded successfully')}
           />
         </motion.div>
@@ -257,20 +258,16 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
           transition={{ duration: 1.0, delay: 0.8, ease: "easeOut" }}
         >
           <img 
-            src={images.hero6} 
+            src={images.hero6}
             alt="Furniture overlay" 
             className="w-full h-full object-cover"
-             style={{ 
-               objectPosition: "center",
-               transform: "scale(1.1) translateX(3px)", // Увеличенное масштабирование + сдвиг вправо на 3px
-               mixBlendMode: "overlay", // Режим смешивания для лучшей интеграции
-               opacity: 0.9 // Немного прозрачности для естественного вида
-             }}
-            onError={(e) => console.error('Failed to load hero6:', e)}
+              style={{ 
+                objectPosition: "center",
+                transform: "scale(1.1) translateX(3px)" // Увеличенное масштабирование + сдвиг вправо на 3px
+              }}
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => console.error('Failed to load hero6:', e)}
             onLoad={() => console.log('Hero6 loaded successfully')}
           />
-          {/* Overlay для лучшего смешивания с планом */}
-          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/20" />
         </motion.div>
 
         {/* debug_struct_full – STRUCTURE OVERLAY (структура поверх мебели) */}
@@ -308,13 +305,11 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
             src={images.debug_struct_full} 
             alt="Structure overlay" 
             className="w-full h-full object-cover"
-            style={{ 
-              objectPosition: "center",
-              transform: "scale(0.7) translateX(8px)",
-              mixBlendMode: "overlay",
-              opacity: 0.8
-            }}
-            onError={(e) => console.error('Failed to load debug_struct_full:', e)}
+              style={{ 
+                objectPosition: "center",
+                transform: "scale(0.7) translateX(8px)"
+              }}
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => console.error('Failed to load debug_struct_full:', e)}
             onLoad={() => console.log('Debug_struct_full loaded successfully')}
           />
         </motion.div>
@@ -335,42 +330,35 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
             className="w-full h-full object-cover"
             style={{ 
               objectPosition: "center",
-              transform: "scale(0.7) translateX(8px)",
-              mixBlendMode: "overlay",
-              opacity: 0.9
+              transform: "scale(0.7) translateX(8px)"
             }}
-            onError={(e) => console.error('Failed to load debug_plan_roi:', e)}
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => console.error('Failed to load debug_plan_roi:', e)}
             onLoad={() => console.log('Debug_plan_roi loaded successfully')}
           />
         </motion.div>
 
-        {/* soft vignette */}
-        <div className="pointer-events-none absolute inset-0" style={{
-          background:
-            "radial-gradient(130% 80% at 50% 60%, transparent 50%, rgba(0,0,0,0.35) 100%)",
-        }} />
         
         {/* Smooth fade-out edges for seamless blending - эффект ластика по всему контуру */}
         <div 
           className="pointer-events-none absolute inset-0" 
           style={{
             background: `
-              linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.75) 85%, rgba(0,0,0,0.85) 90%, rgba(0,0,0,0.92) 93%, rgba(0,0,0,0.96) 96%, rgba(0,0,0,0.98) 98%, rgba(0,0,0,1) 100%),
-              linear-gradient(to left, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.75) 85%, rgba(0,0,0,0.85) 90%, rgba(0,0,0,0.92) 93%, rgba(0,0,0,0.96) 96%, rgba(0,0,0,0.98) 98%, rgba(0,0,0,1) 100%),
-              linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.8) 98%, rgba(0,0,0,1) 100%),
-              linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.8) 98%, rgba(0,0,0,1) 100%)
+              linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.4) 80%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.75) 90%, rgba(0,0,0,0.85) 93%, rgba(0,0,0,0.92) 95%, rgba(0,0,0,0.96) 97%, rgba(0,0,0,0.98) 98%, rgba(0,0,0,1) 100%),
+              linear-gradient(to left, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.4) 80%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.75) 90%, rgba(0,0,0,0.85) 93%, rgba(0,0,0,0.92) 95%, rgba(0,0,0,0.96) 97%, rgba(0,0,0,0.98) 98%, rgba(0,0,0,1) 100%),
+              linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.3) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.7) 93%, rgba(0,0,0,0.85) 95%, rgba(0,0,0,0.95) 97%, rgba(0,0,0,1) 100%),
+              linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.3) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.7) 93%, rgba(0,0,0,0.85) 95%, rgba(0,0,0,0.95) 97%, rgba(0,0,0,1) 100%)
             `,
             mask: `
-              linear-gradient(to right, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.4) 93%, rgba(0,0,0,0.3) 96%, rgba(0,0,0,0.2) 98%, transparent 100%),
-              linear-gradient(to left, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.4) 93%, rgba(0,0,0,0.3) 96%, rgba(0,0,0,0.2) 98%, transparent 100%),
-              linear-gradient(to bottom, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%),
-              linear-gradient(to top, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%)
+              linear-gradient(to right, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.7) 85%, rgba(0,0,0,0.6) 90%, rgba(0,0,0,0.5) 93%, rgba(0,0,0,0.4) 95%, rgba(0,0,0,0.3) 97%, rgba(0,0,0,0.2) 98%, transparent 100%),
+              linear-gradient(to left, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.7) 85%, rgba(0,0,0,0.6) 90%, rgba(0,0,0,0.5) 93%, rgba(0,0,0,0.4) 95%, rgba(0,0,0,0.3) 97%, rgba(0,0,0,0.2) 98%, transparent 100%),
+              linear-gradient(to bottom, black 0%, black 80%, rgba(0,0,0,0.7) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.3) 93%, rgba(0,0,0,0.2) 95%, transparent 100%),
+              linear-gradient(to top, black 0%, black 80%, rgba(0,0,0,0.7) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.3) 93%, rgba(0,0,0,0.2) 95%, transparent 100%)
             `,
             WebkitMask: `
-              linear-gradient(to right, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.4) 93%, rgba(0,0,0,0.3) 96%, rgba(0,0,0,0.2) 98%, transparent 100%),
-              linear-gradient(to left, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.4) 93%, rgba(0,0,0,0.3) 96%, rgba(0,0,0,0.2) 98%, transparent 100%),
-              linear-gradient(to bottom, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%),
-              linear-gradient(to top, black 0%, black 90%, rgba(0,0,0,0.5) 95%, rgba(0,0,0,0.3) 98%, transparent 100%)
+              linear-gradient(to right, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.7) 85%, rgba(0,0,0,0.6) 90%, rgba(0,0,0,0.5) 93%, rgba(0,0,0,0.4) 95%, rgba(0,0,0,0.3) 97%, rgba(0,0,0,0.2) 98%, transparent 100%),
+              linear-gradient(to left, black 0%, black 50%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.7) 85%, rgba(0,0,0,0.6) 90%, rgba(0,0,0,0.5) 93%, rgba(0,0,0,0.4) 95%, rgba(0,0,0,0.3) 97%, rgba(0,0,0,0.2) 98%, transparent 100%),
+              linear-gradient(to bottom, black 0%, black 80%, rgba(0,0,0,0.7) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.3) 93%, rgba(0,0,0,0.2) 95%, transparent 100%),
+              linear-gradient(to top, black 0%, black 80%, rgba(0,0,0,0.7) 85%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.3) 93%, rgba(0,0,0,0.2) 95%, transparent 100%)
             `
           }}
         />

@@ -6,5 +6,5 @@ html, body {
   line-height: 1.6;
   font-size: 18px;
   overflow-x: hidden; /* Запрещает горизонтальную прокрутку */
-  background-color: #0a0d12; /* Устанавливаем фон, как у шапки */
+  background-color: black; /* Полностью черный фон */
 }

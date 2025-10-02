@@ -3,7 +3,6 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import HeroDiagonal from "./hero_diagonal";
-import * as THREE from "three";
 import {
   ArrowRight,
   Check,
@@ -23,254 +22,6 @@ import {
 } from "lucide-react";
 // import { cn } from "@/lib/utils"; // Удален неверный импорт
 
-/* =============================
-   VENOM Background Components (from NewPage.jsx)
-   ============================= */
-
-// === Animated liquid backdrop (VENOM, extra dim via prop) ===
-function LiquidBackdrop({ dim = 1, enabled = true }: { dim?: number; enabled?: boolean }) {
-  const mountRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!enabled) return;
-    const mount = mountRef.current;
-    if (!mount) return;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: "high-performance" });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    Object.assign(renderer.domElement.style, {
-      position: "absolute",
-      inset: "0",
-      zIndex: "0",
-      pointerEvents: "none",
-    });
-    mount.appendChild(renderer.domElement);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-    const uniforms = {
-      u_time: { value: 0 },
-      u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-      u_dim: { value: dim },
-    };
-
-    const vertex = /* glsl */ `
-      void main() { gl_Position = vec4(position, 1.0); }
-    `;
-
-    const fragment = /* glsl */ `
-      precision highp float;
-      uniform vec2 u_resolution; 
-      uniform float u_time;
-      uniform float u_dim;
-
-      mat2 rot(float a){ float s=sin(a), c=cos(a); return mat2(c,-s,s,c); }
-
-      float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
-      float noise(vec2 p){
-        vec2 i=floor(p), f=fract(p);
-        float a=hash(i), b=hash(i+vec2(1,0)), c=hash(i+vec2(0,1)), d=hash(i+vec2(1,1));
-        vec2 u=f*f*(3.0-2.0*f);
-        return mix(a,b,u.x)+ (c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;
-      }
-      float fbm(vec2 p){ float v=0.0, a=0.5; for(int i=0;i<5;i++){ v+=a*noise(p); p*=2.0; a*=0.5; } return v; }
-
-      float stripes(vec2 p, float freq, float thickness){
-        float s = sin(p.x*freq + fbm(p*2.0)*3.14159);
-        float w = fwidth(s) * 1.2;
-        return smoothstep(thickness + w, thickness - w, abs(s));
-      }
-
-      void main(){
-        vec2 res = u_resolution; 
-        vec2 uv = gl_FragCoord.xy / res.xy;
-        vec2 p = uv - 0.5; p.x *= res.x/res.y; 
-
-        float t = u_time * 0.25;
-        vec2 flow = vec2(fbm(p*1.2 + t*0.3), fbm(p*1.4 - t*0.25));
-        p += (flow-0.5)*0.35;
-
-        float a = 0.35 + 0.15*sin(t*0.7);
-        p = rot(a)*p;
-
-        float L1 = stripes(p + vec2(0.0, t*0.8), 9.0, 0.06);
-        float L2 = stripes(rot(1.2)*p + vec2(0.0, -t*0.6), 15.0, 0.045);
-        float L3 = stripes(rot(-0.8)*p + vec2(0.0, t*0.4), 22.0, 0.035);
-
-        float lines = clamp(L1*0.9 + L2*0.8 + L3*0.7, 0.0, 1.0);
-        float glow = smoothstep(0.6, 1.0, lines);
-        float alpha = (pow(lines, 1.35)*0.06 + glow*0.016) * u_dim; 
-        gl_FragColor = vec4(vec3(1.0), alpha);
-      }
-    `;
-
-    const mat = new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader: vertex,
-      fragmentShader: fragment,
-      transparent: true,
-      depthTest: false,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-
-    const geo = new THREE.PlaneGeometry(2, 2);
-    const mesh = new THREE.Mesh(geo, mat);
-    scene.add(mesh);
-
-    let start = performance.now();
-    let running = true;
-
-    const onResize = () => {
-      uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-
-    const animate = () => {
-      if (!running) return;
-      uniforms.u_time.value = (performance.now() - start)/1000.0;
-      renderer.render(scene, camera);
-      requestAnimationFrame(animate);
-    };
-
-    const onVisibility = () => {
-      running = !document.hidden;
-      if (running) {
-        start = performance.now() - uniforms.u_time.value*1000.0;
-        requestAnimationFrame(animate);
-      }
-    };
-
-    window.addEventListener("resize", onResize);
-    document.addEventListener("visibilitychange", onVisibility);
-
-    requestAnimationFrame(animate);
-
-    return () => {
-      running = false;
-      window.removeEventListener("resize", onResize);
-      document.removeEventListener("visibilitychange", onVisibility);
-      const el = renderer.domElement;
-      if (el && el.parentNode) el.parentNode.removeChild(el);
-      renderer.dispose();
-      geo.dispose();
-      mat.dispose();
-    };
-  }, [enabled, dim]);
-
-  if (!enabled) return null;
-  return <div ref={mountRef} />;
-}
-
-// === Venom DNA Goo: subtle dark "liquid strands" drifting across the background ===
-function VenomDNA({ enabled = true, amount = 3, opacity = 0.14, scale = 1 }: { enabled?: boolean; amount?: number; opacity?: number; scale?: number }) {
-  const mountRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!enabled) return;
-    const mount = mountRef.current; if (!mount) return;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    Object.assign(renderer.domElement.style, {
-      position: 'absolute', inset: '0', zIndex: '0', pointerEvents: 'none'
-    });
-    mount.appendChild(renderer.domElement);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-    const uniforms = {
-      u_time: { value: 0 },
-      u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-      u_amount: { value: amount },
-      u_opacity: { value: opacity },
-      u_scale: { value: scale },
-    };
-
-    const vtx = /* glsl */`void main(){ gl_Position = vec4(position,1.0); }`;
-    const frg = /* glsl */`
-      precision highp float; 
-      uniform vec2 u_resolution; 
-      uniform float u_time; 
-      uniform float u_amount; 
-      uniform float u_opacity; 
-      uniform float u_scale;
-
-      float hash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
-      mat2 rot(float a){ float s=sin(a), c=cos(a); return mat2(c,-s,s,c); }
-
-      float bead(vec2 p, vec2 c, float r){
-        vec2 d = p - c; 
-        float v = exp(-dot(d,d)/(r*r));
-        return v;
-      }
-
-      float chainField(vec2 p, float seed){
-        float N = 12.0;
-        float field = 0.0;
-        float ang = radians(20.0 + seed*37.0);
-        vec2 base = vec2(0.0);
-        vec2 sp = rot(ang) * vec2(1.0, 0.0);
-        float t = u_time * (0.07 + 0.03*seed);
-        for (float i=0.0; i<12.0; i+=1.0){
-          float s = i/(N-1.0);
-          vec2 path = (s*2.2-1.1) * sp;
-          float wob = 0.28*sin(6.283*s*3.0 + t*3.0 + seed*5.0);
-          path += rot(ang+1.5708) * vec2(0.0, wob);
-          vec2 drift = 0.18*vec2(sin(t*0.9+seed*5.0), cos(t*0.6+seed*3.0));
-          vec2 c = (path + drift) * u_scale; 
-          field += bead(p, c, 0.10);
-        }
-        return field;
-      }
-
-      void main(){
-        vec2 res = u_resolution; 
-        vec2 uv = (gl_FragCoord.xy / res.xy); 
-        vec2 p = uv*2.0 - 1.0; p.x *= res.x/res.y;
-
-        float f = 0.0;
-        f += chainField(p, 0.13);
-        if (u_amount > 1.0) f += chainField(p*0.98 + vec2(0.03, -0.01), 0.57);
-        if (u_amount > 2.0) f += chainField(p*1.02 + vec2(-0.02, 0.02), 0.91);
-
-        float m = smoothstep(0.65, 0.85, f);
-        float alpha = m * u_opacity;
-
-        float edge = clamp((f - 0.7)*2.2, 0.0, 1.0);
-        vec3 col = mix(vec3(0.0), vec3(0.14), edge*0.25);
-
-        gl_FragColor = vec4(col, alpha);
-      }
-    `;
-
-    const mat = new THREE.ShaderMaterial({
-      uniforms, vertexShader: vtx, fragmentShader: frg,
-      transparent: true, depthTest: false, depthWrite: false, blending: THREE.NormalBlending
-    });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2,2), mat);
-    scene.add(mesh);
-
-    let start = performance.now();
-    let running = true;
-    const onResize = () => { uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight); renderer.setSize(window.innerWidth, window.innerHeight); };
-    const animate = () => { if(!running) return; uniforms.u_time.value = (performance.now()-start)/1000.0; renderer.render(scene,camera); requestAnimationFrame(animate); };
-    const onVis = () => { running = !document.hidden; if (running) { start = performance.now() - uniforms.u_time.value*1000.0; requestAnimationFrame(animate);} };
-    window.addEventListener('resize', onResize);
-    document.addEventListener('visibilitychange', onVis);
-    requestAnimationFrame(animate);
-
-    return () => {
-      running=false; window.removeEventListener('resize', onResize); document.removeEventListener('visibilitychange', onVis);
-      const el=renderer.domElement; if(el&&el.parentNode) el.parentNode.removeChild(el); renderer.dispose(); mesh.geometry.dispose(); mat.dispose();
-    };
-  }, [enabled, amount, opacity, scale]);
-  if (!enabled) return null;
-  return <div ref={mountRef} />;
-}
 
 /* =============================
    Helpers & effects
@@ -539,7 +290,7 @@ const HomePage: React.FC = () => {
 
 
   return (
-    <main className="relative min-h-screen bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-300 selection:text-zinc-900">
+    <main className="relative min-h-screen bg-black text-zinc-100 antialiased selection:bg-zinc-300 selection:text-zinc-900">
       {/* Background effects */}
       {/* <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.08] mix-blend-overlay [background-image:radial-gradient(black_1px,transparent_1px)] [background-size:6px_6px]" /> */}
       <div className="pointer-events-none absolute -inset-x-10 -top-24 h-64 rounded-full blur-3xl opacity-40 bg-gradient-to-r from-white/10 to-white/0" />
@@ -727,7 +478,7 @@ const HomePage: React.FC = () => {
                 debug_struct_full: "/latar/uploads/debug_struct_full.webp",
                 debug_plan_roi: "/latar/uploads/debug_plan_roi.webp",
               }}
-              className="h-[420px] md:h-[520px]"
+              className="h-[520px] md:h-720px]"
               />
             </motion.div>
 
@@ -775,9 +526,7 @@ const HomePage: React.FC = () => {
                 boxShadow: "0 0 0 1px rgba(255,255,255,0.06) inset, 0 40px 120px rgba(0,0,0,0.5)"
               }}
             >
-              {/* АНИМИРОВАННЫЙ VENOM ФОН ТОЛЬКО ВНУТРИ РАМКИ */}
-              <LiquidBackdrop enabled={true} dim={5} />
-              <VenomDNA enabled={true} amount={3} opacity={0.25} scale={0.9} />
+               {/* VENOM ФОН УБРАН */}
               
               {/* ТОЧНО ТАКОЙ ЖЕ ДИЗАЙН СТРОКИ ИЗ NewPage.jsx */}
               <div className="relative z-10 flex justify-center">

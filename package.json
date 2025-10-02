@@ -1,33 +1,33 @@
 {
-  "name": "latar-backend",
+  "name": "latar",
   "version": "1.0.0",
-  "description": "Backend для генерации планов квартир",
-  "main": "server.mjs",
-  "type": "module",
+  "description": "Генератор планов квартир с AI",
+  "private": true,
   "scripts": {
-    "start": "node --max-old-space-size=4096 server.mjs",
-    "dev": "node --max-old-space-size=4096 --watch server.mjs",
-    "setup": "node setup-env.js",
-    "build": "npm install --production",
-    "heroku-postbuild": "echo 'Backend ready'",
-    "health": "curl -f http://localhost:3001/healthz || exit 1"
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "start": "cd backend && npm start",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "setup": "cd backend && npm run setup"
   },
-  "engines": {
-    "node": ">=22.0.0"
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.6.1",
-    "express": "^4.18.2",
-    "multer": "^1.4.5-lts.1",
-    "node-fetch": "^3.3.2",
-    "sharp": "^0.34.3"
-  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "keywords": [
-    "svg",
-    "plan",
     "apartment",
-    "generation"
+    "plan",
+    "generation",
+    "ai",
+    "react",
+    "node"
   ],
   "author": "",
   "license": "MIT"
