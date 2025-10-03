@@ -196,7 +196,7 @@ const DemoHero = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <span className="relative z-10 text-white font-medium flex items-center gap-2">
-                      <span>Попробовать демо</span>
+                      <span>Попробовать демо-версию</span>
                       <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
                     </span>
                   </button>
