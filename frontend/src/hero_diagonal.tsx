@@ -43,7 +43,7 @@ export default function HeroDiagonal({ images, className = "" }: HeroDiagonalPro
 
   return (
     <section
-      className={`relative isolate w-full overflow-hidden bg-black rounded-2xl ${className}`}
+      className={`relative isolate w-full overflow-hidden bg-black rounded-lg ${className}`}
       style={{
         boxShadow: "0 0 0 1px rgba(255,255,255,0.06) inset, 0 40px 120px rgba(0,0,0,0.5)",
         transform: "perspective(1000px) rotateX(30deg) rotateY(-18deg) translateZ(30px) translateX(-10%) translateY(40px) scale(1.15)",

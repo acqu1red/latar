@@ -85,10 +85,10 @@ const Glow = ({ className = "" }: { className?: string }) => (
    ============================= */
 const DemoHero = () => {
   const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
-  const [showDemo, setShowDemo] = React.useState(false);
-  const [isAnimating, setIsAnimating] = React.useState(false);
-  const [isDemoHiding, setIsDemoHiding] = React.useState(false);
-  const [isReturning, setIsReturning] = React.useState(false);
+  const [currentStep, setCurrentStep] = React.useState(0); // 0: initial, 1: mode selection, 2: sub-mode selection, 3: processing, 4: result
+  const [selectedMode, setSelectedMode] = React.useState('');
+  const [selectedSubMode, setSelectedSubMode] = React.useState('');
+  const [isProcessing, setIsProcessing] = React.useState(false);
   
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -99,28 +99,52 @@ const DemoHero = () => {
   };
 
   const handleTryDemo = () => {
-    setIsAnimating(true);
+    setCurrentStep(1);
+  };
+
+  const handleModeSelect = (mode: string) => {
+    setSelectedMode(mode);
+    if (mode === 'Удаление объектов') {
+      setCurrentStep(3);
+      startProcessing();
+    } else {
+      setCurrentStep(2);
+    }
+  };
+
+  const handleSubModeSelect = (subMode: string) => {
+    setSelectedSubMode(subMode);
+    setCurrentStep(3);
+    startProcessing();
+  };
+
+  const startProcessing = () => {
+    setIsProcessing(true);
     setTimeout(() => {
-      setShowDemo(true);
-      setIsAnimating(false);
-    }, 400);
+      setIsProcessing(false);
+      setCurrentStep(4);
+    }, 3000);
   };
 
   const handleGoBack = () => {
-    setIsReturning(true);
-    setIsDemoHiding(true);
-    setTimeout(() => {
-      setShowDemo(false);
-      setIsDemoHiding(false);
-      setIsAnimating(true);
-    }, 300);
-    setTimeout(() => {
-      setIsAnimating(false);
-      // Не сбрасываем isReturning сразу, даем время на стабилизацию
-      setTimeout(() => {
-        setIsReturning(false);
-      }, 100);
-    }, 500);
+    setCurrentStep(0);
+    setSelectedMode('');
+    setSelectedSubMode('');
+    setIsProcessing(false);
+  };
+
+  const getBeforeImage = () => {
+    if (selectedMode === 'Удаление объектов') return '/past_deleteobjects.jpg';
+    if (selectedSubMode === 'С мебелью') return '/past_testplanmeb.jpg';
+    if (selectedSubMode === 'Без мебели') return '/past_testplan.jpg';
+    return '/past_testplan.jpg';
+  };
+
+  const getAfterImage = () => {
+    if (selectedMode === 'Удаление объектов') return '/rdy_deleteobjects.jpg';
+    if (selectedSubMode === 'С мебелью') return '/rdy_testplanmeb.jpg';
+    if (selectedSubMode === 'Без мебели') return '/rdy_testplan.jpg';
+    return '/rdy_testplan.jpg';
   };
   
   return (
@@ -151,7 +175,7 @@ const DemoHero = () => {
       {/* Main content */}
       <div className="relative z-10 py-16 md:py-24">
         <Container>
-          <div className="max-w-4xl mx-auto text-center">
+          <div className="max-w-6xl mx-auto text-center">
             {/* Title that stays in place */}
             <FadeIn delay={0.2}>
               <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
@@ -162,208 +186,291 @@ const DemoHero = () => {
               </h2>
             </FadeIn>
             
-            {/* Content that fades out and back in */}
-            <motion.div
-              animate={isAnimating ? {
-                opacity: 0,
-                ...(isReturning ? {} : { filter: "blur(10px)" })
-              } : {
-                opacity: 1,
-                ...(isReturning ? {} : { filter: "blur(0px)" })
-              }}
-              transition={{ 
-                duration: 0.4, 
-                ease: "easeInOut",
-                delay: isAnimating ? 0 : 0
-              }}
-              className={showDemo ? 'hidden' : ''}
-              style={{
-                ...(isReturning ? { 
-                  filter: 'none !important',
-                  WebkitFilter: 'none !important'
-                } : {}),
-                // Стабилизация после возврата
-                ...(showDemo === false && isAnimating === false ? {
-                  filter: 'none !important',
-                  WebkitFilter: 'none !important'
-                } : {})
-              }}
-            >
-              <FadeIn delay={0.1} isReturning={isReturning}>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 text-sm text-zinc-300 mb-6">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                  Живое демо Plan AI
-                </div>
-              </FadeIn>
-              
-              <FadeIn delay={0.3} isReturning={isReturning}>
-                <p className="text-xl text-zinc-400 mb-8 max-w-2xl mx-auto leading-relaxed">
-                  Загрузите фото → выберите режим → получите результат за секунды. 
-                  Никаких сложных настроек, только результат.
-                </p>
-              </FadeIn>
-              
-              <FadeIn delay={0.4} isReturning={isReturning}>
-                <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                  <button 
-                    onClick={handleTryDemo}
-                    className="group relative overflow-hidden px-8 py-4 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-white/10"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <span className="relative z-10 text-white font-medium flex items-center gap-2">
-                      <span>Попробовать демо-версию</span>
-                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
-                    </span>
-                  </button>
-                  
-                  <div className="flex items-center gap-3 text-zinc-400">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                      <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse delay-200"></div>
-                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse delay-400"></div>
-                    </div>
-                    <span className="text-sm font-medium">Без регистрации • Мгновенный результат</span>
-                  </div>
-                </div>
-              </FadeIn>
-            </motion.div>
-            
-            {/* Demo interface that appears with blur animation */}
-            <motion.div
-              initial={{ opacity: 0, filter: "blur(20px)" }}
-              animate={showDemo && !isDemoHiding ? {
-                opacity: 1,
-                filter: "blur(0px)"
-              } : {
-                opacity: 0,
-                filter: "blur(30px)"
-              }}
-              transition={{ 
-                duration: showDemo && !isDemoHiding ? 0.5 : 0.4, 
-                ease: "easeInOut",
-                delay: showDemo && !isDemoHiding ? 0.1 : 0 
-              }}
-              style={{ 
-                display: showDemo || isDemoHiding ? 'block' : 'none' 
-              }}
-            >
-              <div className="relative max-w-5xl mx-auto">
-                <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-white/[0.05] backdrop-blur-xl p-8 shadow-2xl">
-                  {/* Demo interface content */}
-                  <div className="relative z-10">
-                    <div className="w-full max-w-4xl mx-auto rounded-2xl backdrop-blur relative border border-white/10 bg-white/[0.02] shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]">
-                      <div className="p-6">
-                        {/* Header with mode selection */}
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                            <span className="ml-4 text-sm text-zinc-400">Plan AI Demo</span>
-                          </div>
-                          <div className="text-xs text-zinc-500">v2.0</div>
-                        </div>
-                        
-                        <div className="flex items-start gap-3">
-                          {/* Enhanced attach button */}
-                          <div className="flex gap-3">
-                            <button
-                              className="group h-9 w-9 rounded-lg grid place-items-center border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300"
-                              title="Прикрепить файл"
-                            >
-                              <svg className="h-4 w-4 text-zinc-300 group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                              </svg>
-                            </button>
-                          </div>
-
-                          {/* Center content area */}
-                          <div className="flex w-full items-center gap-2">
-                            <button className="rounded-xl px-3 py-2 text-sm border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300">
-                              Полностью
-                            </button>
-                          </div>
-
-                          {/* Right section with model selection */}
-                          <div className="flex shrink-0 items-center gap-2 self-end pb-1 relative">
-                            <div className="relative">
-                              <button className="group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300">
-                                <span className="group-hover:scale-105 transition-transform duration-300">Удаление объектов</span>
-                                <svg className="h-3.5 w-3.5 text-zinc-400 group-hover:text-white group-hover:rotate-180 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-                            </div>
-
-                            <button className="group h-8 w-8 rounded-lg grid place-items-center border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300" title="Сгенерировать">
-                              <svg className="h-4 w-4 text-zinc-300 group-hover:text-white group-hover:scale-110 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Hints */}
-                        <div className="mt-4 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-zinc-400">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                            Чтобы сгенерировать — прикрепите хотя бы одну фотографию
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Bottom status */}
-                      <div className="flex items-center justify-between px-6 py-4 text-sm border-t border-white/10 bg-white/[0.02]">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                            <span className="text-zinc-400">Выберите режим удаления</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 text-zinc-500">
-                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                          <span>Модель: Удаление объектов</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Animated background */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-50" />
-                </div>
-              </div>
-              
-              {/* Back button */}
+            {/* Step 0: Initial state */}
+            {currentStep === 0 && (
               <motion.div
                 initial={{ opacity: 0 }}
-                animate={showDemo && !isDemoHiding ? {
-                  opacity: 1
-                } : {
-                  opacity: 0
-                }}
-                transition={{ 
-                  duration: 0.3, 
-                  ease: "easeInOut", 
-                  delay: showDemo && !isDemoHiding ? 0.6 : 0.1 
-                }}
-                style={{ 
-                  display: showDemo || isDemoHiding ? 'flex' : 'none' 
-                }}
-                className="mt-8 justify-center"
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
               >
-                <button 
-                  onClick={handleGoBack}
-                  className="group relative overflow-hidden px-6 py-3 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-white/10"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <span className="relative z-10 text-white font-medium flex items-center gap-2">
-                    <ArrowRight className="h-4 w-4 rotate-180 group-hover:-translate-x-1 transition-transform duration-300" />
-                    Вернуться назад
-                  </span>
-                </button>
+                <FadeIn delay={0.1}>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 text-sm text-zinc-300 mb-6">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    Живое демо Plan AI
+                  </div>
+                </FadeIn>
+                
+                <FadeIn delay={0.3}>
+                  <p className="text-xl text-zinc-400 mb-8 max-w-2xl mx-auto leading-relaxed">
+                    Загрузите фото → выберите режим → получите результат за секунды. 
+                    Никаких сложных настроек, только результат.
+                  </p>
+                </FadeIn>
+                
+                <FadeIn delay={0.4}>
+                  <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+                    <button 
+                      onClick={handleTryDemo}
+                      className="group relative overflow-hidden px-8 py-4 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-white/10"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <span className="relative z-10 text-white font-medium flex items-center gap-2">
+                        <span>Попробовать демо-версию</span>
+                        <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+                      </span>
+                    </button>
+                    
+                    <div className="flex items-center gap-3 text-zinc-400">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse delay-200"></div>
+                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse delay-400"></div>
+                      </div>
+                      <span className="text-sm font-medium">Без регистрации • Мгновенный результат</span>
+                    </div>
+                  </div>
+                </FadeIn>
               </motion.div>
-            </motion.div>
+            )}
+            
+            {/* Step 1: Mode selection */}
+            {currentStep === 1 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="max-w-2xl mx-auto"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <button
+                    onClick={() => handleModeSelect('Создание техплана')}
+                    className="group relative overflow-hidden p-6 rounded-md border border-white/20 bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-all duration-500 hover:scale-[1.02]"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative z-10">
+                      <div className="text-sm font-mono text-zinc-400 uppercase tracking-wider mb-2">МОДУЛЬ</div>
+                      <div className="font-bold text-white text-lg mb-2 uppercase tracking-wider">СОЗДАНИЕ ТЕХПЛАНА</div>
+                      <div className="text-sm text-zinc-400 font-mono">Генерация планов помещений</div>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleModeSelect('Удаление объектов')}
+                    className="group relative overflow-hidden p-6 rounded-md border border-white/20 bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-all duration-500 hover:scale-[1.02]"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative z-10">
+                      <div className="text-sm font-mono text-zinc-400 uppercase tracking-wider mb-2">МОДУЛЬ</div>
+                      <div className="font-bold text-white text-lg mb-2 uppercase tracking-wider">УДАЛЕНИЕ ОБЪЕКТОВ</div>
+                      <div className="text-sm text-zinc-400 font-mono">Очистка изображений</div>
+                    </div>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 2: Sub-mode selection for tech plan */}
+            {currentStep === 2 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="max-w-2xl mx-auto"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <button
+                    onClick={() => handleSubModeSelect('С мебелью')}
+                    className="group relative overflow-hidden p-6 rounded-md border border-white/20 bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-all duration-500 hover:scale-[1.02]"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative z-10">
+                      <div className="text-sm font-mono text-zinc-400 uppercase tracking-wider mb-2">РЕЖИМ</div>
+                      <div className="font-bold text-white text-lg mb-2 uppercase tracking-wider">С МЕБЕЛЬЮ</div>
+                      <div className="text-sm text-zinc-400 font-mono">Включая мебель и объекты</div>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleSubModeSelect('Без мебели')}
+                    className="group relative overflow-hidden p-6 rounded-md border border-white/20 bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-all duration-500 hover:scale-[1.02]"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative z-10">
+                      <div className="text-sm font-mono text-zinc-400 uppercase tracking-wider mb-2">РЕЖИМ</div>
+                      <div className="font-bold text-white text-lg mb-2 uppercase tracking-wider">БЕЗ МЕБЕЛИ</div>
+                      <div className="text-sm text-zinc-400 font-mono">Только архитектура</div>
+                    </div>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 3: Processing */}
+            {currentStep === 3 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="max-w-4xl mx-auto"
+              >
+                <div className="relative overflow-hidden rounded-md border border-white/20 bg-black/50 backdrop-blur-sm p-8">
+                  {/* Professional grid background */}
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="h-full w-full" style={{
+                      backgroundImage: `
+                        linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+                      `,
+                      backgroundSize: '20px 20px'
+                    }} />
+                  </div>
+                  
+                  <div className="relative z-10">
+                    {/* Processing status */}
+                    <div className="text-center mb-8">
+                      <div className="text-sm font-mono text-zinc-400 uppercase tracking-wider mb-2">СТАТУС ОБРАБОТКИ</div>
+                      <div className="font-bold text-white text-2xl mb-4 uppercase tracking-wider">
+                        {isProcessing ? 'ОБРАБОТКА...' : 'ЗАВЕРШЕНО'}
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="mb-8">
+                      <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden border border-white/10">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-white to-zinc-300 rounded-full"
+                          initial={{ width: "0%" }}
+                          animate={{ width: isProcessing ? "100%" : "100%" }}
+                          transition={{ duration: 3, ease: "easeInOut" }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs text-zinc-500 mt-2 font-mono">
+                        <span>0%</span>
+                        <span>100%</span>
+                      </div>
+                    </div>
+
+                    {/* Processing steps */}
+                    <div className="flex items-center justify-between relative">
+                      {/* Step 1: Upload */}
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-12 h-12 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs font-bold text-white uppercase tracking-wider">ЗАГРУЗКА</div>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-4"></div>
+
+                      {/* Step 2: AI Processing */}
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-12 h-12 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            className="w-6 h-6 text-white"
+                          >
+                            <svg fill="currentColor" viewBox="0 0 24 24" className="w-full h-full">
+                              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                          </motion.div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs font-bold text-white uppercase tracking-wider">АНАЛИЗ</div>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-4"></div>
+
+                      {/* Step 3: Generation */}
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-12 h-12 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs font-bold text-white uppercase tracking-wider">ГЕНЕРАЦИЯ</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 4: Result */}
+            {currentStep === 4 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="max-w-6xl mx-auto"
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Before image */}
+                  <div className="group relative">
+                    <div className="relative overflow-hidden rounded-md border border-white/20 bg-black/30 backdrop-blur-sm p-4">
+                      <div className="text-center mb-4">
+                        <div className="text-sm font-mono text-zinc-400 uppercase tracking-wider">ИСХОДНОЕ ИЗОБРАЖЕНИЕ</div>
+                      </div>
+                      <img 
+                        src={getBeforeImage()} 
+                        alt="Before" 
+                        className="w-full h-auto rounded-md group-hover:blur-sm transition-all duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <button className="px-4 py-2 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300 text-white font-medium text-sm">
+                          Начать создание
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* After image */}
+                  <div className="group relative">
+                    <div className="relative overflow-hidden rounded-md border border-white/20 bg-black/30 backdrop-blur-sm p-4">
+                      <div className="text-center mb-4">
+                        <div className="text-sm font-mono text-zinc-400 uppercase tracking-wider">РЕЗУЛЬТАТ ОБРАБОТКИ</div>
+                      </div>
+                      <img 
+                        src={getAfterImage()} 
+                        alt="After" 
+                        className="w-full h-auto rounded-md group-hover:blur-sm transition-all duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <button className="px-4 py-2 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300 text-white font-medium text-sm">
+                          Начать создание
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Back button */}
+                <div className="mt-8 flex justify-center">
+                  <button 
+                    onClick={handleGoBack}
+                    className="group relative overflow-hidden px-6 py-3 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-white/10"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <span className="relative z-10 text-white font-medium flex items-center gap-2">
+                      <ArrowRight className="h-4 w-4 rotate-180 group-hover:-translate-x-1 transition-transform duration-300" />
+                      Вернуться назад
+                    </span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </div>
         </Container>
       </div>
@@ -430,7 +537,7 @@ const EnhancedBeforeAfterSlider = ({
       
     <div
       ref={ref}
-        className="group relative w-full overflow-hidden rounded-2xl ring-1 ring-white/20 shadow-2xl select-none cursor-col-resize hover:ring-white/30 transition-all duration-300"
+        className="group relative w-full overflow-hidden rounded-lg ring-1 ring-white/20 shadow-2xl select-none cursor-col-resize hover:ring-white/30 transition-all duration-300"
       onMouseDown={onDown}
       onTouchStart={onDown}
     >
@@ -492,7 +599,7 @@ function ContactForm() {
         value={name}
         onChange={(e)=> setName(e.target.value)}
         placeholder="Имя"
-        className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10"
+        className="rounded-md border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10"
       />
       <input
         required
@@ -500,16 +607,16 @@ function ContactForm() {
         value={email}
         onChange={(e)=> setEmail(e.target.value)}
         placeholder="Email"
-        className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10"
+        className="rounded-md border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10"
       />
-      <button className="rounded-xl border border-white/20 bg-zinc-100 text-zinc-950 px-4 py-3 text-sm font-medium hover:opacity-90 transition">
+      <button className="rounded-md border border-white/20 bg-zinc-100 text-zinc-950 px-4 py-3 text-sm font-medium hover:opacity-90 transition">
         Запросить пилот <ArrowRight className="inline h-4 w-4 ml-1 align-middle" />
       </button>
       <textarea
         value={message}
         onChange={(e)=> setMessage(e.target.value)}
         placeholder="Коротко о задачах и объёмах…"
-        className="md:col-span-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10 min-h-[120px]"
+        className="md:col-span-3 rounded-md border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10 min-h-[120px]"
       />
       {sent && (
         <div className="md:col-span-3 text-sm text-zinc-300">Спасибо! Мы свяжемся с вами — форма в демо не отправляет данные.</div>
@@ -529,6 +636,7 @@ const HomePage: React.FC = () => {
   const y = useTransform(scrollYProgress, [0, 1], [0, -120]);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
 
   const handleTexSchemeRedirect = () => {
     navigate('/new');
@@ -586,17 +694,17 @@ const HomePage: React.FC = () => {
               {user ? (
                 <>
                   <span className="text-sm text-zinc-300">Привет, {user.name}</span>
-                  <button onClick={logout} className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
+                  <button onClick={logout} className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
                     <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Выйти</span>
                     <LogOut className="h-4 w-4 relative z-10 text-white/60 group-hover:text-white transition-all duration-300" />
                   </button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => navigate('/login')} className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
+                  <button onClick={() => navigate('/login')} className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
                     <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Войти</span>
                   </button>
-                  <button onClick={() => navigate('/register')} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition">
+                  <button onClick={() => navigate('/register')} className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition">
                     Запустить
                   </button>
                 </>
@@ -606,7 +714,7 @@ const HomePage: React.FC = () => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all duration-300"
+              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-md border border-white/10 bg-white/5 hover:bg-white/10 transition-all duration-300"
             >
               {isMobileMenuOpen ? (
                 <X className="h-5 w-5 text-zinc-300" />
@@ -670,7 +778,7 @@ const HomePage: React.FC = () => {
                       <span className="text-sm text-zinc-300">Привет, {user.name}</span>
                       <button 
                         onClick={() => { logout(); closeMobileMenu(); }} 
-                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15"
+                        className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15"
                       >
                         <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Выйти</span>
                         <LogOut className="h-4 w-4 relative z-10 text-white/60 group-hover:text-white transition-all duration-300" />
@@ -680,13 +788,13 @@ const HomePage: React.FC = () => {
                     <div className="flex flex-col space-y-3">
                       <button 
                         onClick={() => { navigate('/login'); closeMobileMenu(); }} 
-                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15"
+                        className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15"
                       >
                         <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Войти</span>
                       </button>
                       <button 
                         onClick={() => { navigate('/register'); closeMobileMenu(); }} 
-                        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition"
+                        className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition"
                       >
                         Запустить
                       </button>
@@ -720,10 +828,10 @@ const HomePage: React.FC = () => {
 
             <SlideInFromLeft delay={1.0}>
               <div className="mt-4 flex flex-col sm:flex-row gap-3">
-                <button onClick={handleTexSchemeRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition">
+                <button onClick={handleTexSchemeRedirect} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition">
                 Начать создание
               </button>
-                <button onClick={handleConstructorRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
+                <button onClick={handleConstructorRedirect} className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
                   <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Попробовать демо</span>
                   <ArrowRight className="h-4 w-4 relative z-10 text-white/60 group-hover:text-white transition-all duration-300" />
               </button>
@@ -747,35 +855,57 @@ const HomePage: React.FC = () => {
               />
             </motion.div>
 
-            <FadeIn delay={0.2}>
-              <p className="mt-3 text-xs text-zinc-500">
-                * Plan AI.
-              </p>
-            </FadeIn>
           </Container>
         </div>
       </Section>
 
-      {/* Interactive Stats Section */}
-      <Section id="stats" className="py-8 md:py-12">
+      {/* Client Logos Section */}
+      <Section id="clients" className="py-8 md:py-12">
         <Container>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { number: "50ms", label: "Скорость обработки", desc: "Мгновенная генерация планов" },
-              { number: "99.9%", label: "Точность AI", desc: "Профессиональное качество" },
-              { number: "24/7", label: "Доступность", desc: "Работает круглосуточно" }
-            ].map((stat, i) => (
-              <FadeIn key={i} delay={i * 0.1}>
-                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-300">
-                  <div className="text-3xl md:text-4xl font-bold text-white mb-2 group-hover:scale-105 transition-transform duration-300">
-                    {stat.number}
+          <div className="text-center mb-12">
+            <FadeIn>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Работаем с лучшими командами
+              </h2>
+            </FadeIn>
+            <FadeIn delay={0.1}>
+              <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+                От стартапов до крупных предприятий — Plan AI помогает создавать идеальные планировки
+              </p>
+            </FadeIn>
+          </div>
+
+          <div className="relative group">
+            {/* Client logos grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 items-center justify-items-center">
+              {[
+                { name: "Алатарцев", logo: "Алатарцев", fontStyle: "font-serif font-bold tracking-wide " },
+                { name: "ETAJI", logo: "ETAJI", fontStyle: "font-mono font-extrabold tracking-wider" },
+                { name: "ЦИАН", logo: "ЦИАН", fontStyle: "font-sans font-black uppercase tracking-tight" },
+                { name: "Automattic", logo: "None", fontStyle: "font-sans font-light italic" },
+                { name: "Runway", logo: "None", fontStyle: "font-sans font-medium lowercase" },
+                { name: "Descript", logo: "None", fontStyle: "font-sans font-semibold tracking-wide" }
+              ].map((client, i) => (
+                <FadeIn key={i} delay={i * 0.1}>
+                  <div className="relative">
+                    <div className={`text-2xl md:text-3xl text-white/60 group-hover:text-white/30 transition-all duration-500 group-hover:blur-sm ${client.fontStyle}`}>
+                      {client.logo}
+                    </div>
                   </div>
-                  <div className="text-lg font-medium text-zinc-200 mb-1">{stat.label}</div>
-                  <div className="text-sm text-zinc-400">{stat.desc}</div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-              </FadeIn>
-            ))}
+                </FadeIn>
+              ))}
+            </div>
+
+            {/* Central "Подробнее" button - appears on hover */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+              <button 
+                onClick={() => setShowClientModal(true)}
+                className="pointer-events-auto inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-white/20 bg-white/10 hover:bg-white/15 transition-colors duration-200"
+              >
+                <span className="text-white text-xs font-medium">Подробнее</span>
+                <ArrowRight className="h-3 w-3 text-white" />
+              </button>
+            </div>
           </div>
         </Container>
       </Section>
@@ -786,20 +916,28 @@ const HomePage: React.FC = () => {
       </Section>
 
 
-      {/* Interactive AI Workflow */}
+      {/* Professional AI Workflow */}
       <Section id="workflow" className="py-12 md:py-16">
         <Container>
-          <Title center kicker="AI Workflow" sub="Посмотрите, как Plan AI обрабатывает ваши изображения в реальном времени.">
+          <Title center kicker="ПРОЦЕСС ОБРАБОТКИ" sub="Корпоративный уровень ИИ-обработки с военной точностью и надежностью.">
             Интерактивный процесс
           </Title>
           
           <div className="mt-12 max-w-6xl mx-auto">
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8">
-              {/* Animated background */}
-              <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-50" />
+            <div className="relative overflow-hidden rounded-lg border border-white/20 bg-black/50 backdrop-blur-sm p-8">
+              {/* Professional grid background */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="h-full w-full" style={{
+                  backgroundImage: `
+                    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '20px 20px'
+                }} />
+              </div>
               
               <div className="relative z-10">
-                {/* Interactive workflow visualization */}
+                {/* Professional workflow visualization */}
                 <div className="mb-8 flex justify-center">
                   <div className="relative w-full max-w-4xl">
                     {/* Workflow steps */}
@@ -807,151 +945,152 @@ const HomePage: React.FC = () => {
                       {/* Step 1: Upload */}
                       <div className="group flex flex-col items-center gap-3">
                         <div className="relative">
-                          <div className="w-16 h-16 rounded-2xl border-2 border-white/20 bg-gradient-to-br from-white/10 to-white/5 shadow-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          <div className="w-16 h-16 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center group-hover:scale-105 transition-all duration-500">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                             </svg>
                           </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                            <span className="text-xs font-bold text-white">1</span>
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-md flex items-center justify-center border border-black/20">
+                            <span className="text-xs font-bold text-black">01</span>
                           </div>
                         </div>
                         <div className="text-center">
-                          <div className="text-sm font-semibold text-white">Загрузка</div>
-                          <div className="text-xs text-zinc-400">Фото помещения</div>
+                          <div className="text-sm font-bold text-white uppercase tracking-wider">ЗАГРУЗКА</div>
+                          <div className="text-xs text-zinc-400 font-mono">IMAGE.PNG</div>
                         </div>
                       </div>
 
                       {/* Arrow 1 */}
-                      <div className="flex-1 h-0.5 bg-gradient-to-r from-white/20 via-white/10 to-transparent mx-4"></div>
+                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-4"></div>
 
                       {/* Step 2: AI Processing */}
                       <div className="group flex flex-col items-center gap-3">
                         <div className="relative">
-                          <div className="w-16 h-16 rounded-2xl border-2 border-white/20 bg-gradient-to-br from-blue-500/20 to-purple-500/20 shadow-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                          <div className="w-16 h-16 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center group-hover:scale-105 transition-all duration-500">
                             <motion.div
                               animate={{ rotate: 360 }}
-                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                               className="w-8 h-8 text-white"
                             >
-                              ✷
+                              <svg fill="currentColor" viewBox="0 0 24 24" className="w-full h-full">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                              </svg>
                             </motion.div>
                           </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                            <span className="text-xs font-bold text-white">2</span>
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-md flex items-center justify-center border border-black/20">
+                            <span className="text-xs font-bold text-black">02</span>
                           </div>
                         </div>
                         <div className="text-center">
-                          <div className="text-sm font-semibold text-white">AI Анализ</div>
-                          <div className="text-xs text-zinc-400">Обработка данных</div>
+                          <div className="text-sm font-bold text-white uppercase tracking-wider">АНАЛИЗ</div>
+                          <div className="text-xs text-zinc-400 font-mono">AI.PROCESSING</div>
                         </div>
                       </div>
 
                       {/* Arrow 2 */}
-                      <div className="flex-1 h-0.5 bg-gradient-to-r from-white/20 via-white/10 to-transparent mx-4"></div>
+                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-4"></div>
 
                       {/* Step 3: Generation */}
                       <div className="group flex flex-col items-center gap-3">
                         <div className="relative">
-                          <div className="w-16 h-16 rounded-2xl border-2 border-white/20 bg-gradient-to-br from-green-500/20 to-emerald-500/20 shadow-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          <div className="w-16 h-16 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center group-hover:scale-105 transition-all duration-500">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                           </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                            <span className="text-xs font-bold text-white">3</span>
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-md flex items-center justify-center border border-black/20">
+                            <span className="text-xs font-bold text-black">03</span>
                           </div>
                         </div>
                         <div className="text-center">
-                          <div className="text-sm font-semibold text-white">Генерация</div>
-                          <div className="text-xs text-zinc-400">Создание плана</div>
+                          <div className="text-sm font-bold text-white uppercase tracking-wider">ГЕНЕРАЦИЯ</div>
+                          <div className="text-xs text-zinc-400 font-mono">PLAN.CREATE</div>
                         </div>
                       </div>
 
                       {/* Arrow 3 */}
-                      <div className="flex-1 h-0.5 bg-gradient-to-r from-white/20 via-white/10 to-transparent mx-4"></div>
+                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-4"></div>
 
                       {/* Step 4: Export */}
                       <div className="group flex flex-col items-center gap-3">
                         <div className="relative">
-                          <div className="w-16 h-16 rounded-2xl border-2 border-white/20 bg-gradient-to-br from-orange-500/20 to-red-500/20 shadow-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          <div className="w-16 h-16 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center group-hover:scale-105 transition-all duration-500">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                           </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-                            <span className="text-xs font-bold text-white">4</span>
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-md flex items-center justify-center border border-black/20">
+                            <span className="text-xs font-bold text-black">04</span>
                           </div>
                         </div>
                         <div className="text-center">
-                          <div className="text-sm font-semibold text-white">Экспорт</div>
-                          <div className="text-xs text-zinc-400">PNG/SVG/PDF</div>
+                          <div className="text-sm font-bold text-white uppercase tracking-wider">ЭКСПОРТ</div>
+                          <div className="text-xs text-zinc-400 font-mono">FILES.READY</div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Progress bar */}
+                    {/* Professional progress bar */}
                     <div className="mt-8">
-                      <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
-                        <span>Прогресс обработки</span>
-                        <span>2.3s</span>
+                      <div className="flex items-center justify-between text-xs text-zinc-400 mb-3 font-mono">
+                        <span>СТАТУС ОБРАБОТКИ</span>
+                        <span className="text-white font-bold">2.3s</span>
                       </div>
-                      <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden border border-white/10">
                         <motion.div
-                          className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full"
+                          className="h-full bg-gradient-to-r from-white to-zinc-300 rounded-full"
                           initial={{ width: "0%" }}
                           animate={{ width: "100%" }}
                           transition={{ duration: 2.3, ease: "easeInOut", repeat: Infinity }}
                         />
                       </div>
+                      <div className="flex justify-between text-xs text-zinc-500 mt-2 font-mono">
+                        <span>0%</span>
+                        <span>100%</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Interactive features grid */}
+                {/* Professional features grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
                     { 
-                      icon: "📸", 
-                      title: "Загрузка фото", 
+                      title: "МОДУЛЬ ЗАГРУЗКИ", 
                       desc: "Поддержка всех форматов", 
-                      color: "from-blue-500/10 to-purple-500/10",
-                      hoverColor: "from-blue-500/20 to-purple-500/20"
+                      status: "ОНЛАЙН"
                     },
                     { 
-                      icon: "🤖", 
-                      title: "AI Анализ", 
-                      desc: "Нейронные сети", 
-                      color: "from-green-500/10 to-emerald-500/10",
-                      hoverColor: "from-green-500/20 to-emerald-500/20"
+                      title: "ИИ ОБРАБОТКА", 
+                      desc: "Анализ нейронных сетей", 
+                      status: "АКТИВНО"
                     },
                     { 
-                      icon: "⚡", 
-                      title: "Быстрая генерация", 
-                      desc: "За 2-3 секунды", 
-                      color: "from-orange-500/10 to-red-500/10",
-                      hoverColor: "from-orange-500/20 to-red-500/20"
+                      title: "ДВИЖОК ГЕНЕРАЦИИ", 
+                      desc: "Обработка за 2-3 секунды", 
+                      status: "ГОТОВ"
                     },
                     { 
-                      icon: "📁", 
-                      title: "Множественный экспорт", 
-                      desc: "PNG, SVG, PDF", 
-                      color: "from-purple-500/10 to-pink-500/10",
-                      hoverColor: "from-purple-500/20 to-pink-500/20"
+                      title: "СИСТЕМА ЭКСПОРТА", 
+                      desc: "Вывод PNG, SVG, PDF", 
+                      status: "ОЖИДАНИЕ"
                     },
                   ].map((feature, i) => (
                     <FadeIn key={i} delay={i * 0.1}>
-                      <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-300 hover:scale-[1.02]">
-                        <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                      <div className="group relative overflow-hidden rounded-md border border-white/20 bg-black/30 backdrop-blur-sm p-6 hover:bg-black/50 transition-all duration-500 hover:scale-[1.02]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         
                         <div className="relative z-10">
-                          <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">
-                            {feature.icon}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
+                              {feature.status}
+                            </div>
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                           </div>
-                          <div className="font-semibold text-zinc-200 group-hover:text-white transition-colors duration-300 mb-2">
+                          <div className="font-bold text-white text-sm mb-2 uppercase tracking-wider">
                             {feature.title}
                           </div>
-                          <div className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300">
+                          <div className="text-xs text-zinc-400 font-mono">
                             {feature.desc}
                           </div>
                         </div>
@@ -968,14 +1107,14 @@ const HomePage: React.FC = () => {
       {/* Value for RE agencies */}
       <Section id="solutions" className="py-8 md:py-12">
         <Container>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-3xl border border-white/10 bg-white/[0.02] p-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-lg border border-white/10 bg-white/[0.02] p-8">
             {[
               { icon: <Building2 className="h-5 w-5" />, t: "Для агентств", d: "Единый поток: загрузка → создание → результат." },
               { icon: <Layers className="h-5 w-5" />, t: "Для других организаций", d: "Совместный доступ и единые алгоритмы создания." },
               { icon: <Share2 className="h-5 w-5" />, t: "Экспорт без трения", d: "PNG, SVG, PDF и ссылки для быстрой отправки клиентам." },
             ].map((m, i) => (
               <FadeIn key={m.t} delay={i * 0.1}>
-                <div className="group flex items-start gap-4 p-6 rounded-2xl hover:bg-white/[0.04] transition-all duration-300">
+                <div className="group flex items-start gap-4 p-6 rounded-lg hover:bg-white/[0.04] transition-all duration-300">
                   <div className="mt-1 rounded-full border border-white/20 bg-white/10 p-3 text-zinc-300 group-hover:bg-white/20 group-hover:text-white transition-all duration-300">
                     {m.icon}
                   </div>
@@ -1026,7 +1165,7 @@ const HomePage: React.FC = () => {
               },
             ].map((f, i) => (
               <FadeIn key={i} delay={i * 0.1}>
-                <div className="group relative h-full overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
+                <div className="group relative h-full overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
                   <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500" 
                        style={{ background: `linear-gradient(135deg, ${f.gradient.split(' ')[0].replace('from-', '').replace('/10', '')}20, transparent)` }} />
                   
@@ -1055,7 +1194,7 @@ const HomePage: React.FC = () => {
                   </div>
                   
                   {/* Hover effect overlay */}
-                  <div className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 group-hover:opacity-100 transition duration-500 [mask-image:radial-gradient(80%_120%_at_50%_0%,_black,_transparent)] bg-gradient-to-b from-white/10 to-transparent" />
+                  <div className="pointer-events-none absolute -inset-px rounded-lg opacity-0 group-hover:opacity-100 transition duration-500 [mask-image:radial-gradient(80%_120%_at_50%_0%,_black,_transparent)] bg-gradient-to-b from-white/10 to-transparent" />
                 </div>
               </FadeIn>
             ))}
@@ -1073,7 +1212,7 @@ const HomePage: React.FC = () => {
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* 1. AI создание 2D плана */}
             <FadeIn delay={0.1}>
-              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
+              <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
                 <div className="relative z-10">
@@ -1108,7 +1247,7 @@ const HomePage: React.FC = () => {
 
             {/* 2. Очистка */}
             <FadeIn delay={0.2}>
-              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
+              <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
                 <div className="relative z-10">
@@ -1143,7 +1282,7 @@ const HomePage: React.FC = () => {
 
             {/* 3. Конструктор с ИИ */}
             <FadeIn delay={0.3}>
-              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
+              <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
                 <div className="relative z-10">
@@ -1188,7 +1327,7 @@ const HomePage: React.FC = () => {
           
           <div className="mt-12 space-y-8">
             {/* Main showcase - full width */}
-            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500">
+            <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500">
               <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
               
               <div className="relative z-10">
@@ -1211,7 +1350,7 @@ const HomePage: React.FC = () => {
             
             {/* Secondary examples grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-500">
+              <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-500">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
                 <div className="relative z-10">
@@ -1230,7 +1369,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               
-              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-500">
+              <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-500">
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
                 <div className="relative z-10">
@@ -1260,7 +1399,7 @@ const HomePage: React.FC = () => {
                   { number: "10k+", label: "Обработано изображений", icon: "📊" }
                 ].map((stat, i) => (
                   <FadeIn key={i} delay={i * 0.1}>
-                    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-all duration-300 hover:scale-105">
+                    <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-all duration-300 hover:scale-105">
                       <div className="text-2xl mb-1 group-hover:scale-110 transition-transform duration-300">
                         {stat.icon}
                       </div>
@@ -1289,7 +1428,7 @@ const HomePage: React.FC = () => {
       {/* Interactive Testimonial */}
       <Section id="testimonial" className="py-12 md:py-16">
         <Container>
-          <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.02] to-white/[0.01] p-8 md:p-12 hover:bg-white/[0.04] transition-all duration-500">
+          <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br from-white/[0.02] to-white/[0.01] p-8 md:p-12 hover:bg-white/[0.04] transition-all duration-500">
             {/* Animated background elements */}
             <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
@@ -1367,7 +1506,7 @@ const HomePage: React.FC = () => {
               },
             ].map((item, i) => (
               <FadeIn key={i} delay={i * 0.1}>
-                <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
+                <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
                   <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
                   <div className="relative z-10">
@@ -1387,7 +1526,7 @@ const HomePage: React.FC = () => {
                   </div>
                   
                   {/* Hover effect overlay */}
-                  <div className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 group-hover:opacity-100 transition duration-500 [mask-image:radial-gradient(80%_120%_at_50%_0%,_black,_transparent)] bg-gradient-to-b from-white/10 to-transparent" />
+                  <div className="pointer-events-none absolute -inset-px rounded-lg opacity-0 group-hover:opacity-100 transition duration-500 [mask-image:radial-gradient(80%_120%_at_50%_0%,_black,_transparent)] bg-gradient-to-b from-white/10 to-transparent" />
                 </div>
               </FadeIn>
             ))}
@@ -1398,7 +1537,7 @@ const HomePage: React.FC = () => {
       {/* CTA & Contact */}
       <Section id="contact" className="py-8 md:py-14">
         <Container>
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-10 md:p-14">
+          <div className="relative overflow-hidden rounded-lg border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-10 md:p-14">
             <Glow className="-top-10" />
             <FadeIn>
               <div className="text-sm uppercase tracking-[0.2em] text-zinc-500">Готовы к пилоту?</div>
@@ -1426,6 +1565,110 @@ const HomePage: React.FC = () => {
           <div className="text-zinc-500 text-sm">Сделано для агентств недвижимости</div>
         </Container>
       </footer>
+
+      {/* Client Modal */}
+      {showClientModal && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            onClick={() => setShowClientModal(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950 border-t border-white/10 rounded-t-3xl p-8 max-h-[80vh] overflow-y-auto"
+          >
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-2xl font-bold text-white">Наши клиенты</h3>
+                <button 
+                  onClick={() => setShowClientModal(false)}
+                  className="h-8 w-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                >
+                  <X className="h-4 w-4 text-white" />
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { 
+                    name: "Cursor", 
+                    description: "AI-powered code editor",
+                    logo: "CURSOR",
+                    industry: "Разработка ПО"
+                  },
+                  { 
+                    name: "Brex", 
+                    description: "Corporate credit cards",
+                    logo: "Brex",
+                    industry: "Финтех"
+                  },
+                  { 
+                    name: "Remote", 
+                    description: "Global HR platform",
+                    logo: "remote",
+                    industry: "HR технологии"
+                  },
+                  { 
+                    name: "Automattic", 
+                    description: "WordPress.com & WooCommerce",
+                    logo: "AUTOMATTIC",
+                    industry: "Веб-платформы"
+                  },
+                  { 
+                    name: "Runway", 
+                    description: "AI video editing",
+                    logo: "runway",
+                    industry: "Медиа технологии"
+                  },
+                  { 
+                    name: "Descript", 
+                    description: "Audio & video editing",
+                    logo: "descript",
+                    industry: "Медиа технологии"
+                  }
+                ].map((client, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="group p-6 rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-300"
+                  >
+                    <div className="text-2xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                      {client.logo}
+                    </div>
+                    <div className="text-lg font-semibold text-zinc-200 mb-1">
+                      {client.name}
+                    </div>
+                    <div className="text-sm text-zinc-400 mb-2">
+                      {client.description}
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      {client.industry}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              
+              <div className="mt-8 text-center">
+                <p className="text-zinc-400 mb-4">
+                  Хотите стать нашим клиентом? Свяжитесь с нами для обсуждения сотрудничества.
+                </p>
+                <button 
+                  onClick={() => setShowClientModal(false)}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300"
+                >
+                  <span className="text-white font-medium">Связаться с нами</span>
+                  <ArrowRight className="h-4 w-4 text-white" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
     </main>
   );
 };
