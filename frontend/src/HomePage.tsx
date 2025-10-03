@@ -9,9 +9,6 @@ import {
   Eraser,
   Wand2,
   Ruler,
-  Building2,
-  Layers,
-  Share2,
   LogOut,
   Menu,
   X,
@@ -89,6 +86,9 @@ const DemoHero = () => {
   const [selectedMode, setSelectedMode] = React.useState('');
   const [selectedSubMode, setSelectedSubMode] = React.useState('');
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [isBlurred, setIsBlurred] = React.useState(false);
+  const [countdown, setCountdown] = React.useState(0);
+  const [progressPercentage, setProgressPercentage] = React.useState(0);
   
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -120,10 +120,39 @@ const DemoHero = () => {
 
   const startProcessing = () => {
     setIsProcessing(true);
+    setIsBlurred(true);
+    setCountdown(6); // Устанавливаем 6 секунд
+    setProgressPercentage(0);
+    
+    // Обратный отсчет
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Анимация процента - привязанная к времени
+    const startTime = Date.now();
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / 6000) * 100, 100); // 6 секунд = 100%
+      setProgressPercentage(progress);
+      
+      if (progress >= 100) {
+        clearInterval(progressInterval);
+      }
+    }, 50); // Обновляем каждые 50мс для плавности
+    
     setTimeout(() => {
       setIsProcessing(false);
+      setIsBlurred(false);
       setCurrentStep(4);
-    }, 3000);
+      setProgressPercentage(100);
+    }, 6000); // 6 секунд
   };
 
   const handleGoBack = () => {
@@ -131,20 +160,23 @@ const DemoHero = () => {
     setSelectedMode('');
     setSelectedSubMode('');
     setIsProcessing(false);
+    setIsBlurred(false);
+    setCountdown(0);
+    setProgressPercentage(0);
   };
 
   const getBeforeImage = () => {
-    if (selectedMode === 'Удаление объектов') return '/past_deleteobjects.jpg';
-    if (selectedSubMode === 'С мебелью') return '/past_testplanmeb.jpg';
-    if (selectedSubMode === 'Без мебели') return '/past_testplan.jpg';
-    return '/past_testplan.jpg';
+    if (selectedMode === 'Удаление объектов') return '/latar/past_deleteobjects.jpg';
+    if (selectedSubMode === 'С мебелью') return '/latar/past_testplanmeb.jpg';
+    if (selectedSubMode === 'Без мебели') return '/latar/past_testplan.jpg';
+    return '/latar/past_testplan.jpg';
   };
 
   const getAfterImage = () => {
-    if (selectedMode === 'Удаление объектов') return '/rdy_deleteobjects.jpg';
-    if (selectedSubMode === 'С мебелью') return '/rdy_testplanmeb.jpg';
-    if (selectedSubMode === 'Без мебели') return '/rdy_testplan.jpg';
-    return '/rdy_testplan.jpg';
+    if (selectedMode === 'Удаление объектов') return '/latar/rdy_deleteobjects.jpg';
+    if (selectedSubMode === 'С мебелью') return '/latar/rdy_testplanmeb.jpg';
+    if (selectedSubMode === 'Без мебели') return '/latar/rdy_testplan.jpg';
+    return '/latar/rdy_testplan.jpg';
   };
   
   return (
@@ -178,10 +210,10 @@ const DemoHero = () => {
           <div className="max-w-6xl mx-auto text-center">
             {/* Title that stays in place */}
             <FadeIn delay={0.2}>
-              <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                Попробуйте магию
+              <h2 className="text-2xl md:text-4xl font-bold text-white mb-6 leading-tight">
+                Магия Plan AI
                 <span className="block bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                  AI в действии
+                в действии
                 </span>
               </h2>
             </FadeIn>
@@ -197,12 +229,12 @@ const DemoHero = () => {
                 <FadeIn delay={0.1}>
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 text-sm text-zinc-300 mb-6">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    Живое демо Plan AI
+                    Демонстрация Plan AI
                   </div>
                 </FadeIn>
                 
                 <FadeIn delay={0.3}>
-                  <p className="text-xl text-zinc-400 mb-8 max-w-2xl mx-auto leading-relaxed">
+                  <p className="text-lg text-zinc-400 mb-8 max-w-2xl mx-auto leading-relaxed">
                     Загрузите фото → выберите режим → получите результат за секунды. 
                     Никаких сложных настроек, только результат.
                   </p>
@@ -333,8 +365,11 @@ const DemoHero = () => {
                     {/* Processing status */}
                     <div className="text-center mb-8">
                       <div className="text-sm font-mono text-zinc-400 uppercase tracking-wider mb-2">СТАТУС ОБРАБОТКИ</div>
-                      <div className="font-bold text-white text-2xl mb-4 uppercase tracking-wider">
+                      <div className="font-bold text-white text-2xl mb-2 uppercase tracking-wider">
                         {isProcessing ? 'ОБРАБОТКА...' : 'ЗАВЕРШЕНО'}
+                      </div>
+                      <div className="text-sm text-zinc-400 font-mono">
+                        {isProcessing ? `Осталось: ${countdown}с | Время: 6.0с` : 'Время выполнения: 6.0с'}
                       </div>
                     </div>
 
@@ -344,13 +379,15 @@ const DemoHero = () => {
                         <motion.div
                           className="h-full bg-gradient-to-r from-white to-zinc-300 rounded-full"
                           initial={{ width: "0%" }}
-                          animate={{ width: isProcessing ? "100%" : "100%" }}
-                          transition={{ duration: 3, ease: "easeInOut" }}
+                          animate={{ width: `${progressPercentage}%` }}
+                          transition={{ duration: 0.1, ease: "linear" }}
                         />
                       </div>
                       <div className="flex justify-between text-xs text-zinc-500 mt-2 font-mono">
                         <span>0%</span>
-                        <span>100%</span>
+                        <span className="text-white font-bold">
+                          {isProcessing ? `${Math.round(progressPercentage)}%` : '100%'}
+                        </span>
                       </div>
                     </div>
 
@@ -358,13 +395,33 @@ const DemoHero = () => {
                     <div className="flex items-center justify-between relative">
                       {/* Step 1: Upload */}
                       <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <div className={`w-12 h-12 rounded-md border-2 shadow-2xl flex items-center justify-center transition-all duration-1000 relative overflow-hidden ${
+                          progressPercentage >= 0 
+                            ? 'border-white/80 bg-gradient-to-br from-white/20 to-white/5 shadow-white/30' 
+                            : 'border-white/10 bg-gradient-to-br from-white/5 to-black/20'
+                        }`}>
+                          {/* Плавный блюр эффект */}
+                          {progressPercentage >= 0 && (
+                            <motion.div 
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -skew-x-12"
+                              initial={{ opacity: 0, x: '-100%' }}
+                              animate={{ opacity: 1, x: '100%' }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                            />
+                          )}
+                          <svg className={`w-6 h-6 transition-all duration-1000 ${
+                            progressPercentage >= 0 ? 'text-white drop-shadow-2xl' : 'text-white/30'
+                          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                           </svg>
                         </div>
                         <div className="text-center">
-                          <div className="text-xs font-bold text-white uppercase tracking-wider">ЗАГРУЗКА</div>
+                          <div className={`text-xs font-bold uppercase tracking-wider transition-all duration-1000 ${
+                            progressPercentage >= 0 ? 'text-white' : 'text-white/40'
+                          }`}>ЗАГРУЗКА</div>
+                          <div className={`text-xs font-mono transition-all duration-1000 ${
+                            progressPercentage >= 0 ? 'text-white/80' : 'text-white/20'
+                          }`}>IMAGE.PNG</div>
                         </div>
                       </div>
 
@@ -372,19 +429,39 @@ const DemoHero = () => {
 
                       {/* Step 2: AI Processing */}
                       <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center">
+                        <div className={`w-12 h-12 rounded-md border-2 shadow-2xl flex items-center justify-center transition-all duration-1000 relative overflow-hidden ${
+                          progressPercentage >= 20 
+                            ? 'border-white/80 bg-gradient-to-br from-white/20 to-white/5 shadow-white/30' 
+                            : 'border-white/10 bg-gradient-to-br from-white/5 to-black/20'
+                        }`}>
+                          {/* Плавный блюр эффект */}
+                          {progressPercentage >= 20 && (
+                            <motion.div 
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -skew-x-12"
+                              initial={{ opacity: 0, x: '-100%' }}
+                              animate={{ opacity: 1, x: '100%' }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                            />
+                          )}
                           <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                            className="w-6 h-6 text-white"
+                            className={`w-6 h-6 transition-all duration-1000 ${
+                              progressPercentage >= 20 ? 'text-white drop-shadow-2xl' : 'text-white/30'
+                            }`}
                           >
-                            <svg fill="currentColor" viewBox="0 0 24 24" className="w-full h-full">
+                            <svg fill="currentColor" viewBox="0 0 24 24" className="w-full h-full" strokeWidth={2}>
                               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                             </svg>
                           </motion.div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xs font-bold text-white uppercase tracking-wider">АНАЛИЗ</div>
+                          <div className={`text-xs font-bold uppercase tracking-wider transition-all duration-1000 ${
+                            progressPercentage >= 20 ? 'text-white' : 'text-white/40'
+                          }`}>АНАЛИЗ</div>
+                          <div className={`text-xs font-mono transition-all duration-1000 ${
+                            progressPercentage >= 20 ? 'text-white/80' : 'text-white/20'
+                          }`}>AI.PROCESSING</div>
                         </div>
                       </div>
 
@@ -392,13 +469,119 @@ const DemoHero = () => {
 
                       {/* Step 3: Generation */}
                       <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <div className={`w-12 h-12 rounded-md border-2 shadow-2xl flex items-center justify-center transition-all duration-1000 relative overflow-hidden ${
+                          progressPercentage >= 40 
+                            ? 'border-white/80 bg-gradient-to-br from-white/20 to-white/5 shadow-white/30' 
+                            : 'border-white/10 bg-gradient-to-br from-white/5 to-black/20'
+                        }`}>
+                          {/* Плавный блюр эффект */}
+                          {progressPercentage >= 40 && (
+                            <motion.div 
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -skew-x-12"
+                              initial={{ opacity: 0, x: '-100%' }}
+                              animate={{ opacity: 1, x: '100%' }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                            />
+                          )}
+                          <motion.div
+                            animate={{ scale: [1, 1.02, 1] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                            className={`w-6 h-6 transition-all duration-1000 ${
+                              progressPercentage >= 40 ? 'text-white drop-shadow-2xl' : 'text-white/30'
+                            }`}
+                          >
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
+                          </motion.div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xs font-bold text-white uppercase tracking-wider">ГЕНЕРАЦИЯ</div>
+                          <div className={`text-xs font-bold uppercase tracking-wider transition-all duration-1000 ${
+                            progressPercentage >= 40 ? 'text-white' : 'text-white/40'
+                          }`}>ГЕНЕРАЦИЯ</div>
+                          <div className={`text-xs font-mono transition-all duration-1000 ${
+                            progressPercentage >= 40 ? 'text-white/80' : 'text-white/20'
+                          }`}>PLAN.CREATE</div>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-4"></div>
+
+                      {/* Step 4: Optimization */}
+                      <div className="flex flex-col items-center gap-3">
+                        <div className={`w-12 h-12 rounded-md border-2 shadow-2xl flex items-center justify-center transition-all duration-1000 relative overflow-hidden ${
+                          progressPercentage >= 60 
+                            ? 'border-white/80 bg-gradient-to-br from-white/20 to-white/5 shadow-white/30' 
+                            : 'border-white/10 bg-gradient-to-br from-white/5 to-black/20'
+                        }`}>
+                          {/* Плавный блюр эффект */}
+                          {progressPercentage >= 60 && (
+                            <motion.div 
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -skew-x-12"
+                              initial={{ opacity: 0, x: '-100%' }}
+                              animate={{ opacity: 1, x: '100%' }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                            />
+                          )}
+                          <motion.div
+                            animate={{ rotate: [0, 2, -2, 0] }}
+                            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                            className={`w-6 h-6 transition-all duration-1000 ${
+                              progressPercentage >= 60 ? 'text-white drop-shadow-2xl' : 'text-white/30'
+                            }`}
+                          >
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                          </motion.div>
+                    </div>
+                        <div className="text-center">
+                          <div className={`text-xs font-bold uppercase tracking-wider transition-all duration-1000 ${
+                            progressPercentage >= 60 ? 'text-white' : 'text-white/40'
+                          }`}>ОПТИМИЗАЦИЯ</div>
+                          <div className={`text-xs font-mono transition-all duration-1000 ${
+                            progressPercentage >= 60 ? 'text-white/80' : 'text-white/20'
+                          }`}>FINALIZE</div>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-4"></div>
+
+                      {/* Step 5: Export */}
+                      <div className="flex flex-col items-center gap-3">
+                        <div className={`w-12 h-12 rounded-md border-2 shadow-2xl flex items-center justify-center transition-all duration-1000 relative overflow-hidden ${
+                          progressPercentage >= 80 
+                            ? 'border-white/80 bg-gradient-to-br from-white/20 to-white/5 shadow-white/30' 
+                            : 'border-white/10 bg-gradient-to-br from-white/5 to-black/20'
+                        }`}>
+                          {/* Плавный блюр эффект */}
+                          {progressPercentage >= 80 && (
+                            <motion.div 
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -skew-x-12"
+                              initial={{ opacity: 0, x: '-100%' }}
+                              animate={{ opacity: 1, x: '100%' }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                            />
+                          )}
+                          <motion.div
+                            animate={{ y: [0, -1, 0] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                            className={`w-6 h-6 transition-all duration-1000 ${
+                              progressPercentage >= 80 ? 'text-white drop-shadow-2xl' : 'text-white/30'
+                            }`}
+                          >
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </motion.div>
+                        </div>
+                        <div className="text-center">
+                          <div className={`text-xs font-bold uppercase tracking-wider transition-all duration-1000 ${
+                            progressPercentage >= 80 ? 'text-white' : 'text-white/40'
+                          }`}>ЭКСПОРТ</div>
+                          <div className={`text-xs font-mono transition-all duration-1000 ${
+                            progressPercentage >= 80 ? 'text-white/80' : 'text-white/20'
+                          }`}>FILES.READY</div>
                         </div>
                       </div>
                     </div>
@@ -442,11 +625,85 @@ const DemoHero = () => {
                       <div className="text-center mb-4">
                         <div className="text-sm font-mono text-zinc-400 uppercase tracking-wider">РЕЗУЛЬТАТ ОБРАБОТКИ</div>
                       </div>
+                      <div className="relative">
                       <img 
                         src={getAfterImage()} 
                         alt="After" 
-                        className="w-full h-auto rounded-md group-hover:blur-sm transition-all duration-300"
-                      />
+                          className={`w-full h-auto rounded-md transition-all duration-500 ${
+                            isBlurred ? 'blur-md scale-105' : 'blur-0 scale-100'
+                          }`}
+                        />
+                        
+                        {/* Крутой оверлей с обратным отсчетом */}
+                        {isBlurred && (
+                          <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-purple-900/60 to-black/80 backdrop-blur-sm flex items-center justify-center rounded-md">
+                            <div className="text-center">
+                              <div className="relative">
+                                {/* Анимированный круг обратного отсчета */}
+                                <div className="w-32 h-32 mx-auto mb-6 relative">
+                                  <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
+                                    <circle
+                                      cx="50"
+                                      cy="50"
+                                      r="45"
+                                      fill="none"
+                                      stroke="rgba(255,255,255,0.1)"
+                                      strokeWidth="8"
+                                    />
+                                    <circle
+                                      cx="50"
+                                      cy="50"
+                                      r="45"
+                                      fill="none"
+                                      stroke="url(#gradient)"
+                                      strokeWidth="8"
+                                      strokeLinecap="round"
+                                      strokeDasharray={`${2 * Math.PI * 45}`}
+                                      strokeDashoffset={`${2 * Math.PI * 45 * (1 - (6 - countdown) / 6)}`}
+                                      className="transition-all duration-1000 ease-out"
+                                    />
+                                    <defs>
+                                      <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stopColor="#8b5cf6" />
+                                        <stop offset="50%" stopColor="#ec4899" />
+                                        <stop offset="100%" stopColor="#f59e0b" />
+                                      </linearGradient>
+                                    </defs>
+                                  </svg>
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-4xl font-bold text-white font-mono">
+                                      {countdown}
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                {/* Стильный текст */}
+                                <div className="space-y-2">
+                                  <div className="text-2xl font-bold text-white font-mono tracking-wider">
+                                    ГЕНЕРАЦИЯ
+                                  </div>
+                                  <div className="text-lg text-purple-300 font-mono">
+                                    {countdown > 0 ? 'ОБРАБОТКА...' : 'ЗАВЕРШЕНО'}
+                                  </div>
+                                  <div className="text-sm text-zinc-400 font-mono">
+                                    {countdown > 0 ? `Прогресс: ${Math.round(progressPercentage)}%` : 'Результат готов!'}
+                                  </div>
+                                </div>
+                                
+                                {/* Анимированные точки */}
+                                {countdown > 0 && (
+                                  <div className="flex justify-center space-x-1 mt-4">
+                                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                                    <div className="w-2 h-2 bg-pink-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                         <button className="px-4 py-2 rounded-md border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300 text-white font-medium text-sm">
                           Начать создание
@@ -481,103 +738,6 @@ const DemoHero = () => {
   );
 };
 
-/* =============================
-   Enhanced Before/After slider — zero-lag, bound to pointer
-   ============================= */
-const EnhancedBeforeAfterSlider = ({ 
-  before, 
-  after, 
-  captionBefore = "До", 
-  captionAfter = "После",
-  description = ""
-}: { 
-  before: string; 
-  after: string; 
-  captionBefore?: string; 
-  captionAfter?: string;
-  description?: string;
-}) => {
-  const ref = React.useRef<HTMLDivElement>(null);
-  const [x, setX] = React.useState(0.5);
-  const [isDragging, setIsDragging] = React.useState(false);
-
-  const setFromEvent = (e: MouseEvent | TouchEvent) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const nx = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    setX(nx);
-  };
-
-  const onDown = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    setFromEvent(e.nativeEvent);
-    const move = (ev: MouseEvent | TouchEvent) => { ev.preventDefault(); setFromEvent(ev); };
-    const up = () => {
-      setIsDragging(false);
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("touchmove", move);
-      window.removeEventListener("mouseup", up);
-      window.removeEventListener("touchend", up);
-    };
-    window.addEventListener("mousemove", move, { passive: false });
-    window.addEventListener("touchmove", move, { passive: false });
-    window.addEventListener("mouseup", up);
-    window.addEventListener("touchend", up);
-  };
-
-  return (
-    <div className="space-y-4">
-      {description && (
-        <div className="text-sm text-zinc-400 text-center">
-          {description}
-        </div>
-      )}
-      
-    <div
-      ref={ref}
-        className="group relative w-full overflow-hidden rounded-lg ring-1 ring-white/20 shadow-2xl select-none cursor-col-resize hover:ring-white/30 transition-all duration-300"
-      onMouseDown={onDown}
-      onTouchStart={onDown}
-    >
-        <img src={before} alt="before" className="absolute inset-0 w-full h-[300px] md:h-[400px] object-cover" />
-      <img
-        src={after}
-        alt="after"
-          className="absolute inset-0 h-[300px] md:h-[400px] object-cover"
-        style={{ width: "100%", clipPath: `inset(0 0 0 ${x * 100}%)` }}
-      />
-        
-        {/* Enhanced Handle */}
-      <div className="absolute inset-y-0" style={{ left: `${x * 100}%` }}>
-          <div className="absolute -left-0.5 top-0 bottom-0 w-1 bg-white/90 shadow-lg" />
-          <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white text-zinc-900 grid place-content-center shadow-xl ring-2 ring-white/20 pointer-events-none transition-all duration-300 ${isDragging ? 'scale-110' : 'group-hover:scale-105'}`}>
-            <span className="text-sm font-bold">⇆</span>
-        </div>
-      </div>
-        
-        {/* Enhanced Labels */}
-        <div className="absolute left-4 bottom-4 px-3 py-2 rounded-lg bg-black/60 backdrop-blur-sm text-white/90 text-sm font-medium shadow-lg">
-          {captionBefore}
-        </div>
-        <div className="absolute right-4 bottom-4 px-3 py-2 rounded-lg bg-black/60 backdrop-blur-sm text-white/90 text-sm font-medium shadow-lg">
-          {captionAfter}
-        </div>
-        
-        {/* Progress indicator */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-          <div 
-            className="h-full bg-white/60 transition-all duration-300"
-            style={{ width: `${x * 100}%` }}
-          />
-        </div>
-        
-        <div className="relative h-[300px] md:h-[400px]" />
-      </div>
-    </div>
-  );
-};
 
 
 /* =============================
@@ -815,13 +975,14 @@ const HomePage: React.FC = () => {
 
             <SlideInFromLeft delay={0.2}>
               <h1 className="mt-6 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight leading-tight" style={{ fontFamily: 'New York, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-                Plan AI — превращает фотографии в идеальные планировки за секунды
+                Plan AI превращает фотографии в<br />
+                идеальные планировки за секунды
             </h1>
             </SlideInFromLeft>
 
             <SlideInFromLeft delay={0.6}>
               <p className="mt-3 max-w-2xl text-sm text-zinc-400">
-              Система создания планировки и очистки помещений. 
+              Система создания планировки и очистки помещений.<br />
               Оптимизация задач и надежность результата.
               </p>
             </SlideInFromLeft>
@@ -879,12 +1040,12 @@ const HomePage: React.FC = () => {
             {/* Client logos grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 items-center justify-items-center">
               {[
-                { name: "Алатарцев", logo: "Алатарцев", fontStyle: "font-serif font-bold tracking-wide " },
-                { name: "ETAJI", logo: "ETAJI", fontStyle: "font-mono font-extrabold tracking-wider" },
-                { name: "ЦИАН", logo: "ЦИАН", fontStyle: "font-sans font-black uppercase tracking-tight" },
-                { name: "Automattic", logo: "None", fontStyle: "font-sans font-light italic" },
-                { name: "Runway", logo: "None", fontStyle: "font-sans font-medium lowercase" },
-                { name: "Descript", logo: "None", fontStyle: "font-sans font-semibold tracking-wide" }
+                { name: "1", logo: "-", fontStyle: "font-serif font-bold tracking-wide " },
+                { name: "АЛАТАРЦЕВ", logo: "АЛАТАРЦЕВ", fontStyle: "font-mono font-extrabold tracking-wider" },
+                { name: "3", logo: "-", fontStyle: "font-sans font-black uppercase tracking-tight" },
+                { name: "4", logo: "-", fontStyle: "font-sans font-light italic" },
+                { name: "5", logo: "-", fontStyle: "font-sans font-medium lowercase" },
+                { name: "6", logo: "-", fontStyle: "font-sans font-semibold tracking-wide" }
               ].map((client, i) => (
                 <FadeIn key={i} delay={i * 0.1}>
                   <div className="relative">
@@ -916,218 +1077,7 @@ const HomePage: React.FC = () => {
       </Section>
 
 
-      {/* Professional AI Workflow */}
-      <Section id="workflow" className="py-12 md:py-16">
-        <Container>
-          <Title center kicker="ПРОЦЕСС ОБРАБОТКИ" sub="Корпоративный уровень ИИ-обработки с военной точностью и надежностью.">
-            Интерактивный процесс
-          </Title>
-          
-          <div className="mt-12 max-w-6xl mx-auto">
-            <div className="relative overflow-hidden rounded-lg border border-white/20 bg-black/50 backdrop-blur-sm p-8">
-              {/* Professional grid background */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="h-full w-full" style={{
-                  backgroundImage: `
-                    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-                  `,
-                  backgroundSize: '20px 20px'
-                }} />
-              </div>
-              
-              <div className="relative z-10">
-                {/* Professional workflow visualization */}
-                <div className="mb-8 flex justify-center">
-                  <div className="relative w-full max-w-4xl">
-                    {/* Workflow steps */}
-                    <div className="flex items-center justify-between relative">
-                      {/* Step 1: Upload */}
-                      <div className="group flex flex-col items-center gap-3">
-                        <div className="relative">
-                          <div className="w-16 h-16 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center group-hover:scale-105 transition-all duration-500">
-                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                            </svg>
-                          </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-md flex items-center justify-center border border-black/20">
-                            <span className="text-xs font-bold text-black">01</span>
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-sm font-bold text-white uppercase tracking-wider">ЗАГРУЗКА</div>
-                          <div className="text-xs text-zinc-400 font-mono">IMAGE.PNG</div>
-                        </div>
-                      </div>
 
-                      {/* Arrow 1 */}
-                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-4"></div>
-
-                      {/* Step 2: AI Processing */}
-                      <div className="group flex flex-col items-center gap-3">
-                        <div className="relative">
-                          <div className="w-16 h-16 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center group-hover:scale-105 transition-all duration-500">
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                              className="w-8 h-8 text-white"
-                            >
-                              <svg fill="currentColor" viewBox="0 0 24 24" className="w-full h-full">
-                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                              </svg>
-                            </motion.div>
-                          </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-md flex items-center justify-center border border-black/20">
-                            <span className="text-xs font-bold text-black">02</span>
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-sm font-bold text-white uppercase tracking-wider">АНАЛИЗ</div>
-                          <div className="text-xs text-zinc-400 font-mono">AI.PROCESSING</div>
-                        </div>
-                      </div>
-
-                      {/* Arrow 2 */}
-                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-4"></div>
-
-                      {/* Step 3: Generation */}
-                      <div className="group flex flex-col items-center gap-3">
-                        <div className="relative">
-                          <div className="w-16 h-16 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center group-hover:scale-105 transition-all duration-500">
-                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                          </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-md flex items-center justify-center border border-black/20">
-                            <span className="text-xs font-bold text-black">03</span>
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-sm font-bold text-white uppercase tracking-wider">ГЕНЕРАЦИЯ</div>
-                          <div className="text-xs text-zinc-400 font-mono">PLAN.CREATE</div>
-                        </div>
-                      </div>
-
-                      {/* Arrow 3 */}
-                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-4"></div>
-
-                      {/* Step 4: Export */}
-                      <div className="group flex flex-col items-center gap-3">
-                        <div className="relative">
-                          <div className="w-16 h-16 rounded-md border-2 border-white/30 bg-gradient-to-br from-white/5 to-black/20 shadow-2xl flex items-center justify-center group-hover:scale-105 transition-all duration-500">
-                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-md flex items-center justify-center border border-black/20">
-                            <span className="text-xs font-bold text-black">04</span>
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-sm font-bold text-white uppercase tracking-wider">ЭКСПОРТ</div>
-                          <div className="text-xs text-zinc-400 font-mono">FILES.READY</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Professional progress bar */}
-                    <div className="mt-8">
-                      <div className="flex items-center justify-between text-xs text-zinc-400 mb-3 font-mono">
-                        <span>СТАТУС ОБРАБОТКИ</span>
-                        <span className="text-white font-bold">2.3s</span>
-                      </div>
-                      <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden border border-white/10">
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-white to-zinc-300 rounded-full"
-                          initial={{ width: "0%" }}
-                          animate={{ width: "100%" }}
-                          transition={{ duration: 2.3, ease: "easeInOut", repeat: Infinity }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-zinc-500 mt-2 font-mono">
-                        <span>0%</span>
-                        <span>100%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Professional features grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    { 
-                      title: "МОДУЛЬ ЗАГРУЗКИ", 
-                      desc: "Поддержка всех форматов", 
-                      status: "ОНЛАЙН"
-                    },
-                    { 
-                      title: "ИИ ОБРАБОТКА", 
-                      desc: "Анализ нейронных сетей", 
-                      status: "АКТИВНО"
-                    },
-                    { 
-                      title: "ДВИЖОК ГЕНЕРАЦИИ", 
-                      desc: "Обработка за 2-3 секунды", 
-                      status: "ГОТОВ"
-                    },
-                    { 
-                      title: "СИСТЕМА ЭКСПОРТА", 
-                      desc: "Вывод PNG, SVG, PDF", 
-                      status: "ОЖИДАНИЕ"
-                    },
-                  ].map((feature, i) => (
-                    <FadeIn key={i} delay={i * 0.1}>
-                      <div className="group relative overflow-hidden rounded-md border border-white/20 bg-black/30 backdrop-blur-sm p-6 hover:bg-black/50 transition-all duration-500 hover:scale-[1.02]">
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        
-                        <div className="relative z-10">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
-                              {feature.status}
-                            </div>
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          </div>
-                          <div className="font-bold text-white text-sm mb-2 uppercase tracking-wider">
-                            {feature.title}
-                          </div>
-                          <div className="text-xs text-zinc-400 font-mono">
-                            {feature.desc}
-                          </div>
-                        </div>
-                      </div>
-                    </FadeIn>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </Section>
-
-      {/* Value for RE agencies */}
-      <Section id="solutions" className="py-8 md:py-12">
-        <Container>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-lg border border-white/10 bg-white/[0.02] p-8">
-            {[
-              { icon: <Building2 className="h-5 w-5" />, t: "Для агентств", d: "Единый поток: загрузка → создание → результат." },
-              { icon: <Layers className="h-5 w-5" />, t: "Для других организаций", d: "Совместный доступ и единые алгоритмы создания." },
-              { icon: <Share2 className="h-5 w-5" />, t: "Экспорт без трения", d: "PNG, SVG, PDF и ссылки для быстрой отправки клиентам." },
-            ].map((m, i) => (
-              <FadeIn key={m.t} delay={i * 0.1}>
-                <div className="group flex items-start gap-4 p-6 rounded-lg hover:bg-white/[0.04] transition-all duration-300">
-                  <div className="mt-1 rounded-full border border-white/20 bg-white/10 p-3 text-zinc-300 group-hover:bg-white/20 group-hover:text-white transition-all duration-300">
-                    {m.icon}
-                  </div>
-                  <div>
-                    <div className="text-zinc-50 font-semibold text-lg group-hover:text-white transition-colors duration-300">{m.t}</div>
-                    <div className="text-sm text-zinc-400 mt-2">{m.d}</div>
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </Container>
-      </Section>
 
       {/* Enhanced Features */}
       <Section id="features" className="py-12 md:py-16">
@@ -1318,111 +1268,6 @@ const HomePage: React.FC = () => {
         </Container>
       </Section>
 
-      {/* Enhanced Before/After Section */}
-      <Section id="examples" className="py-12 md:py-16">
-        <Container>
-          <Title kicker="До/После" sub="Двигайте ползунок — он привязан к курсору без задержек. Опробуйте магию AI в действии.">
-            Визуальная разница за секунды
-          </Title>
-          
-          <div className="mt-12 space-y-8">
-            {/* Main showcase - full width */}
-            <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500">
-              <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="ml-4 text-sm text-zinc-400 font-medium">AI Очистка помещений</span>
-                </div>
-                
-                <EnhancedBeforeAfterSlider
-              before="/latar/do1.jpg"
-              after="/latar/postle1.jpg"
-                  captionBefore="Исходное фото"
-                  captionAfter="После AI очистки"
-                  description="Удаление мебели и объектов с сохранением архитектуры"
-                />
-              </div>
-            </div>
-            
-            {/* Secondary examples grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-500">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                    <span className="text-sm text-zinc-400 font-medium">Планировка с мебелью</span>
-                  </div>
-                  
-                  <EnhancedBeforeAfterSlider
-                before="/latar/do2.jpg"
-                after="/latar/postle2.jpg"
-                captionBefore="С мебелью"
-                captionAfter="Без мебели"
-                    description="Создание чистого плана помещения"
-                  />
-                </div>
-              </div>
-              
-              <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-500">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <span className="text-sm text-zinc-400 font-medium">Технический план</span>
-                  </div>
-                  
-                  <EnhancedBeforeAfterSlider
-                before="/latar/do3.jpg"
-                after="/latar/postle3.jpg"
-                captionBefore="Техплан"
-                captionAfter="Схематичный план"
-                    description="Преобразование в профессиональный план"
-              />
-                </div>
-              </div>
-            </div>
-            
-            {/* Interactive stats and description */}
-            <div className="text-center space-y-6">
-              {/* Animated stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-                {[
-                  { number: "2.3s", label: "Среднее время обработки", icon: "⚡" },
-                  { number: "99.2%", label: "Точность распознавания", icon: "🎯" },
-                  { number: "10k+", label: "Обработано изображений", icon: "📊" }
-                ].map((stat, i) => (
-                  <FadeIn key={i} delay={i * 0.1}>
-                    <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-all duration-300 hover:scale-105">
-                      <div className="text-2xl mb-1 group-hover:scale-110 transition-transform duration-300">
-                        {stat.icon}
-                      </div>
-                      <div className="text-lg font-bold text-white group-hover:text-white transition-colors duration-300">
-                        {stat.number}
-                      </div>
-                      <div className="text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300">
-                        {stat.label}
-                      </div>
-                    </div>
-                  </FadeIn>
-                ))}
-              </div>
-              
-              {/* Bottom description */}
-              <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-white/10 bg-white/[0.02] text-sm text-zinc-400 hover:bg-white/[0.04] transition-all duration-300">
-                <div className="w-2 h-2 rounded-full bg-white/60"></div>
-                Примеры наших AI-планов и очистки помещений
-              </div>
-            </div>
-          </div>
-        </Container>
-      </Section>
 
 
       {/* Interactive Testimonial */}
@@ -1562,7 +1407,7 @@ const HomePage: React.FC = () => {
             <div className="h-6 w-6 rounded-lg bg-zinc-100 text-zinc-900 grid place-content-center text-[10px] font-bold">FM</div>
             <span>© {new Date().getFullYear()} Plan AI</span>
           </div>
-          <div className="text-zinc-500 text-sm">Сделано для агентств недвижимости</div>
+          <div className="text-zinc-500 text-sm">Оптимизация на уровне ИИ</div>
         </Container>
       </footer>
 
