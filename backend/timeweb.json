@@ -1,0 +1,26 @@
+{
+  "name": "latar-backend",
+  "type": "docker",
+  "dockerfile": "Dockerfile",
+  "environment": {
+    "NODE_ENV": "production",
+    "PORT": "3001",
+<<<<<<< HEAD
+    "COMET_API_KEY": "YOUR_COMET_API_KEY_HERE"
+=======
+    "SCRIBBLE_DIFFUSION_API_KEY": "r8_HsprWTaqhhBtQaI1tww0M76W1vd0EBW3MN7Qh"
+>>>>>>> 131e002 (news112301)
+  },
+  "server": {
+    "port": 3001,
+    "health_check": "/healthz"
+  },
+  "resources": {
+    "memory": "1024MB",
+    "cpu": 1.0
+  },
+  "network": {
+    "allow_internet": true,
+    "allow_internal": true
+  }
+}

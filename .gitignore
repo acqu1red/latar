@@ -1,0 +1,98 @@
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Python virtual environments
+controlnet_env/
+venv/
+env/
+
+# Stable Diffusion WebUI (too large for git)
+stable-diffusion-webui/
+
+# Duplicate node_modules
+node_modules 2/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Documentation drafts
+*_FIX.md
+*_SETUP.md
+*_SOLUTION.md
+
+# API Keys and Secrets (additional protection)
+*api*key*
+*secret*
+*password*
+*token*
+*credential*
