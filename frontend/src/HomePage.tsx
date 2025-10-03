@@ -45,12 +45,12 @@ const Title = ({ kicker, children, sub, center = false }: { kicker?: string; chi
   </div>
 );
 
-const FadeIn = ({ delay = 0, children, className = "" }: { delay?: number; children: React.ReactNode; className?: string }) => (
+const FadeIn = ({ delay = 0, children, className = "", isReturning = false }: { delay?: number; children: React.ReactNode; className?: string; isReturning?: boolean }) => (
   <motion.div
     className={className}
     initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, amount: 0.3 }}
+    whileInView={isReturning ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+    viewport={isReturning ? { once: false, amount: 0 } : { once: true, amount: 0.3 }}
     transition={{ duration: 0.8, ease: "easeOut", delay }}
   >
     {children}
@@ -87,6 +87,8 @@ const DemoHero = () => {
   const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
   const [showDemo, setShowDemo] = React.useState(false);
   const [isAnimating, setIsAnimating] = React.useState(false);
+  const [isDemoHiding, setIsDemoHiding] = React.useState(false);
+  const [isReturning, setIsReturning] = React.useState(false);
   
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -101,17 +103,24 @@ const DemoHero = () => {
     setTimeout(() => {
       setShowDemo(true);
       setIsAnimating(false);
-    }, 800);
+    }, 400);
   };
 
   const handleGoBack = () => {
-    setIsAnimating(true);
+    setIsReturning(true);
+    setIsDemoHiding(true);
     setTimeout(() => {
       setShowDemo(false);
-    }, 400);
+      setIsDemoHiding(false);
+      setIsAnimating(true);
+    }, 300);
     setTimeout(() => {
       setIsAnimating(false);
-    }, 800);
+      // Не сбрасываем isReturning сразу, даем время на стабилизацию
+      setTimeout(() => {
+        setIsReturning(false);
+      }, 100);
+    }, 500);
   };
   
   return (
@@ -157,37 +166,44 @@ const DemoHero = () => {
             <motion.div
               animate={isAnimating ? {
                 opacity: 0,
-                y: 50,
-                scale: 0.9,
-                filter: "blur(10px)"
+                ...(isReturning ? {} : { filter: "blur(10px)" })
               } : {
                 opacity: 1,
-                y: 0,
-                scale: 1,
-                filter: "blur(0px)"
+                ...(isReturning ? {} : { filter: "blur(0px)" })
               }}
               transition={{ 
-                duration: 0.8, 
+                duration: 0.4, 
                 ease: "easeInOut",
-                delay: isAnimating ? 0 : 0.3
+                delay: isAnimating ? 0 : 0
               }}
               className={showDemo ? 'hidden' : ''}
+              style={{
+                ...(isReturning ? { 
+                  filter: 'none !important',
+                  WebkitFilter: 'none !important'
+                } : {}),
+                // Стабилизация после возврата
+                ...(showDemo === false && isAnimating === false ? {
+                  filter: 'none !important',
+                  WebkitFilter: 'none !important'
+                } : {})
+              }}
             >
-              <FadeIn delay={0.1}>
+              <FadeIn delay={0.1} isReturning={isReturning}>
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 text-sm text-zinc-300 mb-6">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                   Живое демо Plan AI
                 </div>
               </FadeIn>
               
-              <FadeIn delay={0.3}>
+              <FadeIn delay={0.3} isReturning={isReturning}>
                 <p className="text-xl text-zinc-400 mb-8 max-w-2xl mx-auto leading-relaxed">
                   Загрузите фото → выберите режим → получите результат за секунды. 
                   Никаких сложных настроек, только результат.
                 </p>
               </FadeIn>
               
-              <FadeIn delay={0.4}>
+              <FadeIn delay={0.4} isReturning={isReturning}>
                 <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
                   <button 
                     onClick={handleTryDemo}
@@ -215,23 +231,21 @@ const DemoHero = () => {
             
             {/* Demo interface that appears with blur animation */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.8, filter: "blur(20px)" }}
-              animate={showDemo ? {
+              initial={{ opacity: 0, filter: "blur(20px)" }}
+              animate={showDemo && !isDemoHiding ? {
                 opacity: 1,
-                scale: 1,
                 filter: "blur(0px)"
               } : {
                 opacity: 0,
-                scale: 1,
                 filter: "blur(30px)"
               }}
               transition={{ 
-                duration: showDemo ? 1.2 : 0.8, 
-                ease: showDemo ? "easeOut" : "easeIn",
-                delay: showDemo ? 0.3 : 0 
+                duration: showDemo && !isDemoHiding ? 0.5 : 0.4, 
+                ease: "easeInOut",
+                delay: showDemo && !isDemoHiding ? 0.1 : 0 
               }}
               style={{ 
-                display: showDemo || isAnimating ? 'block' : 'none' 
+                display: showDemo || isDemoHiding ? 'block' : 'none' 
               }}
             >
               <div className="relative max-w-5xl mx-auto">
@@ -309,21 +323,19 @@ const DemoHero = () => {
               
               {/* Back button */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={showDemo ? {
-                  opacity: 1,
-                  scale: 1
+                initial={{ opacity: 0 }}
+                animate={showDemo && !isDemoHiding ? {
+                  opacity: 1
                 } : {
-                  opacity: 0,
-                  scale: 0.9
+                  opacity: 0
                 }}
                 transition={{ 
-                  duration: 0.6, 
-                  ease: "easeOut", 
-                  delay: showDemo ? 1.0 : 0.2 
+                  duration: 0.3, 
+                  ease: "easeInOut", 
+                  delay: showDemo && !isDemoHiding ? 0.6 : 0.1 
                 }}
                 style={{ 
-                  display: showDemo || isAnimating ? 'flex' : 'none' 
+                  display: showDemo || isDemoHiding ? 'flex' : 'none' 
                 }}
                 className="mt-8 justify-center"
               >
