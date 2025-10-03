@@ -155,7 +155,7 @@ const DemoHero = () => {
             {/* Title that stays in place */}
             <FadeIn delay={0.2}>
               <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                Увидьте магию
+                Попробуйте магию
                 <span className="block bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
                   AI в действии
                 </span>
@@ -265,28 +265,41 @@ const DemoHero = () => {
                           <div className="text-xs text-zinc-500">v2.0</div>
                         </div>
                         
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-start gap-3">
                           {/* Enhanced attach button */}
-                          <div className="flex gap-2 pt-1">
+                          <div className="flex gap-3">
                             <button
-                              className="group h-10 w-10 rounded-xl grid place-items-center border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300 hover:scale-105"
+                              className="group h-9 w-9 rounded-lg grid place-items-center border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300"
                               title="Прикрепить файл"
                             >
-                              <div className="h-4 w-4 text-zinc-300 group-hover:text-white transition-colors duration-300">📎</div>
+                              <svg className="h-4 w-4 text-zinc-300 group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                              </svg>
+                            </button>
+                          </div>
+
+                          {/* Center content area */}
+                          <div className="flex w-full items-center gap-2">
+                            <button className="rounded-xl px-3 py-2 text-sm border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300">
+                              Полностью
                             </button>
                           </div>
 
                           {/* Right section with model selection */}
-                          <div className="flex shrink-0 items-center gap-3 self-end pb-1 relative">
+                          <div className="flex shrink-0 items-center gap-2 self-end pb-1 relative">
                             <div className="relative">
-                              <button className="group inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300">
+                              <button className="group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300">
                                 <span className="group-hover:scale-105 transition-transform duration-300">Удаление объектов</span>
-                                <div className="h-4 w-4 group-hover:rotate-180 transition-transform duration-300">⌄</div>
+                                <svg className="h-3.5 w-3.5 text-zinc-400 group-hover:text-white group-hover:rotate-180 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
                               </button>
                             </div>
 
-                            <button className="group h-12 w-12 rounded-xl grid place-items-center border border-white/10 bg-white/5 text-zinc-500 cursor-not-allowed transition-all duration-300" title="Сгенерировать">
-                              <div className="h-5 w-5">↑</div>
+                            <button className="group h-8 w-8 rounded-lg grid place-items-center border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300" title="Сгенерировать">
+                              <svg className="h-4 w-4 text-zinc-300 group-hover:text-white group-hover:scale-110 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                              </svg>
                             </button>
                           </div>
                         </div>
@@ -541,16 +554,16 @@ const HomePage: React.FC = () => {
 
 
   return (
-    <main className="relative min-h-screen bg-black text-zinc-100 antialiased selection:bg-zinc-300 selection:text-zinc-900">
+    <main className="relative min-h-screen bg-black text-zinc-100 antialiased selection:bg-zinc-300 selection:text-zinc-900 pt-16">
       {/* Background effects */}
       {/* <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.08] mix-blend-overlay [background-image:radial-gradient(black_1px,transparent_1px)] [background-size:6px_6px]" /> */}
       <div className="pointer-events-none absolute -inset-x-10 -top-24 h-64 rounded-full blur-3xl opacity-40 bg-gradient-to-r from-white/10 to-white/0" />
 
       {/* Header */}
-      <header className={`sticky top-0 z-40 transition-all duration-300 ${
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'backdrop-blur-md bg-zinc-950/80 border-b border-white/10' 
-          : 'backdrop-blur supports-[backdrop-filter]:bg-zinc-950/60 border-b border-white/5'
+          ? 'backdrop-blur-xl bg-zinc-950/95 border-b border-white/10 shadow-2xl' 
+          : 'backdrop-blur-md supports-[backdrop-filter]:bg-zinc-950/60 border-b border-white/5'
       }`}>
         <Container className="flex h-16 items-center justify-between">
           <a href="#" className="group inline-flex items-center gap-2">
@@ -610,7 +623,7 @@ const HomePage: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="md:hidden border-t border-white/10 bg-zinc-950/95 backdrop-blur-md"
+            className="md:hidden border-t border-white/10 bg-zinc-950/95 backdrop-blur-md absolute top-full left-0 right-0"
           >
             <Container className="py-4">
               <nav className="flex flex-col space-y-4">
@@ -686,30 +699,6 @@ const HomePage: React.FC = () => {
         )}
       </header>
 
-      {/* Interactive Stats Section */}
-      <Section id="stats" className="py-8 md:py-12">
-        <Container>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { number: "50ms", label: "Скорость обработки", desc: "Мгновенная генерация планов" },
-              { number: "99.9%", label: "Точность AI", desc: "Профессиональное качество" },
-              { number: "24/7", label: "Доступность", desc: "Работает круглосуточно" }
-            ].map((stat, i) => (
-              <FadeIn key={i} delay={i * 0.1}>
-                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-300">
-                  <div className="text-3xl md:text-4xl font-bold text-white mb-2 group-hover:scale-105 transition-transform duration-300">
-                    {stat.number}
-                  </div>
-                  <div className="text-lg font-medium text-zinc-200 mb-1">{stat.label}</div>
-                  <div className="text-sm text-zinc-400">{stat.desc}</div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </Container>
-      </Section>
-
       {/* Hero */}
       <Section id="hero" className="overflow-hidden">
         <div className="relative">
@@ -724,7 +713,8 @@ const HomePage: React.FC = () => {
 
             <SlideInFromLeft delay={0.6}>
               <p className="mt-3 max-w-2xl text-sm text-zinc-400">
-              Система создания планировки и очистки помещений. Оптимизация задач и надежность результата.
+              Система создания планировки и очистки помещений. 
+              Оптимизация задач и надежность результата.
               </p>
             </SlideInFromLeft>
 
@@ -766,17 +756,41 @@ const HomePage: React.FC = () => {
         </div>
       </Section>
 
+      {/* Interactive Stats Section */}
+      <Section id="stats" className="py-8 md:py-12">
+        <Container>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { number: "50ms", label: "Скорость обработки", desc: "Мгновенная генерация планов" },
+              { number: "99.9%", label: "Точность AI", desc: "Профессиональное качество" },
+              { number: "24/7", label: "Доступность", desc: "Работает круглосуточно" }
+            ].map((stat, i) => (
+              <FadeIn key={i} delay={i * 0.1}>
+                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-300">
+                  <div className="text-3xl md:text-4xl font-bold text-white mb-2 group-hover:scale-105 transition-transform duration-300">
+                    {stat.number}
+                  </div>
+                  <div className="text-lg font-medium text-zinc-200 mb-1">{stat.label}</div>
+                  <div className="text-sm text-zinc-400">{stat.desc}</div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </Container>
+      </Section>
+
       {/* Demo Hero Section */}
       <Section id="demo" className="py-0">
         <DemoHero />
       </Section>
 
 
-      {/* Real Keyboard Shortcuts */}
-      <Section id="shortcuts" className="py-12 md:py-16">
+      {/* Interactive AI Workflow */}
+      <Section id="workflow" className="py-12 md:py-16">
         <Container>
-          <Title center kicker="Горячие клавиши" sub="Управляйте Plan AI с помощью клавиатуры для максимальной эффективности.">
-            Быстрые действия
+          <Title center kicker="AI Workflow" sub="Посмотрите, как Plan AI обрабатывает ваши изображения в реальном времени.">
+            Интерактивный процесс
           </Title>
           
           <div className="mt-12 max-w-6xl mx-auto">
@@ -785,80 +799,161 @@ const HomePage: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-50" />
               
               <div className="relative z-10">
-                {/* Keyboard visualization */}
+                {/* Interactive workflow visualization */}
                 <div className="mb-8 flex justify-center">
-                  <div className="relative">
-                    {/* Keyboard base */}
-                    <div className="w-96 h-48 rounded-2xl border-2 border-white/20 bg-gradient-to-b from-white/10 to-white/5 shadow-2xl">
-                      {/* Keyboard rows */}
-                      <div className="p-4 space-y-3">
-                        {/* Top row */}
-                        <div className="flex justify-center gap-1">
-                          {["⌘", "K"].map((key, i) => (
-                            <div key={i} className="w-8 h-8 rounded bg-white/20 border border-white/30 flex items-center justify-center text-xs font-mono text-white shadow-lg">
-                              {key}
+                  <div className="relative w-full max-w-4xl">
+                    {/* Workflow steps */}
+                    <div className="flex items-center justify-between relative">
+                      {/* Step 1: Upload */}
+                      <div className="group flex flex-col items-center gap-3">
+                        <div className="relative">
+                          <div className="w-16 h-16 rounded-2xl border-2 border-white/20 bg-gradient-to-br from-white/10 to-white/5 shadow-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                          </div>
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-bold text-white">1</span>
+                          </div>
                         </div>
-                          ))}
+                        <div className="text-center">
+                          <div className="text-sm font-semibold text-white">Загрузка</div>
+                          <div className="text-xs text-zinc-400">Фото помещения</div>
                         </div>
-                        
-                        {/* Middle row */}
-                        <div className="flex justify-center gap-1">
-                          {["⌘", "U", "⌘", "G"].map((key, i) => (
-                            <div key={i} className="w-8 h-8 rounded bg-white/20 border border-white/30 flex items-center justify-center text-xs font-mono text-white shadow-lg">
-                              {key}
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {/* Bottom row */}
-                        <div className="flex justify-center gap-1">
-                          {["⌘", "E", "⌘", "R", "⌘", "P"].map((key, i) => (
-                            <div key={i} className="w-8 h-8 rounded bg-white/20 border border-white/30 flex items-center justify-center text-xs font-mono text-white shadow-lg">
-                              {key}
-                            </div>
-                              ))}
-                            </div>
                       </div>
-                        </div>
 
-                    {/* Floating labels */}
-                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-sm text-zinc-400">
-                      Ваша клавиатура
-                    </div>
+                      {/* Arrow 1 */}
+                      <div className="flex-1 h-0.5 bg-gradient-to-r from-white/20 via-white/10 to-transparent mx-4"></div>
+
+                      {/* Step 2: AI Processing */}
+                      <div className="group flex flex-col items-center gap-3">
+                        <div className="relative">
+                          <div className="w-16 h-16 rounded-2xl border-2 border-white/20 bg-gradient-to-br from-blue-500/20 to-purple-500/20 shadow-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                              className="w-8 h-8 text-white"
+                            >
+                              ✷
+                            </motion.div>
+                          </div>
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-bold text-white">2</span>
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-semibold text-white">AI Анализ</div>
+                          <div className="text-xs text-zinc-400">Обработка данных</div>
+                        </div>
+                      </div>
+
+                      {/* Arrow 2 */}
+                      <div className="flex-1 h-0.5 bg-gradient-to-r from-white/20 via-white/10 to-transparent mx-4"></div>
+
+                      {/* Step 3: Generation */}
+                      <div className="group flex flex-col items-center gap-3">
+                        <div className="relative">
+                          <div className="w-16 h-16 rounded-2xl border-2 border-white/20 bg-gradient-to-br from-green-500/20 to-emerald-500/20 shadow-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-bold text-white">3</span>
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-semibold text-white">Генерация</div>
+                          <div className="text-xs text-zinc-400">Создание плана</div>
+                        </div>
+                      </div>
+
+                      {/* Arrow 3 */}
+                      <div className="flex-1 h-0.5 bg-gradient-to-r from-white/20 via-white/10 to-transparent mx-4"></div>
+
+                      {/* Step 4: Export */}
+                      <div className="group flex flex-col items-center gap-3">
+                        <div className="relative">
+                          <div className="w-16 h-16 rounded-2xl border-2 border-white/20 bg-gradient-to-br from-orange-500/20 to-red-500/20 shadow-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-bold text-white">4</span>
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-semibold text-white">Экспорт</div>
+                          <div className="text-xs text-zinc-400">PNG/SVG/PDF</div>
+                        </div>
                       </div>
                     </div>
 
-                {/* Shortcuts grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Progress bar */}
+                    <div className="mt-8">
+                      <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
+                        <span>Прогресс обработки</span>
+                        <span>2.3s</span>
+                      </div>
+                      <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full"
+                          initial={{ width: "0%" }}
+                          animate={{ width: "100%" }}
+                          transition={{ duration: 2.3, ease: "easeInOut", repeat: Infinity }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Interactive features grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { keys: ["⌘", "K"], action: "Открыть команды", desc: "Быстрый доступ ко всем функциям", color: "from-blue-500/20 to-purple-500/20" },
-                    { keys: ["⌘", "U"], action: "Загрузить фото", desc: "Мгновенная загрузка изображения", color: "from-green-500/20 to-emerald-500/20" },
-                    { keys: ["⌘", "G"], action: "Генерировать", desc: "Создать план или очистить фото", color: "from-orange-500/20 to-red-500/20" },
-                    { keys: ["⌘", "E"], action: "Экспорт", desc: "Сохранить результат в PNG/SVG", color: "from-purple-500/20 to-pink-500/20" },
-                    { keys: ["⌘", "R"], action: "Режим удаления", desc: "Переключить на очистку объектов", color: "from-red-500/20 to-orange-500/20" },
-                    { keys: ["⌘", "P"], action: "Режим плана", desc: "Переключить на создание плана", color: "from-cyan-500/20 to-blue-500/20" },
-                  ].map((shortcut, i) => (
+                    { 
+                      icon: "📸", 
+                      title: "Загрузка фото", 
+                      desc: "Поддержка всех форматов", 
+                      color: "from-blue-500/10 to-purple-500/10",
+                      hoverColor: "from-blue-500/20 to-purple-500/20"
+                    },
+                    { 
+                      icon: "🤖", 
+                      title: "AI Анализ", 
+                      desc: "Нейронные сети", 
+                      color: "from-green-500/10 to-emerald-500/10",
+                      hoverColor: "from-green-500/20 to-emerald-500/20"
+                    },
+                    { 
+                      icon: "⚡", 
+                      title: "Быстрая генерация", 
+                      desc: "За 2-3 секунды", 
+                      color: "from-orange-500/10 to-red-500/10",
+                      hoverColor: "from-orange-500/20 to-red-500/20"
+                    },
+                    { 
+                      icon: "📁", 
+                      title: "Множественный экспорт", 
+                      desc: "PNG, SVG, PDF", 
+                      color: "from-purple-500/10 to-pink-500/10",
+                      hoverColor: "from-purple-500/20 to-pink-500/20"
+                    },
+                  ].map((feature, i) => (
                     <FadeIn key={i} delay={i * 0.1}>
                       <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-300 hover:scale-[1.02]">
-                        <div className={`absolute inset-0 bg-gradient-to-br ${shortcut.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                        <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
                         
                         <div className="relative z-10">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="flex gap-1">
-                              {shortcut.keys.map((key, keyIdx) => (
-                                <kbd key={keyIdx} className="px-2 py-1 text-xs font-mono bg-white/20 text-white rounded border border-white/30 group-hover:bg-white/30 transition-colors duration-300 shadow-lg">
-                                  {key}
-                                </kbd>
-                          ))}
-                        </div>
-                  </div>
-
+                          <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                            {feature.icon}
+                          </div>
                           <div className="font-semibold text-zinc-200 group-hover:text-white transition-colors duration-300 mb-2">
-                            {shortcut.action}
-                    </div>
+                            {feature.title}
+                          </div>
                           <div className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300">
-                            {shortcut.desc}
-                  </div>
+                            {feature.desc}
+                          </div>
                         </div>
                       </div>
                     </FadeIn>
@@ -1087,7 +1182,7 @@ const HomePage: React.FC = () => {
       {/* Enhanced Before/After Section */}
       <Section id="examples" className="py-12 md:py-16">
         <Container>
-          <Title kicker="До/После" sub="Двигайте ползунок — он привязан к курсору без задержек. Увидьте магию AI в действии.">
+          <Title kicker="До/После" sub="Двигайте ползунок — он привязан к курсору без задержек. Опробуйте магию AI в действии.">
             Визуальная разница за секунды
           </Title>
           

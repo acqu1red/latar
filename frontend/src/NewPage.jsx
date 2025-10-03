@@ -1368,18 +1368,18 @@ export default function MonochromeClaudeStyle() {
           --accent-disabled-contrast: var(--muted);
         }
         :root[data-style='standard']{
-          --bg: #151414;           /* глубокий нейтральный серый (не чисто чёрный) */
-          --panel: #1F1E1D;        /* основные панели/карточки */
-          --panel-muted: #1A1918;  /* приглушённые панели, плейсхолдеры */
-          --border: #56504B;       /* мягкая, но читаемая граница к панелям */
-          --text: #F4F5F7;         /* основной текст (AAA к фону) */
-          --muted: #A8A29E;        /* вторичный текст/иконки, подписи */
-          --accent: #C1876B;       /* главный тёплый акцент */
-          --accent-contrast: #0A0A0A; /* текст на акцентных кнопках (даёт ~6.5:1) */
-          --accent-hover: #D39A80; /* слегка светлее при наведении */
-          --hero-accent: #E7C9BA;  /* светлый штрих для декоративных бликов/иллюстраций */
-          --accent-disabled: #2E2724;               /* неактивные акцентные элементы */
-          --accent-disabled-contrast: #948B86;      /* текст на disabled-акценте */
+          --bg: #1a1a1a;
+          --panel: #2a2a2a;
+          --panel-muted: #242424;
+          --border: #404040;
+          --text: #f8f9fa;
+          --muted: #9ca3af;
+          --accent: #3b82f6;
+          --accent-contrast: #ffffff;
+          --accent-hover: #2563eb;
+          --hero-accent: #60a5fa;
+          --accent-disabled: #374151;
+          --accent-disabled-contrast: #6b7280;
         }
 
         /* legacy helpers (if still referenced somewhere) */
