@@ -1,11 +1,10 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import HeroDiagonal from "./hero_diagonal";
 import {
   ArrowRight,
-  Check,
   Shield,
   Eraser,
   Wand2,
@@ -16,9 +15,6 @@ import {
   LogOut,
   Menu,
   X,
-  Paperclip,
-  ArrowUp,
-  ChevronDown,
 } from "lucide-react";
 // import { cn } from "@/lib/utils"; // Удален неверный импорт
 
@@ -85,11 +81,293 @@ const Glow = ({ className = "" }: { className?: string }) => (
    ============================= */
 
 /* =============================
-   Before/After slider — zero-lag, bound to pointer
+   Demo Hero with Diagonal Design
    ============================= */
-const BeforeAfterSlider = ({ before, after, captionBefore = "До", captionAfter = "После" }: { before: string; after: string; captionBefore?: string; captionAfter?: string }) => {
+const DemoHero = () => {
+  const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
+  const [showDemo, setShowDemo] = React.useState(false);
+  const [isAnimating, setIsAnimating] = React.useState(false);
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePosition({
+      x: (e.clientX - rect.left) / rect.width,
+      y: (e.clientY - rect.top) / rect.height
+    });
+  };
+
+  const handleTryDemo = () => {
+    setIsAnimating(true);
+    setTimeout(() => {
+      setShowDemo(true);
+      setIsAnimating(false);
+    }, 800);
+  };
+
+  const handleGoBack = () => {
+    setIsAnimating(true);
+    setTimeout(() => {
+      setShowDemo(false);
+    }, 400);
+    setTimeout(() => {
+      setIsAnimating(false);
+    }, 800);
+  };
+  
+  return (
+    <div 
+      className="relative overflow-hidden"
+      onMouseMove={handleMouseMove}
+    >
+      {/* Diagonal background with mouse interaction */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-white/[0.01] to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-white/[0.03]" />
+      
+      
+      {/* Animated floating elements */}
+      <div className="absolute top-10 right-10 w-20 h-20 rounded-full bg-white/5 blur-xl animate-pulse" />
+      <div className="absolute bottom-10 left-10 w-16 h-16 rounded-full bg-white/5 blur-lg animate-pulse delay-1000" />
+      <div className="absolute top-1/2 left-1/4 w-12 h-12 rounded-full bg-white/5 blur-md animate-pulse delay-500" />
+      
+      {/* Mouse-following elements */}
+      <div 
+        className="absolute w-32 h-32 rounded-full bg-white/5 blur-2xl transition-all duration-500 pointer-events-none"
+        style={{
+          left: `${mousePosition.x * 100}%`,
+          top: `${mousePosition.y * 100}%`,
+          transform: 'translate(-50%, -50%)'
+        }}
+      />
+      
+      {/* Main content */}
+      <div className="relative z-10 py-16 md:py-24">
+        <Container>
+          <div className="max-w-4xl mx-auto text-center">
+            {/* Title that stays in place */}
+            <FadeIn delay={0.2}>
+              <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+                Увидьте магию
+                <span className="block bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+                  AI в действии
+                </span>
+              </h2>
+            </FadeIn>
+            
+            {/* Content that fades out and back in */}
+            <motion.div
+              animate={isAnimating ? {
+                opacity: 0,
+                y: 50,
+                scale: 0.9,
+                filter: "blur(10px)"
+              } : {
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                filter: "blur(0px)"
+              }}
+              transition={{ 
+                duration: 0.8, 
+                ease: "easeInOut",
+                delay: isAnimating ? 0 : 0.3
+              }}
+              className={showDemo ? 'hidden' : ''}
+            >
+              <FadeIn delay={0.1}>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 text-sm text-zinc-300 mb-6">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                  Живое демо Plan AI
+                </div>
+              </FadeIn>
+              
+              <FadeIn delay={0.3}>
+                <p className="text-xl text-zinc-400 mb-8 max-w-2xl mx-auto leading-relaxed">
+                  Загрузите фото → выберите режим → получите результат за секунды. 
+                  Никаких сложных настроек, только результат.
+                </p>
+              </FadeIn>
+              
+              <FadeIn delay={0.4}>
+                <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+                  <button 
+                    onClick={handleTryDemo}
+                    className="group relative overflow-hidden px-8 py-4 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-white/10"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <span className="relative z-10 text-white font-medium flex items-center gap-2">
+                      <span>Попробовать демо</span>
+                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+                    </span>
+                  </button>
+                  
+                  <div className="flex items-center gap-3 text-zinc-400">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                      <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse delay-200"></div>
+                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse delay-400"></div>
+                    </div>
+                    <span className="text-sm font-medium">Без регистрации • Мгновенный результат</span>
+                  </div>
+                </div>
+              </FadeIn>
+            </motion.div>
+            
+            {/* Demo interface that appears with blur animation */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, filter: "blur(20px)" }}
+              animate={showDemo ? {
+                opacity: 1,
+                scale: 1,
+                filter: "blur(0px)"
+              } : {
+                opacity: 0,
+                scale: 1,
+                filter: "blur(30px)"
+              }}
+              transition={{ 
+                duration: showDemo ? 1.2 : 0.8, 
+                ease: showDemo ? "easeOut" : "easeIn",
+                delay: showDemo ? 0.3 : 0 
+              }}
+              style={{ 
+                display: showDemo || isAnimating ? 'block' : 'none' 
+              }}
+            >
+              <div className="relative max-w-5xl mx-auto">
+                <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-white/[0.05] backdrop-blur-xl p-8 shadow-2xl">
+                  {/* Demo interface content */}
+                  <div className="relative z-10">
+                    <div className="w-full max-w-4xl mx-auto rounded-2xl backdrop-blur relative border border-white/10 bg-white/[0.02] shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]">
+                      <div className="p-6">
+                        {/* Header with mode selection */}
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span className="ml-4 text-sm text-zinc-400">Plan AI Demo</span>
+                          </div>
+                          <div className="text-xs text-zinc-500">v2.0</div>
+                        </div>
+                        
+                        <div className="flex items-start gap-4">
+                          {/* Enhanced attach button */}
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              className="group h-10 w-10 rounded-xl grid place-items-center border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300 hover:scale-105"
+                              title="Прикрепить файл"
+                            >
+                              <div className="h-4 w-4 text-zinc-300 group-hover:text-white transition-colors duration-300">📎</div>
+                            </button>
+                          </div>
+
+                          {/* Right section with model selection */}
+                          <div className="flex shrink-0 items-center gap-3 self-end pb-1 relative">
+                            <div className="relative">
+                              <button className="group inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium border border-white/20 bg-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-300">
+                                <span className="group-hover:scale-105 transition-transform duration-300">Удаление объектов</span>
+                                <div className="h-4 w-4 group-hover:rotate-180 transition-transform duration-300">⌄</div>
+                              </button>
+                            </div>
+
+                            <button className="group h-12 w-12 rounded-xl grid place-items-center border border-white/10 bg-white/5 text-zinc-500 cursor-not-allowed transition-all duration-300" title="Сгенерировать">
+                              <div className="h-5 w-5">↑</div>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Hints */}
+                        <div className="mt-4 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-zinc-400">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            Чтобы сгенерировать — прикрепите хотя бы одну фотографию
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom status */}
+                      <div className="flex items-center justify-between px-6 py-4 text-sm border-t border-white/10 bg-white/[0.02]">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <span className="text-zinc-400">Выберите режим удаления</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-zinc-500">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <span>Модель: Удаление объектов</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Animated background */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-50" />
+                </div>
+              </div>
+              
+              {/* Back button */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={showDemo ? {
+                  opacity: 1,
+                  scale: 1
+                } : {
+                  opacity: 0,
+                  scale: 0.9
+                }}
+                transition={{ 
+                  duration: 0.6, 
+                  ease: "easeOut", 
+                  delay: showDemo ? 1.0 : 0.2 
+                }}
+                style={{ 
+                  display: showDemo || isAnimating ? 'flex' : 'none' 
+                }}
+                className="mt-8 justify-center"
+              >
+                <button 
+                  onClick={handleGoBack}
+                  className="group relative overflow-hidden px-6 py-3 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-white/10"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <span className="relative z-10 text-white font-medium flex items-center gap-2">
+                    <ArrowRight className="h-4 w-4 rotate-180 group-hover:-translate-x-1 transition-transform duration-300" />
+                    Вернуться назад
+                  </span>
+                </button>
+              </motion.div>
+            </motion.div>
+          </div>
+        </Container>
+      </div>
+      
+      {/* Bottom diagonal cut */}
+      <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black to-transparent" />
+    </div>
+  );
+};
+
+/* =============================
+   Enhanced Before/After slider — zero-lag, bound to pointer
+   ============================= */
+const EnhancedBeforeAfterSlider = ({ 
+  before, 
+  after, 
+  captionBefore = "До", 
+  captionAfter = "После",
+  description = ""
+}: { 
+  before: string; 
+  after: string; 
+  captionBefore?: string; 
+  captionAfter?: string;
+  description?: string;
+}) => {
   const ref = React.useRef<HTMLDivElement>(null);
   const [x, setX] = React.useState(0.5);
+  const [isDragging, setIsDragging] = React.useState(false);
 
   const setFromEvent = (e: MouseEvent | TouchEvent) => {
     if (!ref.current) return;
@@ -101,9 +379,11 @@ const BeforeAfterSlider = ({ before, after, captionBefore = "До", captionAfter
 
   const onDown = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
+    setIsDragging(true);
     setFromEvent(e.nativeEvent);
     const move = (ev: MouseEvent | TouchEvent) => { ev.preventDefault(); setFromEvent(ev); };
     const up = () => {
+      setIsDragging(false);
       window.removeEventListener("mousemove", move);
       window.removeEventListener("touchmove", move);
       window.removeEventListener("mouseup", up);
@@ -116,29 +396,53 @@ const BeforeAfterSlider = ({ before, after, captionBefore = "До", captionAfter
   };
 
   return (
+    <div className="space-y-4">
+      {description && (
+        <div className="text-sm text-zinc-400 text-center">
+          {description}
+        </div>
+      )}
+      
     <div
       ref={ref}
-      className="relative w-full overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl select-none cursor-col-resize"
+        className="group relative w-full overflow-hidden rounded-2xl ring-1 ring-white/20 shadow-2xl select-none cursor-col-resize hover:ring-white/30 transition-all duration-300"
       onMouseDown={onDown}
       onTouchStart={onDown}
     >
-      <img src={before} alt="before" className="absolute inset-0 w-full h-[420px] md:h-[520px] object-cover" />
+        <img src={before} alt="before" className="absolute inset-0 w-full h-[300px] md:h-[400px] object-cover" />
       <img
         src={after}
         alt="after"
-        className="absolute inset-0 h-[420px] md:h-[520px] object-cover"
+          className="absolute inset-0 h-[300px] md:h-[400px] object-cover"
         style={{ width: "100%", clipPath: `inset(0 0 0 ${x * 100}%)` }}
       />
-      {/* Handle */}
+        
+        {/* Enhanced Handle */}
       <div className="absolute inset-y-0" style={{ left: `${x * 100}%` }}>
-        <div className="absolute -left-0.5 top-0 bottom-0 w-1 bg-white/80" />
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white text-zinc-900 grid place-content-center shadow ring-1 ring-black/10 pointer-events-none">
-          <span className="text-xs font-medium">⇆</span>
+          <div className="absolute -left-0.5 top-0 bottom-0 w-1 bg-white/90 shadow-lg" />
+          <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white text-zinc-900 grid place-content-center shadow-xl ring-2 ring-white/20 pointer-events-none transition-all duration-300 ${isDragging ? 'scale-110' : 'group-hover:scale-105'}`}>
+            <span className="text-sm font-bold">⇆</span>
         </div>
       </div>
-      <div className="absolute left-3 bottom-3 text-[10px] px-2 py-1 rounded bg-black/40 text-white/90">{captionBefore}</div>
-      <div className="absolute right-3 bottom-3 text-[10px] px-2 py-1 rounded bg-black/40 text-white/90">{captionAfter}</div>
-      <div className="relative h-[420px] md:h-[520px]" />
+        
+        {/* Enhanced Labels */}
+        <div className="absolute left-4 bottom-4 px-3 py-2 rounded-lg bg-black/60 backdrop-blur-sm text-white/90 text-sm font-medium shadow-lg">
+          {captionBefore}
+        </div>
+        <div className="absolute right-4 bottom-4 px-3 py-2 rounded-lg bg-black/60 backdrop-blur-sm text-white/90 text-sm font-medium shadow-lg">
+          {captionAfter}
+        </div>
+        
+        {/* Progress indicator */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+          <div 
+            className="h-full bg-white/60 transition-all duration-300"
+            style={{ width: `${x * 100}%` }}
+          />
+        </div>
+        
+        <div className="relative h-[300px] md:h-[400px]" />
+      </div>
     </div>
   );
 };
@@ -192,12 +496,6 @@ function ContactForm() {
 /* =============================
    Main HomePage Component
    ============================= */
-// === Models (RU) ===
-const MODEL_OPTIONS = [
-  { id: "remove", label: "Удаление объектов" },
-  { id: "plan", label: "Создание по техплану" },
-  { id: "builder", label: "AI Конструктор" },
-];
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -206,60 +504,6 @@ const HomePage: React.FC = () => {
   const y = useTransform(scrollYProgress, [0, 1], [0, -120]);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  
-  // Состояния для полной функциональности из NewPage.jsx
-  const [model, setModel] = useState(MODEL_OPTIONS[0]);
-  const [showModelMenu, setShowModelMenu] = useState(false);
-  const [removeDepth, setRemoveDepth] = useState<string | null>(null); // 'surface' | 'partial' | 'full'
-  const [planFurniture, setPlanFurniture] = useState<string | null>(null); // 'with' | 'without'
-  const [attachments, setAttachments] = useState<Array<{id: string, name: string, size: number, url: string, file: File}>>([]);
-
-  // Функции для работы с файлами
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const url = URL.createObjectURL(f);
-    setFileUrl(url);
-    
-    // Добавляем в attachments как в NewPage.jsx
-    const item = {
-      id: `${f.name}-${f.size}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      name: f.name,
-      size: f.size,
-      url: url,
-      file: f,
-    };
-    setAttachments([item]);
-  };
-  
-  const pick = () => inputRef.current?.click();
-  
-  const generate = () => {
-    if (!fileUrl) return;
-    setGenerating(true);
-    setTimeout(() => setGenerating(false), 900);
-  };
-  
-  // Функции для работы с вложениями
-  
-  const removeAttachment = (id: string) => {
-    setAttachments((prev) => {
-      const item = prev.find((x) => x.id === id);
-      if (item) URL.revokeObjectURL(item.url);
-      return prev.filter((x) => x.id !== id);
-    });
-  };
-  
-  // Логика для определения режимов
-  const isRemove = model.id === "remove";
-  const isPlan = model.id === "plan";
-  
-  const canSend = (isRemove || isPlan)
-    ? attachments.length > 0
-    : attachments.length > 0;
 
   const handleTexSchemeRedirect = () => {
     navigate('/new');
@@ -282,11 +526,6 @@ const HomePage: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Cleanup attachments on unmount
-  useEffect(() => () => { 
-    attachments.forEach((a) => URL.revokeObjectURL(a.url)); 
-  }, [attachments]);
 
 
   return (
@@ -442,23 +681,23 @@ const HomePage: React.FC = () => {
           <Container className="pt-10 pb-14 md:pt-14 md:pb-18">
 
             <SlideInFromLeft delay={0.2}>
-              <h1 className="mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-tight" style={{ fontFamily: 'New York, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+              <h1 className="mt-6 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight leading-tight" style={{ fontFamily: 'New York, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
                 Plan AI — превращает фотографии в идеальные планировки за секунды
             </h1>
             </SlideInFromLeft>
 
             <SlideInFromLeft delay={0.6}>
-              <p className="mt-3 max-w-2xl text-zinc-400">
+              <p className="mt-3 max-w-2xl text-sm text-zinc-400">
               Система создания планировки и очистки помещений. Оптимизация задач и надежность результата.
               </p>
             </SlideInFromLeft>
 
             <SlideInFromLeft delay={1.0}>
               <div className="mt-4 flex flex-col sm:flex-row gap-3">
-                <button onClick={handleTexSchemeRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-100 text-zinc-950 px-6 py-2.5 font-medium hover:opacity-90 transition">
+                <button onClick={handleTexSchemeRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-2 text-sm font-medium hover:opacity-90 transition">
                 Начать создание
               </button>
-                <button onClick={handleConstructorRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-2.5 font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
+                <button onClick={handleConstructorRedirect} className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition-all duration-300 relative overflow-hidden group hover:bg-white/15">
                   <span className="relative z-10 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent group-hover:from-white group-hover:to-white transition-all duration-300">Попробовать демо</span>
                   <ArrowRight className="h-4 w-4 relative z-10 text-white/60 group-hover:text-white transition-all duration-300" />
               </button>
@@ -491,21 +730,23 @@ const HomePage: React.FC = () => {
         </div>
       </Section>
 
-      {/* Partners */}
-      <Section id="partners" className="py-6 md:py-10">
+      {/* Interactive Stats Section */}
+      <Section id="stats" className="py-8 md:py-12">
         <Container>
-          <Title center kicker="Партнёрство" sub="Мы работаем с девелоперами, агентствами и proptech-компаниями.">
-            Наши партнёры
-          </Title>
-          <div className="mt-5 grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { src: "/latar/alatartsev.jpg", alt: "Alatartsev" },
-              { src: "/latar/alatartsev.jpg", alt: "Partner 2" },
-              { src: "/latar/alatartsev.jpg", alt: "Partner 3" }
-            ].map((partner, i) => (
+              { number: "50ms", label: "Скорость обработки", desc: "Мгновенная генерация планов" },
+              { number: "99.9%", label: "Точность AI", desc: "Профессиональное качество" },
+              { number: "24/7", label: "Доступность", desc: "Работает круглосуточно" }
+            ].map((stat, i) => (
               <FadeIn key={i} delay={i * 0.1}>
-                <div className="aspect-[4/1] rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
-                  <img src={partner.src} alt={partner.alt} className="w-full h-full object-cover" />
+                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-300">
+                  <div className="text-3xl md:text-4xl font-bold text-white mb-2 group-hover:scale-105 transition-transform duration-300">
+                    {stat.number}
+                  </div>
+                  <div className="text-lg font-medium text-zinc-200 mb-1">{stat.label}</div>
+                  <div className="text-sm text-zinc-400">{stat.desc}</div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
               </FadeIn>
             ))}
@@ -513,209 +754,103 @@ const HomePage: React.FC = () => {
         </Container>
       </Section>
 
-      {/* Quick Demo */}
-      <Section id="demo" className="py-6 md:py-10">
+      {/* Demo Hero Section */}
+      <Section id="demo" className="py-0">
+        <DemoHero />
+      </Section>
+
+
+      {/* Real Keyboard Shortcuts */}
+      <Section id="shortcuts" className="py-12 md:py-16">
         <Container>
-          <Title kicker="Быстрое демо" sub="Загрузите фото → нажмите «Сгенерировать».">
-            Попробуйте на своём фото
+          <Title center kicker="Горячие клавиши" sub="Управляйте Plan AI с помощью клавиатуры для максимальной эффективности.">
+            Быстрые действия
           </Title>
-          <div className="mt-3">
-            {/* Красивая рамка со свечением и VENOM фоном */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-6xl mx-auto"
-              style={{
-                boxShadow: "0 0 0 1px rgba(255,255,255,0.06) inset, 0 40px 120px rgba(0,0,0,0.5)"
-              }}
-            >
-               {/* VENOM ФОН УБРАН */}
+          
+          <div className="mt-12 max-w-6xl mx-auto">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8">
+              {/* Animated background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-50" />
               
-              {/* ТОЧНО ТАКОЙ ЖЕ ДИЗАЙН СТРОКИ ИЗ NewPage.jsx */}
-              <div className="relative z-10 flex justify-center">
-                <div className="w-full max-w-2xl rounded-2xl backdrop-blur relative border border-white/10 bg-white/[0.02] shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]">
-                  <div className="p-3 sm:p-4">
-                    <div className="flex items-start gap-3">
-                      {/* left: attach */}
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          onClick={pick}
-                          className="h-8 w-8 rounded-lg grid place-items-center border border-white/10 bg-white/5 hover:opacity-90"
-                          title="Прикрепить файл"
-                        >
-                          <Paperclip className="h-4 w-4" />
-                        </button>
-                        <input
-                          ref={inputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={onFile}
-                        />
-                      </div>
-
-                      {/* center: content - РЕЖИМЫ КАК В NewPage.jsx */}
-                      {isPlan ? (
-                        <div className="flex w-full items-center gap-2">
-                          <button
-                            onClick={() => { setPlanFurniture("with"); } }
-                            className={`rounded-xl border px-3 py-2 text-sm ${
-                              planFurniture === "with" 
-                                ? "border-white/20 bg-zinc-100 text-zinc-950" 
-                                : "border-white/10 bg-white/5 text-zinc-300"
-                            }`}
-                          >
-                            С мебелью
-                          </button>
-                          <button
-                            onClick={() => { setPlanFurniture("without"); } }
-                            className={`rounded-xl border px-3 py-2 text-sm ${
-                              planFurniture === "without" 
-                                ? "border-white/20 bg-zinc-100 text-zinc-950" 
-                                : "border-white/10 bg-white/5 text-zinc-300"
-                            }`}
-                          >
-                            Без мебели
-                          </button>
+              <div className="relative z-10">
+                {/* Keyboard visualization */}
+                <div className="mb-8 flex justify-center">
+                  <div className="relative">
+                    {/* Keyboard base */}
+                    <div className="w-96 h-48 rounded-2xl border-2 border-white/20 bg-gradient-to-b from-white/10 to-white/5 shadow-2xl">
+                      {/* Keyboard rows */}
+                      <div className="p-4 space-y-3">
+                        {/* Top row */}
+                        <div className="flex justify-center gap-1">
+                          {["⌘", "K"].map((key, i) => (
+                            <div key={i} className="w-8 h-8 rounded bg-white/20 border border-white/30 flex items-center justify-center text-xs font-mono text-white shadow-lg">
+                              {key}
                         </div>
-                      ) : isRemove ? (
-                        <div className="flex w-full items-center gap-2">
-                          <button
-                            onClick={() => { setRemoveDepth("surface"); } }
-                            className={`rounded-xl px-3 py-2 text-sm border ${
-                              removeDepth === "surface" 
-                                ? "border-white/20 bg-zinc-100 text-zinc-950" 
-                                : "border-white/10 bg-white/5 text-zinc-300"
-                            }`}
-                          >
-                            Поверхностно
-                          </button>
-                          <button
-                            onClick={() => { setRemoveDepth("partial"); } }
-                            className={`rounded-xl px-3 py-2 text-sm border ${
-                              removeDepth === "partial" 
-                                ? "border-white/20 bg-zinc-100 text-zinc-950" 
-                                : "border-white/10 bg-white/5 text-zinc-300"
-                            }`}
-                          >
-                            Частично
-                          </button>
-                          <button
-                            onClick={() => { setRemoveDepth("full"); } }
-                            className={`rounded-xl px-3 py-2 text-sm border ${
-                              removeDepth === "full" 
-                                ? "border-white/20 bg-zinc-100 text-zinc-950" 
-                                : "border-white/10 bg-white/5 text-zinc-300"
-                            }`}
-                          >
-                            Полностью
-                          </button>
+                          ))}
                         </div>
-                      ) : (
-                        <div className="flex w-full items-center gap-2">
-                          {fileUrl ? (
-                            <div className="relative w-full aspect-video rounded-xl ring-1 ring-white/10 bg-white/[0.02] overflow-hidden grid place-content-center text-zinc-500">
-                              <img src={fileUrl} alt="uploaded" className="w-full h-full object-cover" />
-                              {generating && (
-                                <div className="absolute inset-0 grid place-content-center bg-black/40 text-white text-sm">Генерация…</div>
-                              )}
-                            </div>
-                          ) : (
-                            <textarea
-                              rows={1}
-                              placeholder="Загрузите фото для демо…"
-                              className="min-h-[40px] w-full resize-none bg-transparent text-[15px] leading-6 outline-none placeholder:text-zinc-500"
-                              disabled
-                            />
-                          )}
-                        </div>
-                      )}
-
-                      {/* right: Model then Send (в одну линию) */}
-                      <div className="flex shrink-0 items-center gap-2 self-end pb-1 relative">
-                        <div className="relative">
-                          <button
-                            onClick={() => setShowModelMenu((v) => !v)}
-                            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm border border-white/10 bg-white/5 hover:opacity-90"
-                          >
-                            {model.label}
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                          {showModelMenu && (
-                            <div className="absolute right-0 top-10 z-20 w-56 rounded-xl border border-white/10 bg-white/[0.02] shadow-lg">
-                              {MODEL_OPTIONS.map((opt) => (
-                                <button
-                                  key={opt.id}
-                                  onClick={() => {
-                                    setModel(opt);
-                                    setShowModelMenu(false);
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm hover:opacity-90 ${
-                                    opt.id === model.id ? "opacity-100" : ""
-                                  }`}
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <button
-                          onClick={generate}
-                          disabled={!canSend}
-                          className={`h-9 w-9 rounded-xl grid place-items-center border ${
-                            canSend 
-                              ? "border-white/20 bg-zinc-100 text-zinc-950 hover:opacity-90" 
-                              : "border-white/10 bg-white/5 text-zinc-500"
-                          }`}
-                          title="Сгенерировать"
-                        >
-                          <ArrowUp className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Hint для прикрепления файлов */}
-                    {((isRemove || isPlan) && attachments.length === 0) && (
-                      <motion.div 
-                        initial={{opacity:0, y:-4}} 
-                        animate={{opacity:1, y:0}} 
-                        transition={{duration:0.25}}
-                        className="mt-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-500"
-                      >
-                        Чтобы сгенерировать — прикрепите хотя бы одну фотографию.
-                      </motion.div>
-                    )}
-
-                    {/* attachments preview */}
-                    {attachments.length > 0 && (
-                      <div className="mt-3">
-                        <div className="text-xs text-zinc-500 mb-2">Вложения: {attachments.length}</div>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {attachments.map((a) => (
-                            <div key={a.id} className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                              <img src={a.url} alt={a.name} className="h-24 w-full object-cover" loading="lazy" />
-                              <button
-                                onClick={() => removeAttachment(a.id)}
-                                className="absolute top-1 right-1 hidden group-hover:flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 backdrop-blur"
-                                title="Удалить"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
+                        
+                        {/* Middle row */}
+                        <div className="flex justify-center gap-1">
+                          {["⌘", "U", "⌘", "G"].map((key, i) => (
+                            <div key={i} className="w-8 h-8 rounded bg-white/20 border border-white/30 flex items-center justify-center text-xs font-mono text-white shadow-lg">
+                              {key}
                             </div>
                           ))}
                         </div>
+                        
+                        {/* Bottom row */}
+                        <div className="flex justify-center gap-1">
+                          {["⌘", "E", "⌘", "R", "⌘", "P"].map((key, i) => (
+                            <div key={i} className="w-8 h-8 rounded bg-white/20 border border-white/30 flex items-center justify-center text-xs font-mono text-white shadow-lg">
+                              {key}
+                            </div>
+                              ))}
+                            </div>
                       </div>
-                    )}
+                        </div>
+
+                    {/* Floating labels */}
+                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-sm text-zinc-400">
+                      Ваша клавиатура
+                    </div>
+                      </div>
+                    </div>
+
+                {/* Shortcuts grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    { keys: ["⌘", "K"], action: "Открыть команды", desc: "Быстрый доступ ко всем функциям", color: "from-blue-500/20 to-purple-500/20" },
+                    { keys: ["⌘", "U"], action: "Загрузить фото", desc: "Мгновенная загрузка изображения", color: "from-green-500/20 to-emerald-500/20" },
+                    { keys: ["⌘", "G"], action: "Генерировать", desc: "Создать план или очистить фото", color: "from-orange-500/20 to-red-500/20" },
+                    { keys: ["⌘", "E"], action: "Экспорт", desc: "Сохранить результат в PNG/SVG", color: "from-purple-500/20 to-pink-500/20" },
+                    { keys: ["⌘", "R"], action: "Режим удаления", desc: "Переключить на очистку объектов", color: "from-red-500/20 to-orange-500/20" },
+                    { keys: ["⌘", "P"], action: "Режим плана", desc: "Переключить на создание плана", color: "from-cyan-500/20 to-blue-500/20" },
+                  ].map((shortcut, i) => (
+                    <FadeIn key={i} delay={i * 0.1}>
+                      <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-300 hover:scale-[1.02]">
+                        <div className={`absolute inset-0 bg-gradient-to-br ${shortcut.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                        
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="flex gap-1">
+                              {shortcut.keys.map((key, keyIdx) => (
+                                <kbd key={keyIdx} className="px-2 py-1 text-xs font-mono bg-white/20 text-white rounded border border-white/30 group-hover:bg-white/30 transition-colors duration-300 shadow-lg">
+                                  {key}
+                                </kbd>
+                          ))}
+                        </div>
                   </div>
 
-                  {/* bottom area: status */}
-                  <div className="flex items-center justify-between px-3 py-2 text-xs border-t border-white/10 text-zinc-500">
-                    <div>
-                      {isRemove && <>{removeDepth ? ('Режим удаления: ' + (removeDepth === 'surface' ? 'Поверхностно' : removeDepth === 'partial' ? 'Частично' : 'Полностью')) : 'Выберите режим удаления'}</>}
-                      {isPlan && <>{planFurniture ? `Выбрано: ${planFurniture === 'with' ? 'С мебелью' : 'Без мебели'}` : 'Выберите режим: «С мебелью» или «Без мебели»'}</>}
-                      {!isRemove && !isPlan && <>Enter — отправить • Shift+Enter — новая строка</>}
+                          <div className="font-semibold text-zinc-200 group-hover:text-white transition-colors duration-300 mb-2">
+                            {shortcut.action}
                     </div>
-                    <div>Модель: {model.label}</div>
+                          <div className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300">
+                            {shortcut.desc}
                   </div>
+                        </div>
+                      </div>
+                    </FadeIn>
+                  ))}
                 </div>
               </div>
             </div>
@@ -724,20 +859,22 @@ const HomePage: React.FC = () => {
       </Section>
 
       {/* Value for RE agencies */}
-      <Section id="solutions">
-        <Container className="pb-4 md:pb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+      <Section id="solutions" className="py-8 md:py-12">
+        <Container>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-3xl border border-white/10 bg-white/[0.02] p-8">
             {[
-              { icon: <Building2 className="h-4 w-4" />, t: "Для агентств", d: "Единый поток: загрузка → создание → результат." },
-              { icon: <Layers className="h-4 w-4" />, t: "Для других организаций", d: "Совместный доступ и единые алгоритмы создания." },
-              { icon: <Share2 className="h-4 w-4" />, t: "Экспорт без трения", d: "PNG, SVG, PDF и ссылки для быстрой отправки клиентам." },
+              { icon: <Building2 className="h-5 w-5" />, t: "Для агентств", d: "Единый поток: загрузка → создание → результат." },
+              { icon: <Layers className="h-5 w-5" />, t: "Для других организаций", d: "Совместный доступ и единые алгоритмы создания." },
+              { icon: <Share2 className="h-5 w-5" />, t: "Экспорт без трения", d: "PNG, SVG, PDF и ссылки для быстрой отправки клиентам." },
             ].map((m, i) => (
-              <FadeIn key={m.t} delay={i * 0.04}>
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 rounded-full border border-white/10 bg-white/5 p-2 text-zinc-300">{m.icon}</div>
+              <FadeIn key={m.t} delay={i * 0.1}>
+                <div className="group flex items-start gap-4 p-6 rounded-2xl hover:bg-white/[0.04] transition-all duration-300">
+                  <div className="mt-1 rounded-full border border-white/20 bg-white/10 p-3 text-zinc-300 group-hover:bg-white/20 group-hover:text-white transition-all duration-300">
+                    {m.icon}
+                  </div>
                   <div>
-                    <div className="text-zinc-50 font-medium">{m.t}</div>
-                    <div className="text-sm text-zinc-500">{m.d}</div>
+                    <div className="text-zinc-50 font-semibold text-lg group-hover:text-white transition-colors duration-300">{m.t}</div>
+                    <div className="text-sm text-zinc-400 mt-2">{m.d}</div>
                   </div>
                 </div>
               </FadeIn>
@@ -746,8 +883,8 @@ const HomePage: React.FC = () => {
         </Container>
       </Section>
 
-      {/* Features */}
-      <Section id="features" className="py-8 md:py-14">
+      {/* Enhanced Features */}
+      <Section id="features" className="py-12 md:py-16">
         <Container>
           <Title
             center
@@ -757,24 +894,61 @@ const HomePage: React.FC = () => {
             Всё, что необходимо
           </Title>
 
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: <Ruler className="h-5 w-5" />, title: "AI 2D-план", desc: "Перерисовка техплана: чёткий, читаемый результат, с мебелью или без." },
-              { icon: <Eraser className="h-5 w-5" />, title: "Очистка фото", desc: "Убираем мебель, гарнитуры и мусор. Оставляем стены и декор." },
-              { icon: <Wand2 className="h-5 w-5" />, title: "Конструктор + ИИ", desc: "Соберите план в конструкторе, добавьте фото — ИИ расставит мебель." },
+              { 
+                icon: <Ruler className="h-6 w-6" />, 
+                title: "AI 2D-план", 
+                desc: "Перерисовка техплана: чёткий, читаемый результат, с мебелью или без.",
+                features: ["Автоматическое распознавание", "Экспорт в PNG/SVG", "Высокая точность"],
+                gradient: "from-blue-500/10 to-purple-500/10"
+              },
+              { 
+                icon: <Eraser className="h-6 w-6" />, 
+                title: "Очистка фото", 
+                desc: "Убираем мебель, гарнитуры и мусор. Оставляем стены и декор.",
+                features: ["Умное удаление объектов", "Сохранение архитектуры", "Реалистичный результат"],
+                gradient: "from-green-500/10 to-emerald-500/10"
+              },
+              { 
+                icon: <Wand2 className="h-6 w-6" />, 
+                title: "Конструктор + ИИ", 
+                desc: "Соберите план в конструкторе, добавьте фото — ИИ расставит мебель.",
+                features: ["Интуитивный интерфейс", "AI-расстановка мебели", "3D превью"],
+                gradient: "from-orange-500/10 to-red-500/10"
+              },
             ].map((f, i) => (
-              <FadeIn key={i} delay={i * 0.05}>
-                <div className="group relative h-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-                  <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300">
+              <FadeIn key={i} delay={i * 0.1}>
+                <div className="group relative h-full overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
+                  <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500" 
+                       style={{ background: `linear-gradient(135deg, ${f.gradient.split(' ')[0].replace('from-', '').replace('/10', '')}20, transparent)` }} />
+                  
+                  <div className="relative z-10">
+                    <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-zinc-200 group-hover:bg-white/20 transition-colors duration-300">
                     {f.icon}
-                    <span>Module</span>
+                      <span className="font-medium">Модуль</span>
                   </div>
-                  <h3 className="text-xl font-medium text-zinc-100">{f.title}</h3>
-                  <p className="mt-2 text-zinc-400">{f.desc}</p>
-                  <div className="mt-6 flex items-center gap-2 text-sm text-zinc-300">
-                    <Check className="h-4 w-4" /> Экспорт в PNG/SVG
+                    
+                    <h3 className="text-2xl font-semibold text-zinc-100 mb-3 group-hover:text-white transition-colors duration-300">
+                      {f.title}
+                    </h3>
+                    
+                    <p className="text-zinc-400 mb-6 leading-relaxed">
+                      {f.desc}
+                    </p>
+                    
+                    <div className="space-y-3">
+                      {f.features.map((feature, idx) => (
+                        <div key={idx} className="flex items-center gap-3 text-sm text-zinc-300 group-hover:text-zinc-200 transition-colors duration-300">
+                          <div className="w-1.5 h-1.5 rounded-full bg-white/60 group-hover:bg-white transition-colors duration-300" />
+                          {feature}
                   </div>
-                  <div className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition duration-500 [mask-image:radial-gradient(80%_120%_at_50%_0%,_black,_transparent)] bg-gradient-to-b from-white/10 to-transparent" />
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Hover effect overlay */}
+                  <div className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 group-hover:opacity-100 transition duration-500 [mask-image:radial-gradient(80%_120%_at_50%_0%,_black,_transparent)] bg-gradient-to-b from-white/10 to-transparent" />
                 </div>
               </FadeIn>
             ))}
@@ -782,128 +956,331 @@ const HomePage: React.FC = () => {
         </Container>
       </Section>
 
-      {/* How it works */}
-      <Section id="how" className="py-6 md:py-10">
+      {/* Interactive How it works */}
+      <Section id="how" className="py-12 md:py-16">
         <Container>
           <Title kicker="Как это работает" center sub="Три режима под разные задачи агентств: 2D-план, очистка фото и конструктор с ИИ.">
             Простые шаги для каждой функции
           </Title>
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-2">
+          
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* 1. AI создание 2D плана */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300"><Ruler className="h-4 w-4" /> 2D-план</div>
-              <h3 className="mt-3 text-xl font-medium text-zinc-100">AI создание 2D плана</h3>
-              <ol className="mt-3 list-decimal list-inside text-zinc-400 space-y-2">
-                <li>Загрузите фото техплана (в том числе сделанное на телефон).</li>
-                <li>Выберите: с мебелью или без мебели.</li>
-                <li>Получите аккуратный 2D-план (PNG/SVG) и экспортируйте.</li>
-              </ol>
+            <FadeIn delay={0.1}>
+              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-zinc-200 group-hover:bg-white/20 transition-colors duration-300">
+                    <Ruler className="h-4 w-4" /> 
+                    <span className="font-medium">2D-план</span>
             </div>
+                  
+                  <h3 className="mt-6 text-2xl font-semibold text-zinc-100 group-hover:text-white transition-colors duration-300">
+                    AI создание 2D плана
+                  </h3>
+                  
+                  <div className="mt-6 space-y-4">
+                    {[
+                      "Загрузите фото техплана (в том числе сделанное на телефон)",
+                      "Выберите: с мебелью или без мебели",
+                      "Получите аккуратный 2D-план (PNG/SVG) и экспортируйте"
+                    ].map((step, idx) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 text-white text-sm font-medium flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
+                          {idx + 1}
+                        </div>
+                        <p className="text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 leading-relaxed">
+                          {step}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+
             {/* 2. Очистка */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300"><Eraser className="h-4 w-4" /> Очистка фото</div>
-              <h3 className="mt-3 text-xl font-medium text-zinc-100">Очистка ненужных объектов</h3>
-              <ol className="mt-3 list-decimal list-inside text-zinc-400 space-y-2">
-                <li>Загрузите фото помещения/комнаты.</li>
-                <li>Plan AI удалит мебель, гарнитуры и мусор; стены и декор сохранятся.</li>
-                <li>Скачайте чистое изображение помещения.</li>
-              </ol>
+            <FadeIn delay={0.2}>
+              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-zinc-200 group-hover:bg-white/20 transition-colors duration-300">
+                    <Eraser className="h-4 w-4" /> 
+                    <span className="font-medium">Очистка фото</span>
             </div>
+                  
+                  <h3 className="mt-6 text-2xl font-semibold text-zinc-100 group-hover:text-white transition-colors duration-300">
+                    Очистка ненужных объектов
+                  </h3>
+                  
+                  <div className="mt-6 space-y-4">
+                    {[
+                      "Загрузите фото помещения/комнаты",
+                      "Plan AI удалит мебель, гарнитуры и мусор; стены и декор сохранятся",
+                      "Скачайте чистое изображение помещения"
+                    ].map((step, idx) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 text-white text-sm font-medium flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
+                          {idx + 1}
+                        </div>
+                        <p className="text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 leading-relaxed">
+                          {step}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+
             {/* 3. Конструктор с ИИ */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300"><Wand2 className="h-4 w-4" /> Конструктор + ИИ</div>
-              <h3 className="mt-3 text-xl font-medium text-zinc-100">Конструктор с встроенным AI</h3>
-              <ol className="mt-3 list-decimal list-inside text-zinc-400 space-y-2">
-                <li>Соберите 2D-план из простых блоков.</li>
-                <li>Загрузите фото для каждой комнаты и отредактируйте мебель.</li>
-                <li>Сгенерируйте финальный план и экспортируйте.</li>
-              </ol>
+            <FadeIn delay={0.3}>
+              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-zinc-200 group-hover:bg-white/20 transition-colors duration-300">
+                    <Wand2 className="h-4 w-4" /> 
+                    <span className="font-medium">Конструктор + ИИ</span>
             </div>
+                  
+                  <h3 className="mt-6 text-2xl font-semibold text-zinc-100 group-hover:text-white transition-colors duration-300">
+                    Конструктор с встроенным AI
+                  </h3>
+                  
+                  <div className="mt-6 space-y-4">
+                    {[
+                      "Соберите 2D-план из простых блоков",
+                      "Загрузите фото для каждой комнаты и отредактируйте мебель",
+                      "Сгенерируйте финальный план и экспортируйте"
+                    ].map((step, idx) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 text-white text-sm font-medium flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
+                          {idx + 1}
+                        </div>
+                        <p className="text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 leading-relaxed">
+                          {step}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
           </div>
         </Container>
       </Section>
 
-      {/* Before/After (3 sliders) */}
-      <Section id="examples" className="py-6 md:py-10">
+      {/* Enhanced Before/After Section */}
+      <Section id="examples" className="py-12 md:py-16">
         <Container>
-          <Title kicker="До/После" sub="Двигайте ползунок — он привязан к курсору без задержек.">
+          <Title kicker="До/После" sub="Двигайте ползунок — он привязан к курсору без задержек. Увидьте магию AI в действии.">
             Визуальная разница за секунды
           </Title>
-          <div className="mt-5 space-y-4">
-            {/* Первый блок - полная ширина */}
-            <BeforeAfterSlider
+          
+          <div className="mt-12 space-y-8">
+            {/* Main showcase - full width */}
+            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500">
+              <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="ml-4 text-sm text-zinc-400 font-medium">AI Очистка помещений</span>
+                </div>
+                
+                <EnhancedBeforeAfterSlider
               before="/latar/do1.jpg"
               after="/latar/postle1.jpg"
-              captionBefore="Исходник"
-              captionAfter="Очистка"
-            />
+                  captionBefore="Исходное фото"
+                  captionAfter="После AI очистки"
+                  description="Удаление мебели и объектов с сохранением архитектуры"
+                />
+              </div>
+            </div>
             
-            {/* Второй и третий блоки - горизонтально рядом */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <BeforeAfterSlider
+            {/* Secondary examples grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-500">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span className="text-sm text-zinc-400 font-medium">Планировка с мебелью</span>
+                  </div>
+                  
+                  <EnhancedBeforeAfterSlider
                 before="/latar/do2.jpg"
                 after="/latar/postle2.jpg"
                 captionBefore="С мебелью"
                 captionAfter="Без мебели"
-              />
-              <BeforeAfterSlider
+                    description="Создание чистого плана помещения"
+                  />
+                </div>
+              </div>
+              
+              <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all duration-500">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span className="text-sm text-zinc-400 font-medium">Технический план</span>
+                  </div>
+                  
+                  <EnhancedBeforeAfterSlider
                 before="/latar/do3.jpg"
                 after="/latar/postle3.jpg"
                 captionBefore="Техплан"
                 captionAfter="Схематичный план"
+                    description="Преобразование в профессиональный план"
               />
+                </div>
+              </div>
             </div>
             
-            <p className="text-center text-zinc-400">Примеры наших схематичных планов</p>
+            {/* Interactive stats and description */}
+            <div className="text-center space-y-6">
+              {/* Animated stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                {[
+                  { number: "2.3s", label: "Среднее время обработки", icon: "⚡" },
+                  { number: "99.2%", label: "Точность распознавания", icon: "🎯" },
+                  { number: "10k+", label: "Обработано изображений", icon: "📊" }
+                ].map((stat, i) => (
+                  <FadeIn key={i} delay={i * 0.1}>
+                    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-all duration-300 hover:scale-105">
+                      <div className="text-2xl mb-1 group-hover:scale-110 transition-transform duration-300">
+                        {stat.icon}
+                      </div>
+                      <div className="text-lg font-bold text-white group-hover:text-white transition-colors duration-300">
+                        {stat.number}
+                      </div>
+                      <div className="text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300">
+                        {stat.label}
+                      </div>
+                    </div>
+                  </FadeIn>
+                ))}
+              </div>
+              
+              {/* Bottom description */}
+              <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-white/10 bg-white/[0.02] text-sm text-zinc-400 hover:bg-white/[0.04] transition-all duration-300">
+                <div className="w-2 h-2 rounded-full bg-white/60"></div>
+                Примеры наших AI-планов и очистки помещений
+              </div>
+            </div>
           </div>
         </Container>
       </Section>
 
 
-      {/* Testimonial */}
-      <Section id="testimonial" className="py-8 md:py-14">
+      {/* Interactive Testimonial */}
+      <Section id="testimonial" className="py-12 md:py-16">
         <Container>
-          <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 md:p-12">
+          <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.02] to-white/[0.01] p-8 md:p-12 hover:bg-white/[0.04] transition-all duration-500">
+            {/* Animated background elements */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            
+            <div className="relative z-10">
             <FadeIn>
-              <div className="flex items-center gap-3 text-zinc-400 text-sm">
-                <Shield className="h-4 w-4" /> Агенства по всей России ускоряют свою работу с Plan AI
+                <div className="flex items-center gap-3 text-zinc-400 text-sm mb-6">
+                  <div className="p-2 rounded-full border border-white/20 bg-white/10 group-hover:bg-white/20 transition-colors duration-300">
+                    <Shield className="h-4 w-4" />
+                  </div>
+                  <span className="group-hover:text-zinc-300 transition-colors duration-300">
+                    Агенства по всей России ускоряют свою работу с Plan AI
+                  </span>
               </div>
             </FadeIn>
-            <FadeIn delay={0.05}>
-              <blockquote className="mt-3 text-2xl md:text-3xl leading-relaxed text-zinc-100">
-                «Каждый сэкономленный цент - это заработанный цент. Зарабатывай быстро - вместе с Plan AI».
+              
+              <FadeIn delay={0.1}>
+                <blockquote className="text-3xl md:text-4xl leading-relaxed text-zinc-100 group-hover:text-white transition-colors duration-300 font-medium">
+                  «Каждый сэкономленный цент - это заработанный цент. 
+                  <span className="block mt-2 text-zinc-300 group-hover:text-zinc-200 transition-colors duration-300">
+                    Зарабатывай быстро - вместе с Plan AI».
+                  </span>
               </blockquote>
             </FadeIn>
-            <FadeIn delay={0.1}>
-              <div className="mt-3 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-white/10" />
+              
+              <FadeIn delay={0.2}>
+                <div className="mt-8 flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-white/20 to-white/10 group-hover:from-white/30 group-hover:to-white/20 transition-all duration-300 flex items-center justify-center">
+                    <span className="text-lg font-bold text-zinc-200 group-hover:text-white transition-colors duration-300">ИА</span>
+                  </div>
                 <div>
-                  <div className="text-zinc-200 font-medium">Илья Андреевич Белоусов</div>
-                  <div className="text-zinc-500 text-sm">CEO, Маркетолог, Инвестор</div>
+                    <div className="text-zinc-200 font-semibold text-lg group-hover:text-white transition-colors duration-300">
+                      Илья Андреевич Белоусов
+                    </div>
+                    <div className="text-zinc-500 text-sm group-hover:text-zinc-400 transition-colors duration-300">
+                      CEO, Маркетолог, Инвестор
+                    </div>
       </div>
     </div>
             </FadeIn>
+            </div>
           </div>
         </Container>
       </Section>
 
-      {/* FAQ */}
-      <Section id="faq" className="py-6 md:py-10">
+      {/* Interactive FAQ */}
+      <Section id="faq" className="py-12 md:py-16">
         <Container>
           <Title center kicker="FAQ" sub="О внедрении в агентства и кастомизации под ваши процессы.">
             Частые вопросы
           </Title>
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-2">
+          
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
-              { q: "Какая стоимость для организаций?", a: "Стоимость расчитывается индивидуально для каждой организации с учетом объемов и сложности задач." },
-              { q: "Нужна ли подписка?", a: "Нет. Сайт и продукт ориентированы на корпоративное внедрение и пилоты, без публичных тарифов." },
-              { q: "Как перенести стиль в бренд агентства?", a: "Пресеты: логотип, шрифты и цвет акцентов — применяются к экспортам." },
-              { q: "Можно ли обучить модели под наши планы?", a: "Да, поддерживаем дообучение на ваших данных и типовых планировках." },
+              { 
+                q: "Какая стоимость для организаций?", 
+                a: "Стоимость расчитывается индивидуально для каждой организации с учетом объемов и сложности задач.",
+                icon: "💰"
+              },
+              { 
+                q: "Нужна ли подписка?", 
+                a: "Нет. Сайт и продукт ориентированы на корпоративное внедрение и пилоты, без публичных тарифов.",
+                icon: "🚫"
+              },
+              { 
+                q: "Как перенести стиль в бренд агентства?", 
+                a: "Пресеты: логотип, шрифты и цвет акцентов — применяются к экспортам.",
+                icon: "🎨"
+              },
+              { 
+                q: "Можно ли обучить модели под наши планы?", 
+                a: "Да, поддерживаем дообучение на ваших данных и типовых планировках.",
+                icon: "🤖"
+              },
             ].map((item, i) => (
-              <FadeIn key={i} delay={i * 0.04}>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-                  <div className="text-zinc-100 font-medium">{item.q}</div>
-                  <p className="mt-1 text-zinc-400">{item.a}</p>
+              <FadeIn key={i} delay={i * 0.1}>
+                <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  <div className="relative z-10">
+                    <div className="flex items-start gap-4">
+                      <div className="text-2xl group-hover:scale-110 transition-transform duration-300">
+                        {item.icon}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-zinc-100 group-hover:text-white transition-colors duration-300 mb-3">
+                          {item.q}
+                        </h3>
+                        <p className="text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 leading-relaxed">
+                          {item.a}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Hover effect overlay */}
+                  <div className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 group-hover:opacity-100 transition duration-500 [mask-image:radial-gradient(80%_120%_at_50%_0%,_black,_transparent)] bg-gradient-to-b from-white/10 to-transparent" />
                 </div>
               </FadeIn>
             ))}

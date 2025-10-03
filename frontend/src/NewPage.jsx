@@ -435,7 +435,7 @@ export default function MonochromeClaudeStyle() {
     ? attachments.length > 0
     : (value.trim().length > 0 || attachments.length > 0);
 
-  const send = () => {
+  const send = async () => {
     if (!canSend) return;
     let content = value;
     if (isRemove) {
@@ -472,23 +472,57 @@ export default function MonochromeClaudeStyle() {
     // Start generation process
     setIsGenerating(true);
     
-    // Simulate generation process (replace with actual API call)
-    setTimeout(() => {
-      setIsGenerating(false);
-      
-      // Add AI response
-      const responseId = `response-${Date.now()}`;
-      const responseText = `Вот результат обработки вашего запроса "${content}". Изображения проанализированы и готовы к использованию.`;
+    try {
+      let responseText = "";
+      let responseImage = null;
+
+      if (isPlan && attachments.length > 0) {
+        // Генерация технического плана
+        const formData = new FormData();
+        formData.append('image', attachments[0].file);
+        formData.append('mode', planFurniture === "with" ? "withFurniture" : "withoutFurniture");
+
+        const response = await fetch('/api/generate-technical-plan', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Ошибка генерации технического плана');
+        }
+
+        // Получаем изображение как blob
+        const imageBlob = await response.blob();
+        responseImage = URL.createObjectURL(imageBlob);
+        responseText = `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}".`;
+      } else {
+        // Обычная обработка для других моделей
+        responseText = `Вот результат обработки вашего запроса "${content}".`;
+      }
       
       setResponses(prev => ({
         ...prev,
         [msg.id]: {
           text: responseText,
+          image: responseImage,
           rating: null,
           canRegenerate: true
         }
       }));
-    }, 3000);
+    } catch (error) {
+      console.error('Ошибка генерации:', error);
+      setResponses(prev => ({
+        ...prev,
+        [msg.id]: {
+          text: `Ошибка: ${error.message}`,
+          rating: null,
+          canRegenerate: true
+        }
+      }));
+    } finally {
+      setIsGenerating(false);
+    }
     
     // cleanup
     attachments.forEach((a) => URL.revokeObjectURL(a.url));
@@ -718,6 +752,18 @@ export default function MonochromeClaudeStyle() {
                       <div className="flex justify-start">
                         <div className="max-w-[85%] md:max-w-[80%] rounded-2xl theme-border theme-panel-muted px-3 py-2">
                           <div className="text-sm whitespace-pre-wrap">{responses[m.id].text}</div>
+                          
+                          {/* Сгенерированное изображение */}
+                          {responses[m.id].image && (
+                            <div className="mt-3">
+                              <img 
+                                src={responses[m.id].image} 
+                                alt="Сгенерированный технический план" 
+                                className="w-full max-w-md rounded-lg theme-border"
+                              />
+                            </div>
+                          )}
+                          
                           <div className="mt-3 flex items-center gap-2 flex-wrap">
                             <button
                               onClick={() => rateResponse(m.id, responses[m.id].rating === 'like' ? null : 'like')}

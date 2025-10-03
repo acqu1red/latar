@@ -5,8 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
-import { analyzeImageForPhoto } from './src/imageAnalyzer.mjs';
-import { generatePhotoFromSketch } from './src/scribbleDiffusionGenerator.mjs';
+import { generateTechnicalPlan, checkCometApiHealth } from './src/cometApiGenerator.mjs';
 
 // Загружаем переменные окружения из .env файла
 import dotenv from 'dotenv';
@@ -26,9 +25,7 @@ if (!fs.existsSync(uploadsDir)) {
 console.log('🔍 Проверка файлов:');
 const requiredFiles = [
   'furniture.json',
-  'src/imageAnalyzer.mjs',
-  'src/scribbleDiffusionGenerator.mjs',
-  'src/localImageGenerator.mjs'
+  'src/cometApiGenerator.mjs'
 ];
 
 requiredFiles.forEach(file => {
@@ -53,9 +50,9 @@ console.log('Существует ли папка uploads:', fs.existsSync('uplo
 
 // Проверяем наличие API ключа
 console.log('🔍 Проверка API ключа:');
-console.log('SCRIBBLE_DIFFUSION_API_KEY (Replicate) установлен:', !!process.env.SCRIBBLE_DIFFUSION_API_KEY);
-console.log('SCRIBBLE_DIFFUSION_API_KEY значение:', process.env.SCRIBBLE_DIFFUSION_API_KEY ? '***скрыто***' : 'не установлено');
-console.log('Все переменные окружения:', Object.keys(process.env).filter(key => key.includes('SCRIBBLE') || key.includes('NODE') || key.includes('PORT')));
+console.log('COMETAPI_API_KEY установлен:', !!process.env.COMETAPI_API_KEY);
+console.log('COMETAPI_API_KEY значение:', process.env.COMETAPI_API_KEY ? '***скрыто***' : 'не установлено');
+console.log('Все переменные окружения:', Object.keys(process.env).filter(key => key.includes('COMET') || key.includes('NODE') || key.includes('PORT')));
 
 // Проверяем системные зависимости
 console.log('🔍 Проверка системных зависимостей:');
@@ -68,18 +65,18 @@ try {
   console.error('Это может быть связано с отсутствием системных библиотек');
 }
 
-const isApiKeyValid = process.env.SCRIBBLE_DIFFUSION_API_KEY && 
-    process.env.SCRIBBLE_DIFFUSION_API_KEY !== 'YOUR_SCRIBBLE_DIFFUSION_API_KEY_HERE' && 
-    process.env.SCRIBBLE_DIFFUSION_API_KEY !== 'your_scribble_diffusion_api_key_here';
+const isCometApiKeyValid = process.env.COMETAPI_API_KEY && 
+    process.env.COMETAPI_API_KEY !== 'YOUR_COMETAPI_API_KEY_HERE' && 
+    process.env.COMETAPI_API_KEY !== 'your_cometapi_key_here';
 
-if (!isApiKeyValid) {
-  console.warn('⚠️  ВНИМАНИЕ: Replicate API ключ не настроен!');
-  console.warn('📝 Для работы генерации фотографий добавьте переменную окружения:');
-  console.warn('   SCRIBBLE_DIFFUSION_API_KEY=ваш_replicate_ключ_здесь');
-  console.warn('🔗 Получите ключ на https://replicate.com');
-  console.warn('⚠️  Приложение запустится, но генерация фотографий будет недоступна!');
+if (!isCometApiKeyValid) {
+  console.warn('⚠️  ВНИМАНИЕ: COMETAPI ключ не настроен!');
+  console.warn('📝 Для работы генерации технических планов добавьте переменную окружения:');
+  console.warn('   COMETAPI_API_KEY=ваш_cometapi_ключ_здесь');
+  console.warn('🔗 Получите ключ на https://cometapi.com');
+  console.warn('⚠️  Приложение запустится, но генерация технических планов будет недоступна!');
 } else {
-  console.log('✅ Replicate API ключ настроен');
+  console.log('✅ COMETAPI ключ настроен');
 }
 
 // Middleware
@@ -140,46 +137,45 @@ const upload = multer({
 });
 
 
-// Маршрут для генерации фотографии
-app.post('/api/generate-photo', upload.single('image'), async (req, res) => {
+// Маршрут для генерации технического плана
+app.post('/api/generate-technical-plan', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Изображение не загружено' });
     }
 
-    // Scribble Diffusion API ключ обязателен
-    if (!isApiKeyValid) {
+    const { mode } = req.body; // 'withFurniture' или 'withoutFurniture'
+    
+    if (!mode || !['withFurniture', 'withoutFurniture'].includes(mode)) {
+      return res.status(400).json({ 
+        error: 'Неверный режим. Допустимые значения: withFurniture, withoutFurniture' 
+      });
+    }
+
+    // COMETAPI ключ обязателен
+    if (!isCometApiKeyValid) {
       return res.status(503).json({ 
-        error: 'Сервис генерации фотографий временно недоступен. API ключ не настроен.',
+        error: 'Сервис генерации технических планов временно недоступен. API ключ не настроен.',
         code: 'API_KEY_MISSING'
       });
     }
 
     const imagePath = req.file.path;
     
-    console.log('Обработка изображения для генерации фотографии:', imagePath);
+    console.log(`Обработка изображения для генерации технического плана (режим: ${mode}):`, imagePath);
 
-    // Анализируем изображение и создаем эскиз
-    const analysisData = await analyzeImageForPhoto(imagePath);
+    // Генерируем технический план
+    const planBuffer = await generateTechnicalPlan(imagePath, mode);
     
-    // Используем автоматически сгенерированный промпт для точного воспроизведения плана
-    const prompt = analysisData.prompt;
-    
-    // Генерируем фотографию из эскиза
-    const photoBuffer = await generatePhotoFromSketch(analysisData.sketchPath, prompt);
-    
-    // Удаляем временные файлы
+    // Удаляем временный файл
     fs.unlinkSync(imagePath);
-    if (fs.existsSync(analysisData.sketchPath)) {
-      fs.unlinkSync(analysisData.sketchPath);
-    }
 
-    res.setHeader('Content-Type', 'image/png');
-    res.send(photoBuffer);
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.send(planBuffer);
 
   } catch (error) {
-    console.error('Ошибка генерации фотографии:', error);
-    res.status(500).json({ error: 'Ошибка генерации фотографии: ' + error.message });
+    console.error('Ошибка генерации технического плана:', error);
+    res.status(500).json({ error: 'Ошибка генерации технического плана: ' + error.message });
   }
 });
 
@@ -242,14 +238,14 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 Сервер запущен на порту ${PORT}`);
   console.log(`🌐 Health check доступен по адресу: http://localhost:${PORT}/healthz`);
   console.log(`📊 API endpoints:`);
-  console.log(`   POST /api/generate-photo - генерация фотографии`);
+  console.log(`   POST /api/generate-technical-plan - генерация технического плана`);
   console.log(`   GET  /api/furniture - получение данных мебели`);
   console.log(`   GET  /healthz - проверка здоровья сервера`);
   console.log(`✅ Приложение готово к работе!`);
   console.log(`🔧 Переменные окружения:`);
   console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'не установлено'}`);
   console.log(`   PORT: ${PORT}`);
-  console.log(`   API ключ настроен: ${isApiKeyValid ? 'Да' : 'Нет'}`);
+  console.log(`   COMETAPI ключ настроен: ${isCometApiKeyValid ? 'Да' : 'Нет'}`);
   console.log(`🔍 Проверка модулей:`);
   console.log(`   sharp: ${typeof sharp !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
   console.log(`   express: ${typeof express !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
