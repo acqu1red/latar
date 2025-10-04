@@ -12,269 +12,12 @@ import {
   ThumbsDown,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import * as THREE from "three";
 import { useAuth } from './AuthContext';
 
 // ===== Helpers =====
 const cn = (...c) => c.filter(Boolean).join(" ");
 
-// === Animated liquid backdrop (VENOM, extra dim via prop) ===
-function LiquidBackdrop({ dim = 1, enabled = true }) {
-  const mountRef = useRef(null);
-  useEffect(() => {
-    if (!enabled) return;
-    // Disable on mobile devices
-    if (window.innerWidth < 768) return;
-    const mount = mountRef.current;
-    if (!mount) return;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: "high-performance" });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    Object.assign(renderer.domElement.style, {
-      position: "fixed",
-      inset: "0",
-      zIndex: "0",
-      pointerEvents: "none",
-    });
-    mount.appendChild(renderer.domElement);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-    const uniforms = {
-      u_time: { value: 0 },
-      u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-      u_dim: { value: dim },
-    };
-
-    const vertex = /* glsl */ `
-      void main() { gl_Position = vec4(position, 1.0); }
-    `;
-
-    // Немного ещё приглушили линии и ввели коэффициент u_dim
-    const fragment = /* glsl */ `
-      precision highp float;
-      uniform vec2 u_resolution; 
-      uniform float u_time;
-      uniform float u_dim;
-
-      mat2 rot(float a){ float s=sin(a), c=cos(a); return mat2(c,-s,s,c); }
-
-      float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
-      float noise(vec2 p){
-        vec2 i=floor(p), f=fract(p);
-        float a=hash(i), b=hash(i+vec2(1,0)), c=hash(i+vec2(0,1)), d=hash(i+vec2(1,1));
-        vec2 u=f*f*(3.0-2.0*f);
-        return mix(a,b,u.x)+ (c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;
-      }
-      float fbm(vec2 p){ float v=0.0, a=0.5; for(int i=0;i<5;i++){ v+=a*noise(p); p*=2.0; a*=0.5; } return v; }
-
-      float stripes(vec2 p, float freq, float thickness){
-        float s = sin(p.x*freq + fbm(p*2.0)*3.14159);
-        float w = fwidth(s) * 1.2;
-        return smoothstep(thickness + w, thickness - w, abs(s));
-      }
-
-      void main(){
-        vec2 res = u_resolution; 
-        vec2 uv = gl_FragCoord.xy / res.xy;
-        vec2 p = uv - 0.5; p.x *= res.x/res.y; 
-
-        float t = u_time * 0.25;
-        vec2 flow = vec2(fbm(p*1.2 + t*0.3), fbm(p*1.4 - t*0.25));
-        p += (flow-0.5)*0.35; // elegant autonomous drape
-
-        float a = 0.35 + 0.15*sin(t*0.7);
-        p = rot(a)*p;
-
-        float L1 = stripes(p + vec2(0.0, t*0.8), 9.0, 0.06);
-        float L2 = stripes(rot(1.2)*p + vec2(0.0, -t*0.6), 15.0, 0.045);
-        float L3 = stripes(rot(-0.8)*p + vec2(0.0, t*0.4), 22.0, 0.035);
-
-        float lines = clamp(L1*0.9 + L2*0.8 + L3*0.7, 0.0, 1.0);
-        float glow = smoothstep(0.6, 1.0, lines);
-        float alpha = (pow(lines, 1.35)*0.06 + glow*0.016) * u_dim; 
-        gl_FragColor = vec4(vec3(1.0), alpha);
-      }
-    `;
-
-    const mat = new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader: vertex,
-      fragmentShader: fragment,
-      transparent: true,
-      depthTest: false,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-
-    const geo = new THREE.PlaneGeometry(2, 2);
-    const mesh = new THREE.Mesh(geo, mat);
-    scene.add(mesh);
-
-    let start = performance.now();
-    let running = true;
-
-    const onResize = () => {
-      uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-
-    const animate = () => {
-      if (!running) return;
-      uniforms.u_time.value = (performance.now() - start)/1000.0;
-      renderer.render(scene, camera);
-      requestAnimationFrame(animate);
-    };
-
-    const onVisibility = () => {
-      running = !document.hidden;
-      if (running) {
-        start = performance.now() - uniforms.u_time.value*1000.0;
-        requestAnimationFrame(animate);
-      }
-    };
-
-    window.addEventListener("resize", onResize);
-    document.addEventListener("visibilitychange", onVisibility);
-
-    requestAnimationFrame(animate);
-
-    return () => {
-      running = false;
-      window.removeEventListener("resize", onResize);
-      document.removeEventListener("visibilitychange", onVisibility);
-      const el = renderer.domElement;
-      if (el && el.parentNode) el.parentNode.removeChild(el);
-      renderer.dispose();
-      geo.dispose();
-      mat.dispose();
-    };
-  }, [enabled, dim]);
-
-  if (!enabled) return null;
-  return <div ref={mountRef} />;
-}
-
-// === Venom DNA Goo: subtle dark "liquid strands" drifting across the background ===
-function VenomDNA({ enabled = true, amount = 3, opacity = 0.14, scale = 1 }) {
-  const mountRef = useRef(null);
-  useEffect(() => {
-    if (!enabled) return;
-    // Disable on mobile devices
-    if (window.innerWidth < 768) return;
-    const mount = mountRef.current; if (!mount) return;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    Object.assign(renderer.domElement.style, {
-      position: 'fixed', inset: '0', zIndex: '0', pointerEvents: 'none'
-    });
-    mount.appendChild(renderer.domElement);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-    const uniforms = {
-      u_time: { value: 0 },
-      u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-      u_amount: { value: amount },
-      u_opacity: { value: opacity },
-      u_scale: { value: scale },
-    };
-
-    const vtx = /* glsl */`void main(){ gl_Position = vec4(position,1.0); }`;
-    const frg = /* glsl */`
-      precision highp float; 
-      uniform vec2 u_resolution; 
-      uniform float u_time; 
-      uniform float u_amount; 
-      uniform float u_opacity; 
-      uniform float u_scale;
-
-      // helpers
-      float hash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
-      mat2 rot(float a){ float s=sin(a), c=cos(a); return mat2(c,-s,s,c); }
-
-      // gaussian falloff for metaballs
-      float bead(vec2 p, vec2 c, float r){
-        vec2 d = p - c; 
-        float v = exp(-dot(d,d)/(r*r));
-        return v;
-      }
-
-      // one DNA-like chain field
-      float chainField(vec2 p, float seed){
-        float N = 12.0; // beads per strand
-        float field = 0.0;
-        float ang = radians(20.0 + seed*37.0);
-        vec2 base = vec2(0.0);
-        vec2 sp = rot(ang) * vec2(1.0, 0.0);
-        float t = u_time * (0.07 + 0.03*seed);
-        for (float i=0.0; i<12.0; i+=1.0){
-          float s = i/(N-1.0);             // 0..1 along strand
-          // wavy parametric path tilted by angle
-          vec2 path = (s*2.2-1.1) * sp;    // along main axis
-          float wob = 0.28*sin(6.283*s*3.0 + t*3.0 + seed*5.0);
-          path += rot(ang+1.5708) * vec2(0.0, wob);
-          // slow drift of whole strand
-          vec2 drift = 0.18*vec2(sin(t*0.9+seed*5.0), cos(t*0.6+seed*3.0));
-          vec2 c = (path + drift) * u_scale; 
-          field += bead(p, c, 0.10);
-        }
-        return field;
-      }
-
-      void main(){
-        vec2 res = u_resolution; 
-        vec2 uv = (gl_FragCoord.xy / res.xy); 
-        vec2 p = uv*2.0 - 1.0; p.x *= res.x/res.y; // -1..1 aspect
-
-        float f = 0.0;
-        // a few strands with different seeds
-        f += chainField(p, 0.13);
-        if (u_amount > 1.0) f += chainField(p*0.98 + vec2(0.03, -0.01), 0.57);
-        if (u_amount > 2.0) f += chainField(p*1.02 + vec2(-0.02, 0.02), 0.91);
-
-        // normalize and threshold
-        float m = smoothstep(0.65, 0.85, f);
-        float alpha = m * u_opacity; // subtle dark ink
-
-        // slight specular glints along edges
-        float edge = clamp((f - 0.7)*2.2, 0.0, 1.0);
-        vec3 col = mix(vec3(0.0), vec3(0.14), edge*0.25); // tiny grey highlight
-
-        gl_FragColor = vec4(col, alpha);
-      }
-    `;
-
-    const mat = new THREE.ShaderMaterial({
-      uniforms, vertexShader: vtx, fragmentShader: frg,
-      transparent: true, depthTest: false, depthWrite: false, blending: THREE.NormalBlending
-    });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2,2), mat);
-    scene.add(mesh);
-
-    let start = performance.now();
-    let running = true;
-    const onResize = () => { uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight); renderer.setSize(window.innerWidth, window.innerHeight); };
-    const animate = () => { if(!running) return; uniforms.u_time.value = (performance.now()-start)/1000.0; renderer.render(scene,camera); requestAnimationFrame(animate); };
-    const onVis = () => { running = !document.hidden; if (running) { start = performance.now() - uniforms.u_time.value*1000.0; requestAnimationFrame(animate);} };
-    window.addEventListener('resize', onResize);
-    document.addEventListener('visibilitychange', onVis);
-    requestAnimationFrame(animate);
-
-    return () => {
-      running=false; window.removeEventListener('resize', onResize); document.removeEventListener('visibilitychange', onVis);
-      const el=renderer.domElement; if(el&&el.parentNode) el.parentNode.removeChild(el); renderer.dispose(); mesh.geometry.dispose(); mat.dispose();
-    };
-  }, [enabled, amount, opacity, scale]);
-  if (!enabled) return null;
-  return <div ref={mountRef} />;
-}
 
 // === TwinkleStar: animate the original ✷ logo (hover + afterglow) ===
 function TwinkleStar() {
@@ -321,45 +64,6 @@ function TwinkleStar() {
   );
 }
 
-// === Onboarding hint that points at Settings ===
-function StyleHint({ targetRef, show, onClose }) {
-  const [pos, setPos] = useState({ top: 120, left: 64 });
-  useEffect(() => {
-    const update = () => {
-      if (!targetRef?.current) return;
-      const r = targetRef.current.getBoundingClientRect();
-      setPos({ top: r.top + r.height / 2, left: r.right + 12 });
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, [targetRef]);
-  if (!show) return null;
-  return (
-    <motion.div
-      className="fixed z-50"
-      style={{ top: pos.top, left: pos.left }}
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.45 }}
-    >
-      <div className="rounded-md theme-panel theme-border px-3 py-2 text-xs theme-text-muted flex items-center gap-2 shadow-lg">
-        <motion.span
-          aria-hidden
-          initial={{ x: 0 }}
-          animate={{ x: [0, 6, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-        >
-          ➜
-        </motion.span>
-        <span>Стиль страницы можно сменить здесь</span>
-        <button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100">
-          OK
-        </button>
-      </div>
-    </motion.div>
-  );
-}
 
 // === Models (RU) ===
 const MODEL_OPTIONS = [
@@ -417,16 +121,138 @@ export default function MonochromeClaudeStyle() {
     }
   }, [siteStyle, userId]);
 
-  // Onboarding hint (first visit)
-  const [showStyleHint, setShowStyleHint] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return !localStorage.getItem("styleHintDismissed");
-  });
+  // Initialize particles.js for VENOM style
+  useEffect(() => {
+    if (siteStyle === "venom" && typeof window !== "undefined") {
+      // Load particles.js script
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js';
+      script.onload = () => {
+        if (window.particlesJS) {
+          window.particlesJS("particles-js", {
+            "particles": {
+              "number": {
+                "value": 80,
+                "density": {
+                  "enable": true,
+                  "value_area": 800
+                }
+              },
+              "color": {
+                "value": "#ffffff"
+              },
+              "shape": {
+                "type": "circle",
+                "stroke": {
+                  "width": 0,
+                  "color": "#000000"
+                },
+                "polygon": {
+                  "nb_sides": 5
+                },
+                "image": {
+                  "src": "img/github.svg",
+                  "width": 100,
+                  "height": 100
+                }
+              },
+              "opacity": {
+                "value": 0.5,
+                "random": false,
+                "anim": {
+                  "enable": false,
+                  "speed": 1,
+                  "opacity_min": 0.1,
+                  "sync": false
+                }
+              },
+              "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                  "enable": false,
+                  "speed": 40,
+                  "size_min": 0.1,
+                  "sync": false
+                }
+              },
+              "line_linked": {
+                "enable": true,
+                "distance": 200,
+                "color": "#ffffff",
+                "opacity": 0.6,
+                "width": 1
+              },
+              "move": {
+                "enable": true,
+                "speed": 4,
+                "direction": "none",
+                "random": false,
+                "straight": false,
+                "out_mode": "out",
+                "bounce": false,
+                "attract": {
+                  "enable": true,
+                  "rotateX": 600,
+                  "rotateY": 1200
+                }
+              }
+            },
+            "interactivity": {
+              "detect_on": "canvas",
+              "events": {
+                "onhover": {
+                  "enable": true,
+                  "mode": "grab"
+                },
+                "onclick": {
+                  "enable": true,
+                  "mode": "push"
+                },
+                "resize": true
+              },
+              "modes": {
+                "grab": {
+                  "distance": 200,
+                  "line_linked": {
+                    "opacity": 1
+                  }
+                },
+                "bubble": {
+                  "distance": 400,
+                  "size": 40,
+                  "duration": 2,
+                  "opacity": 8,
+                  "speed": 3
+                },
+                "repulse": {
+                  "distance": 200,
+                  "duration": 0.4
+                },
+                "push": {
+                  "particles_nb": 4
+                },
+                "remove": {
+                  "particles_nb": 2
+                }
+              }
+            },
+            "retina_detect": true
+          });
+        }
+      };
+      document.head.appendChild(script);
+
+      return () => {
+        // Cleanup
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+      };
+    }
+  }, [siteStyle]);
+
   const settingsBtnRef = useRef(null);
-  const dismissHint = () => {
-    setShowStyleHint(false);
-    if (typeof window !== "undefined") localStorage.setItem("styleHintDismissed", "1");
-  };
 
   const isRemove = model.id === "remove";
   const isPlan = model.id === "plan";
@@ -655,9 +481,8 @@ export default function MonochromeClaudeStyle() {
 
   return (
     <div data-style={siteStyle} className="min-h-screen themed-root antialiased relative overflow-hidden">
-      {/* Liquid background only for VENOM (extra dim) - Desktop only */}
-      <LiquidBackdrop enabled={siteStyle === "venom"} dim={0.75} />
-      <VenomDNA enabled={siteStyle === "venom"} amount={3} opacity={0.12} scale={0.9} />
+      {/* Particles background for VENOM style */}
+      {siteStyle === "venom" && <div id="particles-js" className="fixed inset-0 z-0" />}
 
       <div className="flex h-screen relative z-10">
         {/* ==== Left rail - Desktop only ==== */}
@@ -1308,8 +1133,6 @@ export default function MonochromeClaudeStyle() {
         </>
       )}
 
-      {/* Onboarding hint to settings */}
-      <StyleHint targetRef={settingsBtnRef} show={showStyleHint} onClose={dismissHint} />
 
       {/* --- Themes, accents & fonts --- */}
       <style>{`
@@ -1322,6 +1145,54 @@ export default function MonochromeClaudeStyle() {
           font-display: swap;
         }
         .font-hero { font-family: "New York", -apple-system-ui-serif, ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; }
+
+        /* ---- particles.js styles ---- */
+        #particles-js {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          background-color: transparent;
+          background-image: url("");
+          background-repeat: no-repeat;
+          background-size: cover;
+          background-position: 50% 50%;
+        }
+
+        /* ---- stats.js ---- */
+        .count-particles {
+          background: #000022;
+          position: absolute;
+          top: 48px;
+          left: 0;
+          width: 80px;
+          color: #13E8E9;
+          font-size: .8em;
+          text-align: left;
+          text-indent: 4px;
+          line-height: 14px;
+          padding-bottom: 2px;
+          font-family: Helvetica, Arial, sans-serif;
+          font-weight: bold;
+        }
+
+        .js-count-particles {
+          font-size: 1.1em;
+        }
+
+        #stats, .count-particles {
+          -webkit-user-select: none;
+          margin-top: 5px;
+          margin-left: 5px;
+        }
+
+        #stats {
+          border-radius: 3px 3px 0 0;
+          overflow: hidden;
+        }
+
+        .count-particles {
+          border-radius: 0 0 3px 3px;
+        }
 
         /* Core theming tokens */
         .themed-root { background: var(--bg); color: var(--text); }
@@ -1368,18 +1239,18 @@ export default function MonochromeClaudeStyle() {
           --accent-disabled-contrast: var(--muted);
         }
         :root[data-style='standard']{
-          --bg: #1a1a1a;
-          --panel: #2a2a2a;
-          --panel-muted: #242424;
-          --border: #404040;
-          --text: #f8f9fa;
-          --muted: #9ca3af;
-          --accent: #3b82f6;
+          --bg: #262624;
+          --panel: #30302e;
+          --panel-muted: #2a2a28;
+          --border: #c2c0b7;
+          --text: #c2c0b7;
+          --muted: #a8a69d;
+          --accent: #cc7c5e;
           --accent-contrast: #ffffff;
-          --accent-hover: #2563eb;
-          --hero-accent: #60a5fa;
-          --accent-disabled: #374151;
-          --accent-disabled-contrast: #6b7280;
+          --accent-hover: #d4886a;
+          --hero-accent: #cc7c5e;
+          --accent-disabled: #754c3b;
+          --accent-disabled-contrast: #a8a69d;
         }
 
         /* legacy helpers (if still referenced somewhere) */

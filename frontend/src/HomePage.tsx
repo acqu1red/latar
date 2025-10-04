@@ -1150,9 +1150,10 @@ const HomePage: React.FC = () => {
                   Сделайте переход к новому уровню работы с планировками.{" "}
                   <button 
                     onClick={handleTexSchemeRedirect}
-                    className="text-white font-semibold hover:text-white/80 transition-colors duration-300 underline decoration-white/60 hover:decoration-white"
+                    className="text-white font-semibold hover:text-white/80 transition-colors duration-300 underline decoration-white/60 hover:decoration-white inline-flex items-center gap-2 group"
                   >
                     Начать
+                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300 animate-pulse" />
                   </button>
                 </p>
                         </div>
