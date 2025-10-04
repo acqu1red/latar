@@ -6,9 +6,6 @@ import HeroDiagonal from "./hero_diagonal";
 import {
   ArrowRight,
   Shield,
-  Eraser,
-  Wand2,
-  Ruler,
   LogOut,
   Menu,
   X,
@@ -27,20 +24,6 @@ const Container = ({ className = "", children }: { className?: string; children:
   <div className={`mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 ${className}`}>{children}</div>
 );
 
-const Title = ({ kicker, children, sub, center = false }: { kicker?: string; children: React.ReactNode; sub?: string; center?: boolean }) => (
-  <div className={center ? "text-center" : "text-left"}>
-    {kicker && (
-      <div className="mb-3 inline-flex items-center gap-2 uppercase tracking-[0.2em] text-xs text-zinc-500">
-        <span className="inline-block h-[1px] w-6 bg-zinc-500/60" />
-        {kicker}
-      </div>
-    )}
-    <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight text-zinc-50">
-      {children}
-    </h2>
-    {sub && <p className="mt-4 text-zinc-400 max-w-2xl mx-auto">{sub}</p>}
-  </div>
-);
 
 const FadeIn = ({ delay = 0, children, className = "", isReturning = false }: { delay?: number; children: React.ReactNode; className?: string; isReturning?: boolean }) => (
   <motion.div
@@ -741,6 +724,64 @@ const DemoHero = () => {
 
 
 /* =============================
+   Modal Component
+   ============================= */
+const Modal = ({ isOpen, onClose, title, content, stats }: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  content: React.ReactNode;
+  stats?: { value: string; label: string }[];
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div 
+        initial={{ y: "100%", opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: "100%", opacity: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-black border border-white/20 rounded-lg"
+      >
+        <div className="p-8">
+          <div className="flex justify-between items-start mb-6">
+            <h2 className="text-2xl font-bold text-white">{title}</h2>
+            <button
+              onClick={onClose}
+              className="text-white/60 hover:text-white transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+      </div>
+        
+          <div className="space-y-6">
+            {content}
+            
+            {stats && (
+              <div className="grid grid-cols-3 gap-6 pt-6 border-t border-white/10">
+                {stats.map((stat, i) => (
+                  <div key={i} className="text-center">
+                    <div className="text-3xl font-bold text-white mb-2">{stat.value}</div>
+                    <div className="text-sm text-white/60">{stat.label}</div>
+        </div>
+                ))}
+        </div>
+            )}
+        </div>
+      </div>
+      </motion.div>
+    </div>
+  );
+};
+
+/* =============================
    Contact form (dummy)
    ============================= */
 function ContactForm() {
@@ -797,9 +838,20 @@ const HomePage: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [showClientDetailsModal, setShowClientDetailsModal] = useState(false);
+  const [openFaqItems, setOpenFaqItems] = useState<number[]>([]);
 
   const handleTexSchemeRedirect = () => {
     navigate('/new');
+  };
+
+  const toggleFaqItem = (index: number) => {
+    setOpenFaqItems(prev => 
+      prev.includes(index) 
+        ? prev.filter(item => item !== index)
+        : [...prev, index]
+    );
   };
 
   const handleConstructorRedirect = () => {
@@ -843,8 +895,6 @@ const HomePage: React.FC = () => {
           <nav className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
             <a className="hover:text-zinc-100 transition" href="#demo">Демо</a>
             <a className="hover:text-zinc-100 transition" href="#features">Возможности</a>
-            <a className="hover:text-zinc-100 transition" href="#how">Как это работает</a>
-            <a className="hover:text-zinc-100 transition" href="#examples">Примеры</a>
             <a className="hover:text-zinc-100 transition" href="#contact">Сотрудничество</a>
           </nav>
           
@@ -1060,7 +1110,7 @@ const HomePage: React.FC = () => {
             {/* Central "Подробнее" button - appears on hover */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
               <button 
-                onClick={() => setShowClientModal(true)}
+                onClick={() => setShowClientDetailsModal(true)}
                 className="pointer-events-auto inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-white/20 bg-white/10 hover:bg-white/15 transition-colors duration-200"
               >
                 <span className="text-white text-xs font-medium">Подробнее</span>
@@ -1079,196 +1129,367 @@ const HomePage: React.FC = () => {
 
 
 
-      {/* Enhanced Features */}
+      {/* Enhanced Features - Linear Style */}
       <Section id="features" className="py-12 md:py-16">
         <Container>
-          <Title
-            center
-            kicker="Возможности"
-            sub="Три ключевых инструмента: AI-план, очистка фото и конструктор с ИИ."
-          >
-            Всё, что необходимо
-          </Title>
+          <div className="max-w-6xl mx-auto">
+            {/* Header - Linear style */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start mb-16">
+              {/* Left - Title */}
+              <div>
+                <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+                  Всё необходимое для современной работы
+                </h2>
+                      </div>
 
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { 
-                icon: <Ruler className="h-6 w-6" />, 
-                title: "AI 2D-план", 
-                desc: "Перерисовка техплана: чёткий, читаемый результат, с мебелью или без.",
-                features: ["Автоматическое распознавание", "Экспорт в PNG/SVG", "Высокая точность"],
-                gradient: "from-blue-500/10 to-purple-500/10"
-              },
-              { 
-                icon: <Eraser className="h-6 w-6" />, 
-                title: "Очистка фото", 
-                desc: "Убираем мебель, гарнитуры и мусор. Оставляем стены и декор.",
-                features: ["Умное удаление объектов", "Сохранение архитектуры", "Реалистичный результат"],
-                gradient: "from-green-500/10 to-emerald-500/10"
-              },
-              { 
-                icon: <Wand2 className="h-6 w-6" />, 
-                title: "Конструктор + ИИ", 
-                desc: "Соберите план в конструкторе, добавьте фото — ИИ расставит мебель.",
-                features: ["Интуитивный интерфейс", "AI-расстановка мебели", "3D превью"],
-                gradient: "from-orange-500/10 to-red-500/10"
-              },
-            ].map((f, i) => (
-              <FadeIn key={i} delay={i * 0.1}>
-                <div className="group relative h-full overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
-                  <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500" 
-                       style={{ background: `linear-gradient(135deg, ${f.gradient.split(' ')[0].replace('from-', '').replace('/10', '')}20, transparent)` }} />
-                  
-                  <div className="relative z-10">
-                    <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-zinc-200 group-hover:bg-white/20 transition-colors duration-300">
-                    {f.icon}
-                      <span className="font-medium">Модуль</span>
-                  </div>
-                    
-                    <h3 className="text-2xl font-semibold text-zinc-100 mb-3 group-hover:text-white transition-colors duration-300">
-                      {f.title}
-                    </h3>
-                    
-                    <p className="text-zinc-400 mb-6 leading-relaxed">
-                      {f.desc}
-                    </p>
-                    
-                    <div className="space-y-3">
-                      {f.features.map((feature, idx) => (
-                        <div key={idx} className="flex items-center gap-3 text-sm text-zinc-300 group-hover:text-zinc-200 transition-colors duration-300">
-                          <div className="w-1.5 h-1.5 rounded-full bg-white/60 group-hover:bg-white transition-colors duration-300" />
-                          {feature}
-                  </div>
-                      ))}
+              {/* Right - Description */}
+              <div className="text-left">
+                <p className="text-lg text-white/80 leading-relaxed">
+                  Три мощных инструмента: AI-план, очистка фото и конструктор с ИИ. 
+                  Быстрая обработка, точные результаты, профессиональное качество. 
+                  Сделайте переход к новому уровню работы с планировками.{" "}
+                  <button 
+                    onClick={handleTexSchemeRedirect}
+                    className="text-white font-semibold hover:text-white/80 transition-colors duration-300 underline decoration-white/60 hover:decoration-white"
+                  >
+                    Начать
+                  </button>
+                </p>
+                        </div>
+                      </div>
+
+            {/* Three feature cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                {
+                  id: 'ai-plan',
+                  title: 'AI 2D-план',
+                  image: '/latar/rdy_testplan.jpg',
+                  description: 'Автоматическое создание точных 2D-планов из фотографий техпланов',
+                  stats: [
+                    { value: '99.2%', label: 'Точность распознавания' },
+                    { value: '2.3s', label: 'Среднее время обработки' }
+                  ],
+                  content: (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h3 className="text-lg font-bold text-white mb-4">Основные возможности</h3>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              Автоматическое распознавание стен и объектов
+                          </div>
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              Экспорт в PNG, SVG, PDF форматы
+                          </div>
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              Высокая точность воспроизведения
+                        </div>
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              Работа с любыми фотографиями
+                        </div>
+                      </div>
+                          </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-white mb-4">Технические характеристики</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">Разрешение входа:</span>
+                              <span className="text-white">до 4K</span>
+                          </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">Поддерживаемые форматы:</span>
+                              <span className="text-white">JPG, PNG, WEBP</span>
+                        </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">Максимальный размер:</span>
+                              <span className="text-white">50MB</span>
+                        </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">API лимит:</span>
+                              <span className="text-white">1000/месяц</span>
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Hover effect overlay */}
-                  <div className="pointer-events-none absolute -inset-px rounded-lg opacity-0 group-hover:opacity-100 transition duration-500 [mask-image:radial-gradient(80%_120%_at_50%_0%,_black,_transparent)] bg-gradient-to-b from-white/10 to-transparent" />
+                      </div>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-4">
+                        <h4 className="text-white font-bold mb-2">Как это работает</h4>
+                        <p className="text-white/80 text-sm leading-relaxed">
+                          Загрузите фото техплана (в том числе сделанное на телефон), выберите режим 
+                          с мебелью или без мебели, получите аккуратный 2D-план в формате PNG/SVG.
+                          Наш ИИ анализирует изображение и создает точную векторную схему помещения.
+                        </p>
+                      </div>
+                    </div>
+                  )
+                },
+                {
+                  id: 'photo-cleanup',
+                  title: 'Очистка фото',
+                  image: '/latar/past_deleteobjects.jpg',
+                  description: 'Умное удаление мебели и объектов с сохранением архитектуры',
+                  stats: [
+                    { value: '95%', label: 'Качество очистки' },
+                    { value: '1.8s', label: 'Время обработки' }
+                  ],
+                  content: (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h3 className="text-lg font-bold text-white mb-4">Возможности очистки</h3>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              Умное удаление мебели и объектов
+                            </div>
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              Сохранение архитектуры и стен
+                          </div>
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              Реалистичное восстановление фона
+                          </div>
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              Сохранение освещения и теней
+                          </div>
+                        </div>
+                      </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-white mb-4">Технические параметры</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">Скорость обработки:</span>
+                              <span className="text-white">1.8 секунды</span>
                 </div>
-              </FadeIn>
-            ))}
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">Качество очистки:</span>
+                              <span className="text-white">95%</span>
+              </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">Поддержка форматов:</span>
+                              <span className="text-white">JPG, PNG, WEBP</span>
+            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">Максимальное разрешение:</span>
+                              <span className="text-white">8K</span>
+          </div>
+                  </div>
+                  </div>
+                </div>
+                      <div className="bg-white/5 rounded-lg p-4">
+                        <h4 className="text-white font-bold mb-2">Применение</h4>
+                        <p className="text-white/80 text-sm leading-relaxed">
+                          Идеально для подготовки помещений к продаже, создания чистых планировок, 
+                          удаления временных объектов. Сохраняет оригинальную архитектуру и освещение.
+                        </p>
+          </div>
+                    </div>
+                  )
+                },
+                {
+                  id: 'constructor-ai',
+                  title: 'Конструктор + ИИ',
+                  image: '/latar/rdy_testplanmeb.jpg',
+                  description: 'Создание планов в конструкторе с AI-расстановкой мебели',
+                  stats: [
+                    { value: '3D', label: 'Превью в реальном времени' },
+                    { value: '10+', label: 'Типов мебели' },
+                    { value: '1000+', label: 'Элементов в библиотеке' }
+                  ],
+                  content: (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h3 className="text-lg font-bold text-white mb-4">Функции конструктора</h3>
+                    <div className="space-y-3">
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              Интуитивный drag-and-drop интерфейс
+                  </div>
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              AI-расстановка мебели по комнатам
+                    </div>
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              3D превью результата в реальном времени
+                  </div>
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                              Библиотека из 1000+ элементов мебели
+                </div>
+          </div>
+            </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-white mb-4">Технические возможности</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">Типы мебели:</span>
+                              <span className="text-white">10+ категорий</span>
+                        </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">3D превью:</span>
+                              <span className="text-white">В реальном времени</span>
+                      </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">Экспорт форматов:</span>
+                              <span className="text-white">PNG, SVG, PDF, DWG</span>
+                  </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white/60">Совместная работа:</span>
+                              <span className="text-white">До 5 пользователей</span>
+                </div>
+              </div>
+            </div>
+                        </div>
+                      <div className="bg-white/5 rounded-lg p-4">
+                        <h4 className="text-white font-bold mb-2">Рабочий процесс</h4>
+                        <p className="text-white/80 text-sm leading-relaxed">
+                          Соберите 2D-план из простых блоков, загрузите фото для каждой комнаты 
+                          и отредактируйте мебель. AI автоматически предложит оптимальную расстановку, 
+                          а 3D превью покажет результат. Сгенерируйте финальный план и экспортируйте.
+                        </p>
+                      </div>
+                  </div>
+                  )
+                }
+              ].map((feature, i) => (
+                <FadeIn key={i} delay={i * 0.1}>
+                  <div className="group relative overflow-hidden rounded-lg bg-white/5 border border-gray-800/30 hover:bg-white/10 transition-all duration-500">
+                    {/* Professional Graphics */}
+                    <div className="aspect-video p-8 flex items-center justify-center">
+                      {i === 0 && (
+                        // AI 2D-план - Professional status display
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="relative w-32 h-20">
+                              {/* Status bar */}
+                              <div className="absolute top-0 left-0 w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-white/60 to-white/40 rounded-full animate-pulse"></div>
+                </div>
+                  
+                              {/* Main status text */}
+                              <div className="absolute top-4 left-0 w-full text-center">
+                                <div className="text-white font-mono text-sm tracking-wider">AI.PROCESSING</div>
+                                <div className="text-white/60 font-mono text-xs mt-1">2D_PLAN_GENERATION</div>
+            </div>
+                  
+                              {/* Progress indicators */}
+                              <div className="absolute bottom-0 left-0 w-full flex justify-between">
+                                <div className="text-white/40 font-mono text-xs">LOADING</div>
+                                <div className="text-white/40 font-mono text-xs">ANALYZING</div>
+                                <div className="text-white/40 font-mono text-xs">GENERATING</div>
+                        </div>
+                      </div>
+                  </div>
+                </div>
+                      )}
+                      
+                      {i === 1 && (
+                        // Очистка фото - Speed processing display
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="relative w-32 h-20">
+                              {/* Speed indicator */}
+                              <div className="absolute top-0 left-0 w-full text-center">
+                                <div className="text-white font-mono text-2xl font-bold">50ms</div>
+                                <div className="text-white/60 font-mono text-xs mt-1">PROCESSING_TIME</div>
+                </div>
+                
+                              {/* Speed lines */}
+                              <div className="absolute bottom-0 left-0 w-full h-8 flex items-end justify-center space-x-1">
+                                <div className="w-0.5 h-2 bg-white/60 animate-pulse"></div>
+                                <div className="w-0.5 h-4 bg-white/60 animate-pulse" style={{animationDelay: '0.1s'}}></div>
+                                <div className="w-0.5 h-6 bg-white/60 animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                                <div className="w-0.5 h-4 bg-white/60 animate-pulse" style={{animationDelay: '0.3s'}}></div>
+                                <div className="w-0.5 h-2 bg-white/60 animate-pulse" style={{animationDelay: '0.4s'}}></div>
+              </div>
+            </div>
+                  </div>
+                </div>
+                      )}
+                      
+                      {i === 2 && (
+                        // Конструктор + ИИ - Grid system display
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="relative w-32 h-20">
+                              {/* Grid system */}
+                              <div className="absolute top-0 left-0 w-full h-full">
+                                <div className="absolute top-0 left-0 w-full h-px bg-white/30"></div>
+                                <div className="absolute top-1/3 left-0 w-full h-px bg-white/30"></div>
+                                <div className="absolute top-2/3 left-0 w-full h-px bg-white/30"></div>
+                                <div className="absolute top-0 left-0 w-px h-full bg-white/30"></div>
+                                <div className="absolute top-0 left-1/3 w-px h-full bg-white/30"></div>
+                                <div className="absolute top-0 left-2/3 w-px h-full bg-white/30"></div>
+                                <div className="absolute top-0 left-full w-px h-full bg-white/30"></div>
+              </div>
+              
+                              {/* System status */}
+                              <div className="absolute top-2 left-2 text-white font-mono text-xs">GRID_SYSTEM</div>
+                              <div className="absolute bottom-2 right-2 text-white/60 font-mono text-xs">ACTIVE</div>
+                              
+                              {/* Grid points */}
+                              <div className="absolute top-1/3 left-1/3 w-1 h-1 bg-white/80"></div>
+                              <div className="absolute top-2/3 left-2/3 w-1 h-1 bg-white/80"></div>
+                  </div>
+                </div>
+              </div>
+                      )}
+            </div>
+            
+                    {/* Content */}
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-white group-hover:text-white transition-colors duration-300">
+                          {feature.title}
+                        </h3>
+                        <button
+                          onClick={() => setActiveModal(feature.id)}
+                          className="w-8 h-8 rounded border border-white/30 hover:border-white/60 bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                        >
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                        </button>
+                      </div>
+            
+                      <p className="text-white/60 text-sm leading-relaxed">
+                        {feature.description}
+                      </p>
+                      </div>
+                    </div>
+                  </FadeIn>
+                ))}
+            </div>
           </div>
         </Container>
       </Section>
 
-      {/* Interactive How it works */}
-      <Section id="how" className="py-12 md:py-16">
-        <Container>
-          <Title kicker="Как это работает" center sub="Три режима под разные задачи агентств: 2D-план, очистка фото и конструктор с ИИ.">
-            Простые шаги для каждой функции
-          </Title>
-          
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* 1. AI создание 2D плана */}
-            <FadeIn delay={0.1}>
-              <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                <div className="relative z-10">
-                  <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-zinc-200 group-hover:bg-white/20 transition-colors duration-300">
-                    <Ruler className="h-4 w-4" /> 
-                    <span className="font-medium">2D-план</span>
-            </div>
-                  
-                  <h3 className="mt-6 text-2xl font-semibold text-zinc-100 group-hover:text-white transition-colors duration-300">
-                    AI создание 2D плана
-                  </h3>
-                  
-                  <div className="mt-6 space-y-4">
-                    {[
-                      "Загрузите фото техплана (в том числе сделанное на телефон)",
-                      "Выберите: с мебелью или без мебели",
-                      "Получите аккуратный 2D-план (PNG/SVG) и экспортируйте"
-                    ].map((step, idx) => (
-                      <div key={idx} className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 text-white text-sm font-medium flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
-                          {idx + 1}
-                        </div>
-                        <p className="text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 leading-relaxed">
-                          {step}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
 
-            {/* 2. Очистка */}
-            <FadeIn delay={0.2}>
-              <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                <div className="relative z-10">
-                  <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-zinc-200 group-hover:bg-white/20 transition-colors duration-300">
-                    <Eraser className="h-4 w-4" /> 
-                    <span className="font-medium">Очистка фото</span>
-            </div>
-                  
-                  <h3 className="mt-6 text-2xl font-semibold text-zinc-100 group-hover:text-white transition-colors duration-300">
-                    Очистка ненужных объектов
-                  </h3>
-                  
-                  <div className="mt-6 space-y-4">
-                    {[
-                      "Загрузите фото помещения/комнаты",
-                      "Plan AI удалит мебель, гарнитуры и мусор; стены и декор сохранятся",
-                      "Скачайте чистое изображение помещения"
-                    ].map((step, idx) => (
-                      <div key={idx} className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 text-white text-sm font-medium flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
-                          {idx + 1}
-                        </div>
-                        <p className="text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 leading-relaxed">
-                          {step}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
 
-            {/* 3. Конструктор с ИИ */}
-            <FadeIn delay={0.3}>
-              <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                <div className="relative z-10">
-                  <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-zinc-200 group-hover:bg-white/20 transition-colors duration-300">
-                    <Wand2 className="h-4 w-4" /> 
-                    <span className="font-medium">Конструктор + ИИ</span>
-            </div>
-                  
-                  <h3 className="mt-6 text-2xl font-semibold text-zinc-100 group-hover:text-white transition-colors duration-300">
-                    Конструктор с встроенным AI
-                  </h3>
-                  
-                  <div className="mt-6 space-y-4">
-                    {[
-                      "Соберите 2D-план из простых блоков",
-                      "Загрузите фото для каждой комнаты и отредактируйте мебель",
-                      "Сгенерируйте финальный план и экспортируйте"
-                    ].map((step, idx) => (
-                      <div key={idx} className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 text-white text-sm font-medium flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
-                          {idx + 1}
-                        </div>
-                        <p className="text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 leading-relaxed">
-                          {step}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
+
+      {/* Section Divider with Animated Gradient */}
+      <div className="relative py-16">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-gradient-flow"></div>
           </div>
-        </Container>
-      </Section>
-
-
+        </div>
+        <div className="relative flex justify-center">
+          <div className="bg-black px-4">
+            <div className="text-white/40 text-sm font-mono tracking-wider">
+              ОТЗЫВЫ КЛИЕНТОВ
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Interactive Testimonial */}
       <Section id="testimonial" className="py-12 md:py-16">
@@ -1320,61 +1541,113 @@ const HomePage: React.FC = () => {
         </Container>
       </Section>
 
-      {/* Interactive FAQ */}
-      <Section id="faq" className="py-12 md:py-16">
+      {/* Professional FAQ */}
+      <Section id="faq" className="py-16 md:py-20">
         <Container>
-          <Title center kicker="FAQ" sub="О внедрении в агентства и кастомизации под ваши процессы.">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-16">
+              <FadeIn>
+                <div className="text-sm uppercase tracking-wider text-white/60 font-mono mb-4">FAQ</div>
+              </FadeIn>
+              <FadeIn delay={0.1}>
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Частые вопросы
-          </Title>
-          
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              { 
-                q: "Какая стоимость для организаций?", 
-                a: "Стоимость расчитывается индивидуально для каждой организации с учетом объемов и сложности задач.",
-                icon: "💰"
-              },
-              { 
-                q: "Нужна ли подписка?", 
-                a: "Нет. Сайт и продукт ориентированы на корпоративное внедрение и пилоты, без публичных тарифов.",
-                icon: "🚫"
-              },
-              { 
-                q: "Как перенести стиль в бренд агентства?", 
-                a: "Пресеты: логотип, шрифты и цвет акцентов — применяются к экспортам.",
-                icon: "🎨"
-              },
-              { 
-                q: "Можно ли обучить модели под наши планы?", 
-                a: "Да, поддерживаем дообучение на ваших данных и типовых планировках.",
-                icon: "🤖"
+                </h2>
+              </FadeIn>
+              <FadeIn delay={0.2}>
+                <p className="text-lg text-white/70 max-w-2xl mx-auto">
+                  О внедрении в агентства недвижимости и кастомизации под ваши процессы
+                </p>
+              </FadeIn>
+            </div>
+            
+            <div className="space-y-4">
+              {[
+                { 
+                  q: "Какая стоимость для агентств недвижимости?", 
+                  a: "Стоимость рассчитывается индивидуально для каждого агентства с учетом объемов обработки планировок, количества объектов и сложности задач. Предоставляем гибкие тарифные планы.",
+                  category: "СТОИМОСТЬ"
+                },
+                { 
+                  q: "Как интегрируется Plan AI в существующие процессы?", 
+                  a: "Интеграция происходит через API или веб-интерфейс. Поддерживаем интеграцию с CRM-системами, базами данных объектов и существующими рабочими процессами агентства.",
+                  category: "ИНТЕГРАЦИЯ"
+                },
+                { 
+                  q: "Можно ли настроить брендинг под агентство?", 
+                  a: "Да, полная кастомизация: логотип агентства, корпоративные цвета, шрифты и стили применяются ко всем экспортируемым планировкам и документам.",
+                  category: "БРЕНДИНГ"
+                },
+                { 
+                  q: "Какой уровень точности распознавания планировок?", 
+                  a: "Точность распознавания составляет 99.2% для стандартных планировок. Для сложных архитектурных решений точность может варьироваться от 95% до 98%.",
+                  category: "ТОЧНОСТЬ"
+                },
+                { 
+                  q: "Поддерживается ли обучение на наших данных?", 
+                  a: "Да, мы предоставляем возможность дообучения моделей на специфических типах планировок и архитектурных стилях, характерных для вашего региона.",
+                  category: "ОБУЧЕНИЕ"
+                },
+                { 
+                  q: "Какие форматы экспорта доступны?", 
+                  a: "PNG, SVG, PDF, DWG, DXF. Все форматы оптимизированы для использования в презентациях, каталогах и технической документации.",
+                  category: "ЭКСПОРТ"
               },
             ].map((item, i) => (
               <FadeIn key={i} delay={i * 0.1}>
-                <div className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 hover:scale-[1.02]">
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  
-                  <div className="relative z-10">
-                    <div className="flex items-start gap-4">
-                      <div className="text-2xl group-hover:scale-110 transition-transform duration-300">
-                        {item.icon}
+                  <div 
+                    className="group relative overflow-hidden rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-500 cursor-pointer"
+                    onClick={() => toggleFaqItem(i)}
+                  >
+                    <div className="p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="px-2 py-1 rounded-full bg-white/10 border border-white/20">
+                              <span className="text-xs font-mono text-white/80 tracking-wider">
+                                {item.category}
+                              </span>
+                            </div>
+                          </div>
+                          <h3 className="text-base font-bold text-white group-hover:text-white transition-colors duration-300">
+                            {item.q}
+                          </h3>
+                        </div>
+                        <div className="w-6 h-6 rounded-sm border border-white/30 bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all duration-300 flex-shrink-0">
+                          <motion.svg 
+                            className="w-3 h-3 text-white/60 group-hover:text-white transition-colors duration-300" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                            animate={{ rotate: openFaqItems.includes(i) ? 180 : 0 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </motion.svg>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-zinc-100 group-hover:text-white transition-colors duration-300 mb-3">
-                          {item.q}
-                        </h3>
-                        <p className="text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 leading-relaxed">
+                      
+                      <motion.div
+                        initial={false}
+                        animate={{ 
+                          height: openFaqItems.includes(i) ? "auto" : 0,
+                          opacity: openFaqItems.includes(i) ? 1 : 0
+                        }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="overflow-hidden mt-3"
+                      >
+                        <p className="text-white/70 leading-relaxed text-sm">
                           {item.a}
                         </p>
-                      </div>
+                      </motion.div>
                     </div>
-                  </div>
                   
-                  {/* Hover effect overlay */}
-                  <div className="pointer-events-none absolute -inset-px rounded-lg opacity-0 group-hover:opacity-100 transition duration-500 [mask-image:radial-gradient(80%_120%_at_50%_0%,_black,_transparent)] bg-gradient-to-b from-white/10 to-transparent" />
+                    {/* Professional border effect */}
+                    <div className="absolute inset-0 border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </div>
               </FadeIn>
             ))}
+            </div>
           </div>
         </Container>
       </Section>
@@ -1513,6 +1786,211 @@ const HomePage: React.FC = () => {
             </div>
           </motion.div>
         </>
+      )}
+
+      {/* Client Details Modal */}
+      {showClientDetailsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowClientDetailsModal(false)}
+          />
+          <motion.div 
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-black border border-white/20 rounded-lg"
+          >
+            <div className="p-8">
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-2xl font-bold text-white">Работаем с лучшими командами</h2>
+                <button
+                  onClick={() => setShowClientDetailsModal(false)}
+                  className="text-white/60 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-4">Наши партнеры</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 text-sm text-white/70">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                        Ведущие архитектурные бюро
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-white/70">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                        Крупные девелоперские компании
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-white/70">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                        Международные консалтинговые агентства
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-white/70">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                        Технологические стартапы
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-4">Статистика сотрудничества</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/60">Активных партнеров:</span>
+                        <span className="text-white">50+</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/60">Обработано проектов:</span>
+                        <span className="text-white">1000+</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/60">Средний рейтинг:</span>
+                        <span className="text-white">4.9/5</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/60">Время интеграции:</span>
+                        <span className="text-white">1-2 недели</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white/5 rounded-lg p-4">
+                  <h4 className="text-white font-bold mb-2">Преимущества партнерства</h4>
+                  <p className="text-white/80 text-sm leading-relaxed">
+                    Мы работаем с командами любого размера — от стартапов до крупных предприятий. 
+                    Наша платформа интегрируется в существующие рабочие процессы, обеспечивая 
+                    быструю обработку планировок и повышение эффективности работы.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-6 pt-6 border-t border-white/10">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-white mb-2">50+</div>
+                    <div className="text-sm text-white/60">Партнеров</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-white mb-2">1000+</div>
+                    <div className="text-sm text-white/60">Проектов</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-white mb-2">4.9/5</div>
+                    <div className="text-sm text-white/60">Рейтинг</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modals */}
+      {activeModal === 'ai-plan' && (
+        <Modal
+          isOpen={true}
+          onClose={() => setActiveModal(null)}
+          title="AI 2D-план"
+          stats={[
+            { value: '99.2%', label: 'Точность распознавания' },
+            { value: '2.3s', label: 'Среднее время обработки' }
+          ]}
+          content={
+            <div className="space-y-4">
+              <p className="text-white/80 leading-relaxed">
+                Загрузите фото техплана (в том числе сделанное на телефон), выберите режим 
+                с мебелью или без мебели, получите аккуратный 2D-план в формате PNG/SVG.
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                  Автоматическое распознавание стен и объектов
+                </div>
+                <div className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                  Экспорт в PNG, SVG, PDF форматы
+                </div>
+                <div className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                  Высокая точность воспроизведения
+                </div>
+              </div>
+            </div>
+          }
+        />
+      )}
+
+      {activeModal === 'photo-cleanup' && (
+        <Modal
+          isOpen={true}
+          onClose={() => setActiveModal(null)}
+          title="Очистка фото"
+          stats={[
+            { value: '95%', label: 'Качество очистки' },
+            { value: '1.8s', label: 'Время обработки' }
+          ]}
+          content={
+            <div className="space-y-4">
+              <p className="text-white/80 leading-relaxed">
+                Загрузите фото помещения, Plan AI удалит мебель, гарнитуры и мусор, 
+                сохранив стены и декор. Скачайте чистое изображение помещения.
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                  Умное удаление объектов
+                </div>
+                <div className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                  Сохранение архитектуры
+                </div>
+                <div className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                  Реалистичный результат
+                </div>
+              </div>
+            </div>
+          }
+        />
+      )}
+
+      {activeModal === 'constructor-ai' && (
+        <Modal
+          isOpen={true}
+          onClose={() => setActiveModal(null)}
+          title="Конструктор + ИИ"
+          stats={[
+            { value: '3D', label: 'Превью в реальном времени' },
+            { value: '10+', label: 'Типов мебели' }
+          ]}
+          content={
+            <div className="space-y-4">
+              <p className="text-white/80 leading-relaxed">
+                Соберите 2D-план из простых блоков, загрузите фото для каждой комнаты 
+                и отредактируйте мебель. Сгенерируйте финальный план и экспортируйте.
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                  Интуитивный интерфейс
+                </div>
+                <div className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                  AI-расстановка мебели
+                </div>
+                <div className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                  3D превью результата
+                </div>
+              </div>
+            </div>
+          }
+        />
       )}
     </main>
   );
