@@ -343,7 +343,7 @@ function StyleHint({ targetRef, show, onClose }) {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.45 }}
     >
-      <div className="rounded-xl theme-panel theme-border px-3 py-2 text-xs theme-text-muted flex items-center gap-2 shadow-lg">
+      <div className="rounded-md theme-panel theme-border px-3 py-2 text-xs theme-text-muted flex items-center gap-2 shadow-lg">
         <motion.span
           aria-hidden
           initial={{ x: 0 }}
@@ -664,16 +664,16 @@ export default function MonochromeClaudeStyle() {
         <aside className="hidden md:flex w-16 shrink-0 theme-border border-r theme-panel backdrop-blur flex-col items-center justify-between py-4">
           <div className="flex flex-col items-center gap-4">
             {/* По клику на панель — открываем правую панель с чатами */}
-            <button onClick={() => openRight("chats")} className="h-10 w-10 grid place-items-center rounded-xl hover:bg-black/10" title="Список чатов">
+            <button onClick={() => openRight("chats")} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Список чатов">
               <PanelLeft className="h-5 w-5" />
             </button>
-            <button onClick={createChat} className="h-10 w-10 grid place-items-center rounded-xl hover:bg-black/10" title="Новый чат">
+            <button onClick={createChat} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Новый чат">
               <Plus className="h-5 w-5" />
             </button>
-            <button onClick={deleteActiveChat} className="h-10 w-10 grid place-items-center rounded-xl hover:bg-black/10" title="Удалить текущий чат">
+            <button onClick={deleteActiveChat} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Удалить текущий чат">
               <Trash2 className="h-5 w-5" />
             </button>
-            <button ref={settingsBtnRef} onClick={() => openRight("settings")} className="h-10 w-10 grid place-items-center rounded-xl hover:bg-black/10" title="Настройки">
+            <button ref={settingsBtnRef} onClick={() => openRight("settings")} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Настройки">
               <Settings className="h-5 w-5" />
             </button>
           </div>
@@ -684,11 +684,11 @@ export default function MonochromeClaudeStyle() {
         <main className="flex-1 overflow-y-auto flex flex-col">
           {/* Mobile header */}
           <div className="md:hidden flex items-center justify-between p-4 theme-border border-b theme-panel">
-            <button onClick={() => openRight("chats")} className="h-10 w-10 grid place-items-center rounded-xl hover:bg-black/10" title="Список чатов">
+            <button onClick={() => openRight("chats")} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Список чатов">
               <PanelLeft className="h-5 w-5" />
             </button>
             <div className="text-sm font-medium">Plan AI</div>
-            <button onClick={() => openRight("settings")} className="h-10 w-10 grid place-items-center rounded-xl hover:bg-black/10" title="Настройки">
+            <button onClick={() => openRight("settings")} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Настройки">
               <Settings className="h-5 w-5" />
             </button>
           </div>
@@ -734,7 +734,7 @@ export default function MonochromeClaudeStyle() {
                   <div key={m.id} className="space-y-3 md:space-y-4">
                     {/* User message */}
                     <div className="flex justify-end">
-                      <div className="max-w-[85%] md:max-w-[80%] rounded-2xl theme-border theme-panel-muted px-3 py-2">
+                      <div className="max-w-[85%] md:max-w-[80%] rounded-lg theme-border theme-panel-muted px-3 py-2">
                         <div className="text-sm whitespace-pre-wrap">{m.text}</div>
                         {m.attachments?.length > 0 && (
                           <div className="mt-2 space-y-2">
@@ -750,7 +750,7 @@ export default function MonochromeClaudeStyle() {
                     {/* AI Response */}
                     {responses[m.id] && (
                       <div className="flex justify-start">
-                        <div className="max-w-[85%] md:max-w-[80%] rounded-2xl theme-border theme-panel-muted px-3 py-2">
+                        <div className="max-w-[85%] md:max-w-[80%] rounded-lg theme-border theme-panel-muted px-3 py-2">
                           <div className="text-sm whitespace-pre-wrap">{responses[m.id].text}</div>
                           
                           {/* Сгенерированное изображение */}
@@ -808,7 +808,7 @@ export default function MonochromeClaudeStyle() {
                 {/* Generation message */}
                 {isGenerating && (
                   <div className="flex justify-start">
-                    <div className="max-w-[80%] rounded-2xl theme-border theme-panel-muted px-3 py-2">
+                    <div className="max-w-[80%] rounded-lg theme-border theme-panel-muted px-3 py-2">
                       <div className="flex items-center gap-3 text-sm">
                         <span className="font-hero">Генерируется</span>
                         <motion.div
@@ -829,7 +829,7 @@ export default function MonochromeClaudeStyle() {
             {/* Composer - Centered before first message */}
             {!hasFirstMessage && (
               <div className="mt-6 md:mt-8 flex">
-                <div className={cn("w-full max-w-2xl rounded-2xl backdrop-blur relative theme-panel theme-border","shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]") }>
+                <div className={cn("w-full max-w-2xl rounded-lg backdrop-blur relative theme-panel theme-border","shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]") }>
                   <div className="p-3 sm:p-4">
                     <div className="flex items-start gap-3">
                       {/* left: attach */}
@@ -860,7 +860,7 @@ export default function MonochromeClaudeStyle() {
                           <button
                             onClick={() => setPlanFurniture("with")}
                             className={cn(
-                              "rounded-xl border px-2 md:px-3 py-2 text-xs md:text-sm",
+                              "rounded-md border px-2 md:px-3 py-2 text-xs md:text-sm",
                               planFurniture === "with" ? "accent-button" : "theme-panel theme-border"
                             )}
                           >
@@ -869,7 +869,7 @@ export default function MonochromeClaudeStyle() {
                           <button
                             onClick={() => setPlanFurniture("without")}
                             className={cn(
-                              "rounded-xl border px-2 md:px-3 py-2 text-xs md:text-sm",
+                              "rounded-md border px-2 md:px-3 py-2 text-xs md:text-sm",
                               planFurniture === "without" ? "accent-button" : "theme-panel theme-border"
                             )}
                           >
@@ -880,7 +880,7 @@ export default function MonochromeClaudeStyle() {
                         <div className="flex w-full items-center gap-2">
                           <button
                             onClick={() => setRemoveDepth("full")}
-                            className={cn("rounded-xl px-3 py-2 text-sm border", removeDepth === "full" ? "accent-button" : "theme-panel theme-border")}
+                            className={cn("rounded-md px-3 py-2 text-sm border", removeDepth === "full" ? "accent-button" : "theme-panel theme-border")}
                           >
                             Полностью
                           </button>
@@ -914,7 +914,7 @@ export default function MonochromeClaudeStyle() {
                             <ChevronDown className="h-3 w-3 md:h-4 md:w-4" />
                           </button>
                           {showModelMenu && (
-                            <div className="absolute right-0 top-10 z-20 w-48 md:w-56 rounded-xl theme-border theme-panel shadow-lg">
+                            <div className="absolute right-0 top-10 z-20 w-48 md:w-56 rounded-md theme-border theme-panel shadow-lg">
                               {MODEL_OPTIONS.map((opt) => (
                                 <button
                                   key={opt.id}
@@ -938,7 +938,7 @@ export default function MonochromeClaudeStyle() {
                           onClick={send}
                           disabled={!canSend || isGenerating}
                           className={cn(
-                            "h-8 w-8 md:h-9 md:w-9 rounded-xl grid place-items-center border",
+                            "h-8 w-8 md:h-9 md:w-9 rounded-md grid place-items-center border",
                             isGenerating 
                               ? "disabled-button" 
                               : canSend 
@@ -975,7 +975,7 @@ export default function MonochromeClaudeStyle() {
                         <div className="text-xs theme-text-muted mb-2">Вложения: {attachments.length}</div>
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                           {attachments.map((a) => (
-                            <div key={a.id} className="group relative overflow-hidden rounded-xl theme-border theme-panel-muted">
+                            <div key={a.id} className="group relative overflow-hidden rounded-md theme-border theme-panel-muted">
                               <img src={a.url} alt={a.name} className="h-24 w-full object-cover" loading="lazy" />
                               <button
                                 onClick={() => removeAttachment(a.id)}
@@ -1012,7 +1012,7 @@ export default function MonochromeClaudeStyle() {
           {hasFirstMessage && (
             <div className="sticky bottom-0 bg-themed-root/80 backdrop-blur-sm p-2 md:p-4">
               <div className="mx-auto max-w-3xl">
-                <div className={cn("w-full rounded-2xl backdrop-blur relative theme-panel theme-border","shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]") }>
+                <div className={cn("w-full rounded-lg backdrop-blur relative theme-panel theme-border","shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]") }>
                 <div className="p-3 sm:p-4">
                   <div className="flex items-start gap-3">
                     {/* left: attach */}
@@ -1043,7 +1043,7 @@ export default function MonochromeClaudeStyle() {
                         <button
                           onClick={() => setPlanFurniture("with")}
                           className={cn(
-                            "rounded-xl border px-2 md:px-3 py-2 text-xs md:text-sm",
+                            "rounded-md border px-2 md:px-3 py-2 text-xs md:text-sm",
                             planFurniture === "with" ? "accent-button" : "theme-panel theme-border"
                           )}
                         >
@@ -1052,7 +1052,7 @@ export default function MonochromeClaudeStyle() {
                         <button
                           onClick={() => setPlanFurniture("without")}
                           className={cn(
-                            "rounded-xl border px-2 md:px-3 py-2 text-xs md:text-sm",
+                            "rounded-md border px-2 md:px-3 py-2 text-xs md:text-sm",
                             planFurniture === "without" ? "accent-button" : "theme-panel theme-border"
                           )}
                         >
@@ -1063,7 +1063,7 @@ export default function MonochromeClaudeStyle() {
                       <div className="flex w-full items-center gap-2">
                         <button
                           onClick={() => setRemoveDepth("full")}
-                          className={cn("rounded-xl px-3 py-2 text-sm border", removeDepth === "full" ? "accent-button" : "theme-panel theme-border")}
+                          className={cn("rounded-md px-3 py-2 text-sm border", removeDepth === "full" ? "accent-button" : "theme-panel theme-border")}
                         >
                           Полностью
                         </button>
@@ -1097,7 +1097,7 @@ export default function MonochromeClaudeStyle() {
                           <ChevronDown className="h-3 w-3 md:h-4 md:w-4" />
                         </button>
                         {showModelMenu && (
-                          <div className="absolute right-0 top-10 z-20 w-48 md:w-56 rounded-xl theme-border theme-panel shadow-lg">
+                          <div className="absolute right-0 top-10 z-20 w-48 md:w-56 rounded-md theme-border theme-panel shadow-lg">
                             {MODEL_OPTIONS.map((opt) => (
                               <button
                                 key={opt.id}
@@ -1121,7 +1121,7 @@ export default function MonochromeClaudeStyle() {
                         onClick={send}
                         disabled={!canSend || isGenerating}
                         className={cn(
-                          "h-8 w-8 md:h-9 md:w-9 rounded-xl grid place-items-center border",
+                          "h-8 w-8 md:h-9 md:w-9 rounded-md grid place-items-center border",
                           isGenerating 
                             ? "disabled-button" 
                             : canSend 
@@ -1158,7 +1158,7 @@ export default function MonochromeClaudeStyle() {
                       <div className="text-xs theme-text-muted mb-2">Вложения: {attachments.length}</div>
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {attachments.map((a) => (
-                          <div key={a.id} className="group relative overflow-hidden rounded-xl theme-border theme-panel-muted">
+                          <div key={a.id} className="group relative overflow-hidden rounded-md theme-border theme-panel-muted">
                             <img src={a.url} alt={a.name} className="h-24 w-full object-cover" loading="lazy" />
                             <button
                               onClick={() => removeAttachment(a.id)}
@@ -1212,21 +1212,21 @@ export default function MonochromeClaudeStyle() {
                 <div className="space-y-2">
                   <button 
                     onClick={createChat} 
-                    className="w-full rounded-xl border-2 px-3 py-2 text-sm transition-all duration-200 flex items-center gap-2 font-medium new-chat-button"
+                    className="w-full rounded-md border-2 px-3 py-2 text-sm transition-all duration-200 flex items-center gap-2 font-medium new-chat-button"
                   >
                     <Plus className="h-4 w-4"/>
                     Новый чат
                   </button>
                   <button 
                     onClick={deleteActiveChat} 
-                    className="w-full rounded-xl theme-border theme-panel px-3 py-2 text-sm hover:opacity-90 flex items-center gap-2"
+                    className="w-full rounded-md theme-border theme-panel px-3 py-2 text-sm hover:opacity-90 flex items-center gap-2"
                   >
                     <Trash2 className="h-4 w-4"/>
                     Удаление чата
                   </button>
                   <button 
                     onClick={() => setRightTab("settings")} 
-                    className="w-full rounded-xl theme-border theme-panel px-3 py-2 text-sm hover:opacity-90 flex items-center gap-2"
+                    className="w-full rounded-md theme-border theme-panel px-3 py-2 text-sm hover:opacity-90 flex items-center gap-2"
                   >
                     <Settings className="h-4 w-4"/>
                     Настройки
@@ -1241,7 +1241,7 @@ export default function MonochromeClaudeStyle() {
                       <div key={c.id} className="flex items-center gap-2">
                         <button 
                           onClick={() => { setActiveChatId(c.id); setRightOpen(false); setHasFirstMessage(c.messages.length > 0); setIsGenerating(false); setResponses({}); }} 
-                          className={cn("flex-1 text-left rounded-xl border px-3 py-2 hover:opacity-95", c.id === activeChatId ? "theme-panel" : "theme-panel-muted", "theme-border")}
+                          className={cn("flex-1 text-left rounded-md border px-3 py-2 hover:opacity-95", c.id === activeChatId ? "theme-panel" : "theme-panel-muted", "theme-border")}
                         >
                           <div className="text-sm truncate">{c.title || 'Без названия'}</div>
                           <div className="text-[11px] theme-text-muted">Сообщений: {c.messages.length}</div>
@@ -1268,7 +1268,7 @@ export default function MonochromeClaudeStyle() {
                 {/* Back to chats button */}
                 <button 
                   onClick={() => setRightTab("chats")} 
-                  className="w-full rounded-xl theme-border theme-panel px-3 py-2 text-sm hover:opacity-90 flex items-center gap-2"
+                  className="w-full rounded-md theme-border theme-panel px-3 py-2 text-sm hover:opacity-90 flex items-center gap-2"
                 >
                   <PanelLeft className="h-4 w-4"/>
                   Вернуться к чатам
@@ -1278,10 +1278,10 @@ export default function MonochromeClaudeStyle() {
                   <div className="text-sm theme-text-muted mb-2">Профиль</div>
                   <div className="space-y-2">
                     <label className="block text-xs theme-text-muted">Email</label>
-                    <input className="w-full rounded-xl theme-border theme-panel px-3 py-2 outline-none text-sm" placeholder="you@example.com" />
+                    <input className="w-full rounded-md theme-border theme-panel px-3 py-2 outline-none text-sm" placeholder="you@example.com" />
                     <label className="block text-xs theme-text-muted mt-3">Пароль</label>
-                    <input type="password" className="w-full rounded-xl theme-border theme-panel px-3 py-2 outline-none text-sm" placeholder="••••••••" />
-                    <button className="mt-3 rounded-xl theme-border theme-panel px-3 py-2 text-sm hover:opacity-90">Сохранить</button>
+                    <input type="password" className="w-full rounded-md theme-border theme-panel px-3 py-2 outline-none text-sm" placeholder="••••••••" />
+                    <button className="mt-3 rounded-md theme-border theme-panel px-3 py-2 text-sm hover:opacity-90">Сохранить</button>
                   </div>
                 </div>
 
@@ -1368,18 +1368,18 @@ export default function MonochromeClaudeStyle() {
           --accent-disabled-contrast: var(--muted);
         }
         :root[data-style='standard']{
-          --bg: #262624;           /* Фон */
-          --panel: #30302e;        /* Поля, панели, карточки */
-          --panel-muted: #30302e;  /* используем тот же оттенок для консистентности */
-          --border: #3a3a37;       /* деликатная граница */
-          --text: #F2F3F5;
-          --muted: #B0B1AE;
-          --accent: #cc7c5e;       /* Активная кнопка и логотип */
-          --accent-contrast: #111111;
-          --accent-hover: #d48a6a; /* более яркий оранжевый при наведении */
-          --hero-accent: #cc7c5e;  /* ✷ */
-          --accent-disabled: #754b3b;               /* Неактивная кнопка отправки */
-          --accent-disabled-contrast: #FFFFFF;      /* Цвет стрелки на неактивной */
+          --bg: #1a1a1a;
+          --panel: #2a2a2a;
+          --panel-muted: #242424;
+          --border: #404040;
+          --text: #f8f9fa;
+          --muted: #9ca3af;
+          --accent: #3b82f6;
+          --accent-contrast: #ffffff;
+          --accent-hover: #2563eb;
+          --hero-accent: #60a5fa;
+          --accent-disabled: #374151;
+          --accent-disabled-contrast: #6b7280;
         }
 
         /* legacy helpers (if still referenced somewhere) */
