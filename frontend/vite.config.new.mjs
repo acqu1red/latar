@@ -16,9 +16,14 @@ export default defineConfig({
     outDir: 'dist-new',
     assetsDir: 'assets',
     rollupOptions: {
-      input: './public/new.html',
+      input: {
+        new: './public/newpage.tsx'
+      },
       output: {
         manualChunks: undefined,
+        entryFileNames: 'assets/new-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       },
     },
   },
