@@ -102,6 +102,25 @@ app.use(express.static(path.join(__dirname, '..', 'frontend/dist')));
 // Статический маршрут для временных изображений
 app.use('/temp-images', express.static(path.join(__dirname, '..', 'uploads')));
 
+// Специальный маршрут для поддомена new
+app.get('/new', (req, res) => {
+  const newHtmlPath = path.join(__dirname, '..', 'frontend/dist/new.html');
+  if (fs.existsSync(newHtmlPath)) {
+    res.sendFile(newHtmlPath);
+  } else {
+    res.status(404).send('new.html not found');
+  }
+});
+
+app.get('/new/*', (req, res) => {
+  const newHtmlPath = path.join(__dirname, '..', 'frontend/dist/new.html');
+  if (fs.existsSync(newHtmlPath)) {
+    res.sendFile(newHtmlPath);
+  } else {
+    res.status(404).send('new.html not found');
+  }
+});
+
 // SPA маршрут - все остальные запросы направляем на index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend/dist/index.html'));
