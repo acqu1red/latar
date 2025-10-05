@@ -10,9 +10,19 @@ import MonochromeClaudeStyle from './NewPage.jsx';
 import './index.css'; // Импортируем глобальные стили
 
 const App: React.FC = () => {
+  // Определяем basename в зависимости от окружения
+  const getBasename = () => {
+    // Если мы на поддомене new, используем пустой basename
+    if (window.location.hostname.includes('new.')) {
+      return '';
+    }
+    // Иначе используем /latar для основного домена
+    return '/latar';
+  };
+
   return (
     <AuthProvider>
-      <Router basename="/latar">
+      <Router basename={getBasename()}>
         <div className="app">
           <Routes>
             <Route path="/" element={<HomePage />} />
