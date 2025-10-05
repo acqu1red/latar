@@ -22,9 +22,26 @@ import {
   Palette,
   Check,
   ChevronRight,
+  Home,
+  HelpCircle,
+  MoreVertical,
+  Edit2,
+  Pin,
+  LogOut,
+  User,
+  FileText,
+  Building2,
+  Clock,
+  Mail,
+  Save,
+  Key,
+  Lock,
+  Shield,
+  Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from './AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 // ===== Helpers =====
 const cn = (...c) => c.filter(Boolean).join(" ");
@@ -114,11 +131,13 @@ function AlternativeBackground() {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
+        vx: (Math.random() - 0.5) * 0.8, // Замедлена скорость
+        vy: (Math.random() - 0.5) * 0.8, // Замедлена скорость
         size: Math.random() * 2 + 1,
         opacity: Math.random() * 0.8 + 0.2,
-        glow: Math.random() * 0.5 + 0.5
+        glow: Math.random() * 0.5 + 0.5,
+        angle: Math.random() * Math.PI * 2, // Для волнового движения
+        baseSpeed: Math.random() * 0.2 + 0.1 // Замедлена базовая скорость дрейфа
       });
     }
     
@@ -134,13 +153,20 @@ function AlternativeBackground() {
     window.addEventListener('mousemove', handleMouseMove);
     
     // Анимация
+    let time = 0;
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      time += 0.01;
       
       particles.forEach((particle, index) => {
-        // Обновление позиции
-        particle.x += particle.vx;
-        particle.y += particle.vy;
+        // Автоматическое волновое движение (дрейф)
+        particle.angle += 0.005; // Замедлено вращение
+        const driftX = Math.cos(particle.angle) * particle.baseSpeed;
+        const driftY = Math.sin(particle.angle) * particle.baseSpeed;
+        
+        // Обновление позиции с учетом дрейфа
+        particle.x += particle.vx + driftX;
+        particle.y += particle.vy + driftY;
         
         // Проверка, находится ли курсор над областью строки ввода
         const isMouseOverSearchBar = mouseX >= searchBarArea.x && 
@@ -149,15 +175,15 @@ function AlternativeBackground() {
                                    mouseY <= searchBarArea.y + searchBarArea.height;
         
         // Взаимодействие с мышью (только если курсор НЕ над строкой ввода)
-        if (!isMouseOverSearchBar) {
+        if (!isMouseOverSearchBar && (mouseX !== 0 || mouseY !== 0)) {
           const dx = mouseX - particle.x;
           const dy = mouseY - particle.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
           
           if (distance < 150) {
             const force = (150 - distance) / 150;
-            particle.vx += (dx / distance) * force * 0.01;
-            particle.vy += (dy / distance) * force * 0.01;
+            particle.vx += (dx / distance) * force * 0.02;
+            particle.vy += (dy / distance) * force * 0.02;
           }
         }
         
@@ -169,13 +195,13 @@ function AlternativeBackground() {
         // Если частица слишком близко к области строки ввода, отталкиваем её
         if (searchBarDistance < 120) {
           const avoidForce = (120 - searchBarDistance) / 120;
-          particle.vx -= (searchBarDx / searchBarDistance) * avoidForce * 0.02;
-          particle.vy -= (searchBarDy / searchBarDistance) * avoidForce * 0.02;
+          particle.vx -= (searchBarDx / searchBarDistance) * avoidForce * 0.03;
+          particle.vy -= (searchBarDy / searchBarDistance) * avoidForce * 0.03;
         }
         
-        // Ограничение скорости
-        particle.vx *= 0.98;
-        particle.vy *= 0.98;
+        // Ограничение скорости (менее агрессивное)
+        particle.vx *= 0.99;
+        particle.vy *= 0.99;
         
         // Границы экрана
         if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
@@ -184,10 +210,14 @@ function AlternativeBackground() {
         particle.x = Math.max(0, Math.min(canvas.width, particle.x));
         particle.y = Math.max(0, Math.min(canvas.height, particle.y));
         
-        // Рисование частицы с свечением
+        // Рисование частицы с пульсирующим свечением
         ctx.save();
-        ctx.globalAlpha = particle.opacity;
-        ctx.shadowBlur = particle.glow * 20;
+        // Пульсирующая прозрачность
+        const pulseOpacity = particle.opacity + Math.sin(time * 2 + index) * 0.15;
+        ctx.globalAlpha = Math.max(0.1, Math.min(1, pulseOpacity));
+        // Пульсирующее свечение
+        const pulseGlow = particle.glow * 20 + Math.sin(time * 3 + index) * 5;
+        ctx.shadowBlur = pulseGlow;
         ctx.shadowColor = '#d3d3e8';
         ctx.fillStyle = '#d3d3e8';
         ctx.beginPath();
@@ -282,7 +312,7 @@ function BackgroundParticles() {
           interactivity: {
             // слушаем окно, чтобы canvas не перехватывал клики
             detect_on: "window",
-            events: { onhover: { enable: true, mode: "grab" }, onclick: { enable: true, mode: "push" }, resize: true },
+            events: { onhover: { enable: true, mode: "grab" }, onclick: { enable: true, mode: "repulse" }, resize: true },
             modes: {
               grab: { distance: 220, line_linked: { opacity: 1 } },
               bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 },
@@ -356,6 +386,768 @@ const STYLE_OPTIONS = [
 ];
 
 // === Advanced Style Components ===
+
+// Модальное окно "3D режим" - Премиум дизайн
+function ThreeDModeModal({ isOpen, onClose, onActivate }) {
+  if (!isOpen) return null;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md" 
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-lg overflow-hidden bg-black border border-white/20 rounded-2xl shadow-2xl" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Animated background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/3 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* Header */}
+        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent p-6">
+          <button 
+            onClick={onClose} 
+            className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          
+          <div className="flex items-center gap-3 mb-2">
+            <motion.div 
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="p-2 bg-white/10 rounded-xl border border-white/20"
+            >
+              <Layers className="h-6 w-6 text-white" />
+            </motion.div>
+            <div>
+              <h2 className="text-2xl font-bold text-white tracking-tight">
+                Plan AI 3D
+              </h2>
+              <p className="text-neutral-400 text-sm mt-1">
+                Превратите 2D планы в 3D визуализацию
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Content */}
+        <div className="relative p-6">
+          {/* Visual showcase */}
+          <div className="mb-6 bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-6 border border-white/10">
+            <svg className="w-full h-32" viewBox="0 0 400 200" fill="none">
+              {/* 2D to 3D transformation visualization */}
+              <g opacity="0.3">
+                <rect x="20" y="60" width="150" height="100" rx="8" stroke="white" strokeWidth="2" fill="white" fillOpacity="0.05"/>
+                <line x1="40" y1="80" x2="150" y2="80" stroke="white" strokeWidth="1"/>
+                <line x1="40" y1="100" x2="150" y2="100" stroke="white" strokeWidth="1"/>
+                <line x1="40" y1="120" x2="150" y2="120" stroke="white" strokeWidth="1"/>
+              </g>
+              
+              <motion.g
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+              >
+                <path d="M 190 100 L 210 100" stroke="white" strokeWidth="2" strokeDasharray="4 4">
+                  <animate attributeName="stroke-dashoffset" from="0" to="8" dur="0.5s" repeatCount="indefinite"/>
+                </path>
+                <path d="M 205 95 L 210 100 L 205 105" stroke="white" strokeWidth="2" fill="none"/>
+              </motion.g>
+              
+              <motion.g
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+              >
+                <path d="M 230 100 L 300 60 L 370 100 L 370 160 L 300 200 L 230 160 Z" stroke="white" strokeWidth="2" fill="white" fillOpacity="0.1"/>
+                <path d="M 230 100 L 230 160" stroke="white" strokeWidth="2"/>
+                <path d="M 300 60 L 300 120" stroke="white" strokeWidth="2"/>
+                <path d="M 370 100 L 370 160" stroke="white" strokeWidth="2"/>
+                <path d="M 230 160 L 300 200" stroke="white" strokeWidth="2"/>
+                <path d="M 300 200 L 370 160" stroke="white" strokeWidth="2"/>
+                <circle cx="300" cy="120" r="4" fill="white">
+                  <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+                </circle>
+              </motion.g>
+            </svg>
+          </div>
+
+          {/* Features */}
+          <div className="space-y-3 mb-6">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
+            >
+              <div className="p-1.5 bg-white/10 rounded-md">
+                <Check className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h4 className="text-white font-semibold mb-1 text-sm">Автоматическая 3D генерация</h4>
+                <p className="text-neutral-400 text-xs">Превращайте 2D планы в объемные 3D модели одним кликом</p>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
+            >
+              <div className="p-1.5 bg-white/10 rounded-md">
+                <Check className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h4 className="text-white font-semibold mb-1 text-sm">Интерьерная визуализация</h4>
+                <p className="text-neutral-400 text-xs">Добавляйте мебель, текстуры и освещение для реалистичности</p>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
+            >
+              <div className="p-1.5 bg-white/10 rounded-md">
+                <Check className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h4 className="text-white font-semibold mb-1 text-sm">Экспорт и презентация</h4>
+                <p className="text-neutral-400 text-xs">Сохраняйте в различных форматах для презентаций клиентам</p>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                onActivate();
+                onClose();
+              }}
+              className="flex-1 bg-white hover:bg-neutral-200 text-black font-bold py-3 rounded-xl transition-all shadow-lg shadow-white/10 flex items-center justify-center gap-2 text-sm"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Активировать 3D режим</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onClose}
+              className="px-4 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all border border-white/20 text-sm"
+            >
+              Позже
+            </motion.button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Модальное окно "Как это работает" - Премиум дизайн
+function HowItWorksModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  const features = [
+    {
+      icon: MessageSquare,
+      title: "Умные чаты",
+      description: "Создавайте неограниченное количество чатов для различных задач. Каждый чат сохраняет контекст разговора и может быть переименован, закреплен или удален.",
+      visual: (
+        <svg className="w-full h-32" viewBox="0 0 200 100" fill="none">
+          <rect x="10" y="20" width="60" height="8" rx="4" fill="white" opacity="0.2"/>
+          <rect x="10" y="35" width="80" height="8" rx="4" fill="white" opacity="0.3"/>
+          <rect x="10" y="50" width="50" height="8" rx="4" fill="white" opacity="0.2"/>
+          <rect x="130" y="25" width="60" height="8" rx="4" fill="white" opacity="0.9"/>
+          <rect x="110" y="40" width="80" height="8" rx="4" fill="white" opacity="0.8"/>
+          <circle cx="25" cy="24" r="6" fill="white" opacity="0.6"/>
+          <circle cx="175" cy="29" r="6" fill="white"/>
+        </svg>
+      )
+    },
+    {
+      icon: Layers,
+      title: "Модели обработки",
+      description: "Выбирайте подходящую модель для вашей задачи: удаление объектов с изображений, создание по техническому плану или использование AI конструктора.",
+      visual: (
+        <svg className="w-full h-32" viewBox="0 0 200 100" fill="none">
+          <rect x="30" y="20" width="50" height="60" rx="4" fill="white" fillOpacity="0.1" stroke="white" strokeWidth="1" strokeOpacity="0.3"/>
+          <rect x="60" y="30" width="50" height="60" rx="4" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1" strokeOpacity="0.5"/>
+          <rect x="90" y="40" width="50" height="60" rx="4" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1" strokeOpacity="0.8"/>
+        </svg>
+      )
+    },
+    {
+      icon: Paperclip,
+      title: "Загрузка файлов",
+      description: "Прикрепляйте изображения, документы и другие файлы к вашим сообщениям. Система автоматически анализирует содержимое.",
+      visual: (
+        <svg className="w-full h-32" viewBox="0 0 200 100" fill="none">
+          <rect x="40" y="25" width="40" height="50" rx="4" fill="white" fillOpacity="0.1" stroke="white" strokeWidth="1.5" strokeOpacity="0.4"/>
+          <rect x="90" y="25" width="40" height="50" rx="4" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.5" strokeOpacity="0.6"/>
+          <rect x="140" y="25" width="40" height="50" rx="4" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1.5" strokeOpacity="0.9"/>
+          <path d="M 100 20 L 110 10 L 120 20" stroke="white" strokeWidth="2" opacity="0.7" fill="none"/>
+        </svg>
+      )
+    },
+    {
+      icon: Palette,
+      title: "Фоновые эффекты",
+      description: "Переключайтесь между интерактивным и альтернативным фоном для создания комфортной рабочей среды.",
+      visual: (
+        <svg className="w-full h-32" viewBox="0 0 200 100" fill="none">
+          <circle cx="50" cy="50" r="4" fill="white" opacity="0.6">
+            <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="100" cy="30" r="3" fill="white" opacity="0.4">
+            <animate attributeName="opacity" values="0.2;0.7;0.2" dur="2.5s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="150" cy="60" r="5" fill="white" opacity="0.7">
+            <animate attributeName="opacity" values="0.4;1;0.4" dur="1.8s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="75" cy="70" r="3" fill="white" opacity="0.5">
+            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2.2s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="130" cy="40" r="4" fill="white" opacity="0.6">
+            <animate attributeName="opacity" values="0.3;0.9;0.3" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+      )
+    }
+  ];
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md" 
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-5xl max-h-[90vh] overflow-hidden bg-black border border-white/20 rounded-3xl shadow-2xl" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent p-8">
+          <button 
+            onClick={onClose} 
+            className="absolute top-6 right-6 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          
+          <div className="flex items-center gap-4 mb-3">
+            <div className="p-3 bg-white/10 rounded-2xl border border-white/20">
+              <HelpCircle className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="text-4xl font-bold text-white tracking-tight">
+              Как это работает
+            </h2>
+          </div>
+          <p className="text-neutral-400 text-lg ml-16">
+            Откройте для себя возможности платформы
+          </p>
+        </div>
+        
+        {/* Content */}
+        <div className="overflow-y-auto max-h-[calc(90vh-160px)] p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                className="group relative bg-gradient-to-br from-white/5 to-white/0 rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 hover:shadow-2xl hover:shadow-white/5"
+              >
+                {/* Visual */}
+                <div className="mb-6 bg-black/40 rounded-xl border border-white/10 overflow-hidden">
+                  {feature.visual}
+                </div>
+                
+                {/* Icon & Title */}
+                <div className="flex items-start gap-4 mb-3">
+                  <div className="p-2 bg-white/10 rounded-xl border border-white/20 group-hover:bg-white/20 transition-colors">
+                    <feature.icon className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white flex-1">
+                    {feature.title}
+                  </h3>
+                </div>
+                
+                {/* Description */}
+                <p className="text-neutral-400 leading-relaxed">
+                  {feature.description}
+                </p>
+                
+                {/* Hover effect */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Модальное окно "Настройки" - Премиум дизайн
+function SettingsModal({ isOpen, onClose, user }) {
+  const [activeTab, setActiveTab] = useState('profile');
+  
+  if (!isOpen) return null;
+
+  const tabs = [
+    { id: 'profile', label: 'Профиль', icon: User },
+    { id: 'security', label: 'Безопасность', icon: Settings },
+    { id: 'interface', label: 'Интерфейс', icon: Palette }
+  ];
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md" 
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-black border border-white/20 rounded-3xl shadow-2xl" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent p-8">
+          <button 
+            onClick={onClose} 
+            className="absolute top-6 right-6 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-white/10 rounded-2xl border border-white/20">
+              <Settings className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-4xl font-bold text-white tracking-tight">
+                Настройки
+              </h2>
+              <p className="text-neutral-400 text-sm mt-1">
+                Управление вашим аккаунтом
+              </p>
+            </div>
+          </div>
+          
+          {/* Tabs */}
+          <div className="flex gap-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-white text-black font-medium'
+                    : 'bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <tab.icon className="h-4 w-4" />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Content */}
+        <div className="overflow-y-auto max-h-[calc(90vh-220px)] p-8">
+          {activeTab === 'profile' && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="group bg-gradient-to-br from-white/5 to-transparent rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="size-16 rounded-full bg-gradient-to-br from-white to-neutral-400 grid place-items-center text-2xl font-bold text-black">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">Личная информация</h3>
+                    <p className="text-neutral-400 text-sm">Обновите данные вашего профиля</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-neutral-400 block mb-2 flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Имя
+                    </label>
+                    <input 
+                      type="text" 
+                      defaultValue={user?.name || ''} 
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
+                      placeholder="Введите ваше имя"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-neutral-400 block mb-2 flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email
+                    </label>
+                    <input 
+                      type="email" 
+                      defaultValue={user?.email || ''} 
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
+                      placeholder="email@example.com"
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'security' && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="bg-gradient-to-br from-white/5 to-transparent rounded-2xl p-6 border border-white/10">
+                <h3 className="text-xl font-semibold text-white mb-4">Изменить пароль</h3>
+                <p className="text-neutral-400 text-sm mb-6">Убедитесь, что ваш пароль надежный и уникальный</p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-neutral-400 block mb-2">Текущий пароль</label>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-neutral-400 block mb-2">Новый пароль</label>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-neutral-400 block mb-2">Подтвердите пароль</label>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-br from-white/5 to-transparent rounded-2xl p-6 border border-white/10">
+                <h3 className="text-lg font-semibold text-white mb-2">Двухфакторная аутентификация</h3>
+                <p className="text-neutral-400 text-sm mb-4">Добавьте дополнительный уровень защиты</p>
+                <button className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white transition-all">
+                  Включить 2FA
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'interface' && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="bg-gradient-to-br from-white/5 to-transparent rounded-2xl p-6 border border-white/10">
+                <h3 className="text-xl font-semibold text-white mb-6">Персонализация</h3>
+                
+                <div className="space-y-6">
+                  <label className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
+                        <Palette className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <span className="text-white font-medium block">Фоновые эффекты</span>
+                        <span className="text-neutral-400 text-sm">Интерактивные частицы на фоне</span>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <div className="w-11 h-6 bg-white/10 rounded-full peer peer-checked:bg-white transition-all"></div>
+                      <div className="absolute left-1 top-1 bg-black w-4 h-4 rounded-full transition-all peer-checked:translate-x-5"></div>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
+                        <Save className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <span className="text-white font-medium block">Автосохранение чатов</span>
+                        <span className="text-neutral-400 text-sm">Сохранять историю автоматически</span>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <div className="w-11 h-6 bg-white/10 rounded-full peer peer-checked:bg-white transition-all"></div>
+                      <div className="absolute left-1 top-1 bg-black w-4 h-4 rounded-full transition-all peer-checked:translate-x-5"></div>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
+                        <Bell className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <span className="text-white font-medium block">Уведомления</span>
+                        <span className="text-neutral-400 text-sm">Получать важные обновления</span>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input type="checkbox" className="sr-only peer" />
+                      <div className="w-11 h-6 bg-white/10 rounded-full peer peer-checked:bg-white transition-all"></div>
+                      <div className="absolute left-1 top-1 bg-black w-4 h-4 rounded-full transition-all peer-checked:translate-x-5"></div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* Save Button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full bg-white hover:bg-neutral-200 text-black font-semibold py-4 rounded-2xl transition-all shadow-lg shadow-white/10"
+          >
+            Сохранить изменения
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Модальное окно "Список изменений" - Премиум дизайн
+function ChangelogModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  const changelog = [
+    {
+      version: "3.0.0",
+      date: "Октябрь 2025",
+      title: "Полное обновление интерфейса",
+      type: "major",
+      changes: [
+        "Новый продвинутый дизайн с интерактивными частицами",
+        "Система закрепления и управления чатами",
+        "Добавлен личный кабинет с регистрацией агентств",
+        "Улучшенная система поиска по чатам и настройкам"
+      ]
+    },
+    {
+      version: "2.5.0",
+      date: "Сентябрь 2025",
+      title: "AI Конструктор",
+      type: "feature",
+      changes: [
+        "Запуск AI конструктора для архитектурных проектов",
+        "Интеграция с системой техпланов",
+        "Добавлена поддержка загрузки больших файлов"
+      ]
+    },
+    {
+      version: "2.0.0",
+      date: "Август 2025",
+      title: "Мультимодельная система",
+      type: "major",
+      changes: [
+        "Добавлены три режима работы: удаление объектов, создание по техплану, конструктор",
+        "Улучшена обработка изображений",
+        "Оптимизирована скорость генерации"
+      ]
+    },
+    {
+      version: "1.5.0",
+      date: "Июль 2025",
+      title: "Система чатов",
+      type: "feature",
+      changes: [
+        "Внедрена система множественных чатов",
+        "Добавлена история сообщений",
+        "Улучшен контекстный анализ"
+      ]
+    },
+    {
+      version: "1.0.0",
+      date: "Июнь 2025",
+      title: "Запуск платформы",
+      type: "major",
+      changes: [
+        "Первая версия платформы",
+        "Базовая обработка изображений",
+        "Система авторизации пользователей"
+      ]
+    }
+  ];
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md" 
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-black border border-white/20 rounded-3xl shadow-2xl" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent p-8">
+          <button 
+            onClick={onClose} 
+            className="absolute top-6 right-6 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          
+          <div className="flex items-center gap-4 mb-3">
+            <div className="p-3 bg-white/10 rounded-2xl border border-white/20">
+              <FileText className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-4xl font-bold text-white tracking-tight">
+                История изменений
+              </h2>
+              <p className="text-neutral-400 text-lg mt-1">
+                Эволюция нашей платформы
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Timeline */}
+        <div className="overflow-y-auto max-h-[calc(90vh-160px)] p-8">
+          <div className="relative">
+            {/* Vertical line */}
+            <div className="absolute left-[27px] top-0 bottom-0 w-px bg-gradient-to-b from-white/20 via-white/10 to-transparent"></div>
+            
+            <div className="space-y-8">
+              {changelog.map((release, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  className="relative pl-16"
+                >
+                  {/* Timeline dot */}
+                  <div className={`absolute left-0 top-0 size-14 rounded-2xl border-2 border-white/20 grid place-items-center font-bold ${
+                    release.type === 'major' 
+                      ? 'bg-gradient-to-br from-white to-neutral-300 text-black' 
+                      : 'bg-black text-white border-white/40'
+                  }`}>
+                    {release.version.split('.')[0]}.{release.version.split('.')[1]}
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="group bg-gradient-to-br from-white/5 to-transparent rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-2xl font-bold text-white">
+                            {release.title}
+                          </h3>
+                          <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                            release.type === 'major' 
+                              ? 'bg-white text-black' 
+                              : 'bg-white/10 text-white border border-white/20'
+                          }`}>
+                            v{release.version}
+                          </span>
+                        </div>
+                        <p className="text-neutral-400 text-sm flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          {release.date}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Changes list */}
+                    <div className="space-y-3 mt-4">
+                      {release.changes.map((change, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 + i * 0.05 }}
+                          className="flex items-start gap-3 p-3 bg-black/20 rounded-xl border border-white/5 hover:border-white/10 transition-all"
+                        >
+                          <div className="mt-0.5 p-1 bg-white/10 rounded-md">
+                            <Check className="h-3.5 w-3.5 text-white" />
+                          </div>
+                          <span className="text-neutral-300 text-sm leading-relaxed flex-1">
+                            {change}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
+                    
+                    {/* Hover effect */}
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function AdvancedSidebar({ 
   chats = [], 
   activeChatId, 
@@ -365,8 +1157,22 @@ function AdvancedSidebar({
   onCollapse,
   isCollapsed = false,
   searchResults = { chats: [], settings: [] },
-  onSettingSelect
+  onSettingSelect,
+  onCreateChat,
+  onHomeClick,
+  onHowItWorks,
+  user,
+  onRenameChat,
+  onDeleteChat,
+  onPinChat,
+  onSettings,
+  onChangelog,
+  onProfile,
+  onLogout
 }) {
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [activeChatMenu, setActiveChatMenu] = useState(null);
+  
   // Группировка чатов по датам
   const groupChatsByDate = (chats) => {
     const now = new Date();
@@ -374,6 +1180,7 @@ function AdvancedSidebar({
     const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
     
     const groups = {
+      pinned: [],
       today: [],
       yesterday: [],
       thisMonth: [],
@@ -381,6 +1188,11 @@ function AdvancedSidebar({
     };
     
     chats.forEach(chat => {
+      if (chat.pinned) {
+        groups.pinned.push(chat);
+        return;
+      }
+      
       const chatDate = new Date(chat.lastMessageTime || chat.createdAt || 0);
       const chatDateOnly = new Date(chatDate.getFullYear(), chatDate.getMonth(), chatDate.getDate());
       
@@ -407,37 +1219,40 @@ function AdvancedSidebar({
       <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-16">
         <div className="p-3">
           <div className="w-full h-10 rounded-xl bg-white/5 flex items-center justify-center">
-            <MessageSquare className="h-5 w-5 text-neutral-400" />
+            <Search className="h-5 w-5 text-neutral-400" />
           </div>
         </div>
         <nav className="px-2 text-sm flex-1 space-y-2">
           <button 
+            onClick={onCreateChat}
             className="w-full h-10 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
-            title="Чат"
+            title="Новый чат"
           >
-            <MessageSquare className="h-4 w-4 text-neutral-400" />
+            <Plus className="h-4 w-4 text-neutral-400" />
           </button>
           <button 
+            onClick={onHomeClick}
             className="w-full h-10 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
-            title="Голос"
+            title="На главную"
           >
-            <Mic className="h-4 w-4 text-neutral-400" />
+            <Home className="h-4 w-4 text-neutral-400" />
           </button>
           <button 
+            onClick={onHowItWorks}
             className="w-full h-10 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
-            title="Imagine"
+            title="Как это работает"
           >
-            <ImageIcon className="h-4 w-4 text-neutral-400" />
-          </button>
-          <button 
-            className="w-full h-10 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
-            title="Проекты"
-          >
-            <Folder className="h-4 w-4 text-neutral-400" />
+            <HelpCircle className="h-4 w-4 text-neutral-400" />
           </button>
         </nav>
-        <div className="p-3 flex items-center justify-between">
-          <div className="size-7 rounded-full bg-white/10 grid place-items-center text-xs">D</div>
+        <div className="p-3 flex flex-col items-center gap-2">
+          <button 
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="size-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 grid place-items-center text-xs font-semibold text-white hover:scale-105 transition"
+            title="Профиль"
+          >
+            {user?.name?.charAt(0).toUpperCase() || 'U'}
+          </button>
           <button 
             onClick={onCollapse}
             className="text-neutral-500 hover:text-neutral-300 transition" 
@@ -451,7 +1266,7 @@ function AdvancedSidebar({
   }
 
   return (
-    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-64">
+    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-64 relative">
       {/* Top: search */}
       <div className="p-3">
         <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 ring-1 ring-white/10 hover:ring-white/20 transition">
@@ -466,15 +1281,11 @@ function AdvancedSidebar({
       </div>
 
       {/* Nav */}
-      <nav className="px-2 text-sm">
+      <nav className="px-2 text-sm flex-1 overflow-y-auto">
         <AdvancedSectionTitle>Главное</AdvancedSectionTitle>
-        <AdvancedNavItem active Icon={MessageSquare} label="Чат" />
-        <AdvancedNavItem Icon={Mic} label="Голос" />
-        <div className="relative">
-          <AdvancedNavItem Icon={ImageIcon} label="Imagine" />
-          <span className="absolute left-[30px] top-2 h-2 w-2 rounded-full bg-sky-400" />
-        </div>
-        <AdvancedNavItem Icon={Folder} label="Проекты" />
+        <AdvancedNavItem onClick={onCreateChat} Icon={Plus} label="Новый чат" />
+        <AdvancedNavItem onClick={onHomeClick} Icon={Home} label="Вернуться на главную" />
+        <AdvancedNavItem onClick={onHowItWorks} Icon={HelpCircle} label="Как это работает" />
         
         <AdvancedSectionTitle className="mt-2">История</AdvancedSectionTitle>
         
@@ -485,11 +1296,16 @@ function AdvancedSidebar({
               <>
                 <AdvancedHistoryDate label="Чаты" />
                 {searchResults.chats.map(chat => (
-                  <AdvancedHistoryLink 
+                  <AdvancedHistoryLinkWithMenu 
                     key={chat.id}
-                    label={chat.title || "Новый чат"}
+                    chat={chat}
                     active={chat.id === activeChatId}
                     onClick={() => onChatSelect(chat.id)}
+                    onRename={() => onRenameChat(chat.id)}
+                    onDelete={() => onDeleteChat(chat.id)}
+                    onPin={() => onPinChat(chat.id)}
+                    isMenuOpen={activeChatMenu === chat.id}
+                    setMenuOpen={(open) => setActiveChatMenu(open ? chat.id : null)}
                   />
                 ))}
               </>
@@ -522,16 +1338,41 @@ function AdvancedSidebar({
         {/* Обычная история (если нет поиска) */}
         {!searchQuery.trim() && (
           <>
+            {/* Закрепленные */}
+            {chatGroups.pinned.length > 0 && (
+              <>
+                <AdvancedHistoryDate label="Закрепленные" />
+                {chatGroups.pinned.map(chat => (
+                  <AdvancedHistoryLinkWithMenu 
+                    key={chat.id}
+                    chat={chat}
+                    active={chat.id === activeChatId}
+                    onClick={() => onChatSelect(chat.id)}
+                    onRename={() => onRenameChat(chat.id)}
+                    onDelete={() => onDeleteChat(chat.id)}
+                    onPin={() => onPinChat(chat.id)}
+                    isMenuOpen={activeChatMenu === chat.id}
+                    setMenuOpen={(open) => setActiveChatMenu(open ? chat.id : null)}
+                  />
+                ))}
+              </>
+            )}
+            
             {/* Сегодня */}
             {chatGroups.today.length > 0 && (
               <>
                 <AdvancedHistoryDate label="Сегодня" />
                 {chatGroups.today.map(chat => (
-                  <AdvancedHistoryLink 
+                  <AdvancedHistoryLinkWithMenu 
                     key={chat.id}
-                    label={chat.title || "Новый чат"}
+                    chat={chat}
                     active={chat.id === activeChatId}
                     onClick={() => onChatSelect(chat.id)}
+                    onRename={() => onRenameChat(chat.id)}
+                    onDelete={() => onDeleteChat(chat.id)}
+                    onPin={() => onPinChat(chat.id)}
+                    isMenuOpen={activeChatMenu === chat.id}
+                    setMenuOpen={(open) => setActiveChatMenu(open ? chat.id : null)}
                   />
                 ))}
               </>
@@ -542,11 +1383,16 @@ function AdvancedSidebar({
               <>
                 <AdvancedHistoryDate label="Вчера" />
                 {chatGroups.yesterday.map(chat => (
-                  <AdvancedHistoryLink 
+                  <AdvancedHistoryLinkWithMenu 
                     key={chat.id}
-                    label={chat.title || "Новый чат"}
+                    chat={chat}
                     active={chat.id === activeChatId}
                     onClick={() => onChatSelect(chat.id)}
+                    onRename={() => onRenameChat(chat.id)}
+                    onDelete={() => onDeleteChat(chat.id)}
+                    onPin={() => onPinChat(chat.id)}
+                    isMenuOpen={activeChatMenu === chat.id}
+                    setMenuOpen={(open) => setActiveChatMenu(open ? chat.id : null)}
                   />
                 ))}
               </>
@@ -557,11 +1403,16 @@ function AdvancedSidebar({
               <>
                 <AdvancedHistoryDate label={monthNames[new Date().getMonth()]} />
                 {chatGroups.thisMonth.map(chat => (
-                  <AdvancedHistoryLink 
+                  <AdvancedHistoryLinkWithMenu 
                     key={chat.id}
-                    label={chat.title || "Новый чат"}
+                    chat={chat}
                     active={chat.id === activeChatId}
                     onClick={() => onChatSelect(chat.id)}
+                    onRename={() => onRenameChat(chat.id)}
+                    onDelete={() => onDeleteChat(chat.id)}
+                    onPin={() => onPinChat(chat.id)}
+                    isMenuOpen={activeChatMenu === chat.id}
+                    setMenuOpen={(open) => setActiveChatMenu(open ? chat.id : null)}
                   />
                 ))}
               </>
@@ -572,11 +1423,16 @@ function AdvancedSidebar({
               <>
                 <AdvancedHistoryDate label="Ранее" />
                 {chatGroups.older.map(chat => (
-                  <AdvancedHistoryLink 
+                  <AdvancedHistoryLinkWithMenu 
                     key={chat.id}
-                    label={chat.title || "Новый чат"}
+                    chat={chat}
                     active={chat.id === activeChatId}
                     onClick={() => onChatSelect(chat.id)}
+                    onRename={() => onRenameChat(chat.id)}
+                    onDelete={() => onDeleteChat(chat.id)}
+                    onPin={() => onPinChat(chat.id)}
+                    isMenuOpen={activeChatMenu === chat.id}
+                    setMenuOpen={(open) => setActiveChatMenu(open ? chat.id : null)}
                   />
                 ))}
               </>
@@ -585,17 +1441,63 @@ function AdvancedSidebar({
         )}
       </nav>
 
-      <div className="mt-auto px-3 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="size-7 rounded-full bg-white/10 grid place-items-center">D</div>
+      <div className="mt-auto px-3 py-3 border-t border-white/5 relative">
+        <div className="flex items-center justify-between">
+          <button 
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="flex items-center gap-2 hover:bg-white/5 p-1.5 rounded-lg transition flex-1"
+          >
+            <div className="size-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 grid place-items-center text-sm font-semibold text-white">
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div className="flex-1 text-left">
+              <div className="text-sm text-white truncate">{user?.name || 'Пользователь'}</div>
+              <div className="text-xs text-neutral-500 truncate">{user?.email || ''}</div>
+            </div>
+          </button>
+          <button 
+            onClick={onCollapse}
+            className="text-neutral-500 hover:text-neutral-300 transition p-2" 
+            title="Свернуть панель"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
         </div>
-        <button 
-          onClick={onCollapse}
-          className="text-neutral-500 hover:text-neutral-300 transition" 
-          title={isCollapsed ? "Развернуть панель" : "Свернуть панель"}
-        >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+        
+        {/* User menu */}
+        {userMenuOpen && (
+          <div className="absolute bottom-full left-3 right-3 mb-2 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+            <button 
+              onClick={() => { onSettings(); setUserMenuOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+            >
+              <Settings className="h-4 w-4 text-neutral-400" />
+              <span className="text-sm text-white">Настройки</span>
+            </button>
+            <button 
+              onClick={() => { onChangelog(); setUserMenuOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+            >
+              <FileText className="h-4 w-4 text-neutral-400" />
+              <span className="text-sm text-white">Список изменений</span>
+            </button>
+            <button 
+              onClick={() => { onProfile(); setUserMenuOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+            >
+              <User className="h-4 w-4 text-neutral-400" />
+              <span className="text-sm text-white">Личный кабинет</span>
+            </button>
+            <div className="border-t border-white/5"></div>
+            <button 
+              onClick={() => { onLogout(); setUserMenuOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 transition text-left"
+            >
+              <LogOut className="h-4 w-4 text-red-400" />
+              <span className="text-sm text-red-400">Выйти</span>
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
@@ -609,9 +1511,10 @@ function AdvancedSectionTitle({ children, className = "" }) {
   );
 }
 
-function AdvancedNavItem({ Icon, label, active }) {
+function AdvancedNavItem({ Icon, label, active, onClick }) {
   return (
     <button
+      onClick={onClick}
       className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 my-0.5 transition text-left ${
         active
           ? "bg-white/10 text-white"
@@ -621,6 +1524,93 @@ function AdvancedNavItem({ Icon, label, active }) {
       <Icon className="h-4 w-4" />
       <span className="truncate">{label}</span>
     </button>
+  );
+}
+
+function AdvancedHistoryLinkWithMenu({ chat, active = false, onClick, onRename, onDelete, onPin, isMenuOpen, setMenuOpen }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const containerRef = useRef(null);
+  
+  // Управление видимостью трех точек
+  useEffect(() => {
+    const handleMouseEnter = () => setIsHovered(true);
+    const handleMouseLeave = (e) => {
+      // Проверяем, что курсор действительно покинул контейнер
+      if (containerRef.current && !containerRef.current.contains(e.relatedTarget)) {
+        setIsHovered(false);
+      }
+    };
+    
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('mouseenter', handleMouseEnter);
+      container.addEventListener('mouseleave', handleMouseLeave);
+    }
+    
+    return () => {
+      if (container) {
+        container.removeEventListener('mouseenter', handleMouseEnter);
+        container.removeEventListener('mouseleave', handleMouseLeave);
+      }
+    };
+  }, []);
+  
+  return (
+    <div 
+      ref={containerRef}
+      className="relative group w-full"
+    >
+      <div className="flex items-center gap-1 w-full min-h-[32px]">
+        <button 
+          onClick={onClick}
+          className={`flex-1 text-left py-1.5 px-3 rounded-md truncate cursor-pointer transition min-h-[32px] ${
+            active 
+              ? "text-white bg-white/10" 
+              : "text-neutral-400 hover:text-neutral-200 hover:bg-white/5"
+          }`}
+        >
+          <div className="flex items-center gap-2 h-full">
+            {chat.pinned && <Pin className="h-3 w-3 text-white flex-shrink-0" />}
+            <span className="truncate">{chat.title || "Новый чат"}</span>
+          </div>
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); setMenuOpen(!isMenuOpen); }}
+          className={`p-1.5 hover:bg-white/10 rounded-md transition flex-shrink-0 min-h-[32px] flex items-center justify-center ${
+            isHovered || isMenuOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <MoreVertical className="h-3.5 w-3.5 text-neutral-400" />
+        </button>
+      </div>
+      
+      {isMenuOpen && (
+        <div className="absolute right-0 top-full mt-1 bg-neutral-900 border border-white/10 rounded-lg shadow-2xl overflow-hidden z-50 min-w-[160px]">
+          <button
+            onClick={(e) => { e.stopPropagation(); onRename(); setMenuOpen(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/5 transition text-left"
+          >
+            <Edit2 className="h-3.5 w-3.5 text-neutral-400" />
+            <span className="text-sm text-white">Переименовать</span>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onPin(); setMenuOpen(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/5 transition text-left"
+          >
+            <Pin className="h-3.5 w-3.5 text-neutral-400" />
+            <span className="text-sm text-white">{chat.pinned ? 'Открепить' : 'Закрепить'}</span>
+          </button>
+          <div className="border-t border-white/5"></div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); setMenuOpen(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-red-500/10 transition text-left"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-red-400" />
+            <span className="text-sm text-red-400">Удалить</span>
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -645,23 +1635,134 @@ function AdvancedHistoryDate({ label }) {
   );
 }
 
-function AdvancedMainArea({ backgroundType, onBackgroundChange, onAttach, attachments = [], modelMenuOpen, onModelMenuToggle }) {
+function AdvancedMainArea({ 
+  backgroundType, 
+  onBackgroundChange, 
+  onAttach, 
+  attachments = [], 
+  modelMenuOpen, 
+  onModelMenuToggle, 
+  onFilesSelected,
+  onSendMessage,
+  isGenerating = false,
+  currentMessage = null,
+  currentResult = null,
+  messageHistory = [],
+  onRate,
+  onRegenerate,
+  onDownload,
+  onImageClick,
+  onModelChange
+}) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showPromoCard, setShowPromoCard] = useState(true);
+  const [hasMessage, setHasMessage] = useState(false);
+  const [is3DModalOpen, setIs3DModalOpen] = useState(false);
+  const [modelTo3D, setModelTo3D] = useState(null);
+
+  // Показываем сообщения, если есть активное сообщение, результат, история или идет генерация
+  const showMessages = currentMessage || currentResult || messageHistory.length > 0 || isGenerating;
+
+  // Обработчик активации 3D режима
+  const handle3DActivation = () => {
+    // Переключаем модель на 3D план
+    setModelTo3D("3d");
+  };
+
+  // Обработчик открытия 3D модального окна
+  const handleOpen3DModal = () => {
+    setIs3DModalOpen(true);
+    setShowPromoCard(false);
+  };
+
+  // Сбрасываем modelTo3D после установки
+  useEffect(() => {
+    if (modelTo3D) {
+      const timer = setTimeout(() => {
+        setModelTo3D(null);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [modelTo3D]);
 
   return (
-    <main className="relative flex flex-col items-center justify-center min-h-screen">
+    <main className="relative flex flex-col min-h-screen">
       <AdvancedTopBar />
 
-      <div className="mx-auto max-w-3xl px-6 w-full">
+      {/* Сообщения в верхней части */}
+      {showMessages && (
+        <div className="flex-1 pt-16">
+          {/* История сообщений */}
+          {messageHistory.length > 0 && (
+            <div className="space-y-4 px-6 py-4">
+              {messageHistory.map((msg, index) => (
+                <div key={`${msg.id || msg.messageId}-${index}`} className="max-w-3xl mx-auto">
+                  {msg.type === 'user' ? (
+                    <AdvancedMessageDisplay
+                      isGenerating={false}
+                      message={msg}
+                      result={null}
+                      onRate={onRate}
+                      onRegenerate={onRegenerate}
+                      onDownload={onDownload}
+                      onImageClick={onImageClick}
+                    />
+                  ) : (
+                    <AdvancedMessageDisplay
+                      isGenerating={false}
+                      message={null}
+                      result={msg}
+                      onRate={onRate}
+                      onRegenerate={onRegenerate}
+                      onDownload={onDownload}
+                      onImageClick={onImageClick}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Текущее сообщение */}
+          {(currentMessage || currentResult || isGenerating) && (
+            <AdvancedMessageDisplay
+              isGenerating={isGenerating}
+              message={currentMessage}
+              result={currentResult}
+              onRate={onRate}
+              onRegenerate={onRegenerate}
+              onDownload={onDownload}
+              onImageClick={onImageClick}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Логотип и панель - в центре до первого сообщения */}
+      {!showMessages && (
+        <div className="flex-1 flex flex-col items-center justify-center">
         <AdvancedLogoMark />
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+          
+          <div className="mx-auto max-w-3xl px-6 w-full mt-8">
+            <motion.div 
+              initial={{ opacity: 0, y: 8 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.35 }}
+              className="w-full flex justify-center"
+            >
           <AdvancedSearchBar 
             onAdvanced={() => setShowAdvanced(true)} 
             onAttach={onAttach}
             attachments={attachments}
             modelMenuOpen={modelMenuOpen}
             onModelMenuToggle={onModelMenuToggle}
+            onFilesSelected={onFilesSelected}
+                onSendMessage={onSendMessage}
+                isGenerating={isGenerating}
+                isAtBottom={showMessages}
+                onImageClick={onImageClick}
+                setModelFromOutside={modelTo3D}
+                additionalButtons={null}
           />
         </motion.div>
 
@@ -669,25 +1770,76 @@ function AdvancedMainArea({ backgroundType, onBackgroundChange, onAttach, attach
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05, duration: 0.35 }}
-          className="mt-6 flex justify-center"
+              className="mt-6 w-full flex justify-center"
         >
-          {showAdvanced ? (
+              {showAdvanced && !showMessages ? (
             <AdvancedAdvancedRow 
               backgroundType={backgroundType}
               onBackgroundChange={onBackgroundChange}
               modelMenuOpen={modelMenuOpen}
               onModelMenuToggle={onModelMenuToggle}
+                  openUpward={showMessages}
             />
-          ) : showPromoCard ? (
-            <AdvancedPromoCard onClose={() => {
-              setShowPromoCard(false);
-              setShowAdvanced(true);
-            }} />
+              ) : showPromoCard && !showMessages ? (
+            <AdvancedPromoCard 
+              onClose={() => {
+                setShowPromoCard(false);
+                setShowAdvanced(true);
+              }}
+              on3DClick={handleOpen3DModal}
+            />
           ) : null}
         </motion.div>
       </div>
+        </div>
+      )}
 
-      <AdvancedSuperBanner />
+      {/* Панель с выбором модели - внизу после первого сообщения */}
+      {showMessages && (
+        <div className="mx-auto max-w-3xl px-6 w-full mt-auto pb-3">
+          <motion.div 
+            initial={{ opacity: 0, y: 8 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ duration: 0.35 }}
+            className="w-full flex justify-center"
+          >
+            <AdvancedSearchBar 
+              onAdvanced={() => setShowAdvanced(true)} 
+              onAttach={onAttach}
+              attachments={attachments}
+              modelMenuOpen={modelMenuOpen}
+              onModelMenuToggle={onModelMenuToggle}
+              onFilesSelected={onFilesSelected}
+              onSendMessage={onSendMessage}
+              isGenerating={isGenerating}
+              isAtBottom={showMessages}
+              onImageClick={onImageClick}
+              setModelFromOutside={modelTo3D}
+              additionalButtons={showMessages ? (
+                <AdvancedInlineButtons
+                  backgroundType={backgroundType}
+                  onBackgroundChange={onBackgroundChange}
+                  modelMenuOpen={modelMenuOpen}
+                  onModelMenuToggle={onModelMenuToggle}
+                  openUpward={showMessages}
+                />
+              ) : null}
+            />
+          </motion.div>
+        </div>
+      )}
+
+      <AdvancedSuperBanner 
+        showMessages={showMessages}
+        onUpgradeClick={handleOpen3DModal}
+      />
+
+      {/* 3D Mode Modal */}
+      <ThreeDModeModal
+        isOpen={is3DModalOpen}
+        onClose={() => setIs3DModalOpen(false)}
+        onActivate={handle3DActivation}
+      />
     </main>
   );
 }
@@ -699,62 +1851,347 @@ function AdvancedTopBar() {
   );
 }
 
-function AdvancedLogoMark() {
-  return (
-    <div className="flex items-center justify-center gap-3 select-none">
-      {/* Black-hole logo with micro-circuit motif */}
-      <svg width="56" height="56" viewBox="0 0 64 64" className="drop-shadow-[0_0_24px_rgba(255,255,255,0.10)]">
+ function AdvancedLogoMark() {
+   return (
+       <div className="group flex flex-col items-center justify-center gap-3 select-none cursor-pointer">
+        <div className="flex items-center justify-center gap-3">
+          {/* Plan AI logo - Ultimate Monochrome Luxury */}
+          <svg 
+            width="84" 
+            height="84" 
+            viewBox="0 0 400 400" 
+            xmlns="http://www.w3.org/2000/svg" 
+            aria-label="Plan AI logo"
+            className="transition-all duration-700 group-hover:scale-[1.08] translate-y-1"
+            style={{ filter: 'drop-shadow(0 0 25px rgba(255,255,255,0.15))' }}
+          >
         <defs>
-          <radialGradient id="hole" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#000" />
-            <stop offset="55%" stopColor="#0b0b0e" />
-            <stop offset="100%" stopColor="#1a1d24" />
+            {/* Ultra-premium gradients */}
+            <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="1">
+                <animate attributeName="stop-opacity" values="1;0.88;1" dur="4.5s" repeatCount="indefinite"/>
+              </stop>
+              <stop offset="100%" stopColor="#e8e8e8" stopOpacity="0.75">
+                <animate attributeName="stop-opacity" values="0.75;0.55;0.75" dur="4.5s" repeatCount="indefinite"/>
+              </stop>
+            </linearGradient>
+            
+            <linearGradient id="secondaryGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.92">
+                <animate attributeName="stop-opacity" values="0.92;0.78;0.92" dur="4.5s" repeatCount="indefinite"/>
+              </stop>
+              <stop offset="100%" stopColor="#d0d0d0" stopOpacity="0.58">
+                <animate attributeName="stop-opacity" values="0.58;0.42;0.58" dur="4.5s" repeatCount="indefinite"/>
+              </stop>
+            </linearGradient>
+            
+            <linearGradient id="accentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.96">
+                <animate attributeName="stop-opacity" values="0.96;0.82;0.96" dur="4.5s" repeatCount="indefinite"/>
+              </stop>
+              <stop offset="100%" stopColor="#f0f0f0" stopOpacity="0.65">
+                <animate attributeName="stop-opacity" values="0.65;0.48;0.65" dur="4.5s" repeatCount="indefinite"/>
+              </stop>
+            </linearGradient>
+            
+            <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95">
+                <animate attributeName="stop-opacity" values="0.95;0.7;0.95" dur="3s" repeatCount="indefinite"/>
+              </stop>
+              <stop offset="100%" stopColor="#e0e0e0" stopOpacity="0.4">
+                <animate attributeName="stop-opacity" values="0.4;0.2;0.4" dur="3s" repeatCount="indefinite"/>
+              </stop>
           </radialGradient>
-          <radialGradient id="glow" cx="50%" cy="50%" r="60%">
-            <stop offset="0%" stopColor="#9fb4ff" stopOpacity="0.9" />
-            <stop offset="60%" stopColor="#7aa2ff" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#7aa2ff" stopOpacity="0.0" />
-          </radialGradient>
+            
+            {/* Elite glow filters */}
+            <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3.5" result="blur"/>
+              <feFlood floodColor="#ffffff" floodOpacity="0.35"/>
+              <feComposite in2="blur" operator="in"/>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            
+            <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="7" result="blur"/>
+              <feFlood floodColor="#ffffff" floodOpacity="0.55"/>
+              <feComposite in2="blur" operator="in"/>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
         </defs>
-        {/* accretion disk */}
-        <circle cx="32" cy="32" r="18" fill="url(#hole)" />
-        <ellipse cx="32" cy="32" rx="24" ry="10" fill="none" stroke="url(#glow)" strokeWidth="3" />
-        <ellipse cx="32" cy="32" rx="18" ry="7" fill="none" stroke="#8fb0ff" strokeOpacity="0.35" strokeWidth="2" />
-        {/* micro-circuit traces */}
-        <g stroke="#cfe1ff" strokeOpacity="0.6" strokeWidth="1.2" fill="none" strokeLinecap="round">
-          <path d="M20 22 l-6 -4 m0 0 l-3 2 m3 -2 l0 6" />
-          <path d="M44 20 l6 -4 m0 0 l3 2 m-3 -2 l0 6" />
-          <path d="M18 44 l-6 4 m0 0 l-3 -2 m3 2 l0 -6" />
-          <path d="M46 44 l6 4 m0 0 l3 -2 m-3 2 l0 -6" />
-          {/* pads */}
-          <circle cx="14" cy="18" r="1.5" fill="#d8e6ff" />
-          <circle cx="50" cy="18" r="1.5" fill="#d8e6ff" />
-          <circle cx="14" cy="46" r="1.5" fill="#d8e6ff" />
-          <circle cx="50" cy="46" r="1.5" fill="#d8e6ff" />
+          
+          {/* Outer orbital ring - elegant rotation */}
+          <g className="transition-all duration-1000 ease-out origin-center group-hover:scale-[1.18]">
+            <circle 
+              cx="200" 
+              cy="200" 
+              r="165" 
+              fill="none" 
+              stroke="url(#primaryGrad)" 
+              strokeWidth="1.8"
+              opacity="0.35"
+              className="transition-all duration-1000 group-hover:opacity-60"
+            >
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                values="0 200 200;360 200 200"
+                dur="45s"
+                repeatCount="indefinite"
+              />
+            </circle>
+          </g>
+          
+          {/* Middle precision ring */}
+          <g className="transition-all duration-1000 ease-out origin-center group-hover:scale-[1.14]">
+            <circle 
+              cx="200" 
+              cy="200" 
+              r="135" 
+              fill="none" 
+              stroke="url(#secondaryGrad)" 
+              strokeWidth="1.2"
+              opacity="0.45"
+              strokeDasharray="10 6"
+              className="transition-all duration-1000 group-hover:opacity-75"
+            >
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                values="360 200 200;0 200 200"
+                dur="38s"
+                repeatCount="indefinite"
+              />
+            </circle>
+          </g>
+          
+          {/* Core structure - 8 segments explode outward */}
+          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-18px] group-hover:translate-y-[-18px]">
+            <path 
+              d="M 200 200 L 200 95 A 105 105 0 0 1 274.25 125.75 Z" 
+              fill="url(#primaryGrad)"
+              opacity="0.88"
+              filter="url(#softGlow)"
+            />
+          </g>
+          
+          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[18px] group-hover:translate-y-[-18px]">
+            <path 
+              d="M 200 200 L 274.25 125.75 A 105 105 0 0 1 305 200 Z" 
+              fill="url(#secondaryGrad)"
+              opacity="0.88"
+              filter="url(#softGlow)"
+            />
+          </g>
+          
+          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[18px] group-hover:translate-y-[18px]">
+            <path 
+              d="M 200 200 L 305 200 A 105 105 0 0 1 274.25 274.25 Z" 
+              fill="url(#accentGrad)"
+              opacity="0.88"
+              filter="url(#softGlow)"
+            />
+          </g>
+          
+          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[18px] group-hover:translate-y-[18px]">
+            <path 
+              d="M 200 200 L 274.25 274.25 A 105 105 0 0 1 200 305 Z" 
+              fill="url(#primaryGrad)"
+              opacity="0.88"
+              filter="url(#softGlow)"
+            />
+          </g>
+          
+          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-18px] group-hover:translate-y-[18px]">
+            <path 
+              d="M 200 200 L 200 305 A 105 105 0 0 1 125.75 274.25 Z" 
+              fill="url(#secondaryGrad)"
+              opacity="0.88"
+              filter="url(#softGlow)"
+            />
+          </g>
+          
+          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-18px] group-hover:translate-y-[18px]">
+            <path 
+              d="M 200 200 L 125.75 274.25 A 105 105 0 0 1 95 200 Z" 
+              fill="url(#accentGrad)"
+              opacity="0.88"
+              filter="url(#softGlow)"
+            />
+          </g>
+          
+          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-18px] group-hover:translate-y-[-18px]">
+            <path 
+              d="M 200 200 L 95 200 A 105 105 0 0 1 125.75 125.75 Z" 
+              fill="url(#primaryGrad)"
+              opacity="0.88"
+              filter="url(#softGlow)"
+            />
+          </g>
+          
+          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-18px] group-hover:translate-y-[-18px]">
+            <path 
+              d="M 200 200 L 125.75 125.75 A 105 105 0 0 1 200 95 Z" 
+              fill="url(#secondaryGrad)"
+              opacity="0.88"
+              filter="url(#softGlow)"
+            />
+          </g>
+          
+          {/* Animated central core - pulsating energy */}
+          <g className="transition-all duration-1000 ease-out origin-center group-hover:scale-[1.25]">
+            <circle 
+              cx="200" 
+              cy="200" 
+              r="42" 
+              fill="url(#coreGrad)"
+              filter="url(#strongGlow)"
+              className="transition-all duration-1000"
+              opacity="0.92"
+            >
+              <animate attributeName="r" values="42;46;42" dur="3s" repeatCount="indefinite"/>
+            </circle>
+            
+            {/* Inner core ring */}
+            <circle 
+              cx="200" 
+              cy="200" 
+              r="30" 
+              fill="none"
+              stroke="url(#accentGrad)"
+              strokeWidth="1.5"
+              opacity="0.6"
+              className="transition-all duration-1000 group-hover:opacity-90"
+            >
+              <animate attributeName="r" values="30;34;30" dur="3s" repeatCount="indefinite"/>
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                values="0 200 200;-360 200 200"
+                dur="20s"
+                repeatCount="indefinite"
+              />
+            </circle>
+            
+            {/* Core accent dots */}
+            <circle cx="200" cy="170" r="2.5" fill="#ffffff" opacity="0.85">
+              <animate attributeName="opacity" values="0.85;0.4;0.85" dur="3s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="230" cy="200" r="2.5" fill="#ffffff" opacity="0.85">
+              <animate attributeName="opacity" values="0.85;0.4;0.85" dur="3s" begin="1s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="200" cy="230" r="2.5" fill="#ffffff" opacity="0.85">
+              <animate attributeName="opacity" values="0.85;0.4;0.85" dur="3s" begin="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="170" cy="200" r="2.5" fill="#ffffff" opacity="0.85">
+              <animate attributeName="opacity" values="0.85;0.4;0.85" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+            </circle>
+          </g>
+          
+          {/* Precision markers - sophisticated expansion */}
+          <g className="transition-all duration-1000 ease-out group-hover:translate-y-[-35px] group-hover:opacity-100" opacity="0.65">
+            <line x1="200" y1="45" x2="200" y2="68" stroke="url(#accentGrad)" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="200" cy="45" r="2.5" fill="#ffffff" opacity="0.85"/>
+          </g>
+          
+          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[35px] group-hover:opacity-100" opacity="0.65">
+            <line x1="332" y1="200" x2="355" y2="200" stroke="url(#accentGrad)" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="355" cy="200" r="2.5" fill="#ffffff" opacity="0.85"/>
+          </g>
+          
+          <g className="transition-all duration-1000 ease-out group-hover:translate-y-[35px] group-hover:opacity-100" opacity="0.65">
+            <line x1="200" y1="332" x2="200" y2="355" stroke="url(#accentGrad)" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="200" cy="355" r="2.5" fill="#ffffff" opacity="0.85"/>
+          </g>
+          
+          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-35px] group-hover:opacity-100" opacity="0.65">
+            <line x1="45" y1="200" x2="68" y2="200" stroke="url(#accentGrad)" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="45" cy="200" r="2.5" fill="#ffffff" opacity="0.85"/>
         </g>
-      </svg>
-      <span className="text-5xl font-semibold tracking-tight">Plan AI</span>
-    </div>
-  );
-}
+          </svg>
+          
+          {/* Premium typography - aligned with logo */}
+          <span className="text-7xl font-light tracking-[-0.03em] text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.35)]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: '1' }}>
+            Plan AI
+          </span>
+        </div>
+        
+        {/* Subtitle - centered with animation */}
+        <div className="flex items-center justify-center gap-2.5 transition-all duration-700 group-hover:gap-3.5 opacity-70 group-hover:opacity-100">
+          <div className="h-[0.5px] w-8 bg-gradient-to-r from-transparent via-white/50 to-white/30 transition-all duration-700 group-hover:w-12"></div>
+          <span className="text-[9px] font-medium tracking-[0.35em] text-gray-400/70 uppercase transition-all duration-700 group-hover:text-gray-300/90 group-hover:tracking-[0.42em]">
+            ARCHITECTURE INTELLIGENCE
+          </span>
+          <div className="h-[0.5px] w-8 bg-gradient-to-l from-transparent via-white/50 to-white/30 transition-all duration-700 group-hover:w-12"></div>
+        </div>
+      </div>
+   );
+ }
 
-function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOpen, onModelMenuToggle }) {
+function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOpen, onModelMenuToggle, onFilesSelected, onSendMessage, isGenerating = false, isAtBottom = false, additionalButtons = null, onImageClick, onModelChange, setModelFromOutside }) {
   const [query, setQuery] = useState("");
   const [model, setModel] = useState("techplan");
   const [techplanMode, setTechplanMode] = useState(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [showSendTooltip, setShowSendTooltip] = useState(false);
 
-  const canSend = model === "3d" ? query.trim().length > 0 : techplanMode !== null;
+  // Отслеживаем изменения модели извне
+  useEffect(() => {
+    if (onModelChange) {
+      onModelChange(model);
+    }
+  }, [model, onModelChange]);
+
+  // Устанавливаем модель извне
+  useEffect(() => {
+    if (setModelFromOutside) {
+      setModel(setModelFromOutside);
+      // Сбрасываем значение после установки
+      if (onModelChange) {
+        onModelChange(setModelFromOutside);
+      }
+    }
+  }, [setModelFromOutside, onModelChange]);
+  const fileInputRef = useRef(null);
+
+  const canSend = attachments.length > 0 && (model === "3d" ? query.trim().length > 0 : techplanMode !== null);
 
   return (
-    <div className="relative z-20 mt-8 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5">
+    <div className="relative z-20 w-full max-w-2xl mx-auto rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5">
       <div className="flex items-center gap-3 px-4 md:px-6">
-        <button
-          onClick={onAttach}
-          className="p-1 rounded-lg hover:bg-white/10 transition-colors"
-          title="Прикрепить файл"
-        >
-          <Paperclip className="h-5 w-5 text-neutral-400 hover:text-neutral-200" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-1 rounded-lg hover:bg-white/10 transition-all duration-200 group hover:scale-110"
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+          >
+            <Paperclip className="h-5 w-5 text-neutral-400 hover:text-neutral-200 transition-transform duration-200 group-hover:scale-110" />
+          </button>
+          
+          {/* Скрытый input для выбора файлов */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={onFilesSelected}
+          />
+          
+          {/* Подсказка при наведении */}
+          {showTooltip && (
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded-md whitespace-nowrap z-50 text-center">
+              Прикрепить
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/80"></div>
+            </div>
+          )}
+        </div>
 
         {/* Center area: input / techplan toggles / empty for cleanup */}
         {model === "3d" && (
@@ -787,7 +2224,17 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
           </div>
         )}
 
-        {model === "cleanup" && <div className="flex-1 py-4 md:py-5" />}
+        {model === "remove" && (
+          <div className="flex-1 py-3 md:py-4 flex items-center gap-2">
+            <div className="text-sm text-neutral-400">Удаление объектов</div>
+          </div>
+        )}
+
+        {model === "cleanup" && (
+          <div className="flex-1 py-3 md:py-4 flex items-center gap-2">
+            <div className="text-sm text-neutral-400">Удаление объектов</div>
+          </div>
+        )}
 
         {/* Right controls: model selector + Send button */}
         <div className="hidden md:flex items-center gap-3 text-sm">
@@ -799,21 +2246,59 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
             }}
             isOpen={modelMenuOpen}
             onToggle={onModelMenuToggle}
+            openUpward={isAtBottom}
           />
 
-          <button
-            type="button"
-            title="Отправить"
-            disabled={!canSend}
-            className="ml-1 rounded-full p-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed"
-            onClick={() => {
-              if (!canSend) return;
-              const payload = { model, query, techplanMode };
-              console.log("send:", payload);
-            }}
+          <div 
+            className="relative"
+            onMouseEnter={() => !canSend && setShowSendTooltip(true)}
+            onMouseLeave={() => setShowSendTooltip(false)}
           >
-            <Send className="h-5 w-5" />
-          </button>
+            <button
+              type="button"
+              disabled={!canSend || isGenerating}
+              className="ml-1 rounded-full p-2 ring-1 ring-white/10 bg-white hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group hover:scale-110"
+              onClick={() => {
+                if (!canSend || isGenerating) return;
+                const payload = { model, query, techplanMode, attachments };
+                onSendMessage?.(payload);
+              }}
+            >
+              {isGenerating ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="h-5 w-5 text-black"
+                >
+                  ✷
+                </motion.div>
+              ) : (
+              <svg 
+                className="h-5 w-5 transition-transform duration-200 group-hover:scale-110 text-black" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <path d="M12 19V5M5 12l7-7 7 7" />
+              </svg>
+              )}
+            </button>
+            
+            {/* Подсказка для недоступной кнопки отправки */}
+            {showSendTooltip && !canSend && (
+              <div 
+                className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded-md whitespace-nowrap z-50 text-center"
+                onMouseEnter={() => setShowSendTooltip(true)}
+                onMouseLeave={() => setShowSendTooltip(false)}
+              >
+                Прикрепите фотографию
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/80"></div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
@@ -822,9 +2307,14 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
         <div className="px-4 md:px-6 pb-4">
           <div className="text-xs text-neutral-500 mb-2">Прикрепленные файлы: {attachments.length}</div>
           <div className="flex flex-wrap gap-2">
-            {attachments.map((attachment) => (
+            {attachments.map((attachment) => {
+              console.log('AdvancedSearchBar rendering attachment:', attachment);
+              return (
               <div key={attachment.id} className="relative group">
-                <div className="w-16 h-16 rounded-lg bg-white/5 border border-white/10 overflow-hidden">
+                <div 
+                  className="w-16 h-16 rounded-lg bg-white/5 border border-white/10 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => onImageClick?.(attachment.url, attachment.name)}
+                >
                   <img 
                     src={attachment.url} 
                     alt={attachment.name}
@@ -839,7 +2329,17 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
                   ×
                 </button>
               </div>
-            ))}
+              );
+            })}
+          </div>
+        </div>
+      )}
+      
+      {/* Дополнительные кнопки когда панель внизу */}
+      {isAtBottom && additionalButtons && (
+        <div className="px-4 md:px-6 pb-4">
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {additionalButtons}
           </div>
         </div>
       )}
@@ -863,7 +2363,7 @@ function AdvancedToggleChip({ label, active, onClick }) {
   );
 }
 
-function AdvancedModelMenu({ value, onChange, isOpen, onToggle }) {
+function AdvancedModelMenu({ value, onChange, isOpen, onToggle, openUpward = false }) {
   const [open, setOpen] = useState(false);
   
   // Используем внешнее состояние, если оно передано
@@ -889,7 +2389,9 @@ function AdvancedModelMenu({ value, onChange, isOpen, onToggle }) {
         <ChevronDown className="h-4 w-4 opacity-70" />
       </button>
       {isMenuOpen && (
-        <div className="absolute right-0 mt-2 z-40 w-64 rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-50">
+        <div className={`absolute right-0 w-64 min-h-[200px] rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+          openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+        }`}>
           {items.map((it, idx) => (
             <button
               key={it.key}
@@ -948,7 +2450,7 @@ function AdvancedIcon3D({ className = "" }) {
   );
 }
 
-function AdvancedPromoCard({ onClose }) {
+function AdvancedPromoCard({ onClose, on3DClick }) {
   const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   
@@ -1027,10 +2529,20 @@ function AdvancedPromoCard({ onClose }) {
         <div className="absolute inset-x-0 bottom-0 p-3 md:p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <div className="text-sm md:text-lg font-semibold leading-tight">Вообрази что угодно</div>
-              <div className="text-xs text-neutral-300">Генерируй изображения и видео с помощью Grok</div>
+              <div className="text-sm md:text-lg font-semibold leading-tight flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-white" />
+                Преобразуй 2D в 3D
+              </div>
+              <div className="text-xs text-neutral-300">Генерируй 2D план с добавлением 3D интерьера</div>
             </div>
-            <button className="shrink-0 rounded-lg bg-white/90 text-black px-3 py-1.5 text-xs hover:bg-white transition">Перейти</button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={on3DClick}
+              className="shrink-0 rounded-lg bg-white/90 text-black px-3 py-1.5 text-xs hover:bg-white transition font-medium"
+            >
+              Перейти
+            </motion.button>
           </div>
         </div>
       </div>
@@ -1038,7 +2550,8 @@ function AdvancedPromoCard({ onClose }) {
   );
 }
 
-function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen, onModelMenuToggle }) {
+// Компонент для кнопок, которые отображаются внутри панели поиска
+function AdvancedInlineButtons({ backgroundType, onBackgroundChange, modelMenuOpen, onModelMenuToggle, openUpward = false }) {
   const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
   const [themesMenuOpen, setThemesMenuOpen] = useState(false);
   const [bg, setBg] = useState(null);
@@ -1083,7 +2596,132 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
   }, [backgroundMenuOpen, themesMenuOpen, modelMenuOpen, onModelMenuToggle]);
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3">
+    <>
+      <button className="flex items-center gap-2 rounded-full px-3 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10">
+        <ImageIcon className="h-4 w-4" />
+        <span className="text-sm">Параметры плана</span>
+      </button>
+
+      <div className="relative" data-background-menu>
+        <button 
+          onClick={() => {
+            setBackgroundMenuOpen((v) => !v);
+            setThemesMenuOpen(false);
+            onModelMenuToggle?.(false);
+          }}
+          className="flex items-center gap-2 rounded-full px-3 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
+        >
+          <Layers className="h-4 w-4" />
+          <span className="text-sm">Фон страницы</span>
+          <ChevronDown className="h-3 w-3 opacity-70" />
+        </button>
+        {backgroundMenuOpen && (
+          <div className={`absolute left-0 w-64 min-h-[200px] rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+          }`}>
+            {backgroundOptions.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => {
+                  onBackgroundChange?.(option.id);
+                  setBackgroundMenuOpen(false);
+                }}
+                className={`w-full text-left px-2 py-2 rounded-lg hover:bg-white/10 transition ${
+                  backgroundType === option.id ? "bg-white/10" : ""
+                }`}
+              >
+                <div className="text-xs font-medium">{option.label}</div>
+                <div className="text-[10px] text-neutral-400 mt-0.5">{option.description}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="relative" data-themes-menu>
+        <button
+          onClick={() => {
+            setThemesMenuOpen((v) => !v);
+            setBackgroundMenuOpen(false);
+            onModelMenuToggle?.(false);
+          }}
+          className="flex items-center gap-2 rounded-full px-3 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
+        >
+          <Palette className="h-4 w-4" />
+          <span className="text-sm">{bg ? `Фон: ${bg}` : "Фоны"}</span>
+          <ChevronDown className="h-3 w-3 opacity-70" />
+        </button>
+        {themesMenuOpen && (
+          <div className={`absolute left-0 w-64 min-h-[200px] rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+          }`}>
+            {bgOptions.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => {
+                  setBg(opt);
+                  setThemesMenuOpen(false);
+                }}
+                className={`w-full text-left px-2 py-2 rounded-lg hover:bg-white/10 transition ${
+                  bg === opt ? "bg-white/10" : ""
+                }`}
+              >
+                <div className="text-xs font-medium">{opt}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen, onModelMenuToggle, openUpward = false }) {
+  const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
+  const [themesMenuOpen, setThemesMenuOpen] = useState(false);
+  const [bg, setBg] = useState(null);
+
+  const bgOptions = [
+    "Тёмный премиум",
+    "Светлый",
+    "VENOM",
+    "DNA-liquid",
+    "Графит",
+    "Шахматный",
+    "Чистый",
+  ];
+
+  const backgroundOptions = [
+    { id: "standard", label: "Стандартный", description: "Простой фон без частиц" },
+    { id: "interactive", label: "Интерактивный", description: "Фон с частицами и взаимодействием" },
+    { id: "alternative", label: "Альтернативный", description: "Космический фон с летающими точками" }
+  ];
+
+  // Закрытие меню при клике вне области
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (backgroundMenuOpen || themesMenuOpen || modelMenuOpen) {
+        const target = event.target;
+        const isBackgroundMenu = target.closest('[data-background-menu]');
+        const isThemesMenu = target.closest('[data-themes-menu]');
+        const isModelMenu = target.closest('[data-model-menu]');
+        
+        if (!isBackgroundMenu && !isThemesMenu && !isModelMenu) {
+          setBackgroundMenuOpen(false);
+          setThemesMenuOpen(false);
+          onModelMenuToggle?.(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [backgroundMenuOpen, themesMenuOpen, modelMenuOpen, onModelMenuToggle]);
+
+  return (
+    <div className="w-full max-w-2xl mx-auto flex flex-wrap items-center justify-center gap-3">
       <button className="flex items-center gap-2 rounded-full px-3 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10">
         <ImageIcon className="h-4 w-4" />
         <span className="text-sm">Параметры плана</span>
@@ -1103,7 +2741,9 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
           <ChevronDown className="h-3 w-3 opacity-70" />
       </button>
         {backgroundMenuOpen && (
-          <div className="absolute left-0 mt-2 w-64 rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-50">
+          <div className={`absolute left-0 w-64 min-h-[200px] rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+          }`}>
             {backgroundOptions.map((option) => (
               <button
                 key={option.id}
@@ -1137,7 +2777,9 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
           <ChevronDown className="h-3 w-3 opacity-70" />
         </button>
         {themesMenuOpen && (
-          <div className="absolute left-0 mt-2 w-64 rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-50">
+          <div className={`absolute left-0 w-64 min-h-[200px] rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+          }`}>
             {bgOptions.map((opt) => (
               <button
                 key={opt}
@@ -1159,16 +2801,222 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
   );
 }
 
-function AdvancedSuperBanner() {
+function AdvancedSuperBanner({ showMessages = false, onUpgradeClick }) {
+  // Не показываем баннер, если панель находится внизу (showMessages = true)
+  if (showMessages) return null;
+  
   return (
     <div className="pointer-events-auto fixed bottom-4 right-4 z-20">
-      <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 backdrop-blur-lg shadow-2xl">
+      <motion.div 
+        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 backdrop-blur-lg shadow-2xl"
+      >
         <div>
-          <div className="text-sm font-medium">SuperGrok</div>
-          <div className="text-xs text-neutral-400">Разблокируй расширенные возможности</div>
+          <div className="text-sm font-medium flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-white" />
+            Plan AI 3D
+          </div>
+          <div className="text-xs text-neutral-400">Попробуй расширенные возможности</div>
         </div>
-        <button className="rounded-xl bg-white/90 text-black px-4 py-2 text-sm hover:bg-white transition">Улучшить</button>
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onUpgradeClick}
+          className="rounded-xl bg-white/90 text-black px-4 py-2 text-sm hover:bg-white transition font-medium"
+        >
+          Улучшить
+        </motion.button>
+      </motion.div>
+    </div>
+  );
+}
+
+// === Image Modal Component ===
+function ImageModal({ isOpen, imageUrl, imageAlt, onClose }) {
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="relative max-w-[80vw] max-h-[80vh] w-full h-full flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Кнопка закрытия */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+          title="Закрыть"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        
+        {/* Изображение */}
+        <img
+          src={imageUrl}
+          alt={imageAlt}
+          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+        />
       </div>
+      
+      {/* Клик по фону для закрытия */}
+      <div 
+        className="absolute inset-0 -z-10" 
+        onClick={onClose}
+      />
+    </div>
+  );
+}
+
+// === Advanced Message System ===
+function AdvancedMessageDisplay({ 
+  isGenerating = false, 
+  message = null, 
+  result = null, 
+  onRate, 
+  onRegenerate, 
+  onDownload,
+  onImageClick
+}) {
+  if (!isGenerating && !message && !result) return null;
+
+  return (
+    <div className="relative z-20 mx-auto max-w-4xl px-6 w-full">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="space-y-6"
+      >
+        {/* Сообщение пользователя */}
+        {message && (
+          <div className="flex justify-end">
+            <div className="max-w-[80%] rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur px-6 py-4">
+              <div className="text-sm text-white whitespace-pre-wrap">{message.text}</div>
+              {message.attachments && message.attachments.length > 0 && (
+                 <div className="mt-3 flex flex-wrap gap-2">
+                   {message.attachments.map((att) => (
+                     <div key={att.id} className="relative group">
+                       <div className="w-16 h-16 rounded-lg bg-white/5 border border-white/10 overflow-hidden">
+                         <img 
+                           src={att.url} 
+                           alt={att.name}
+                           className="w-full h-full object-cover"
+                         />
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+              )}
+              <div className="mt-2 text-xs text-neutral-400">
+                {new Date().toLocaleTimeString()}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Анимация генерации */}
+        {isGenerating && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur px-6 py-4">
+              <div className="flex items-center gap-3 text-sm text-white">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="text-2xl"
+                >
+                  ✷
+                </motion.div>
+                <span className="font-medium">Модель анализирует изображения...</span>
+              </div>
+              <div className="text-xs text-neutral-400 mt-2">
+                Обработка фотографий и генерация результата
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Результат от модели */}
+        {result && !isGenerating && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur px-6 py-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                  <span className="text-xs font-bold text-white">AI</span>
+                </div>
+                <span className="text-sm font-medium text-white">Модель</span>
+              </div>
+              
+              <div className="text-sm text-white whitespace-pre-wrap mb-4">
+                {result.text}
+              </div>
+              
+              {/* Сгенерированное изображение */}
+              {result.image && (
+                <div className="mb-4">
+                  <img 
+                    src={result.image} 
+                    alt="Результат генерации" 
+                    className="w-full max-w-md rounded-lg ring-1 ring-white/20 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => onImageClick?.(result.image, "Результат генерации")}
+                  />
+                </div>
+              )}
+              
+              {/* Кнопки действий */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {result.image && (
+                  <button
+                    onClick={() => onDownload?.(result.image)}
+                    className="h-8 w-8 rounded-lg bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
+                    title="Скачать"
+                  >
+                    <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => onRate?.(result.messageId, result.rating === 'like' ? null : 'like')}
+                  className={`h-8 w-8 rounded-lg transition-colors flex items-center justify-center ${
+                    result.rating === 'like' 
+                      ? "bg-green-500/20 text-green-400" 
+                      : "bg-white/10 hover:bg-white/20 text-white"
+                  }`}
+                  title="Лайк"
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                </button>
+                
+                <button
+                  onClick={() => onRate?.(result.messageId, result.rating === 'dislike' ? null : 'dislike')}
+                  className={`h-8 w-8 rounded-lg transition-colors flex items-center justify-center ${
+                    result.rating === 'dislike' 
+                      ? "bg-red-500/20 text-red-400" 
+                      : "bg-white/10 hover:bg-white/20 text-white"
+                  }`}
+                  title="Дизлайк"
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                </button>
+                
+                <button
+                  onClick={() => onRegenerate?.(result.messageId)}
+                  className="h-8 px-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-xs text-white"
+                  title="Повторить"
+                >
+                  Повторить
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }
@@ -1220,8 +3068,26 @@ export default function MonochromeClaudeStyle() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [filteredChats, setFilteredChats] = useState(chats);
-  const [backgroundType, setBackgroundType] = useState("interactive");
+  const [backgroundType, setBackgroundType] = useState("alternative");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+
+  // Advanced message system states
+  const [advancedCurrentMessage, setAdvancedCurrentMessage] = useState(null);
+  const [advancedCurrentResult, setAdvancedCurrentResult] = useState(null);
+  const [advancedIsGenerating, setAdvancedIsGenerating] = useState(false);
+  const [advancedMessageHistory, setAdvancedMessageHistory] = useState([]);
+
+  // Image modal state
+  const [imageModal, setImageModal] = useState({ isOpen: false, url: '', alt: '' });
+  
+  // Modal states
+  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  
+  // Navigate
+  const navigate = useNavigate();
 
   // Фильтрация чатов и настроек по поисковому запросу
   const [searchResults, setSearchResults] = useState({ chats: [], settings: [] });
@@ -1285,6 +3151,166 @@ export default function MonochromeClaudeStyle() {
         break;
     }
     setSearchQuery(""); // Очищаем поиск после выбора
+  };
+
+  // Advanced message system handlers
+  const handleAdvancedSendMessage = async (payload) => {
+    const { model, query, techplanMode, attachments } = payload;
+    
+    // Создаем сообщение пользователя
+    const userMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      text: model === "3d" ? query : 
+            model === "techplan" ? `Создание по техплану — ${techplanMode === "with" ? "С мебелью" : "Без мебели"}` :
+            "Удаление объектов",
+      attachments: attachments.map((a) => ({ id: a.id, name: a.name, url: a.url })),
+      time: new Date().toISOString(),
+    };
+
+    setAdvancedCurrentMessage(userMessage);
+    setAdvancedIsGenerating(true);
+    setAdvancedCurrentResult(null);
+    
+    // Очищаем прикрепленные фотографии сразу после отправки
+    clearAllAttachments();
+
+    try {
+      let responseText = "";
+      let responseImage = null;
+
+      if (model === "techplan" && attachments.length > 0) {
+        // Генерация технического плана
+        const formData = new FormData();
+        formData.append('image', attachments[0].file);
+        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+
+        const response = await fetch('/api/generate-technical-plan', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Ошибка генерации технического плана');
+        }
+
+        // Получаем изображение как blob
+        const imageBlob = await response.blob();
+        responseImage = URL.createObjectURL(imageBlob);
+        responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
+      } else {
+        // Обычная обработка для других моделей
+        responseText = `Вот результат обработки вашего запроса "${userMessage.text}".`;
+      }
+      
+      const aiResponse = {
+        messageId: userMessage.id,
+        text: responseText,
+        image: responseImage,
+        rating: null,
+        canRegenerate: true
+      };
+
+      setAdvancedCurrentResult(aiResponse);
+      
+      // Добавляем сообщения в историю
+      setAdvancedMessageHistory(prev => [
+        ...prev,
+        { ...userMessage, type: 'user' },
+        { ...aiResponse, type: 'ai', time: new Date().toISOString() }
+      ]);
+      
+      // Очищаем текущие сообщения после добавления в историю
+      setTimeout(() => {
+        setAdvancedCurrentMessage(null);
+        setAdvancedCurrentResult(null);
+      }, 100);
+    } catch (error) {
+      console.error('Ошибка генерации:', error);
+      const errorResponse = {
+        messageId: userMessage.id,
+        text: `Ошибка: ${error.message}`,
+        rating: null,
+        canRegenerate: true
+      };
+
+      setAdvancedCurrentResult(errorResponse);
+      
+      // Добавляем сообщения в историю даже при ошибке
+      setAdvancedMessageHistory(prev => [
+        ...prev,
+        { ...userMessage, type: 'user' },
+        { ...errorResponse, type: 'ai', time: new Date().toISOString() }
+      ]);
+      
+      // Очищаем текущие сообщения после добавления в историю
+      setTimeout(() => {
+        setAdvancedCurrentMessage(null);
+        setAdvancedCurrentResult(null);
+      }, 100);
+    } finally {
+      setAdvancedIsGenerating(false);
+    }
+  };
+
+  const handleAdvancedRate = (messageId, rating) => {
+    setAdvancedCurrentResult(prev => prev ? {
+      ...prev,
+      rating
+    } : null);
+    
+    // Обновляем рейтинг в истории
+    setAdvancedMessageHistory(prev => 
+      prev.map(msg => 
+        msg.messageId === messageId && msg.type === 'ai' 
+          ? { ...msg, rating }
+          : msg
+      )
+    );
+  };
+
+  const handleAdvancedRegenerate = async (messageId) => {
+    setAdvancedIsGenerating(true);
+    
+    // Симуляция повторной генерации
+    setTimeout(() => {
+      setAdvancedIsGenerating(false);
+      const updatedResult = {
+        messageId,
+        text: "Обновленный результат генерации",
+        rating: null,
+        canRegenerate: true
+      };
+      
+      setAdvancedCurrentResult(updatedResult);
+      
+      // Обновляем сообщение в истории
+      setAdvancedMessageHistory(prev => 
+        prev.map(msg => 
+          msg.messageId === messageId && msg.type === 'ai' 
+            ? { ...updatedResult, type: 'ai', time: new Date().toISOString() }
+            : msg
+        )
+      );
+    }, 2000);
+  };
+
+  const handleAdvancedDownload = (imageUrl) => {
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `generated-image-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Image modal handlers
+  const handleImageClick = (imageUrl, imageAlt) => {
+    setImageModal({ isOpen: true, url: imageUrl, alt: imageAlt });
+  };
+
+  const handleImageModalClose = () => {
+    setImageModal({ isOpen: false, url: '', alt: '' });
   };
 
 
@@ -1435,6 +3461,11 @@ export default function MonochromeClaudeStyle() {
     setValue("");
     setAttachments([]);
     setPlanFurniture(null);
+    
+    // Очищаем историю сообщений при создании нового чата
+    setAdvancedMessageHistory([]);
+    setAdvancedCurrentMessage(null);
+    setAdvancedCurrentResult(null);
     setRemoveDepth(null);
     setHasFirstMessage(false);
     setIsGenerating(false);
@@ -1496,6 +3527,16 @@ export default function MonochromeClaudeStyle() {
     });
   };
 
+  const clearAllAttachments = () => {
+    console.log('clearAllAttachments called');
+    setAttachments((prev) => {
+      console.log('Previous attachments:', prev);
+      // НЕ очищаем URL, так как они используются в сообщениях
+      // prev.forEach((item) => URL.revokeObjectURL(item.url));
+      return [];
+    });
+  };
+
   // Response actions
   const rateResponse = (messageId, rating) => {
     setResponses(prev => ({
@@ -1522,6 +3563,55 @@ export default function MonochromeClaudeStyle() {
     }, 2000);
   };
 
+  // Chat management handlers
+  const handleCreateNewChat = () => {
+    createChat();
+  };
+  
+  const handleHomeClick = () => {
+    navigate('/');
+  };
+  
+  const handleRenameChat = (chatId) => {
+    const chat = chats.find(c => c.id === chatId);
+    const newTitle = prompt('Введите новое название чата:', chat?.title || 'Новый чат');
+    if (newTitle !== null && newTitle.trim() !== '') {
+      setChats(chats.map(c => 
+        c.id === chatId ? { ...c, title: newTitle.trim() } : c
+      ));
+    }
+  };
+  
+  const handleDeleteChat = (chatId) => {
+    if (confirm('Вы уверены, что хотите удалить этот чат?')) {
+      setChats(chats.filter(c => c.id !== chatId));
+      if (activeChatId === chatId && chats.length > 1) {
+        const remainingChats = chats.filter(c => c.id !== chatId);
+        setActiveChatId(remainingChats[0]?.id || null);
+      }
+      
+      // Очищаем историю сообщений при удалении чата
+      setAdvancedMessageHistory([]);
+      setAdvancedCurrentMessage(null);
+      setAdvancedCurrentResult(null);
+    }
+  };
+  
+  const handlePinChat = (chatId) => {
+    setChats(chats.map(c => 
+      c.id === chatId ? { ...c, pinned: !c.pinned } : c
+    ));
+  };
+  
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+  
+  const handleProfile = () => {
+    navigate('/profile');
+  };
+
   // Advanced style layout
   if (siteStyle === "advanced") {
     return (
@@ -1539,6 +3629,11 @@ export default function MonochromeClaudeStyle() {
               setHasFirstMessage(chats.find(c => c.id === chatId)?.messages.length > 0);
               setIsGenerating(false);
               setResponses({});
+              
+              // Очищаем историю сообщений при переключении чатов
+              setAdvancedMessageHistory([]);
+              setAdvancedCurrentMessage(null);
+              setAdvancedCurrentResult(null);
             }}
             onSearch={setSearchQuery}
             searchQuery={searchQuery}
@@ -1546,6 +3641,17 @@ export default function MonochromeClaudeStyle() {
             isCollapsed={isSidebarCollapsed}
             searchResults={searchResults}
             onSettingSelect={handleSettingSelect}
+            onCreateChat={handleCreateNewChat}
+            onHomeClick={handleHomeClick}
+            onHowItWorks={() => setIsHowItWorksOpen(true)}
+            user={user}
+            onRenameChat={handleRenameChat}
+            onDeleteChat={handleDeleteChat}
+            onPinChat={handlePinChat}
+            onSettings={() => setIsSettingsOpen(true)}
+            onChangelog={() => setIsChangelogOpen(true)}
+            onProfile={handleProfile}
+            onLogout={handleLogout}
           />
           <AdvancedMainArea 
             backgroundType={backgroundType}
@@ -1560,8 +3666,42 @@ export default function MonochromeClaudeStyle() {
             attachments={attachments}
             modelMenuOpen={modelMenuOpen}
             onModelMenuToggle={setModelMenuOpen}
+            onFilesSelected={onFilesSelected}
+            onSendMessage={handleAdvancedSendMessage}
+            isGenerating={advancedIsGenerating}
+            currentMessage={advancedCurrentMessage}
+            currentResult={advancedCurrentResult}
+            messageHistory={advancedMessageHistory}
+            onRate={handleAdvancedRate}
+            onRegenerate={handleAdvancedRegenerate}
+            onDownload={handleAdvancedDownload}
+            onImageClick={handleImageClick}
+            onModelChange={setModel}
           />
         </div>
+        
+        {/* Image Modal */}
+        <ImageModal
+          isOpen={imageModal.isOpen}
+          imageUrl={imageModal.url}
+          imageAlt={imageModal.alt}
+          onClose={handleImageModalClose}
+        />
+        
+        {/* Feature Modals */}
+        <HowItWorksModal 
+          isOpen={isHowItWorksOpen} 
+          onClose={() => setIsHowItWorksOpen(false)} 
+        />
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)}
+          user={user}
+        />
+        <ChangelogModal 
+          isOpen={isChangelogOpen} 
+          onClose={() => setIsChangelogOpen(false)} 
+        />
       </div>
     );
   }
@@ -1750,7 +3890,6 @@ export default function MonochromeClaudeStyle() {
                             "h-8 w-8 rounded-lg grid place-items-center",
                             "theme-border theme-panel hover:opacity-90"
                           )}
-                          title="Прикрепить файл"
                         >
                           <Paperclip className="h-4 w-4" />
                         </button>
@@ -1933,7 +4072,6 @@ export default function MonochromeClaudeStyle() {
                           "h-8 w-8 rounded-lg grid place-items-center",
                           "theme-border theme-panel hover:opacity-90"
                         )}
-                        title="Прикрепить файл"
                       >
                         <Paperclip className="h-4 w-4" />
                       </button>
