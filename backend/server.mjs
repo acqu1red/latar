@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import { generateTechnicalPlan, checkCometApiHealth } from './src/cometApiGenerator.mjs';
+import authRoutes from './src/authRoutes.mjs';
 
 // Загружаем переменные окружения из .env файла
 import dotenv from 'dotenv';
@@ -101,6 +102,9 @@ app.use(express.static(path.join(__dirname, '..', 'frontend/dist')));
 
 // Статический маршрут для временных изображений
 app.use('/temp-images', express.static(path.join(__dirname, '..', 'uploads')));
+
+// Auth routes
+app.use('/api/auth', authRoutes);
 
 // Специальный маршрут для поддомена new
 app.get('/new', (req, res) => {
@@ -259,6 +263,12 @@ const server = app.listen(PORT, () => {
   console.log(`📊 API endpoints:`);
   console.log(`   POST /api/generate-technical-plan - генерация технического плана`);
   console.log(`   GET  /api/furniture - получение данных мебели`);
+  console.log(`   POST /api/auth/register - регистрация пользователя`);
+  console.log(`   POST /api/auth/login - вход пользователя`);
+  console.log(`   GET  /api/auth/settings - получение настроек пользователя`);
+  console.log(`   POST /api/auth/settings - сохранение настроек пользователя`);
+  console.log(`   GET  /api/auth/agency - получение данных агентства`);
+  console.log(`   POST /api/auth/agency - сохранение данных агентства`);
   console.log(`   GET  /healthz - проверка здоровья сервера`);
   console.log(`✅ Приложение готово к работе!`);
   console.log(`🔧 Переменные окружения:`);

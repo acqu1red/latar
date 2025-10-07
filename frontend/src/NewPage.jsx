@@ -1,4 +1,34 @@
 import React, { useState, useRef, useEffect } from "react";
+
+// Кастомные стили для скроллбара
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+`;
+
+// Добавляем стили в head
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = scrollbarStyles;
+  if (!document.head.querySelector('style[data-custom-scrollbar]')) {
+    styleElement.setAttribute('data-custom-scrollbar', 'true');
+    document.head.appendChild(styleElement);
+  }
+}
 import {
   Plus,
   ArrowUp,
@@ -14,6 +44,7 @@ import {
   MessageSquare,
   Mic,
   Image as ImageIcon,
+  Images,
   Folder,
   Bell,
   ChevronLeft,
@@ -34,14 +65,96 @@ import {
   Clock,
   Mail,
   Save,
+  Download,
   Key,
   Lock,
   Shield,
   Sparkles,
+  Eye,
+  Keyboard,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
+
+// ===== Confirmation Modal Component =====
+function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Подтвердить", cancelText = "Отмена", type = "danger" }) {
+  if (!isOpen) return null;
+
+  const getIcon = () => {
+    switch (type) {
+      case 'danger': return <X className="h-6 w-6 text-red-400" />;
+      case 'warning': return <AlertTriangle className="h-6 w-6 text-yellow-400" />;
+      case 'info': return <Info className="h-6 w-6 text-blue-400" />;
+      default: return <X className="h-6 w-6 text-red-400" />;
+    }
+  };
+
+  const getButtonStyle = () => {
+    switch (type) {
+      case 'danger': return 'bg-red-600 hover:bg-red-700 text-white';
+      case 'warning': return 'bg-yellow-600 hover:bg-yellow-700 text-white';
+      case 'info': return 'bg-blue-600 hover:bg-blue-700 text-white';
+      default: return 'bg-red-600 hover:bg-red-700 text-white';
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        transition={{ duration: 0.2 }}
+        className="relative w-full max-w-md mx-4 bg-[#161618] border border-white/10 rounded-2xl p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 border border-white/10">
+            {getIcon()}
+          </div>
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+        </div>
+
+        {/* Message */}
+        <p className="text-neutral-300 text-sm mb-6 leading-relaxed">{message}</p>
+
+        {/* Actions */}
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-neutral-300 hover:text-white transition-colors border border-white/10 rounded-lg hover:bg-white/5"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${getButtonStyle()}`}
+          >
+            {confirmText}
+          </button>
+        </div>
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 // ===== Helpers =====
 const cn = (...c) => c.filter(Boolean).join(" ");
@@ -382,7 +495,6 @@ const MODEL_OPTIONS = [
 // === Site styles ===
 const STYLE_OPTIONS = [
   { id: "advanced", label: "Продвинутый" },
-  { id: "standard", label: "Стандарт" },
 ];
 
 // === Advanced Style Components ===
@@ -397,7 +509,7 @@ function ThreeDModeModal({ isOpen, onClose, onActivate }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md" 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]" 
       onClick={onClose}
     >
       <motion.div 
@@ -639,7 +751,7 @@ function HowItWorksModal({ isOpen, onClose }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md" 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]" 
       onClick={onClose}
     >
       <motion.div 
@@ -673,7 +785,7 @@ function HowItWorksModal({ isOpen, onClose }) {
         </div>
         
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-160px)] p-8">
+        <div className="overflow-y-auto max-h-[calc(90vh-160px)] p-8 custom-scrollbar">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {features.map((feature, index) => (
               <motion.div
@@ -714,17 +826,465 @@ function HowItWorksModal({ isOpen, onClose }) {
   );
 }
 
-// Модальное окно "Настройки" - Премиум дизайн
-function SettingsModal({ isOpen, onClose, user }) {
-  const [activeTab, setActiveTab] = useState('profile');
+// Компонент предпросмотра фона
+function BackgroundPreview({ type }) {
+  const previewRef = useRef(null);
   
+  useEffect(() => {
+    if (type === "interactive" && previewRef.current) {
+      // Мини-версия интерактивного фона для предпросмотра
+      const canvas = previewRef.current;
+      const ctx = canvas.getContext('2d');
+      canvas.width = 200;
+      canvas.height = 120;
+      
+      const particles = [];
+      for (let i = 0; i < 15; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          size: Math.random() * 2 + 1
+        });
+      }
+      
+      const animate = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+          if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+          
+          ctx.fillStyle = '#d3d3e8';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        
+        requestAnimationFrame(animate);
+      };
+      
+      animate();
+    }
+  }, [type]);
+  
+  
+  if (type === "interactive") {
+    return (
+      <div className="w-full h-full bg-black relative overflow-hidden">
+        <canvas ref={previewRef} className="w-full h-full" />
+      </div>
+    );
+  }
+  
+  if (type === "alternative") {
+    return (
+      <div className="w-full h-full bg-black relative overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0">
+          {[...Array(8)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-white/60 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                opacity: [0.3, 1, 0.3],
+                scale: [0.8, 1.2, 0.8],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                delay: i * 0.2,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  
+  return null;
+}
+
+// Модальное окно "Регистрация/Вход" - Премиум дизайн
+// Новый компонент личного кабинета — точный референсный размер и стиль
+function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChange }) {
+  const [activeTab, setActiveTab] = useState('account');
+
+  // Appearance
+  const [theme, setTheme] = useState('system');
+  const [showMarkdown, setShowMarkdown] = useState(false);
+  const [wrapLongLines, setWrapLongLines] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+
+  // Behavior
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [sidePanel, setSidePanel] = useState(false);
+  const [notifications, setNotifications] = useState(false);
+  const [autoComplete, setAutoComplete] = useState(true);
+  const [starBackground, setStarBackground] = useState(false);
+
+
+  // Data
+  const [allowHistory, setAllowHistory] = useState(false);
+  const [allowDetails, setAllowDetails] = useState(false);
+  const [memoryUsage] = useState({ used: 74.23, total: 1070 });
+
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'profile', label: 'Профиль', icon: User },
-    { id: 'security', label: 'Безопасность', icon: Settings },
-    { id: 'interface', label: 'Интерфейс', icon: Palette }
+    { id: 'account', label: 'Учётка', icon: User },
+    { id: 'appearance', label: 'Оформление', icon: Palette },
+    { id: 'behavior', label: 'Поведение', icon: Settings },
+    { id: 'data', label: 'Управление данными', icon: Shield },
   ];
+
+  const Toggle = ({ value, onChange, disabled }) => (
+    <button
+      onClick={() => !disabled && onChange(!value)}
+      className={`relative h-[20px] w-[36px] rounded-full transition ${
+        disabled ? 'bg-white/10 opacity-40' : value ? 'bg-white' : 'bg-white/10'
+      }`}
+      disabled={disabled}
+    >
+      <span
+        className={`absolute top-0.5 h-[16px] w-[16px] rounded-full bg-black transition ${
+          value ? 'left-[18px]' : 'left-[2px]'
+        }`}
+      />
+    </button>
+  );
+
+  const Row = ({ icon: Icon, left, right }) => (
+    <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/70">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="text-sm text-white">{left}</div>
+      </div>
+      <div>{right}</div>
+    </div>
+  );
+
+  const AccountTab = () => (
+    <div className="flex flex-col h-full space-y-4">
+      <div className="flex-1 space-y-4">
+        {/* Информация о профиле */}
+        <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-sm font-semibold text-white">
+              {user?.name?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium text-white">{user?.name || 'Название компании'}</div>
+              <div className="text-xs text-neutral-400">{user?.username || 'Псевдоним'}</div>
+            </div>
+          </div>
+        </div>
+
+      <Row icon={Layers} left="Перейти на Plan 3D" right={<button className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10">Улучшить</button>} />
+        <div className="text-xs text-neutral-400 pt-1">Язык <span className="ml-1 text-white">Русский</span></div>
+      </div>
+      
+      {/* Plan AI 3D кнопка */}
+      <div className="flex justify-center">
+        <motion.div 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative flex items-center gap-3 rounded-2xl border border-white/10 bg-black px-4 py-3 backdrop-blur-lg shadow-2xl overflow-hidden"
+        >
+          {/* Звездные частицы на фоне */}
+          <div className="absolute inset-0 pointer-events-none">
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-1 bg-white/30 rounded-full"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                }}
+                animate={{
+                  opacity: [0.3, 0.8, 0.3],
+                  scale: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 2 + Math.random() * 2,
+                  repeat: Infinity,
+                  delay: Math.random() * 2,
+                }}
+              />
+            ))}
+          </div>
+          
+          <div className="relative z-10">
+            <div className="text-sm font-medium flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-white" />
+              Plan AI 3D
+            </div>
+            <div className="text-xs text-neutral-400">Попробуй расширенные возможности</div>
+          </div>
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative z-10 rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+          >
+            Улучшить
+          </motion.button>
+        </motion.div>
+      </div>
+    </div>
+  );
+
+  const AppearanceTab = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { id: 'interactive', label: 'Интерактивный', icon: '✨' },
+          { id: 'alternative', label: 'Альтернативный', icon: '🎨' }
+        ].map((backgroundType) => (
+          <button
+            key={backgroundType.id}
+            onClick={() => onBackgroundChange(backgroundType.id)}
+            className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 px-3 py-4 text-xs transition ${
+              backgroundType === backgroundType.id
+                ? 'border-white/40 text-white'
+                : 'border-white/10 text-neutral-300 hover:border-white/20'
+            }`}
+          >
+            <div className="relative flex h-10 w-14 items-center justify-center rounded-lg overflow-hidden">
+              {backgroundType.id === 'standard' && (
+                <div className="absolute inset-0 bg-[#161618]">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-[8px] text-neutral-500">Фон</div>
+                  </div>
+                </div>
+              )}
+              {backgroundType.id === 'interactive' && (
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-pink-900 to-red-900">
+                  <div className="absolute inset-0 bg-black/20"></div>
+                  {/* Интерактивные частицы */}
+                  {[...Array(3)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1 h-1 bg-white/40 rounded-full"
+                      style={{
+                        left: `${20 + i * 30}%`,
+                        top: `${30 + i * 20}%`,
+                      }}
+                      animate={{
+                        opacity: [0.3, 0.8, 0.3],
+                        scale: [0.5, 1, 0.5],
+                      }}
+                      transition={{
+                        duration: 2 + i * 0.5,
+                        repeat: Infinity,
+                        delay: i * 0.3,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              {backgroundType.id === 'alternative' && (
+                <div className="absolute inset-0 bg-gradient-to-br from-green-900 via-teal-900 to-cyan-900">
+                  <div className="absolute inset-0 bg-black/20"></div>
+                  {/* Альтернативные частицы */}
+                  {[...Array(4)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1 h-1 bg-cyan-300/50 rounded-full"
+                      style={{
+                        left: `${15 + i * 25}%`,
+                        top: `${25 + i * 15}%`,
+                      }}
+                      animate={{
+                        opacity: [0.2, 0.7, 0.2],
+                        scale: [0.3, 1.2, 0.3],
+                      }}
+                      transition={{
+                        duration: 3 + i * 0.3,
+                        repeat: Infinity,
+                        delay: i * 0.4,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              <span className="relative z-10 text-white text-lg">{backgroundType.icon}</span>
+            </div>
+            {backgroundType.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <Row icon={Sparkles} left="Отображать твоё сообщение в формате Markdown" right={<Toggle value={showMarkdown} onChange={setShowMarkdown} />} />
+        <Row icon={FileText} left="Перенос длинных строк для кодовых блоков по умолчанию" right={<Toggle value={wrapLongLines} onChange={setWrapLongLines} />} />
+        <Row icon={Eye} left="Показывать предпросмотр разговоров в истории" right={<Toggle value={showPreview} onChange={setShowPreview} />} />
+      </div>
+    </div>
+  );
+
+  const BehaviorTab = () => (
+    <div className="space-y-2">
+      <Row icon={ArrowUp} left="Включить автопрокрутку" right={<Toggle value={autoScroll} onChange={setAutoScroll} />} />
+      <Row icon={Sparkles} left="Показывать предложения для продолжения" right={<Toggle value={showSuggestions} onChange={setShowSuggestions} />} />
+      <Row icon={FileText} left="Включить редактор боковой панели для кода и документов" right={<Toggle value={sidePanel} onChange={setSidePanel} />} />
+      <Row icon={Bell} left="Получать уведомление, когда Plan AI заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
+      <Row icon={Keyboard} left="Включить подсказки автодополнения" right={<Toggle value={autoComplete} onChange={setAutoComplete} />} />
+      <Row icon={Sparkles} left="Включить звёздный фон" right={<Toggle value={starBackground} onChange={setStarBackground} />} />
+    </div>
+  );
+
+
+  const DataTab = () => (
+    <div className="space-y-4">
+      <Row icon={Sparkles} left="Улучшить модель" right={<Toggle value={allowHistory} onChange={setAllowHistory} />} />
+      <div className="rounded-lg border border-white/10 px-4 py-3">
+        <div className="text-xs text-neutral-400">Использовано {memoryUsage.used} МБ из {(memoryUsage.total / 1000).toFixed(1)} ГБ</div>
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-white"
+            style={{ width: `${(memoryUsage.used / memoryUsage.total) * 100}%` }}
+          />
+        </div>
+      </div>
+      <Row icon={Folder} left="Посмотреть файлы и активы" right={<button className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10">Управлять</button>} />
+    </div>
+  );
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'account': return <AccountTab />;
+      case 'appearance': return <AppearanceTab />;
+      case 'behavior': return <BehaviorTab />;
+      case 'data': return <DataTab />;
+      default: return null;
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-0"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.98, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.98, opacity: 0 }}
+        transition={{ duration: 0.18 }}
+        // ВНИМАНИЕ: размер окна максимально приближен к скриншотам (относительный)
+        className="relative flex overflow-hidden rounded-2xl border border-white/10 bg-[#161618] shadow-2xl"
+        style={{
+          width: 'min(700px, 36vw)',   // ~ строго как на скринах (примерно 34–36% ширины экрана)
+          height: 'min(560px, 70vh)',  // пропорциональная высота ~ 70vh, но не выше 560px
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Левая колонка — вкладки */}
+        <div className="flex w-[190px] shrink-0 flex-col border-r border-white/10 bg-black/15">
+          <div className="flex h-13 items-center px-3 text-sm font-semibold text-white/90">Настройки</div>
+          <nav className="flex-1 space-y-1 px-2 pb-3">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition ${
+                  activeTab === tab.id ? 'bg-white/10 text-white' : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Контент */}
+        <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar">
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-4">
+            {renderContent()}
+          </motion.div>
+        </div>
+
+        {/* Кнопка закрытия */}
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-3 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
+          aria-label="Закрыть"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+
+function AuthModal({ isOpen, onClose }) {
+  const [mode, setMode] = useState('register'); // 'register' или 'login'
+  const [name, setName] = useState('');
+  const [username, setUsername] = useState(''); // Псевдоним вместо email
+  const [telegram, setTelegram] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (mode === 'register') {
+        if (password !== confirmPassword) {
+          setError('Пароли не совпадают');
+          setLoading(false);
+          return;
+        }
+        if (password.length < 6) {
+          setError('Пароль должен содержать минимум 6 символов');
+          setLoading(false);
+          return;
+        }
+        const success = await register(name, username, password);
+        if (success) {
+          onClose();
+          window.location.reload(); // Перезагружаем страницу для обновления состояния
+        } else {
+          setError('Ошибка регистрации. Попробуйте еще раз');
+        }
+      } else {
+        const success = await login(username, password);
+        if (success) {
+          onClose();
+          window.location.reload(); // Перезагружаем страницу для обновления состояния
+        } else {
+          setError('Неверный псевдоним или пароль');
+        }
+      }
+    } catch (err) {
+      setError('Произошла ошибка. Попробуйте еще раз');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.div 
@@ -732,7 +1292,7 @@ function SettingsModal({ isOpen, onClose, user }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md" 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]" 
       onClick={onClose}
     >
       <motion.div 
@@ -740,224 +1300,149 @@ function SettingsModal({ isOpen, onClose, user }) {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-black border border-white/20 rounded-3xl shadow-2xl" 
+        className="relative w-full max-w-md overflow-hidden bg-black border border-white/20 rounded-3xl shadow-2xl" 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent p-8">
+        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent p-6">
           <button 
             onClick={onClose} 
-            className="absolute top-6 right-6 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
+            className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5" />
           </button>
           
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 bg-white/10 rounded-2xl border border-white/20">
-              <Settings className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h2 className="text-4xl font-bold text-white tracking-tight">
-                Настройки
-              </h2>
-              <p className="text-neutral-400 text-sm mt-1">
-                Управление вашим аккаунтом
-              </p>
-            </div>
-          </div>
-          
-          {/* Tabs */}
-          <div className="flex gap-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-white text-black font-medium'
-                    : 'bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <tab.icon className="h-4 w-4" />
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
+          <h2 className="text-2xl font-bold text-white tracking-tight">
+            {mode === 'register' ? 'Запустить Plan AI' : 'Вход в систему'}
+          </h2>
+          <p className="text-neutral-400 text-sm mt-1">
+            {mode === 'register' 
+              ? 'Начнем работу с Вашей организацией по созданию планировок с AI' 
+              : 'Войдите в свой аккаунт для доступа к функциям'}
+          </p>
         </div>
         
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-220px)] p-8">
-          {activeTab === 'profile' && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
-            >
-              <div className="group bg-gradient-to-br from-white/5 to-transparent rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="size-16 rounded-full bg-gradient-to-br from-white to-neutral-400 grid place-items-center text-2xl font-bold text-black">
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">Личная информация</h3>
-                    <p className="text-neutral-400 text-sm">Обновите данные вашего профиля</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm text-neutral-400 block mb-2 flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      Имя
-                    </label>
-                    <input 
-                      type="text" 
-                      defaultValue={user?.name || ''} 
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
-                      placeholder="Введите ваше имя"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-neutral-400 block mb-2 flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Email
-                    </label>
-                    <input 
-                      type="email" 
-                      defaultValue={user?.email || ''} 
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
-                      placeholder="email@example.com"
-                    />
-                  </div>
-                </div>
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === 'register' && (
+              <div>
+                <label className="text-sm text-neutral-400 block mb-2">
+                  Название организации
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
+                  placeholder="Как называется Ваша организация?"
+                />
               </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'security' && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
-            >
-              <div className="bg-gradient-to-br from-white/5 to-transparent rounded-2xl p-6 border border-white/10">
-                <h3 className="text-xl font-semibold text-white mb-4">Изменить пароль</h3>
-                <p className="text-neutral-400 text-sm mb-6">Убедитесь, что ваш пароль надежный и уникальный</p>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm text-neutral-400 block mb-2">Текущий пароль</label>
-                    <input 
-                      type="password" 
-                      placeholder="••••••••"
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-neutral-400 block mb-2">Новый пароль</label>
-                    <input 
-                      type="password" 
-                      placeholder="••••••••"
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-neutral-400 block mb-2">Подтвердите пароль</label>
-                    <input 
-                      type="password" 
-                      placeholder="••••••••"
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-white/5 to-transparent rounded-2xl p-6 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-2">Двухфакторная аутентификация</h3>
-                <p className="text-neutral-400 text-sm mb-4">Добавьте дополнительный уровень защиты</p>
-                <button className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white transition-all">
-                  Включить 2FA
+            )}
+            
+            <div>
+              <label className="text-sm text-neutral-400 block mb-2">
+                Псевдоним {mode === 'register' ? 'для входа' : ''}
+              </label>
+              <input
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
+                placeholder="username"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm text-neutral-400 block mb-2">
+                Пароль {mode === 'register' ? 'для входа' : ''}
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition"
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'interface' && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
-            >
-              <div className="bg-gradient-to-br from-white/5 to-transparent rounded-2xl p-6 border border-white/10">
-                <h3 className="text-xl font-semibold text-white mb-6">Персонализация</h3>
-                
-                <div className="space-y-6">
-                  <label className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
-                        <Palette className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <span className="text-white font-medium block">Фоновые эффекты</span>
-                        <span className="text-neutral-400 text-sm">Интерактивные частицы на фоне</span>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <input type="checkbox" defaultChecked className="sr-only peer" />
-                      <div className="w-11 h-6 bg-white/10 rounded-full peer peer-checked:bg-white transition-all"></div>
-                      <div className="absolute left-1 top-1 bg-black w-4 h-4 rounded-full transition-all peer-checked:translate-x-5"></div>
-                    </div>
+            </div>
+            
+            {mode === 'register' && (
+              <>
+                <div>
+                  <label className="text-sm text-neutral-400 block mb-2">
+                    Подтвердите пароль
                   </label>
-                  
-                  <label className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
-                        <Save className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <span className="text-white font-medium block">Автосохранение чатов</span>
-                        <span className="text-neutral-400 text-sm">Сохранять историю автоматически</span>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <input type="checkbox" defaultChecked className="sr-only peer" />
-                      <div className="w-11 h-6 bg-white/10 rounded-full peer peer-checked:bg-white transition-all"></div>
-                      <div className="absolute left-1 top-1 bg-black w-4 h-4 rounded-full transition-all peer-checked:translate-x-5"></div>
-                    </div>
-                  </label>
-                  
-                  <label className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
-                        <Bell className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <span className="text-white font-medium block">Уведомления</span>
-                        <span className="text-neutral-400 text-sm">Получать важные обновления</span>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-white/10 rounded-full peer peer-checked:bg-white transition-all"></div>
-                      <div className="absolute left-1 top-1 bg-black w-4 h-4 rounded-full transition-all peer-checked:translate-x-5"></div>
-                    </div>
-                  </label>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
+                    placeholder="••••••••"
+                  />
                 </div>
+                
+                <div>
+                  <label className="text-sm text-neutral-400 block mb-2">
+                    Telegram для связи
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={telegram}
+                    onChange={(e) => setTelegram(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
+                    placeholder="@example"
+                  />
+                </div>
+              </>
+            )}
+            
+            {error && (
+              <div className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3">
+                {error}
               </div>
-            </motion.div>
-          )}
+            )}
+            
+            <motion.button
+              type="submit"
+              disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-white hover:bg-neutral-200 disabled:bg-neutral-600 disabled:cursor-not-allowed text-black font-semibold py-3 rounded-xl transition-all shadow-lg shadow-white/10"
+            >
+              {loading 
+                ? (mode === 'register' ? 'Запуск...' : 'Вход...') 
+                : (mode === 'register' ? 'Запустить Plan AI' : 'Войти')}
+            </motion.button>
+          </form>
           
-          {/* Save Button */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full bg-white hover:bg-neutral-200 text-black font-semibold py-4 rounded-2xl transition-all shadow-lg shadow-white/10"
-          >
-            Сохранить изменения
-          </motion.button>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-neutral-400">
+              {mode === 'register' ? 'Уже работаете с нами?' : 'Нет аккаунта?'}{' '}
+              <button 
+                onClick={() => {
+                  setMode(mode === 'register' ? 'login' : 'register');
+                  setError('');
+                }}
+                className="text-white hover:underline transition"
+              >
+                {mode === 'register' ? 'Войти в систему' : 'Зарегистрироваться'}
+              </button>
+            </p>
+          </div>
         </div>
       </motion.div>
     </motion.div>
@@ -1033,7 +1518,7 @@ function ChangelogModal({ isOpen, onClose }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md" 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]" 
       onClick={onClose}
     >
       <motion.div 
@@ -1069,7 +1554,7 @@ function ChangelogModal({ isOpen, onClose }) {
         </div>
         
         {/* Timeline */}
-        <div className="overflow-y-auto max-h-[calc(90vh-160px)] p-8">
+        <div className="overflow-y-auto max-h-[calc(90vh-160px)] p-8 custom-scrollbar">
           <div className="relative">
             {/* Vertical line */}
             <div className="absolute left-[27px] top-0 bottom-0 w-px bg-gradient-to-b from-white/20 via-white/10 to-transparent"></div>
@@ -1159,16 +1644,17 @@ function AdvancedSidebar({
   searchResults = { chats: [], settings: [] },
   onSettingSelect,
   onCreateChat,
+  onShowGallery,
   onHomeClick,
   onHowItWorks,
   user,
   onRenameChat,
   onDeleteChat,
   onPinChat,
-  onSettings,
   onChangelog,
   onProfile,
-  onLogout
+  onLogout,
+  onAuthOpen
 }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [activeChatMenu, setActiveChatMenu] = useState(null);
@@ -1231,6 +1717,13 @@ function AdvancedSidebar({
             <Plus className="h-4 w-4 text-neutral-400" />
           </button>
           <button 
+            onClick={onShowGallery}
+            className="w-full h-10 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
+            title="Создано"
+          >
+            <Images className="h-4 w-4 text-neutral-400" />
+          </button>
+          <button 
             onClick={onHomeClick}
             className="w-full h-10 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
             title="На главную"
@@ -1248,10 +1741,10 @@ function AdvancedSidebar({
         <div className="p-3 flex flex-col items-center gap-2">
           <button 
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="size-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 grid place-items-center text-xs font-semibold text-white hover:scale-105 transition"
-            title="Профиль"
+            className="size-9 rounded-full grid place-items-center text-xs font-semibold hover:scale-105 transition bg-black border border-white/30 text-white"
+            title={user ? 'Профиль' : 'Аноним'}
           >
-            {user?.name?.charAt(0).toUpperCase() || 'U'}
+            {user?.name?.charAt(0).toUpperCase() || '?'}
           </button>
           <button 
             onClick={onCollapse}
@@ -1272,7 +1765,7 @@ function AdvancedSidebar({
         <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 ring-1 ring-white/10 hover:ring-white/20 transition">
           <Search className="h-4 w-4 text-neutral-400" />
           <input
-            placeholder="Поиск ⌘K"
+            placeholder="Поиск"
             className="bg-transparent placeholder:text-neutral-500 text-sm outline-none w-full"
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
@@ -1281,9 +1774,10 @@ function AdvancedSidebar({
       </div>
 
       {/* Nav */}
-      <nav className="px-2 text-sm flex-1 overflow-y-auto">
+      <nav className="px-2 text-sm flex-1 overflow-y-auto custom-scrollbar">
         <AdvancedSectionTitle>Главное</AdvancedSectionTitle>
         <AdvancedNavItem onClick={onCreateChat} Icon={Plus} label="Новый чат" />
+        <AdvancedNavItem onClick={onShowGallery} Icon={Images} label="Создано" />
         <AdvancedNavItem onClick={onHomeClick} Icon={Home} label="Вернуться на главную" />
         <AdvancedNavItem onClick={onHowItWorks} Icon={HelpCircle} label="Как это работает" />
         
@@ -1447,12 +1941,12 @@ function AdvancedSidebar({
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             className="flex items-center gap-2 hover:bg-white/5 p-1.5 rounded-lg transition flex-1"
           >
-            <div className="size-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 grid place-items-center text-sm font-semibold text-white">
-              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            <div className="size-8 rounded-full grid place-items-center text-sm font-semibold bg-black border border-white/30 text-white">
+              {user?.name?.charAt(0).toUpperCase() || '?'}
             </div>
             <div className="flex-1 text-left">
-              <div className="text-sm text-white truncate">{user?.name || 'Пользователь'}</div>
-              <div className="text-xs text-neutral-500 truncate">{user?.email || ''}</div>
+              <div className="text-sm text-white truncate">{user?.name || 'Аноним'}</div>
+              <div className="text-xs text-neutral-500 truncate">{user?.username || ''}</div>
             </div>
           </button>
           <button 
@@ -1467,35 +1961,50 @@ function AdvancedSidebar({
         {/* User menu */}
         {userMenuOpen && (
           <div className="absolute bottom-full left-3 right-3 mb-2 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
-            <button 
-              onClick={() => { onSettings(); setUserMenuOpen(false); }}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
-            >
-              <Settings className="h-4 w-4 text-neutral-400" />
-              <span className="text-sm text-white">Настройки</span>
-            </button>
-            <button 
-              onClick={() => { onChangelog(); setUserMenuOpen(false); }}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
-            >
-              <FileText className="h-4 w-4 text-neutral-400" />
-              <span className="text-sm text-white">Список изменений</span>
-            </button>
-            <button 
-              onClick={() => { onProfile(); setUserMenuOpen(false); }}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
-            >
-              <User className="h-4 w-4 text-neutral-400" />
-              <span className="text-sm text-white">Личный кабинет</span>
-            </button>
-            <div className="border-t border-white/5"></div>
-            <button 
-              onClick={() => { onLogout(); setUserMenuOpen(false); }}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 transition text-left"
-            >
-              <LogOut className="h-4 w-4 text-red-400" />
-              <span className="text-sm text-red-400">Выйти</span>
-            </button>
+            {user ? (
+              <>
+                <button 
+                  onClick={() => { onProfile(); setUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+                >
+                  <User className="h-4 w-4 text-neutral-400" />
+                  <span className="text-sm text-white">Личный кабинет</span>
+                </button>
+                <button 
+                  onClick={() => { onChangelog(); setUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+                >
+                  <FileText className="h-4 w-4 text-neutral-400" />
+                  <span className="text-sm text-white">Список изменений</span>
+                </button>
+                <div className="border-t border-white/5"></div>
+                <button 
+                  onClick={() => { onLogout(); setUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 transition text-left"
+                >
+                  <LogOut className="h-4 w-4 text-red-400" />
+                  <span className="text-sm text-red-400">Выйти</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => { onChangelog(); setUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+                >
+                  <FileText className="h-4 w-4 text-neutral-400" />
+                  <span className="text-sm text-white">Список изменений</span>
+                </button>
+                <div className="border-t border-white/5"></div>
+                <button 
+                  onClick={() => { onAuthOpen(); setUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+                >
+                  <User className="h-4 w-4 text-neutral-400" />
+                  <span className="text-sm text-white">Войти / Регистрация</span>
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -1644,6 +2153,7 @@ function AdvancedMainArea({
   onModelMenuToggle, 
   onFilesSelected,
   onSendMessage,
+  onSendFromGallery,
   isGenerating = false,
   currentMessage = null,
   currentResult = null,
@@ -1652,7 +2162,16 @@ function AdvancedMainArea({
   onRegenerate,
   onDownload,
   onImageClick,
-  onModelChange
+  onModelChange,
+  showGallery = false,
+  setShowGallery,
+  galleryImages = [],
+  selectedGalleryImage,
+  setSelectedGalleryImage,
+  galleryModelFilter,
+  setGalleryModelFilter,
+  onGalleryDelete,
+  onGalleryDownload
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showPromoCard, setShowPromoCard] = useState(true);
@@ -1685,12 +2204,208 @@ function AdvancedMainArea({
     }
   }, [modelTo3D]);
 
+  // Gallery component
+  const GalleryContent = () => {
+    const filteredImages = galleryModelFilter === 'all' 
+      ? galleryImages 
+      : galleryImages.filter(img => img.model.toLowerCase().replace(/\s/g, '-') === galleryModelFilter);
+
+    return (
+      <div className="flex-1 flex flex-col">
+        {/* Gallery Header */}
+        <div className="border-b border-white/5 bg-black/20 backdrop-blur-sm">
+          <div className="mx-auto max-w-7xl px-6 py-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold text-white">Создано</h1>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-neutral-400">
+                  {filteredImages.length} изображений
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Gallery Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="mx-auto max-w-7xl px-6 py-8">
+            {/* Filter Bar */}
+            <div className="mb-8 flex items-center justify-between">
+              <div className="relative">
+                <button
+                  onClick={() => setGalleryModelFilter(galleryModelFilter === 'all' ? 'dalle3' : 'all')}
+                  className="flex items-center gap-2 rounded-full px-4 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10 transition"
+                >
+                  <span className="text-sm">
+                    {galleryModelFilter === 'all' ? 'Все модели' : 
+                     galleryModelFilter === 'dalle3' ? 'DALL-E 3' :
+                     galleryModelFilter === 'midjourney' ? 'Midjourney' :
+                     galleryModelFilter === 'stable-diffusion' ? 'Stable Diffusion' : 'Все модели'}
+                  </span>
+                  <ChevronDown className="h-3 w-3 opacity-70" />
+                </button>
+              </div>
+            </div>
+
+            {/* Gallery Grid */}
+            {filteredImages.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredImages.map((image) => (
+                  <motion.div
+                    key={image.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="group relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/20 cursor-pointer"
+                    onClick={() => setSelectedGalleryImage(image)}
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.prompt}
+                      className="h-full w-full object-cover transition group-hover:scale-105"
+                    />
+                    
+                    {/* Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition">
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <p className="text-sm text-white line-clamp-2 mb-2">{image.prompt}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-neutral-400">{image.model}</span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onGalleryDownload(image.url, image.id);
+                              }}
+                              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition"
+                              title="Скачать"
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onGalleryDelete(image.id);
+                              }}
+                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition"
+                              title="Удалить"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-400" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <p className="text-neutral-400 mb-2">Нет изображений для выбранной модели</p>
+                <button
+                  onClick={() => setGalleryModelFilter('all')}
+                  className="text-sm text-white/70 hover:text-white underline"
+                >
+                  Показать все
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Image Modal */}
+        {selectedGalleryImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+            onClick={() => setSelectedGalleryImage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="relative max-w-5xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedGalleryImage(null)}
+                className="absolute -top-12 right-0 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              {/* Image */}
+              <div className="rounded-xl overflow-hidden border border-white/20">
+                <img
+                  src={selectedGalleryImage.url}
+                  alt={selectedGalleryImage.prompt}
+                  className="w-full h-auto"
+                />
+              </div>
+
+              {/* Info */}
+              <div className="mt-4 rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm p-6">
+                <p className="text-white mb-3">{selectedGalleryImage.prompt}</p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-neutral-400">Модель: {selectedGalleryImage.model}</span>
+                  <span className="text-neutral-400">
+                    {new Date(selectedGalleryImage.createdAt).toLocaleDateString('ru-RU')}
+                  </span>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={() => onGalleryDownload(selectedGalleryImage.url, selectedGalleryImage.id)}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-4 py-2 transition"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Скачать</span>
+                  </button>
+                  <button
+                    onClick={() => onGalleryDelete(selectedGalleryImage.id)}
+                    className="flex items-center justify-center gap-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 px-4 py-2 transition"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-400" />
+                    <span className="text-red-400">Удалить</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+        
+        {/* Model Selection Panel - Fixed at bottom */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 bg-black/40 backdrop-blur-lg">
+          <div className="mx-auto max-w-3xl px-6 py-3">
+            <AdvancedSearchBar 
+              onAdvanced={() => {}}
+              onAttach={onAttach}
+              attachments={attachments}
+              modelMenuOpen={modelMenuOpen}
+              onModelMenuToggle={onModelMenuToggle}
+              onFilesSelected={onFilesSelected}
+              onSendMessage={onSendFromGallery}
+              isGenerating={isGenerating}
+              isAtBottom={true}
+              onImageClick={onImageClick}
+              setModelFromOutside={null}
+              additionalButtons={null}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <main className="relative flex flex-col min-h-screen">
-      <AdvancedTopBar />
-
-      {/* Сообщения в верхней части */}
-      {showMessages && (
+      {/* Gallery View */}
+      {showGallery ? (
+        <GalleryContent />
+      ) : (
+        <>
+          {/* Сообщения в верхней части */}
+          {showMessages && (
         <div className="flex-1 pt-16">
           {/* История сообщений */}
           {messageHistory.length > 0 && (
@@ -1840,16 +2555,12 @@ function AdvancedMainArea({
         onClose={() => setIs3DModalOpen(false)}
         onActivate={handle3DActivation}
       />
+        </>
+      )}
     </main>
   );
 }
 
-function AdvancedTopBar() {
-  return (
-    <div className="flex h-14 items-center justify-end px-6 border-b border-white/5 sticky top-0 z-10">
-    </div>
-  );
-}
 
  function AdvancedLogoMark() {
    return (
@@ -2567,7 +3278,7 @@ function AdvancedInlineButtons({ backgroundType, onBackgroundChange, modelMenuOp
   ];
 
   const backgroundOptions = [
-    { id: "standard", label: "Стандартный", description: "Простой фон без частиц" },
+    { id: "standard", label: "Стандартный", description: "Чистый фон без частиц" },
     { id: "interactive", label: "Интерактивный", description: "Фон с частицами и взаимодействием" },
     { id: "alternative", label: "Альтернативный", description: "Космический фон с летающими точками" }
   ];
@@ -2601,6 +3312,7 @@ function AdvancedInlineButtons({ backgroundType, onBackgroundChange, modelMenuOp
         <ImageIcon className="h-4 w-4" />
         <span className="text-sm">Параметры плана</span>
       </button>
+
 
       <div className="relative" data-background-menu>
         <button 
@@ -2692,7 +3404,7 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
   ];
 
   const backgroundOptions = [
-    { id: "standard", label: "Стандартный", description: "Простой фон без частиц" },
+    { id: "standard", label: "Стандартный", description: "Чистый фон без частиц" },
     { id: "interactive", label: "Интерактивный", description: "Фон с частицами и взаимодействием" },
     { id: "alternative", label: "Альтернативный", description: "Космический фон с летающими точками" }
   ];
@@ -2726,6 +3438,7 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
         <ImageIcon className="h-4 w-4" />
         <span className="text-sm">Параметры плана</span>
       </button>
+
 
       <div className="relative" data-background-menu>
         <button 
@@ -3022,7 +3735,7 @@ function AdvancedMessageDisplay({
 }
 
 export default function MonochromeClaudeStyle() {
-  const { user } = useAuth();
+  const { user, logout, saveSettings, loadSettings } = useAuth();
   const [model, setModel] = useState(MODEL_OPTIONS[0]);
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [value, setValue] = useState("");
@@ -3070,6 +3783,95 @@ export default function MonochromeClaudeStyle() {
   const [filteredChats, setFilteredChats] = useState(chats);
   const [backgroundType, setBackgroundType] = useState("alternative");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  
+  // Gallery states
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryImages, setGalleryImages] = useState([
+    {
+      id: 1,
+      url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
+      prompt: 'Современный интерьер квартиры с панорамными окнами',
+      model: 'DALL-E 3',
+      createdAt: new Date('2024-01-15'),
+    },
+    {
+      id: 2,
+      url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800',
+      prompt: 'Минималистичная кухня в скандинавском стиле',
+      model: 'Midjourney',
+      createdAt: new Date('2024-01-14'),
+    },
+    {
+      id: 3,
+      url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
+      prompt: 'Уютная спальня с деревянными элементами',
+      model: 'DALL-E 3',
+      createdAt: new Date('2024-01-13'),
+    },
+    {
+      id: 4,
+      url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
+      prompt: 'Современная ванная комната с мраморной отделкой',
+      model: 'Stable Diffusion',
+      createdAt: new Date('2024-01-12'),
+    },
+    {
+      id: 5,
+      url: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800',
+      prompt: 'Просторная гостиная с камином',
+      model: 'DALL-E 3',
+      createdAt: new Date('2024-01-11'),
+    },
+    {
+      id: 6,
+      url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+      prompt: 'Домашний офис с большим столом',
+      model: 'Midjourney',
+      createdAt: new Date('2024-01-10'),
+    },
+  ]);
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
+  const [galleryModelFilter, setGalleryModelFilter] = useState('all');
+
+  // Confirmation modals state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    type: 'danger',
+    title: '',
+    message: '',
+    confirmText: 'Подтвердить',
+    cancelText: 'Отмена',
+    onConfirm: null
+  });
+
+  // Загружаем настройки при монтировании
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      if (user) {
+        const settings = await loadSettings();
+        if (settings) {
+          if (settings.siteStyle) setSiteStyle(settings.siteStyle);
+          if (settings.backgroundType) setBackgroundType(settings.backgroundType);
+        }
+      }
+    };
+    loadUserSettings();
+  }, [user]);
+
+  // Сохраняем настройки при изменении
+  useEffect(() => {
+    const saveUserSettings = async () => {
+      if (user) {
+        await saveSettings({
+          siteStyle,
+          backgroundType
+        });
+      }
+    };
+    // Сохраняем с небольшой задержкой чтобы не спамить сервер
+    const timeoutId = setTimeout(saveUserSettings, 500);
+    return () => clearTimeout(timeoutId);
+  }, [siteStyle, backgroundType, user]);
 
   // Advanced message system states
   const [advancedCurrentMessage, setAdvancedCurrentMessage] = useState(null);
@@ -3082,9 +3884,9 @@ export default function MonochromeClaudeStyle() {
   
   // Modal states
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   
   // Navigate
   const navigate = useNavigate();
@@ -3565,6 +4367,7 @@ export default function MonochromeClaudeStyle() {
 
   // Chat management handlers
   const handleCreateNewChat = () => {
+    setShowGallery(false); // Закрываем галерею при создании нового чата
     createChat();
   };
   
@@ -3574,7 +4377,9 @@ export default function MonochromeClaudeStyle() {
   
   const handleRenameChat = (chatId) => {
     const chat = chats.find(c => c.id === chatId);
-    const newTitle = prompt('Введите новое название чата:', chat?.title || 'Новый чат');
+    const currentTitle = chat?.title || 'Новый чат';
+    
+    const newTitle = prompt('Введите новое название чата:', currentTitle);
     if (newTitle !== null && newTitle.trim() !== '') {
       setChats(chats.map(c => 
         c.id === chatId ? { ...c, title: newTitle.trim() } : c
@@ -3583,7 +4388,10 @@ export default function MonochromeClaudeStyle() {
   };
   
   const handleDeleteChat = (chatId) => {
-    if (confirm('Вы уверены, что хотите удалить этот чат?')) {
+    const chat = chats.find(c => c.id === chatId);
+    const chatTitle = chat?.title || 'Новый чат';
+    
+    if (confirm(`Вы уверены, что хотите удалить чат "${chatTitle}"? Это действие нельзя отменить.`)) {
       setChats(chats.filter(c => c.id !== chatId));
       if (activeChatId === chatId && chats.length > 1) {
         const remainingChats = chats.filter(c => c.id !== chatId);
@@ -3604,18 +4412,86 @@ export default function MonochromeClaudeStyle() {
   };
   
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    setConfirmModal({
+      isOpen: true,
+      type: 'warning',
+      title: 'Выход из учетной записи',
+      message: 'Вы уверены, что хотите выйти из своей учетной записи? Все несохраненные данные будут потеряны.',
+      confirmText: 'Выйти',
+      cancelText: 'Отмена',
+      onConfirm: () => {
+        logout();
+        navigate('/login');
+        setConfirmModal({ ...confirmModal, isOpen: false });
+      }
+    });
   };
   
   const handleProfile = () => {
-    navigate('/profile');
+    if (!user) {
+      setIsAuthOpen(true);
+    } else {
+      setIsProfileOpen(true);
+    }
   };
 
-  // Advanced style layout
-  if (siteStyle === "advanced") {
+  // Gallery functions
+  const handleGalleryDelete = (id) => {
+    if (confirm('Вы уверены, что хотите удалить это изображение?')) {
+      setGalleryImages(galleryImages.filter(img => img.id !== id));
+      if (selectedGalleryImage?.id === id) {
+        setSelectedGalleryImage(null);
+      }
+    }
+  };
+
+  const handleGalleryDownload = (url, id) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `image-${id}.jpg`;
+    link.click();
+  };
+
+  const handleShowGallery = () => {
+    setShowGallery(true);
+  };
+
+  const handleSendFromGallery = (payload) => {
+    // Закрываем галерею
+    setShowGallery(false);
+    
+    // Создаем новый чат (это очистит всю историю)
+    const id = `chat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const chat = { 
+      id, 
+      title: "Новый чат", 
+      messages: [],
+      createdAt: new Date().toISOString(),
+      lastMessageTime: new Date().toISOString()
+    };
+    setChats((prev) => [chat, ...prev]);
+    setActiveChatId(id);
+    setValue("");
+    setAttachments([]);
+    setPlanFurniture(null);
+    
+    // Очищаем историю сообщений
+    setAdvancedMessageHistory([]);
+    setAdvancedCurrentMessage(null);
+    setAdvancedCurrentResult(null);
+    setRemoveDepth(null);
+    setHasFirstMessage(false);
+    setIsGenerating(false);
+    setResponses({});
+    
+    // Отправляем сообщение в новый чат
+    handleAdvancedSendMessage(payload);
+  };
+
+  // Advanced style layout (единственный доступный стиль)
     return (
       <div data-style={siteStyle} className="relative min-h-screen w-full text-neutral-200 antialiased" style={{ backgroundColor: '#161618' }}>
+        {backgroundType === "standard" && null /* Стандартный фон - только цвет, без частиц */}
         {backgroundType === "interactive" && <BackgroundParticles />}
         {backgroundType === "alternative" && <AlternativeBackground />}
         <div className={`relative z-10 grid min-h-screen transition-all duration-300 ${
@@ -3625,6 +4501,7 @@ export default function MonochromeClaudeStyle() {
             chats={filteredChats}
             activeChatId={activeChatId}
             onChatSelect={(chatId) => {
+              setShowGallery(false); // Закрываем галерею при переключении на чат
               setActiveChatId(chatId);
               setHasFirstMessage(chats.find(c => c.id === chatId)?.messages.length > 0);
               setIsGenerating(false);
@@ -3642,16 +4519,17 @@ export default function MonochromeClaudeStyle() {
             searchResults={searchResults}
             onSettingSelect={handleSettingSelect}
             onCreateChat={handleCreateNewChat}
+            onShowGallery={handleShowGallery}
             onHomeClick={handleHomeClick}
             onHowItWorks={() => setIsHowItWorksOpen(true)}
             user={user}
             onRenameChat={handleRenameChat}
             onDeleteChat={handleDeleteChat}
             onPinChat={handlePinChat}
-            onSettings={() => setIsSettingsOpen(true)}
             onChangelog={() => setIsChangelogOpen(true)}
             onProfile={handleProfile}
             onLogout={handleLogout}
+            onAuthOpen={() => setIsAuthOpen(true)}
           />
           <AdvancedMainArea 
             backgroundType={backgroundType}
@@ -3668,6 +4546,7 @@ export default function MonochromeClaudeStyle() {
             onModelMenuToggle={setModelMenuOpen}
             onFilesSelected={onFilesSelected}
             onSendMessage={handleAdvancedSendMessage}
+            onSendFromGallery={handleSendFromGallery}
             isGenerating={advancedIsGenerating}
             currentMessage={advancedCurrentMessage}
             currentResult={advancedCurrentResult}
@@ -3677,6 +4556,15 @@ export default function MonochromeClaudeStyle() {
             onDownload={handleAdvancedDownload}
             onImageClick={handleImageClick}
             onModelChange={setModel}
+            showGallery={showGallery}
+            setShowGallery={setShowGallery}
+            galleryImages={galleryImages}
+            selectedGalleryImage={selectedGalleryImage}
+            setSelectedGalleryImage={setSelectedGalleryImage}
+            galleryModelFilter={galleryModelFilter}
+            setGalleryModelFilter={setGalleryModelFilter}
+            onGalleryDelete={handleGalleryDelete}
+            onGalleryDownload={handleGalleryDownload}
           />
         </div>
         
@@ -3693,746 +4581,21 @@ export default function MonochromeClaudeStyle() {
           isOpen={isHowItWorksOpen} 
           onClose={() => setIsHowItWorksOpen(false)} 
         />
-        <SettingsModal 
-          isOpen={isSettingsOpen} 
-          onClose={() => setIsSettingsOpen(false)}
-          user={user}
-        />
         <ChangelogModal 
           isOpen={isChangelogOpen} 
           onClose={() => setIsChangelogOpen(false)} 
         />
-      </div>
-    );
-  }
-
-  // Standard style layout
-  return (
-    <div data-style={siteStyle} className="min-h-screen themed-root antialiased relative overflow-hidden">
-      <div className="flex h-screen relative z-10">
-        {/* ==== Left rail - Desktop only ==== */}
-        <aside className="hidden md:flex w-16 shrink-0 theme-border border-r theme-panel backdrop-blur flex-col items-center justify-between py-4">
-          <div className="flex flex-col items-center gap-4">
-            {/* По клику на панель — открываем правую панель с чатами */}
-            <button onClick={() => openRight("chats")} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Список чатов">
-              <PanelLeft className="h-5 w-5" />
-      </button>
-            <button onClick={createChat} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Новый чат">
-              <Plus className="h-5 w-5" />
-      </button>
-            <button onClick={deleteActiveChat} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Удалить текущий чат">
-              <Trash2 className="h-5 w-5" />
-            </button>
-            <button ref={settingsBtnRef} onClick={() => openRight("settings")} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Настройки">
-              <Settings className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="h-10 w-10 rounded-full bg-black/20 grid place-items-center text-xs font-semibold">DC</div>
-        </aside>
-
-        {/* ==== Main content ==== */}
-        <main className="flex-1 overflow-y-auto flex flex-col">
-          {/* Mobile header */}
-          <div className="md:hidden flex items-center justify-between p-4 theme-border border-b theme-panel">
-            <button onClick={() => openRight("chats")} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Список чатов">
-              <PanelLeft className="h-5 w-5" />
-        </button>
-            <div className="text-sm font-medium">Plan AI</div>
-            <button onClick={() => openRight("settings")} className="h-10 w-10 grid place-items-center rounded-md hover:bg-black/10" title="Настройки">
-              <Settings className="h-5 w-5" />
-      </button>
-          </div>
-
-          <div className={cn("flex-1 flex flex-col items-center", hasFirstMessage ? "justify-start" : "justify-center")}>
-            <motion.div 
-              className="mx-auto max-w-3xl px-4 md:px-6 w-full"
-              animate={{
-                justifyContent: hasFirstMessage ? "flex-start" : "center",
-                paddingTop: hasFirstMessage ? "1rem" : "0"
-              }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            >
-            {/* top label */}
-            <div className="flex justify-center px-4 md:px-0">
-              <span className="inline-flex items-center gap-2 rounded-full theme-border theme-panel px-3 py-1 text-xs theme-text-muted">
-                Plan AI
-                <span className="opacity-50">·</span>
-                <span className="uppercase tracking-wider hidden sm:inline">Стиль: {STYLE_OPTIONS.find((s) => s.id === siteStyle)?.label}</span>
-                <span className="uppercase tracking-wider sm:hidden">{STYLE_OPTIONS.find((s) => s.id === siteStyle)?.label}</span>
-              </span>
-          </div>
-
-            {/* hero title */}
-            <div className="mt-4 md:mt-6 flex justify-center">
-              <motion.h1
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                className="text-lg sm:text-xl md:text-3xl font-semibold tracking-tight leading-tight font-hero text-center md:text-left px-4 md:px-0"
-              >
-                <TwinkleStar />
-                <span className="block sm:inline">
-                  {user ? `Приветствую, ${user.name}` : "Рады Вас видеть!"}
-                </span>
-              </motion.h1>
-      </div>
-
-            {/* messages */}
-            {activeChat?.messages?.length > 0 && (
-              <div className="mt-6 md:mt-8 mb-4 md:mb-6 space-y-4 md:space-y-6">
-                {activeChat.messages.map((m) => (
-                  <div key={m.id} className="space-y-3 md:space-y-4">
-                    {/* User message */}
-                    <div className="flex justify-end">
-                      <div className="max-w-[85%] md:max-w-[80%] rounded-lg theme-border theme-panel-muted px-3 py-2">
-                        <div className="text-sm whitespace-pre-wrap">{m.text}</div>
-                        {m.attachments?.length > 0 && (
-                          <div className="mt-2 space-y-2">
-                            {m.attachments.map((att) => (
-                              <img key={att.id} src={att.url} alt={att.name} className="w-full max-w-sm md:max-w-md rounded-lg theme-border"/>
-                            ))}
-        </div>
-                        )}
-                        <div className="mt-1 text-[11px] theme-text-muted">{new Date(m.time).toLocaleTimeString()}</div>
-      </div>
-    </div>
-                    
-                    {/* AI Response */}
-                    {responses[m.id] && (
-                      <div className="flex justify-start">
-                        <div className="max-w-[85%] md:max-w-[80%] rounded-lg theme-border theme-panel-muted px-3 py-2">
-                          <div className="text-sm whitespace-pre-wrap">{responses[m.id].text}</div>
-                          
-                          {/* Сгенерированное изображение */}
-                          {responses[m.id].image && (
-                            <div className="mt-3">
-                              <img 
-                                src={responses[m.id].image} 
-                                alt="Сгенерированный технический план" 
-                                className="w-full max-w-md rounded-lg theme-border"
-                              />
-                            </div>
-                          )}
-                          
-                          <div className="mt-3 flex items-center gap-2 flex-wrap">
-                            <button
-                              onClick={() => rateResponse(m.id, responses[m.id].rating === 'like' ? null : 'like')}
-                              className={cn(
-                                "h-8 w-8 rounded-lg grid place-items-center transition-colors",
-                                responses[m.id].rating === 'like' 
-                                  ? "bg-green-500/20 text-green-400" 
-                                  : "hover:bg-gray-500/20 text-white"
-                              )}
-                              title="Лайк"
-                            >
-                              <ThumbsUp className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => rateResponse(m.id, responses[m.id].rating === 'dislike' ? null : 'dislike')}
-                              className={cn(
-                                "h-8 w-8 rounded-lg grid place-items-center transition-colors",
-                                responses[m.id].rating === 'dislike' 
-                                  ? "bg-red-500/20 text-red-400" 
-                                  : "hover:bg-gray-500/20 text-white"
-                              )}
-                              title="Дизлайк"
-                            >
-                              <ThumbsDown className="h-4 w-4" />
-                            </button>
-                            {responses[m.id].canRegenerate && (
-                              <button
-                                onClick={() => regenerateResponse(m.id)}
-                                className="h-8 px-3 rounded-lg text-xs theme-border theme-panel hover:opacity-90"
-                                title="Повторить"
-                              >
-                                Повторить
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {/* Generation message */}
-                {isGenerating && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[80%] rounded-lg theme-border theme-panel-muted px-3 py-2">
-                      <div className="flex items-center gap-3 text-sm">
-                        <span className="font-hero">Генерируется</span>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                          className="text-2xl"
-                        >
-                          ✷
-                        </motion.div>
-                      </div>
-                      <div className="text-xs theme-text-muted mt-1">Немного стоит подождать...</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Composer - Centered before first message */}
-            {!hasFirstMessage && (
-              <div className="mt-6 md:mt-8 flex">
-                <div className={cn("w-full max-w-2xl rounded-lg backdrop-blur relative theme-panel theme-border","shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]") }>
-                  <div className="p-3 sm:p-4">
-                    <div className="flex items-start gap-3">
-                      {/* left: attach */}
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          onClick={onAttachClick}
-                          className={cn(
-                            "h-8 w-8 rounded-lg grid place-items-center",
-                            "theme-border theme-panel hover:opacity-90"
-                          )}
-                        >
-                          <Paperclip className="h-4 w-4" />
-                        </button>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          onChange={onFilesSelected}
-                        />
-                      </div>
-
-                      {/* center: content */}
-                      {isPlan ? (
-                        <div className="flex w-full items-center gap-1 md:gap-2 flex-wrap">
-                          <button
-                            onClick={() => setPlanFurniture("with")}
-                            className={cn(
-                              "rounded-md border px-2 md:px-3 py-2 text-xs md:text-sm",
-                              planFurniture === "with" ? "accent-button" : "theme-panel theme-border"
-                            )}
-                          >
-                            С мебелью
-                          </button>
-                          <button
-                            onClick={() => setPlanFurniture("without")}
-                            className={cn(
-                              "rounded-md border px-2 md:px-3 py-2 text-xs md:text-sm",
-                              planFurniture === "without" ? "accent-button" : "theme-panel theme-border"
-                            )}
-                          >
-                            Без мебели
-                          </button>
-                        </div>
-                      ) : isRemove ? (
-                        <div className="flex w-full items-center gap-2">
-                          <button
-                            onClick={() => setRemoveDepth("full")}
-                            className={cn("rounded-md px-3 py-2 text-sm border", removeDepth === "full" ? "accent-button" : "theme-panel theme-border")}
-                          >
-                            Полностью
-                          </button>
-                        </div>
-                      ) : (
-                        <textarea
-                          ref={textRef}
-                          value={value}
-                          onChange={(e) => setValue(e.target.value)}
-                          rows={3}
-                          placeholder="Опишите задачу…"
-                          className={cn(
-                            "min-h-[84px] w-full resize-none bg-transparent text-[15px] leading-6 outline-none",
-                            "placeholder:theme-text-muted"
-                          )}
-                        />
-                      )}
-
-                      {/* right: Model then Send (в одну линию) */}
-                      <div className="flex shrink-0 items-center gap-1 md:gap-2 self-end pb-1 relative">
-                        <div className="relative">
-                          <button
-                            onClick={() => setShowModelMenu((v) => !v)}
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-lg px-2 md:px-2.5 py-1.5 text-xs md:text-sm",
-                              "theme-panel theme-border hover:opacity-90"
-                            )}
-                          >
-                            <span className="hidden sm:inline">{model.label}</span>
-                            <span className="sm:hidden">{model.label.split(' ')[0]}</span>
-                            <ChevronDown className="h-3 w-3 md:h-4 md:w-4" />
-                          </button>
-                          {showModelMenu && (
-                            <div className="absolute right-0 top-10 z-20 w-48 md:w-56 rounded-md theme-border theme-panel shadow-lg">
-                              {MODEL_OPTIONS.map((opt) => (
-                                <button
-                                  key={opt.id}
-                                  onClick={() => {
-                                    setModel(opt);
-                                    setShowModelMenu(false);
-                                  }}
-                                  className={cn(
-                                    "w-full text-left px-3 py-2 text-sm hover:opacity-90",
-                                    opt.id === model.id && "opacity-100"
-                                  )}
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <button
-                          onClick={send}
-                          disabled={!canSend || isGenerating}
-                          className={cn(
-                            "h-8 w-8 md:h-9 md:w-9 rounded-md grid place-items-center border",
-                            isGenerating 
-                              ? "disabled-button" 
-                              : canSend 
-                                ? "accent-button" 
-                                : "disabled-button"
-                          )}
-                          title={isGenerating ? "Генерируется..." : "Отправить"}
-                        >
-                          {isGenerating ? (
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                              className="text-base md:text-lg"
-                            >
-                              ✷
-                            </motion.div>
-                          ) : (
-                            <ArrowUp className="h-3 w-3 md:h-4 md:w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    { ((isRemove || isPlan) && attachments.length === 0) && (
-                      <motion.div initial={{opacity:0, y:-4}} animate={{opacity:1, y:0}} transition={{duration:0.25}}
-                        className="mt-2 rounded-lg theme-border theme-panel px-3 py-2 text-xs theme-text-muted">
-                        Чтобы сгенерировать — прикрепите хотя бы одну фотографию.
-                      </motion.div>
-                    )}
-
-                    {/* attachments preview (below model/select & send) */}
-                    {attachments.length > 0 && (
-                      <div className="mt-3">
-                        <div className="text-xs theme-text-muted mb-2">Вложения: {attachments.length}</div>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {attachments.map((a) => (
-                            <div key={a.id} className="group relative overflow-hidden rounded-md theme-border theme-panel-muted">
-                              <img src={a.url} alt={a.name} className="h-24 w-full object-cover" loading="lazy" />
-                              <button
-                                onClick={() => removeAttachment(a.id)}
-                                className="absolute top-1 right-1 hidden group-hover:flex h-7 w-7 items-center justify-center rounded-md theme-panel theme-border backdrop-blur"
-                                title="Удалить"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* bottom area: status */}
-                  <div className={cn("flex items-center justify-between px-3 py-2 text-xs border-t theme-border theme-text-muted")}>
-                    <div>
-                      {isRemove && <>{removeDepth ? 'Режим удаления: Полностью' : 'Выберите режим удаления'}</>}
-                      {isPlan && <>{planFurniture ? `Выбрано: ${planFurniture === 'with' ? 'С мебелью' : 'Без мебели'}` : 'Выберите режим: «С мебелью» или «Без мебели»'}</>}
-                      {!isRemove && !isPlan && <>Enter — отправить • Shift+Enter — новая строка</>}
-                    </div>
-                    <div>Модель: {model.label}</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* chips удалены по запросу */}
-          </motion.div>
-          </div>
-          
-          {/* Composer - Fixed at bottom after first message */}
-          {hasFirstMessage && (
-            <div className="sticky bottom-0 bg-themed-root/80 backdrop-blur-sm p-2 md:p-4">
-              <div className="mx-auto max-w-3xl">
-                <div className={cn("w-full rounded-lg backdrop-blur relative theme-panel theme-border","shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]") }>
-                <div className="p-3 sm:p-4">
-                  <div className="flex items-start gap-3">
-                    {/* left: attach */}
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={onAttachClick}
-                        className={cn(
-                          "h-8 w-8 rounded-lg grid place-items-center",
-                          "theme-border theme-panel hover:opacity-90"
-                        )}
-                      >
-                        <Paperclip className="h-4 w-4" />
-                      </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={onFilesSelected}
-                      />
-                    </div>
-
-                    {/* center: content */}
-                    {isPlan ? (
-                      <div className="flex w-full items-center gap-1 md:gap-2 flex-wrap">
-                        <button
-                          onClick={() => setPlanFurniture("with")}
-                          className={cn(
-                            "rounded-md border px-2 md:px-3 py-2 text-xs md:text-sm",
-                            planFurniture === "with" ? "accent-button" : "theme-panel theme-border"
-                          )}
-                        >
-                          С мебелью
-                        </button>
-                        <button
-                          onClick={() => setPlanFurniture("without")}
-                          className={cn(
-                            "rounded-md border px-2 md:px-3 py-2 text-xs md:text-sm",
-                            planFurniture === "without" ? "accent-button" : "theme-panel theme-border"
-                          )}
-                        >
-                          Без мебели
-                        </button>
-                      </div>
-                    ) : isRemove ? (
-                      <div className="flex w-full items-center gap-2">
-                        <button
-                          onClick={() => setRemoveDepth("full")}
-                          className={cn("rounded-md px-3 py-2 text-sm border", removeDepth === "full" ? "accent-button" : "theme-panel theme-border")}
-                        >
-                          Полностью
-                        </button>
-                      </div>
-                    ) : (
-                      <textarea
-                        ref={textRef}
-                        value={value}
-                        onChange={(e) => setValue(e.target.value)}
-                        rows={3}
-                        placeholder="Опишите задачу…"
-                        className={cn(
-                          "min-h-[84px] w-full resize-none bg-transparent text-[15px] leading-6 outline-none",
-                          "placeholder:theme-text-muted"
-                        )}
-                      />
-                    )}
-
-                    {/* right: Model then Send (в одну линию) */}
-                    <div className="flex shrink-0 items-center gap-1 md:gap-2 self-end pb-1 relative">
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowModelMenu((v) => !v)}
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-lg px-2 md:px-2.5 py-1.5 text-xs md:text-sm",
-                            "theme-panel theme-border hover:opacity-90"
-                          )}
-                        >
-                          <span className="hidden sm:inline">{model.label}</span>
-                          <span className="sm:hidden">{model.label.split(' ')[0]}</span>
-                          <ChevronDown className="h-3 w-3 md:h-4 md:w-4" />
-                        </button>
-                        {showModelMenu && (
-                          <div className="absolute right-0 top-10 z-20 w-48 md:w-56 rounded-md theme-border theme-panel shadow-lg">
-                            {MODEL_OPTIONS.map((opt) => (
-                              <button
-                                key={opt.id}
-                                onClick={() => {
-                                  setModel(opt);
-                                  setShowModelMenu(false);
-                                }}
-                                className={cn(
-                                  "w-full text-left px-3 py-2 text-sm hover:opacity-90",
-                                  opt.id === model.id && "opacity-100"
-                                )}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={send}
-                        disabled={!canSend || isGenerating}
-                        className={cn(
-                          "h-8 w-8 md:h-9 md:w-9 rounded-md grid place-items-center border",
-                          isGenerating 
-                            ? "disabled-button" 
-                            : canSend 
-                              ? "accent-button" 
-                              : "disabled-button"
-                        )}
-                        title={isGenerating ? "Генерируется..." : "Отправить"}
-                      >
-                        {isGenerating ? (
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="text-base md:text-lg"
-                          >
-                            ✷
-                          </motion.div>
-                        ) : (
-                          <ArrowUp className="h-3 w-3 md:h-4 md:w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  { ((isRemove || isPlan) && attachments.length === 0) && (
-                    <motion.div initial={{opacity:0, y:-4}} animate={{opacity:1, y:0}} transition={{duration:0.25}}
-                      className="mt-2 rounded-lg theme-border theme-panel px-3 py-2 text-xs theme-text-muted">
-                      Чтобы сгенерировать — прикрепите хотя бы одну фотографию.
-                    </motion.div>
-                  )}
-
-                  {/* attachments preview (below model/select & send) */}
-                  {attachments.length > 0 && (
-                    <div className="mt-3">
-                      <div className="text-xs theme-text-muted mb-2">Вложения: {attachments.length}</div>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {attachments.map((a) => (
-                          <div key={a.id} className="group relative overflow-hidden rounded-md theme-border theme-panel-muted">
-                            <img src={a.url} alt={a.name} className="h-24 w-full object-cover" loading="lazy" />
-                            <button
-                              onClick={() => removeAttachment(a.id)}
-                              className="absolute top-1 right-1 hidden group-hover:flex h-7 w-7 items-center justify-center rounded-md theme-panel theme-border backdrop-blur"
-                              title="Удалить"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                 {/* bottom area: status */}
-                 <div className={cn("flex items-center justify-between px-3 py-2 text-xs border-t theme-border theme-text-muted")}>
-                   <div>
-                     {isRemove && <>{removeDepth ? 'Режим удаления: Полностью' : 'Выберите режим удаления'}</>}
-                     {isPlan && <>{planFurniture ? `Выбрано: ${planFurniture === 'with' ? 'С мебелью' : 'Без мебели'}` : 'Выберите режим: «С мебелью» или «Без мебели»'}</>}
-                     {!isRemove && !isPlan && <>Enter — отправить • Shift+Enter — новая строка</>}
-                   </div>
-                   <div>Модель: {model.label}</div>
-                 </div>
-               </div>
-             </div>
-           </div>
-            )}
-        </main>
-      </div>
-
-      {/* ==== Left sliding drawer ==== */}
-      {rightOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-10" onClick={() => setRightOpen(false)} />
-          <motion.aside
-            initial={{ x: -360 }}
-            animate={{ x: 0 }}
-            exit={{ x: -360 }}
-            transition={{ type: "spring", stiffness: 260, damping: 30 }}
-            className="fixed left-0 top-0 h-full w-[320px] md:w-[360px] theme-border bg-black shadow-2xl flex flex-col z-20"
-          >
-            <div className="flex items-center justify-between px-4 h-14 border-b theme-border">
-              <div className="text-sm theme-text-muted">{rightTab === 'chats' ? 'Чаты' : 'Настройки'}</div>
-              <button onClick={() => setRightOpen(false)} className="h-8 w-8 grid place-items-center rounded-lg hover:opacity-90"><X className="h-4 w-4" /></button>
-            </div>
-
-            {rightTab === 'chats' && (
-              <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4">
-                {/* Action buttons */}
-                <div className="space-y-2">
-                  <button 
-                    onClick={createChat} 
-                    className="w-full rounded-md border-2 px-3 py-2 text-sm transition-all duration-200 flex items-center gap-2 font-medium new-chat-button"
-                  >
-                    <Plus className="h-4 w-4"/>
-                    Новый чат
-                  </button>
-                  <button 
-                    onClick={deleteActiveChat} 
-                    className="w-full rounded-md theme-border theme-panel px-3 py-2 text-sm hover:opacity-90 flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4"/>
-                    Удаление чата
-                  </button>
-                  <button 
-                    onClick={() => setRightTab("settings")} 
-                    className="w-full rounded-md theme-border theme-panel px-3 py-2 text-sm hover:opacity-90 flex items-center gap-2"
-                  >
-                    <Settings className="h-4 w-4"/>
-                    Настройки
-                  </button>
-                </div>
-                
-                {/* Chats list */}
-                <div className="border-t theme-border pt-3 md:pt-4">
-                  <div className="text-xs theme-text-muted mb-3">Всего чатов: {chats.length}</div>
-                  <div className="space-y-2">
-                    {chats.map(c => (
-                      <div key={c.id} className="flex items-center gap-2">
-                        <button 
-                          onClick={() => { setActiveChatId(c.id); setRightOpen(false); setHasFirstMessage(c.messages.length > 0); setIsGenerating(false); setResponses({}); }} 
-                          className={cn("flex-1 text-left rounded-md border px-3 py-2 hover:opacity-95", c.id === activeChatId ? "theme-panel" : "theme-panel-muted", "theme-border")}
-                        >
-                          <div className="text-sm truncate">{c.title || 'Без названия'}</div>
-                          <div className="text-[11px] theme-text-muted">Сообщений: {c.messages.length}</div>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteChat(c.id);
-                          }}
-                          className="h-8 w-8 grid place-items-center rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-colors"
-                          title="Удалить чат"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {rightTab === 'settings' && (
-              <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4">
-                {/* Back to chats button */}
-                <button 
-                  onClick={() => setRightTab("chats")} 
-                  className="w-full rounded-md theme-border theme-panel px-3 py-2 text-sm hover:opacity-90 flex items-center gap-2"
-                >
-                  <PanelLeft className="h-4 w-4"/>
-                  Вернуться к чатам
-                </button>
-                
-                <div className="border-t theme-border pt-3 md:pt-4">
-                  <div className="text-sm theme-text-muted mb-2">Профиль</div>
-                  <div className="space-y-2">
-                    <label className="block text-xs theme-text-muted">Email</label>
-                    <input className="w-full rounded-md theme-border theme-panel px-3 py-2 outline-none text-sm" placeholder="you@example.com" />
-                    <label className="block text-xs theme-text-muted mt-3">Пароль</label>
-                    <input type="password" className="w-full rounded-md theme-border theme-panel px-3 py-2 outline-none text-sm" placeholder="••••••••" />
-                    <button className="mt-3 rounded-md theme-border theme-panel px-3 py-2 text-sm hover:opacity-90">Сохранить</button>
-                  </div>
-                </div>
-
-                {/* === Оформление / стиль сайта === */}
-                <div>
-                  <div className="text-sm theme-text-muted mb-2">Оформление</div>
-                  <label className="block text-xs theme-text-muted mb-2">Стиль сайта</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {STYLE_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => setSiteStyle(opt.id)}
-                        className={cn("style-chip", siteStyle === opt.id && "style-chip-active")}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="text-[11px] theme-text-muted mt-2">Стиль сохраняется за аккаунтом пользователя.</div>
-                </div>
-              </div>
-            )}
-          </motion.aside>
-        </>
-      )}
-
-
-      {/* --- Themes, accents & fonts --- */}
-      <style>{`
-        /* Prefer Apple New York for the hero title; graceful fallbacks */
-        @font-face {
-          font-family: "New York";
-          src: local("New York"), local("NY"), local("New York Medium"), local("New York Small"), local("New York Large");
-          font-weight: 400 800;
-          font-style: normal;
-          font-display: swap;
-        }
-        .font-hero { font-family: "New York", -apple-system-ui-serif, ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; }
-
-
-        /* Core theming tokens */
-        .themed-root { background: var(--bg); color: var(--text); }
-        .theme-panel { background-color: var(--panel); }
-        .theme-panel-muted { background-color: var(--panel-muted); }
-        .theme-border { border-color: var(--border); border-style: solid; }
-        .theme-text-muted { color: var(--muted); }
-        .hero-star { color: var(--hero-accent, currentColor); }
-
-        .accent-button { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
-        .accent-button:hover { opacity: .92; }
-        .disabled-button { background: var(--accent-disabled, var(--panel)); color: var(--accent-disabled-contrast, var(--muted)); border-color: var(--accent-disabled, var(--border)); }
-
-        .style-chip { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 12px; padding: 8px 10px; font-size: 12px; }
-        .style-chip:hover { background: var(--panel-muted); }
-        .style-chip-active { outline: 2px solid var(--accent); outline-offset: 0; }
-
-        /* New Chat Button - адаптивное оформление для разных стилей */
-        .new-chat-button {
-          background: var(--accent);
-          color: var(--accent-contrast);
-          border-color: var(--accent);
-        }
-        .new-chat-button:hover {
-          background: var(--accent-hover, var(--accent));
-          border-color: var(--accent-hover, var(--accent));
-          opacity: 0.9;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        :root[data-style='standard']{
-          --bg: #262624;
-          --panel: #30302e;
-          --panel-muted: #2a2a28;
-          --border: #c2c0b7;
-          --text: #c2c0b7;
-          --muted: #a8a69d;
-          --accent: #cc7c5e;
-          --accent-contrast: #ffffff;
-          --accent-hover: #d4886a;
-          --hero-accent: #cc7c5e;
-          --accent-disabled: #754c3b;
-          --accent-disabled-contrast: #a8a69d;
-        }
-        :root[data-style='advanced']{
-          --bg: #0b0b0e;
-          --panel: rgba(255,255,255,0.05);
-          --panel-muted: rgba(255,255,255,0.03);
-          --border: rgba(255,255,255,0.1);
-          --text: #e5e7eb;
-          --muted: #9ca3af;
-          --accent: #7aa2ff;
-          --accent-contrast: #ffffff;
-          --accent-hover: #8fb0ff;
-          --hero-accent: #7aa2ff;
-          --accent-disabled: rgba(255,255,255,0.1);
-          --accent-disabled-contrast: #6b7280;
-        }
-
-        /* legacy helpers (if still referenced somewhere) */
-        .bg-neutral-850 { background-color: rgb(38 38 38); }
-        .bg-neutral-925 { background-color: rgb(18 18 18); }
-      `}</style>
+        <ProfileModal 
+          isOpen={isProfileOpen} 
+          onClose={() => setIsProfileOpen(false)}
+          user={user}
+          backgroundType={backgroundType}
+          onBackgroundChange={setBackgroundType}
+        />
+        <AuthModal 
+          isOpen={isAuthOpen} 
+          onClose={() => setIsAuthOpen(false)}
+      />
     </div>
   );
 }

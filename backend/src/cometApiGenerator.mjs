@@ -146,7 +146,7 @@ No borders, titles, or dimension lines`
 };
 
 /**
- * Генерирует технический план квартиры с помощью COMETAPI Gemini 2.5 Flash
+ * Генерирует технический план квартиры с помощью COMETAPI nano-banana-hd
  * @param {string} imagePath - Путь к загруженному изображению
  * @param {string} mode - Режим: 'withFurniture' или 'withoutFurniture'
  * @returns {Promise<Buffer>} - Буфер с сгенерированным изображением
@@ -178,7 +178,7 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     formData.append('image', fs.createReadStream(imagePath));
     
     // Добавляем параметры запроса
-    formData.append('model', 'gemini-2.5-flash');
+    formData.append('model', 'nano-banana-hd');
     formData.append('prompt', prompt);
     formData.append('max_tokens', '1000');
     formData.append('temperature', '0.1');

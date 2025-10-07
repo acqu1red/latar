@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
-  const [newEmail, setNewEmail] = useState(''); // Новое состояние для Email
+  const [username, setUsername] = useState(''); // Состояние для псевдонима
   const [telegramUsername, setTelegramUsername] = useState(''); // Переименованное состояние для Telegram
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -28,8 +28,8 @@ const RegisterPage: React.FC = () => {
       return;
     }
     
-    // Передаем newEmail вместо email
-    const success = await register(name, newEmail, password);
+    // Передаем username вместо email
+    const success = await register(name, username, password);
     if (success) {
       navigate('/');
     } else {
@@ -93,17 +93,17 @@ const RegisterPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-zinc-200 mb-2">
-                    Email для входа
+                  <label htmlFor="username" className="block text-sm font-medium text-zinc-200 mb-2">
+                    Псевдоним для входа
                   </label>
                   <input
-                    id="email"
-                    type="email"
+                    id="username"
+                    type="text"
                     required
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10 text-zinc-100 placeholder-zinc-500"
-                    placeholder="your@email.com"
+                    placeholder="Введите псевдоним"
                   />
                 </div>
 

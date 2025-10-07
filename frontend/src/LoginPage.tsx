@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { ArrowLeft } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login, loading } = useAuth();
@@ -14,11 +14,11 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     
-    const success = await login(email, password);
+    const success = await login(username, password);
     if (success) {
       navigate('/');
     } else {
-      setError('Неверный email или пароль');
+      setError('Неверный псевдоним или пароль');
     }
   };
 
@@ -59,17 +59,17 @@ const LoginPage: React.FC = () => {
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-zinc-200 mb-2">
-                    Email
+                  <label htmlFor="username" className="block text-sm font-medium text-zinc-200 mb-2">
+                    Псевдоним
                   </label>
                   <input
-                    id="email"
-                    type="email"
+                    id="username"
+                    type="text"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10 text-zinc-100 placeholder-zinc-500"
-                    placeholder="your@email.com"
+                    placeholder="Введите псевдоним"
                   />
                 </div>
 

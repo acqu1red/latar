@@ -70,6 +70,12 @@ Thumbs.db
 uploads/*
 !uploads/.gitkeep
 
+# SQLite databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
 # Python virtual environments
 controlnet_env/
 venv/

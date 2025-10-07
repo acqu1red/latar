@@ -92,6 +92,28 @@
   padding: 24px;
 }
 
+/* Кастомные стили для скроллбара в конструкторе */
+.constructor-canvas::-webkit-scrollbar {
+  width: 6px;
+}
+
+.constructor-canvas::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.constructor-canvas::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.constructor-canvas::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.constructor-canvas::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .constructor-canvas .konvajs-content {
   margin: 0 auto;
 }

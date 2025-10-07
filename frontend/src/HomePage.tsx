@@ -1,4 +1,34 @@
 import React, { useState, useEffect } from "react";
+
+// Кастомные стили для скроллбара
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+`;
+
+// Добавляем стили в head
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = scrollbarStyles;
+  if (!document.head.querySelector('style[data-custom-scrollbar-homepage]')) {
+    styleElement.setAttribute('data-custom-scrollbar-homepage', 'true');
+    document.head.appendChild(styleElement);
+  }
+}
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
@@ -746,7 +776,7 @@ const Modal = ({ isOpen, onClose, title, content, stats }: {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-black border border-white/20 rounded-lg"
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-black border border-white/20 rounded-lg custom-scrollbar"
       >
         <div className="p-8">
           <div className="flex justify-between items-start mb-6">
@@ -786,7 +816,7 @@ const Modal = ({ isOpen, onClose, title, content, stats }: {
    ============================= */
 function ContactForm() {
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
 
@@ -804,10 +834,10 @@ function ContactForm() {
       />
       <input
         required
-        type="email"
-        value={email}
-        onChange={(e)=> setEmail(e.target.value)}
-        placeholder="Email"
+        type="text"
+        value={username}
+        onChange={(e)=> setUsername(e.target.value)}
+        placeholder="Псевдоним"
         className="rounded-md border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-white/10"
       />
       <button className="rounded-md border border-white/20 bg-zinc-100 text-zinc-950 px-4 py-3 text-sm font-medium hover:opacity-90 transition">
@@ -1697,7 +1727,7 @@ const HomePage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950 border-t border-white/10 rounded-t-3xl p-8 max-h-[80vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950 border-t border-white/10 rounded-t-3xl p-8 max-h-[80vh] overflow-y-auto custom-scrollbar"
           >
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center justify-between mb-8">
@@ -1801,7 +1831,7 @@ const HomePage: React.FC = () => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-black border border-white/20 rounded-lg"
+            className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-black border border-white/20 rounded-lg custom-scrollbar"
           >
             <div className="p-8">
               <div className="flex justify-between items-start mb-6">

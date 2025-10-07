@@ -6,8 +6,8 @@ import TexSchemePage from './TexSchemePage';
 import ConstructorPage from './constructor/ConstructorPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
+// @ts-ignore
 import MonochromeClaudeStyle from './NewPage.jsx';
-import ProfilePage from './ProfilePage';
 import './index.css'; // Импортируем глобальные стили
 
 const App: React.FC = () => {
@@ -32,7 +32,6 @@ const App: React.FC = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/new" element={<MonochromeClaudeStyle />} />
-            <Route path="/profile" element={<ProfilePage />} />
           </Routes>
         </div>
       </Router>
