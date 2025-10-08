@@ -174,10 +174,7 @@ app.get('/new/*', (req, res) => {
   }
 });
 
-// SPA маршрут - все остальные запросы направляем на index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'frontend/dist/index.html'));
-});
+// SPA маршрут переносим ниже, после определения всех API-роутов
 
 // Настройка multer для загрузки файлов
 const storage = multer.diskStorage({
@@ -413,4 +410,9 @@ server.on('error', (error) => {
 server.on('listening', () => {
   const address = server.address();
   console.log(`🎯 Сервер слушает на ${address.address}:${address.port}`);
+});
+
+// В САМОМ КОНЦЕ: SPA маршрут - все остальные запросы направляем на index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend/dist/index.html'));
 });
