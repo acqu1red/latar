@@ -291,12 +291,34 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
       if (!base64Image && typeof result?.image === 'string') base64Image = result.image;
       if (!base64Image && typeof result?.output === 'string') base64Image = result.output;
       if (!base64Image) {
-        const tryExtractBase64 = (obj, depth = 0) => {
+        const tryExtractBase64 = async (obj, depth = 0) => {
           if (!obj || depth > 3) return null;
-          if (typeof obj === 'string') return obj.length > 200 ? obj : null;
+          if (typeof obj === 'string') {
+            // Проверяем, является ли строка base64
+            if (obj.length > 200) return obj;
+            
+            // Проверяем, является ли строка Markdown с изображением
+            const markdownImageMatch = obj.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/);
+            if (markdownImageMatch) {
+              try {
+                const imageUrl = markdownImageMatch[1];
+                console.log('🖼️ Найдено изображение в Markdown:', imageUrl);
+                
+                // Загружаем изображение по URL
+                const imageResponse = await fetch(imageUrl);
+                if (imageResponse.ok) {
+                  const imageBuffer = await imageResponse.buffer();
+                  return imageBuffer.toString('base64');
+                }
+              } catch (error) {
+                console.error('❌ Ошибка загрузки изображения из Markdown:', error);
+              }
+            }
+            return null;
+          }
           if (Array.isArray(obj)) {
             for (const it of obj) {
-              const found = tryExtractBase64(it, depth + 1);
+              const found = await tryExtractBase64(it, depth + 1);
               if (found) return found;
             }
             return null;
@@ -305,20 +327,20 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
             const preferredKeys = ['image', 'data', 'inline_data'];
             for (const k of preferredKeys) {
               if (obj[k]) {
-                const found = tryExtractBase64(obj[k], depth + 1);
+                const found = await tryExtractBase64(obj[k], depth + 1);
                 if (found) return found;
               }
             }
             for (const k of Object.keys(obj)) {
               if (!preferredKeys.includes(k)) {
-                const found = tryExtractBase64(obj[k], depth + 1);
+                const found = await tryExtractBase64(obj[k], depth + 1);
                 if (found) return found;
               }
             }
           }
           return null;
         };
-        base64Image = tryExtractBase64(result);
+        base64Image = await tryExtractBase64(result);
       }
 
       if (!base64Image) {
@@ -481,15 +503,34 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
 
     // Вариант 5: глубокий поиск по объекту первых найденных 2-3 уровней
     if (!base64Image) {
-      const tryExtractBase64 = (obj, depth = 0) => {
+      const tryExtractBase64 = async (obj, depth = 0) => {
         if (!obj || depth > 3) return null;
         if (typeof obj === 'string') {
-          // эвристика base64-строки
-          return obj.length > 200 ? obj : null;
+          // Проверяем, является ли строка base64
+          if (obj.length > 200) return obj;
+          
+          // Проверяем, является ли строка Markdown с изображением
+          const markdownImageMatch = obj.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/);
+          if (markdownImageMatch) {
+            try {
+              const imageUrl = markdownImageMatch[1];
+              console.log('🖼️ Найдено изображение в Markdown:', imageUrl);
+              
+              // Загружаем изображение по URL
+              const imageResponse = await fetch(imageUrl);
+              if (imageResponse.ok) {
+                const imageBuffer = await imageResponse.buffer();
+                return imageBuffer.toString('base64');
+              }
+            } catch (error) {
+              console.error('❌ Ошибка загрузки изображения из Markdown:', error);
+            }
+          }
+          return null;
         }
         if (Array.isArray(obj)) {
           for (const it of obj) {
-            const found = tryExtractBase64(it, depth + 1);
+            const found = await tryExtractBase64(it, depth + 1);
             if (found) return found;
           }
           return null;
@@ -499,21 +540,21 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
           const preferredKeys = ['image', 'data', 'inline_data'];
           for (const k of preferredKeys) {
             if (obj[k]) {
-              const found = tryExtractBase64(obj[k], depth + 1);
+              const found = await tryExtractBase64(obj[k], depth + 1);
               if (found) return found;
             }
           }
           // иначе любой ключ
           for (const k of Object.keys(obj)) {
             if (!preferredKeys.includes(k)) {
-              const found = tryExtractBase64(obj[k], depth + 1);
+              const found = await tryExtractBase64(obj[k], depth + 1);
               if (found) return found;
             }
           }
         }
         return null;
       };
-      const guess = tryExtractBase64(result);
+      const guess = await tryExtractBase64(result);
       if (guess) base64Image = guess;
     }
 

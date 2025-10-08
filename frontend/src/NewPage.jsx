@@ -920,29 +920,147 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   const [activeTab, setActiveTab] = useState('account');
 
   // Appearance
-  const [theme, setTheme] = useState('system');
-  const [showMarkdown, setShowMarkdown] = useState(false);
-  const [wrapLongLines, setWrapLongLines] = useState(false);
-  const [showPreview, setShowPreview] = useState(true);
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('userSettings_theme');
+    return saved || 'system';
+  });
 
   // Behavior
-  const [autoScroll, setAutoScroll] = useState(true);
-  const [showSuggestions, setShowSuggestions] = useState(true);
-  const [sidePanel, setSidePanel] = useState(false);
-  const [notifications, setNotifications] = useState(false);
-  const [autoComplete, setAutoComplete] = useState(true);
-  const [starBackground, setStarBackground] = useState(false);
-
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem('userSettings_notifications');
+    return saved ? JSON.parse(saved) : false;
+  });
 
   // Data
-  const [allowHistory, setAllowHistory] = useState(false);
-  const [allowDetails, setAllowDetails] = useState(false);
+  const [allowHistory, setAllowHistory] = useState(() => {
+    const saved = localStorage.getItem('userSettings_allowHistory');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [modelImprovement, setModelImprovement] = useState(() => {
+    const saved = localStorage.getItem('userSettings_modelImprovement');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [allowDetails, setAllowDetails] = useState(() => {
+    const saved = localStorage.getItem('userSettings_allowDetails');
+    return saved ? JSON.parse(saved) : false;
+  });
   const [memoryUsage] = useState({ used: 74.23, total: 1070 });
-  const [selectedPanel, setSelectedPanel] = useState('layers');
   const [grantUsername, setGrantUsername] = useState('');
   const [grantStatus, setGrantStatus] = useState(null);
   const [grantError, setGrantError] = useState('');
   const [grantLoading, setGrantLoading] = useState(false);
+
+  // Функции для сохранения настроек
+  const saveSetting = (key, value) => {
+    try {
+      localStorage.setItem(`userSettings_${key}`, JSON.stringify(value));
+    } catch (error) {
+      if (error.name === 'QuotaExceededError') {
+        // Очищаем старые настройки и пробуем снова
+        console.warn('localStorage переполнен, очищаем старые настройки...');
+        try {
+          // Удаляем старые настройки, оставляя только важные
+          const importantKeys = ['theme', 'notifications', 'allowHistory', 'modelImprovement'];
+          const keysToRemove = [];
+          
+          for (let i = 0; i < localStorage.length; i++) {
+            const storageKey = localStorage.key(i);
+            if (storageKey && storageKey.startsWith('userSettings_') && !importantKeys.includes(storageKey.replace('userSettings_', ''))) {
+              keysToRemove.push(storageKey);
+            }
+          }
+          
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+          
+          // Пробуем сохранить снова
+          localStorage.setItem(`userSettings_${key}`, JSON.stringify(value));
+        } catch (retryError) {
+          console.error('Не удалось сохранить настройку после очистки localStorage:', retryError);
+        }
+      } else {
+        console.error('Ошибка при сохранении настройки:', error);
+      }
+    }
+  };
+
+  // Функция для отправки уведомлений
+  const sendNotification = (title, body) => {
+    if (notifications && 'Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {
+        body: body,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico'
+      });
+    }
+  };
+
+  // Функция для принудительной очистки localStorage
+  const clearOldSettings = () => {
+    try {
+      const importantKeys = ['theme', 'notifications', 'allowHistory', 'modelImprovement', 'siteStyle', 'backgroundType'];
+      const keysToRemove = [];
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const storageKey = localStorage.key(i);
+        if (storageKey && storageKey.startsWith('userSettings_') && !importantKeys.includes(storageKey.replace('userSettings_', ''))) {
+          keysToRemove.push(storageKey);
+        }
+      }
+      
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      console.log(`Принудительно очищено ${keysToRemove.length} старых настроек из localStorage`);
+      alert(`Очищено ${keysToRemove.length} старых настроек. Пожалуйста, перезагрузите страницу.`);
+    } catch (error) {
+      console.error('Ошибка при принудительной очистке localStorage:', error);
+    }
+  };
+
+  // Функции для применения настроек
+  const applySettings = () => {
+    // Применяем настройки темы
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (theme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // system - определяем по системным настройкам
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+
+    // Применяем настройки уведомлений
+    if (notifications && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  };
+
+  // Сохраняем настройки при изменении
+  useEffect(() => {
+    saveSetting('theme', theme);
+    applySettings();
+  }, [theme]);
+
+  useEffect(() => {
+    saveSetting('notifications', notifications);
+    applySettings();
+  }, [notifications]);
+
+  useEffect(() => {
+    saveSetting('allowHistory', allowHistory);
+  }, [allowHistory]);
+
+  useEffect(() => {
+    saveSetting('modelImprovement', modelImprovement);
+  }, [modelImprovement]);
+
+  useEffect(() => {
+    saveSetting('allowDetails', allowDetails);
+  }, [allowDetails]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -981,90 +1099,40 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   const Toggle = ({ value, onChange, disabled }) => (
     <button
       onClick={() => !disabled && onChange(!value)}
-      className={`relative h-[26px] w-[46px] rounded-full transition ${
-        disabled ? 'bg-white/12 opacity-40' : value ? 'bg-white' : 'bg-white/10'
+      className={`relative h-5 w-9 rounded-full transition ${
+        disabled ? 'bg-white/8 opacity-40' : value ? 'bg-white/15' : 'bg-white/5'
       }`}
       disabled={disabled}
       aria-pressed={value}
     >
       <span
-        className={`absolute top-1 h-[22px] w-[22px] rounded-full bg-black transition-all shadow-sm ${
-          value ? 'left-[22px]' : 'left-[2px]'
+        className={`absolute top-0.5 h-4 w-4 rounded-full bg-black transition-all shadow-sm ${
+          value ? 'left-[18px]' : 'left-[2px]'
         }`}
       />
     </button>
   );
 
   const Row = ({ icon: Icon, left, right }) => (
-    <div className="flex items-center justify-between rounded-lg border border-white/10 px-8 py-6 min-h-[64px]">
-      <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 min-w-[56px] items-center justify-center rounded-lg border border-white/10 text-white/80">
-          <Icon className="h-7 w-7" />
+    <div className="flex items-center justify-between rounded-md border border-white/5 px-4 py-3 min-h-[48px]">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 min-w-[32px] items-center justify-center rounded-md border border-white/5 text-white/70">
+          <Icon className="h-4 w-4" />
         </div>
-        <div className="text-base text-white font-medium">{left}</div>
+        <div className="text-sm text-white font-medium">{left}</div>
       </div>
-      <div className="ml-6">{right}</div>
+      <div className="ml-4">{right}</div>
     </div>
   );
 
-  // Panel selector: предоставляет выбор боковой панели (увеличенные иконки/строки)
-  const PanelSelector = () => {
-    const options = [
-      { id: 'layers', label: 'Слои', icon: Layers },
-      { id: 'tools', label: 'Инструменты', icon: Settings },
-      { id: 'files', label: 'Файлы', icon: FileText },
-      { id: 'assets', label: 'Активы', icon: Folder },
-    ];
-
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs uppercase tracking-[0.12em] text-white/60">Панели</div>
-            <div className="text-lg font-semibold text-white">Выбор боковой панели</div>
-          </div>
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/30 text-white/80">
-            <PanelLeft className="h-7 w-7" />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {options.map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => {
-                setSelectedPanel(opt.id);
-                setSidePanel(true);
-              }}
-              className={`flex w-full items-center justify-between rounded-2xl border border-white/10 px-10 py-7 min-h-[84px] transition-all duration-200 hover:border-white/20 hover:bg-white/10 ${selectedPanel === opt.id ? 'bg-white/10 border-white/20 shadow-lg shadow-black/20' : ''}`}
-            >
-              <div className="flex items-center gap-6 text-left">
-                <div className="flex h-16 w-16 min-w-[64px] items-center justify-center rounded-xl border border-white/15 bg-black/40 text-white">
-                  <opt.icon className="h-10 w-10" />
-                </div>
-                <div className="text-lg font-semibold text-white">{opt.label}</div>
-              </div>
-              <div className="ml-8 text-white/80">
-                {selectedPanel === opt.id ? (
-                  <Check className="h-7 w-7" />
-                ) : (
-                  <ChevronRight className="h-6 w-6 text-neutral-300" />
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   const AccountTab = () => (
-    <div className="flex flex-col h-full space-y-4">
-      <div className="flex-1 space-y-4">
+    <div className="flex flex-col h-full space-y-3">
+      <div className="flex-1 space-y-3">
         {/* Информация о профиле */}
-        <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-sm font-semibold text-white">
+        <div className="flex items-center justify-between rounded-md border border-white/5 px-3 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/5 text-xs font-semibold text-white">
               {user?.name?.charAt(0)?.toUpperCase() || '?'}
             </div>
             <div className="space-y-0.5">
@@ -1074,26 +1142,14 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
           </div>
         </div>
 
-        <Row
-          icon={Layers}
-          left="Перейти на Plan 3D"
-          right={
-            <button
-              onClick={on3DInfoOpen}
-              className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10"
-            >
-              Скоро
-            </button>
-          }
-        />
 
         {user?.role === 'director' && (
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 space-y-3">
+          <div className="rounded-lg border border-white/5 bg-white/3 px-3 py-3 space-y-2.5">
             <div>
               <div className="text-sm font-semibold text-white">Доступ для организаций</div>
-              <div className="text-xs text-neutral-400 mt-1">Назначьте префикс «Организация», чтобы снять лимиты</div>
+              <div className="text-xs text-neutral-400 mt-0.5">Назначьте префикс «Организация», чтобы снять лимиты</div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={grantUsername}
@@ -1103,19 +1159,19 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
                   setGrantError('');
                 }}
                 placeholder="Псевдоним пользователя"
-                className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-sm text-white placeholder:text-neutral-500 focus:border-white/30 focus:outline-none"
+                className="flex-1 rounded-md border border-white/5 bg-black/30 px-3 py-1.5 text-sm text-white placeholder:text-neutral-500 focus:border-white/20 focus:outline-none"
               />
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <button
                   onClick={handleGrantAccessClick}
                   disabled={grantLoading || !grantUsername.trim()}
-                  className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-xs font-medium text-white transition hover:bg-white/20 disabled:opacity-60"
+                  className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10 disabled:opacity-60"
                 >
                   {grantLoading ? 'Выдача...' : 'Дать доступ'}
                 </button>
                 <button
                   onClick={() => onOpenOrganizationList?.()}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-white transition hover:bg-white/15"
+                  className="rounded-md border border-white/5 bg-white/3 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/5"
                 >
                   Список
                 </button>
@@ -1264,33 +1320,28 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
         ))}
       </div>
 
-      <div className="space-y-2">
-        <Row icon={Sparkles} left="Отображать твоё сообщение в формате Markdown" right={<Toggle value={showMarkdown} onChange={setShowMarkdown} />} />
-        <Row icon={FileText} left="Перенос длинных строк для кодовых блоков по умолчанию" right={<Toggle value={wrapLongLines} onChange={setWrapLongLines} />} />
-        <Row icon={Eye} left="Показывать предпросмотр разговоров в истории" right={<Toggle value={showPreview} onChange={setShowPreview} />} />
-      </div>
     </div>
   );
 
   const BehaviorTab = () => (
     <div className="space-y-2">
-      <Row icon={ArrowUp} left="Включить автопрокрутку" right={<Toggle value={autoScroll} onChange={setAutoScroll} />} />
-      <Row icon={Sparkles} left="Показывать предложения для продолжения" right={<Toggle value={showSuggestions} onChange={setShowSuggestions} />} />
-      <Row icon={FileText} left="Включить редактор боковой панели для кода и документов" right={<Toggle value={sidePanel} onChange={setSidePanel} />} />
       <Row icon={Bell} left="Получать уведомление, когда Plan AI заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
-      <Row icon={Keyboard} left="Включить подсказки автодополнения" right={<Toggle value={autoComplete} onChange={setAutoComplete} />} />
-      <Row icon={Sparkles} left="Включить звёздный фон" right={<Toggle value={starBackground} onChange={setStarBackground} />} />
-      {/* Panel selector UI */}
-      <div className="pt-2">
-        <PanelSelector />
-      </div>
     </div>
   );
 
 
   const DataTab = () => (
     <div className="space-y-4">
-      <Row icon={Sparkles} left="Улучшить модель" right={<Toggle value={allowHistory} onChange={setAllowHistory} />} />
+      <Row icon={Sparkles} left="Улучшить модель" right={<Toggle value={modelImprovement} onChange={setModelImprovement} />} />
+      
+      <div className="pt-2 border-t border-white/10">
+        <button
+          onClick={clearOldSettings}
+          className="w-full px-3 py-2 text-xs text-neutral-400 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+        >
+          Очистить старые настройки
+        </button>
+      </div>
       {user && (
         <div className="rounded-lg border border-white/10 px-4 py-3 space-y-2 bg-black/20">
           <div className="text-xs uppercase tracking-[0.1em] text-white/50">Доступ</div>
@@ -1315,7 +1366,6 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
           />
         </div>
       </div>
-      <Row icon={Folder} left="Посмотреть файлы и активы" right={<button className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10">Управлять</button>} />
     </div>
   );
 
@@ -1343,27 +1393,27 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.98, opacity: 0 }}
         transition={{ duration: 0.18 }}
-        // ВНИМАНИЕ: размер окна максимально приближен к скриншотам (относительный)
-        className="relative flex overflow-hidden rounded-2xl border border-white/10 bg-[#161618] shadow-2xl"
+        // Компактный размер окна
+        className="relative flex overflow-hidden rounded-lg border border-white/5 bg-[#161618] shadow-2xl"
         style={{
-          width: 'min(860px, 58vw)',   // увеличенная ширина для панели
-          height: 'min(640px, 78vh)',  // немного выше
+          width: 'min(720px, 50vw)',   // уменьшенная ширина
+          height: 'min(520px, 65vh)',  // уменьшенная высота
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Левая колонка — вкладки */}
-        <div className="flex w-[230px] shrink-0 flex-col border-r border-white/10 bg-black/15">
-          <div className="flex h-13 items-center px-4 text-sm font-semibold text-white/90">Настройки</div>
-          <nav className="flex-1 space-y-1 px-2 pb-3">
+        <div className="flex w-[180px] shrink-0 flex-col border-r border-white/5 bg-black/10">
+          <div className="flex h-10 items-center px-3 text-sm font-semibold text-white/90">Настройки</div>
+          <nav className="flex-1 space-y-0.5 px-1.5 pb-2">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition ${
-                  activeTab === tab.id ? 'bg-white/10 text-white' : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition ${
+                  activeTab === tab.id ? 'bg-white/8 text-white' : 'text-neutral-400 hover:bg-white/3 hover:text-white'
                 }`}
               >
-                <tab.icon className="h-4 w-4" />
+                <tab.icon className="h-3.5 w-3.5" />
                 {tab.label}
               </button>
             ))}
@@ -1371,8 +1421,8 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
         </div>
 
         {/* Контент */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar">
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }} className="space-y-3">
             {renderContent()}
           </motion.div>
         </div>
@@ -1380,10 +1430,10 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
         {/* Кнопка закрытия */}
         <button
           onClick={onClose}
-          className="absolute right-3 top-3 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
+          className="absolute right-2.5 top-2.5 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-200"
           aria-label="Закрыть"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </motion.div>
     </motion.div>
@@ -2026,13 +2076,13 @@ function AdvancedSidebar({
 
   if (isCollapsed) {
   return (
-      <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-12">
-        <div className="p-2">
+      <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-12 h-screen">
+        <div className="p-2 flex-shrink-0">
           <div className="w-full h-8 rounded-lg bg-white/5 flex items-center justify-center">
             <Search className="h-4 w-4 text-neutral-400" />
           </div>
         </div>
-        <nav className="px-1.5 text-xs flex-1 space-y-1.5">
+        <nav className="px-1.5 text-xs flex-1 space-y-1.5 overflow-y-auto custom-scrollbar min-h-0">
           <button 
             onClick={onCreateChat}
             className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
@@ -2062,7 +2112,7 @@ function AdvancedSidebar({
             <HelpCircle className="h-4 w-4 text-neutral-400" />
           </button>
         </nav>
-        <div className="p-3 flex flex-col items-center gap-2">
+        <div className="flex-shrink-0 p-3 flex flex-col items-center gap-2">
           <button 
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             className="size-9 rounded-full grid place-items-center text-xs font-semibold hover:scale-105 transition bg-black border border-white/30 text-white"
@@ -2083,9 +2133,9 @@ function AdvancedSidebar({
   }
 
   return (
-    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-72 relative">
+    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-72 relative h-screen">
       {/* Top: search */}
-      <div className="p-2">
+      <div className="p-2 flex-shrink-0">
         <div className="flex items-center gap-1.5 rounded-lg bg-white/5 px-4 py-2 ring-1 ring-white/10 hover:ring-white/20 transition">
           <Search className="h-3 w-3 text-neutral-400" />
           <input
@@ -2098,7 +2148,7 @@ function AdvancedSidebar({
       </div>
 
       {/* Nav */}
-       <nav className="px-1.5 text-sm flex-1 overflow-y-auto custom-scrollbar">
+       <nav className="px-1.5 text-sm flex-1 overflow-y-auto custom-scrollbar min-h-0">
         <AdvancedSectionTitle>Главное</AdvancedSectionTitle>
         <AdvancedNavItem onClick={onCreateChat} Icon={Plus} label="Новый чат" />
         <AdvancedNavItem onClick={onShowGallery} Icon={Images} label="Создано" />
@@ -2259,23 +2309,23 @@ function AdvancedSidebar({
         )}
       </nav>
 
-      <div className="mt-auto px-3 py-3 border-t border-white/5 relative">
+      <div className="flex-shrink-0 px-3 py-3 border-t border-white/5 relative">
         <div className="flex items-center justify-between">
           <button 
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex items-center gap-2 hover:bg-white/5 p-1.5 rounded-lg transition flex-1"
+            className="flex items-center gap-2 hover:bg-white/5 p-1.5 rounded-lg transition flex-1 min-w-0"
           >
-            <div className="size-8 rounded-full grid place-items-center text-sm font-semibold bg-black border border-white/30 text-white">
+            <div className="size-8 rounded-full grid place-items-center text-sm font-semibold bg-black border border-white/30 text-white flex-shrink-0">
               {user?.name?.charAt(0).toUpperCase() || '?'}
             </div>
-            <div className="flex-1 text-left">
+            <div className="flex-1 text-left min-w-0">
               <div className="text-sm text-white truncate">{user?.name || 'Аноним'}</div>
               <div className="text-xs text-neutral-500 truncate">{user?.username || ''}</div>
             </div>
           </button>
           <button 
             onClick={onCollapse}
-            className="text-neutral-500 hover:text-neutral-300 transition p-2" 
+            className="text-neutral-500 hover:text-neutral-300 transition p-2 flex-shrink-0" 
             title="Свернуть панель"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -2407,11 +2457,10 @@ function AdvancedHistoryLinkWithMenu({ chat, active = false, onClick, onRename, 
             <span className="truncate">{chat.title || "Новый чат"}</span>
           </div>
         </button>
+        
         <button
           onClick={(e) => { e.stopPropagation(); setMenuOpen(!isMenuOpen); }}
-          className={`p-1.5 hover:bg-white/10 rounded-md transition flex-shrink-0 min-h-[32px] flex items-center justify-center ${
-            isHovered || isMenuOpen ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="p-1.5 hover:bg-white/10 rounded-md transition flex-shrink-0 min-h-[32px] flex items-center justify-center opacity-100"
         >
           <MoreVertical className="h-3.5 w-3.5 text-neutral-400" />
         </button>
@@ -2508,6 +2557,8 @@ function AdvancedMainArea({
 
   // Показываем сообщения, если есть активное сообщение, результат, история или идет генерация
   const showMessages = currentMessage || currentResult || messageHistory.length > 0 || isGenerating;
+
+
 
   // Обработчик активации 3D режима
   const handle3DActivation = () => {
@@ -2710,7 +2761,7 @@ function AdvancedMainArea({
   };
 
   return (
-    <main className="relative flex flex-col min-h-screen">
+    <main className="relative flex flex-col h-screen">
       {/* Gallery View */}
       {showGallery ? (
         <GalleryContent />
@@ -2718,7 +2769,7 @@ function AdvancedMainArea({
         <>
           {/* Сообщения в верхней части */}
           {showMessages && (
-        <div className="flex-1 pt-16">
+        <div className="flex-1 pt-16 overflow-y-auto custom-scrollbar">
           {/* История сообщений */}
           {messageHistory.length > 0 && (
             <div className="space-y-4 px-6 py-4">
@@ -2762,6 +2813,7 @@ function AdvancedMainArea({
               onImageClick={onImageClick}
             />
           )}
+
         </div>
       )}
 
@@ -4069,6 +4121,39 @@ function AdvancedMessageDisplay({
 
 function MonochromeClaudeStyle() {
   const { user, logout, saveSettings, loadSettings, refreshUser, grantOrganizationAccess, fetchOrganizationUsers } = useAuth();
+  
+  // Очистка localStorage при инициализации для предотвращения QuotaExceededError
+  useEffect(() => {
+    try {
+      // Проверяем размер localStorage
+      let totalSize = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          totalSize += localStorage.getItem(key).length;
+        }
+      }
+      
+      // Если размер больше 4MB (примерно 80% от лимита), очищаем старые данные
+      if (totalSize > 4 * 1024 * 1024) {
+        console.warn('localStorage близок к переполнению, очищаем старые данные...');
+        const importantKeys = ['theme', 'notifications', 'allowHistory', 'modelImprovement', 'siteStyle', 'backgroundType'];
+        const keysToRemove = [];
+        
+        for (let i = 0; i < localStorage.length; i++) {
+          const storageKey = localStorage.key(i);
+          if (storageKey && storageKey.startsWith('userSettings_') && !importantKeys.includes(storageKey.replace('userSettings_', ''))) {
+            keysToRemove.push(storageKey);
+          }
+        }
+        
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log(`Очищено ${keysToRemove.length} старых настроек из localStorage`);
+      }
+    } catch (error) {
+      console.error('Ошибка при проверке размера localStorage:', error);
+    }
+  }, []);
   const [model, setModel] = useState("techplan");
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [value, setValue] = useState("");
@@ -4150,6 +4235,40 @@ function MonochromeClaudeStyle() {
   const [backgroundType, setBackgroundType] = useState("alternative");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   
+
+  // Функции для сохранения настроек
+  const saveSetting = (key, value) => {
+    try {
+      localStorage.setItem(`userSettings_${key}`, JSON.stringify(value));
+    } catch (error) {
+      if (error.name === 'QuotaExceededError') {
+        // Очищаем старые настройки и пробуем снова
+        console.warn('localStorage переполнен, очищаем старые настройки...');
+        try {
+          // Удаляем старые настройки, оставляя только важные
+          const importantKeys = ['theme', 'notifications', 'allowHistory', 'modelImprovement'];
+          const keysToRemove = [];
+          
+          for (let i = 0; i < localStorage.length; i++) {
+            const storageKey = localStorage.key(i);
+            if (storageKey && storageKey.startsWith('userSettings_') && !importantKeys.includes(storageKey.replace('userSettings_', ''))) {
+              keysToRemove.push(storageKey);
+            }
+          }
+          
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+          
+          // Пробуем сохранить снова
+          localStorage.setItem(`userSettings_${key}`, JSON.stringify(value));
+        } catch (retryError) {
+          console.error('Не удалось сохранить настройку после очистки localStorage:', retryError);
+        }
+      } else {
+        console.error('Ошибка при сохранении настройки:', error);
+      }
+    }
+  };
+
   // Gallery states
   const [showGallery, setShowGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState([
@@ -4307,6 +4426,15 @@ function MonochromeClaudeStyle() {
     return {};
   }); // { chatId: [messages] }
 
+  // Функция для автоматического переименования чата
+  const updateChatTitle = (chatId, newTitle) => {
+    setChats(prev => prev.map(chat => 
+      chat.id === chatId 
+        ? { ...chat, title: newTitle, lastMessageTime: new Date().toISOString() }
+        : chat
+    ));
+  };
+
   // Image modal state
   const [imageModal, setImageModal] = useState({ isOpen: false, url: '', alt: '' });
   
@@ -4431,6 +4559,13 @@ function MonochromeClaudeStyle() {
             "Неизвестная модель",
       attachments: attachments.map((a) => ({ id: a.id, name: a.name, url: a.url })),
       time: new Date().toISOString(),
+      // Сохраняем параметры для повторного запроса
+      requestParams: {
+        model,
+        query,
+        techplanMode,
+        attachments: attachments.map((a) => ({ id: a.id, name: a.name, file: a.file }))
+      }
     };
 
     setAdvancedCurrentMessage(userMessage);
@@ -4479,6 +4614,256 @@ function MonochromeClaudeStyle() {
               errorMessage = errorData?.error || errorMessage;
               errorCode = errorData?.code;
               
+              // Специальная обработка ошибок COMETAPI
+              if (errorMessage.includes('当前分组上游负载已饱和') || errorMessage.includes('shell_api_error')) {
+                errorMessage = 'Сервер перегружен, попробуйте через несколько минут. Система автоматически повторит попытку.';
+              }
+            } else {
+              const text = await response.text();
+              errorMessage = text?.slice(0, 300) || errorMessage;
+            }
+          } catch (_) {}
+          const err = new Error(errorMessage);
+          if (errorCode) err.code = errorCode;
+          throw err;
+        }
+
+        // Поддержка множественных результатов
+        const contentType = response.headers.get('content-type') || '';
+        let responseImages = [];
+        if (contentType.includes('application/json')) {
+          const data = await response.json();
+          if (Array.isArray(data?.images)) {
+            responseImages = data.images;
+          }
+        } else {
+          // Конвертируем blob в base64 для прямого использования
+        const imageBlob = await response.blob();
+          const reader = new FileReader();
+          responseImages = await new Promise((resolve) => {
+            reader.onload = () => resolve([reader.result]);
+            reader.readAsDataURL(imageBlob);
+          });
+        }
+        responseImage = responseImages[0] || null;
+        responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
+
+        if (!hasUnlimitedAccess) {
+          if (user) {
+            await refreshUser();
+          } else {
+            setGuestPlanCount((prev) => prev + 1);
+          }
+        }
+      } else if (model === "cleanup" && attachments.length > 0) {
+        // Проверяем лимит изображений
+        if (attachments.length > 5) {
+          throw new Error('Слишком много изображений. Максимум 5 изображений за раз.');
+        }
+
+        // Удаление объектов
+        const formData = new FormData();
+        attachments.forEach((att) => formData.append('image', att.file));
+
+        // Показываем прогресс для множественных изображений
+        if (attachments.length > 1) {
+          responseText = `Обрабатываю ${attachments.length} изображений по очереди для снижения нагрузки на сервер...`;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
+          method: 'POST',
+          headers: {
+            'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Ошибка удаления объектов');
+        }
+
+        // Поддержка множественных результатов
+        const contentType2 = response.headers.get('content-type') || '';
+        let responseImages2 = [];
+        if (contentType2.includes('application/json')) {
+          const data = await response.json();
+          if (Array.isArray(data?.images)) {
+            responseImages2 = data.images;
+          }
+        } else {
+          // Конвертируем blob в base64 для прямого использования
+        const imageBlob = await response.blob();
+          const reader = new FileReader();
+          responseImages2 = await new Promise((resolve) => {
+            reader.onload = () => resolve([reader.result]);
+            reader.readAsDataURL(imageBlob);
+          });
+        }
+        responseImage = responseImages2[0] || null;
+        responseText = `Объекты успешно удалены с изображения.`;
+      } else {
+        // Обычная обработка для других моделей
+        responseText = `Вот результат обработки вашего запроса "${userMessage.text}".`;
+      }
+      
+      const aiResponse = {
+        messageId: userMessage.id,
+        text: responseText,
+        image: responseImage,
+        images: (typeof responseImages !== 'undefined' ? responseImages : undefined) || (typeof responseImages2 !== 'undefined' ? responseImages2 : undefined),
+        rating: null,
+        canRegenerate: true
+      };
+
+      setAdvancedCurrentResult(aiResponse);
+      
+      // Добавляем сообщения в историю для текущего чата
+      setAdvancedMessageHistory(prev => ({
+        ...prev,
+        [activeChatId]: [
+          ...(prev[activeChatId] || []),
+          { ...userMessage, type: 'user' },
+          { ...aiResponse, type: 'ai', time: new Date().toISOString() }
+        ]
+      }));
+
+      // Автоматически переименовываем чат на основе последнего запроса
+      updateChatTitle(activeChatId, userMessage.text);
+      
+      // Очищаем текущие сообщения после добавления в историю
+      setTimeout(() => {
+        setAdvancedCurrentMessage(null);
+        setAdvancedCurrentResult(null);
+      }, 100);
+    } catch (error) {
+      console.error('Ошибка генерации:', error);
+      if (error.code === 'PLAN_LIMIT' || error.code === 'GUEST_LIMIT') {
+        setLimitNotice(error.message);
+        if (error.code === 'PLAN_LIMIT') {
+          await refreshUser();
+        }
+        if (error.code === 'GUEST_LIMIT') {
+          setGuestPlanCount(1);
+        }
+      } else if (model === 'techplan') {
+        setLimitNotice(error.message);
+      }
+      const errorResponse = {
+        messageId: userMessage.id,
+        text: `Ошибка: ${error.message}`,
+        rating: null,
+        canRegenerate: true
+      };
+
+      setAdvancedCurrentResult(errorResponse);
+      
+      // Добавляем сообщения в историю даже при ошибке
+      setAdvancedMessageHistory(prev => ({
+        ...prev,
+        [activeChatId]: [
+          ...(prev[activeChatId] || []),
+          { ...userMessage, type: 'user' },
+          { ...errorResponse, type: 'ai', time: new Date().toISOString() }
+        ]
+      }));
+
+      // Автоматически переименовываем чат на основе последнего запроса даже при ошибке
+      updateChatTitle(activeChatId, userMessage.text);
+      
+      // Очищаем текущие сообщения после добавления в историю
+      setTimeout(() => {
+        setAdvancedCurrentMessage(null);
+        setAdvancedCurrentResult(null);
+      }, 100);
+    } finally {
+      setAdvancedIsGenerating(false);
+    }
+  };
+
+  const handleAdvancedRate = (messageId, rating) => {
+    setAdvancedCurrentResult(prev => prev ? {
+      ...prev,
+      rating
+    } : null);
+    
+    // Обновляем рейтинг в истории для текущего чата
+    setAdvancedMessageHistory(prev => ({
+      ...prev,
+      [activeChatId]: (prev[activeChatId] || []).map(msg => 
+        msg.messageId === messageId && msg.type === 'ai' 
+          ? { ...msg, rating }
+          : msg
+      )
+    }));
+  };
+
+  const handleAdvancedRegenerate = async (messageId) => {
+    const regenLimit = hasUnlimitedAccess ? Infinity : 3;
+    const currentRegenCount = regenerationUsage[activeChatId] || 0;
+    if (regenLimit !== Infinity && currentRegenCount >= regenLimit) {
+      setLimitNotice('Лимит повторов достигнут. Обратитесь к директору за доступом «Организация».');
+      return;
+    }
+
+    // Находим сообщение пользователя с параметрами запроса
+    const messageHistory = advancedMessageHistory[activeChatId] || [];
+    const userMessage = messageHistory.find(msg => 
+      msg.type === 'user' && msg.id === messageId
+    );
+
+    if (!userMessage || !userMessage.requestParams) {
+      console.error('Не найдены параметры запроса для повторной генерации');
+      return;
+    }
+
+    const { model, query, techplanMode, attachments } = userMessage.requestParams;
+
+    setAdvancedIsGenerating(true);
+    setAdvancedCurrentResult(null);
+    
+    // Очищаем прикрепленные фотографии сразу после отправки
+    clearAllAttachments();
+
+    try {
+      let responseImage = null;
+      let responseText = '';
+
+      if (model === "techplan" && attachments.length > 0) {
+        // Проверяем лимит изображений
+        if (attachments.length > 5) {
+          throw new Error('Слишком много изображений. Максимум 5 изображений за раз.');
+        }
+
+        // Генерация технического плана
+        const formData = new FormData();
+        // прикладываем все изображения
+        attachments.forEach((att) => formData.append('image', att.file));
+        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+
+        // Показываем прогресс для множественных изображений
+        if (attachments.length > 1) {
+          responseText = `Обрабатываю ${attachments.length} изображений по очереди для снижения нагрузки на сервер...`;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
+          method: 'POST',
+          headers: {
+            'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const contentType = response.headers.get('content-type') || '';
+          let errorMessage = 'Ошибка генерации технического плана';
+          let errorCode;
+          try {
+            if (contentType.includes('application/json')) {
+              const errorData = await response.json();
+              errorMessage = errorData?.error || errorMessage;
+              errorCode = errorData?.code;
+
               // Специальная обработка ошибок COMETAPI
               if (errorMessage.includes('当前分组上游负载已饱和') || errorMessage.includes('shell_api_error')) {
                 errorMessage = 'Сервер перегружен, попробуйте через несколько минут. Система автоматически повторит попытку.';
@@ -4569,125 +4954,39 @@ function MonochromeClaudeStyle() {
         responseText = `Объекты успешно удалены с изображения.`;
       } else {
         // Обычная обработка для других моделей
-        responseText = `Вот результат обработки вашего запроса "${userMessage.text}".`;
+        responseText = `Вот результат обработки вашего запроса "${query}".`;
       }
-      
-      const aiResponse = {
+
+      // Создаем новый результат
+      const newResult = {
         messageId: userMessage.id,
         text: responseText,
         image: responseImage,
-        images: (typeof responseImages !== 'undefined' ? responseImages : undefined) || (typeof responseImages2 !== 'undefined' ? responseImages2 : undefined),
         rating: null,
-        canRegenerate: true
-      };
-
-      setAdvancedCurrentResult(aiResponse);
-      
-      // Добавляем сообщения в историю для текущего чата
-      setAdvancedMessageHistory(prev => ({
-        ...prev,
-        [activeChatId]: [
-          ...(prev[activeChatId] || []),
-          { ...userMessage, type: 'user' },
-          { ...aiResponse, type: 'ai', time: new Date().toISOString() }
-        ]
-      }));
-      
-      // Очищаем текущие сообщения после добавления в историю
-      setTimeout(() => {
-        setAdvancedCurrentMessage(null);
-        setAdvancedCurrentResult(null);
-      }, 100);
-    } catch (error) {
-      console.error('Ошибка генерации:', error);
-      if (error.code === 'PLAN_LIMIT' || error.code === 'GUEST_LIMIT') {
-        setLimitNotice(error.message);
-        if (error.code === 'PLAN_LIMIT') {
-          await refreshUser();
-        }
-        if (error.code === 'GUEST_LIMIT') {
-          setGuestPlanCount(1);
-        }
-      } else if (model === 'techplan') {
-        setLimitNotice(error.message);
-      }
-      const errorResponse = {
-        messageId: userMessage.id,
-        text: `Ошибка: ${error.message}`,
-        rating: null,
-        canRegenerate: true
-      };
-
-      setAdvancedCurrentResult(errorResponse);
-      
-      // Добавляем сообщения в историю даже при ошибке
-      setAdvancedMessageHistory(prev => ({
-        ...prev,
-        [activeChatId]: [
-          ...(prev[activeChatId] || []),
-          { ...userMessage, type: 'user' },
-          { ...errorResponse, type: 'ai', time: new Date().toISOString() }
-        ]
-      }));
-      
-      // Очищаем текущие сообщения после добавления в историю
-      setTimeout(() => {
-        setAdvancedCurrentMessage(null);
-        setAdvancedCurrentResult(null);
-      }, 100);
-    } finally {
-      setAdvancedIsGenerating(false);
-    }
-  };
-
-  const handleAdvancedRate = (messageId, rating) => {
-    setAdvancedCurrentResult(prev => prev ? {
-      ...prev,
-      rating
-    } : null);
-    
-    // Обновляем рейтинг в истории для текущего чата
-    setAdvancedMessageHistory(prev => ({
-      ...prev,
-      [activeChatId]: (prev[activeChatId] || []).map(msg => 
-        msg.messageId === messageId && msg.type === 'ai' 
-          ? { ...msg, rating }
-          : msg
-      )
-    }));
-  };
-
-  const handleAdvancedRegenerate = async (messageId) => {
-    const regenLimit = hasUnlimitedAccess ? Infinity : 3;
-    const currentRegenCount = regenerationUsage[activeChatId] || 0;
-    if (regenLimit !== Infinity && currentRegenCount >= regenLimit) {
-      setLimitNotice('Лимит повторов достигнут. Обратитесь к директору за доступом «Организация».');
-      return;
-    }
-
-    setAdvancedIsGenerating(true);
-    
-    // Симуляция повторной генерации
-    setTimeout(() => {
-      setAdvancedIsGenerating(false);
-      const updatedResult = {
-        messageId,
-        text: "Обновленный результат генерации",
-        rating: null,
-        canRegenerate: true
+        canRegenerate: true,
+        time: new Date().toISOString()
       };
       
-      setAdvancedCurrentResult(updatedResult);
+      setAdvancedCurrentResult(newResult);
       
       // Обновляем сообщение в истории для текущего чата
       setAdvancedMessageHistory(prev => ({
         ...prev,
         [activeChatId]: (prev[activeChatId] || []).map(msg => 
-          msg.messageId === messageId && msg.type === 'ai' 
-            ? { ...updatedResult, type: 'ai', time: new Date().toISOString() }
+          msg.id === messageId && msg.type === 'ai' 
+            ? { ...newResult, type: 'ai' }
             : msg
         )
       }));
+
+      // Находим последнее пользовательское сообщение для переименования чата
+      const currentHistory = advancedMessageHistory[activeChatId] || [];
+      const lastUserMessage = currentHistory
+        .filter(msg => msg.type === 'user')
+        .pop();
+      if (lastUserMessage) {
+        updateChatTitle(activeChatId, lastUserMessage.text);
+      }
 
       if (regenLimit !== Infinity) {
         setRegenerationUsage(prev => ({
@@ -4695,7 +4994,20 @@ function MonochromeClaudeStyle() {
           [activeChatId]: (prev[activeChatId] || 0) + 1
         }));
       }
-    }, 2000);
+
+    } catch (error) {
+      console.error('Ошибка при повторной генерации:', error);
+      setAdvancedCurrentResult({
+        messageId: userMessage.id,
+        text: `Ошибка: ${error.message}`,
+        image: null,
+        rating: null,
+        canRegenerate: true,
+        time: new Date().toISOString()
+      });
+    } finally {
+      setAdvancedIsGenerating(false);
+    }
   };
 
   const handleAdvancedDownload = (imageUrl) => {
@@ -5195,15 +5507,28 @@ function MonochromeClaudeStyle() {
     
     // Отправляем сообщение в новый чат
     handleAdvancedSendMessage(payload);
+    
+    // Переименовываем чат на основе типа запроса
+    const title = payload.model === "techplan" 
+      ? `Создание по техплану — ${payload.techplanMode === "with" ? "С мебелью" : "Без мебели"}`
+      : payload.model === "cleanup" 
+      ? "Удаление объектов"
+      : payload.model === "3d"
+      ? "3D план помещения"
+      : "Новый чат";
+    
+    setTimeout(() => {
+      updateChatTitle(id, title);
+    }, 100);
   };
 
   // Advanced style layout (единственный доступный стиль)
     return (
-      <div data-style={siteStyle} className="relative min-h-screen w-full text-neutral-200 antialiased" style={{ backgroundColor: '#161618' }}>
+      <div data-style={siteStyle} className="relative h-screen w-full text-neutral-200 antialiased" style={{ backgroundColor: '#161618' }}>
         {backgroundType === "standard" && null /* Стандартный фон - только цвет, без частиц */}
         {backgroundType === "interactive" && <BackgroundParticles />}
         {backgroundType === "alternative" && <AlternativeBackground />}
-        <div className={`relative z-10 grid min-h-screen transition-all duration-300 ${
+        <div className={`relative z-10 grid h-screen transition-all duration-300 overflow-hidden ${
           isSidebarCollapsed ? 'grid-cols-[64px_1fr]' : 'grid-cols-[256px_1fr]'
         }`}>
           <AdvancedSidebar 
