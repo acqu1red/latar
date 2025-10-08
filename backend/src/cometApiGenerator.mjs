@@ -146,6 +146,117 @@ No borders, titles, or dimension lines`
 };
 
 /**
+ * Генерирует чистую комнату (удаление объектов) с помощью COMETAPI nano-banana-hd
+ * @param {{imagePaths: string[]}} params
+ * @returns {Promise<Buffer>} - Буфер с сгенерированным изображением
+ */
+export async function generateCleanupImage({ imagePaths = [] } = {}) {
+  const apiKey = process.env.COMETAPI_API_KEY;
+  if (!apiKey) throw new Error('COMETAPI_API_KEY не установлен в переменных окружения');
+  if (!imagePaths || imagePaths.length === 0) throw new Error('Не переданы изображения');
+
+  const prompt = `Transform the uploaded interior photo into the same room completely empty: keep only the original walls (with their real finishes/texture/pattern) and the existing floor. Remove everything else that is not a structural part of the room. Preserve geometry, perspective, lighting, and colors.
+
+Remove completely (no traces left):
+
+All furniture and loose items: sofas, armchairs, tables, chairs/stools, lamps, shelves, carpets/rugs, blankets, pillows, plants, boxes, tools, ladders, trash, cords.
+
+All kitchen casework and contents: upper/lower cabinets, shelves, countertop, sink, faucet, cooktop/oven, small appliances, dishes, food, jars.
+
+All decor and small objects: frames, books, vases, bowls, kettles, containers, textiles, etc.
+
+All shadows/reflections/prints belonging to the removed objects.
+
+Keep exactly as is (do not alter, move, or restyle):
+
+Walls with their original finish: exposed brick, plaster, paint, wallpaper, tile/mosaic backsplash (including grout width, tile size, and tone).
+
+Floor with its real pattern and direction (e.g., herringbone boards, tile joints, thresholds, transitions).
+
+Architectural/structural elements only: doors/door frames, baseboards, window reveals, ceiling, built-in track lights/ceiling lights, sockets/switches, vents/grilles, fixed ducts/shafts, radiators, and wall/ceiling junctions.
+
+Camera framing, focal length feel, horizon line, and vanishing lines.
+
+Inpainting rules for occluded areas:
+
+Extend the exact surface that should be behind the removed item.
+
+If an object covered brick, continue the brick with the same brick size, mortar lines, chips, and weathering.
+
+If it covered a mosaic backsplash, continue the grid with the same tile size, spacing, grout color, and subtle variations.
+
+If it covered herringbone wood, continue the plank direction, plank width, and join pattern in correct perspective.
+
+Respect perspective and scale (lines must converge consistently).
+
+Match illumination: reconstruct soft ambient shading from the original light sources; do not introduce new lights or stylized highlights.
+
+Quality constraints / do not do:
+
+Do not add any new objects, decor, or fixtures from imagination.
+
+Do not crop, rotate, upscale, or change aspect ratio; keep original resolution and framing.
+
+Do not restyle or “improve” materials; keep a documentary, photorealistic look.
+
+Avoid repeating textures, smudges, blur halos, or warped edges; seams and corners must stay sharp and straight.
+
+Acceptance checklist (self-check before output):
+
+No furniture, kitchen casework, appliances, decor, or clutter remains.
+
+Wall finishes and floor pattern are continuous and believable at 100% zoom (no visible inpaint seams).
+
+Doors, baseboards, track lights, outlets, vents, and other structural details are preserved and natural.
+
+Lighting/color balance matches the original shot; no extra glare or ghosting.
+
+Output:
+Generate one photorealistic image of the same room, empty (bare walls + floor only), same size/aspect as the input.`;
+
+  try {
+    const formData = new FormData();
+    // Поддержим одно изображение как основное; доп. изображения можно прикладывать с именами image2, image3 ... если API поддерживает
+    formData.append('image', fs.createReadStream(imagePaths[0]));
+    // Если API поддерживает множественные — добавьте по аналогии:
+    for (let i = 1; i < imagePaths.length; i++) {
+      const p = imagePaths[i];
+      if (fs.existsSync(p)) formData.append(`image${i+1}`, fs.createReadStream(p));
+    }
+    formData.append('model', 'nano-banana-hd');
+    formData.append('prompt', prompt);
+    formData.append('max_tokens', '1000');
+    formData.append('temperature', '0.05');
+    formData.append('top_p', '0.9');
+    formData.append('stream', 'false');
+
+    const response = await fetch('https://api.cometapi.com/v1/image/generate', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        ...formData.getHeaders()
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`COMETAPI ошибка ${response.status}: ${errorText}`);
+    }
+
+    const result = await response.json();
+    if (!result.success || !result.data?.image) {
+      throw new Error(`COMETAPI вернул ошибку: ${result.error || 'Нет изображения'}`);
+    }
+
+    return Buffer.from(result.data.image, 'base64');
+  } catch (e) {
+    console.error('❌ Ошибка генерации очистки комнаты:', e);
+    throw e;
+  }
+}
+
+/**
  * Генерирует технический план квартиры с помощью COMETAPI nano-banana-hd
  * @param {string} imagePath - Путь к загруженному изображению
  * @param {string} mode - Режим: 'withFurniture' или 'withoutFurniture'

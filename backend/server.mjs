@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import jwt from 'jsonwebtoken';
-import { generateTechnicalPlan, checkCometApiHealth } from './src/cometApiGenerator.mjs';
+import { generateTechnicalPlan, checkCometApiHealth, generateCleanupImage } from './src/cometApiGenerator.mjs';
 import authRoutes from './src/authRoutes.mjs';
 import { userDB } from './src/database.mjs';
 
@@ -40,8 +40,14 @@ requiredFiles.forEach(file => {
   }
 });
 
+// Поддержка альтернативного имени ключа (COMET_API_KEY -> COMETAPI_API_KEY)
+if (!process.env.COMETAPI_API_KEY && process.env.COMET_API_KEY) {
+  process.env.COMETAPI_API_KEY = process.env.COMET_API_KEY;
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 const guestUsage = new Map();
@@ -87,21 +93,38 @@ if (!isCometApiKeyValid) {
   console.log('✅ COMETAPI ключ настроен');
 }
 
-// Middleware
+// Доверяем заголовкам прокси (важно для Timeweb/NGINX)
+app.set('trust proxy', 1);
+
+// CORS: список доменов берём из CORS_ORIGIN (CSV), иначе дефолт
+const defaultCorsOrigins = [
+  'https://acqu1red.github.io',
+  'https://acqu1red.github.io/latar',
+  'https://acqu1red-latar-4004.twc1.net',
+  'http://localhost:3000',
+  'http://localhost:5173'
+];
+const envCorsOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const allowedOrigins = envCorsOrigins.length > 0 ? envCorsOrigins : defaultCorsOrigins;
+
 app.use(cors({
-  origin: [
-    'https://acqu1red.github.io',
-    'https://acqu1red.github.io/latar',
-    'https://acqu1red-latar-4004.twc1.net',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ],
+  origin: (origin, callback) => {
+    // Разрешаем запросы без Origin (например, curl/healthchecks)
+    if (!origin) return callback(null, true);
+    const isAllowed = allowedOrigins.includes(origin);
+    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+  },
   credentials: true
 }));
 
-// Логирование CORS запросов
+// Логирование запросов (тише в production)
 app.use((req, res, next) => {
-  console.log(`🌐 ${req.method} ${req.path} - Origin: ${req.get('Origin') || 'не указан'}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`🌐 ${req.method} ${req.path} - Origin: ${req.get('Origin') || 'не указан'}`);
+  }
   next();
 });
 app.use(express.json());
@@ -248,6 +271,37 @@ app.post('/api/generate-technical-plan', upload.single('image'), async (req, res
   }
 });
 
+// Маршрут для удаления объектов (очистка комнаты)
+app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'Изображения не загружены' });
+    }
+
+    if (!isCometApiKeyValid) {
+      return res.status(503).json({ 
+        error: 'Сервис временно недоступен. API ключ не настроен.',
+        code: 'API_KEY_MISSING'
+      });
+    }
+
+    const imagePaths = req.files.map(f => f.path);
+
+    const buffer = await generateCleanupImage({ imagePaths });
+
+    // Чистим временные файлы
+    for (const p of imagePaths) {
+      try { fs.unlinkSync(p); } catch {}
+    }
+
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Ошибка удаления объектов:', error);
+    res.status(500).json({ error: 'Ошибка удаления объектов: ' + error.message });
+  }
+});
+
 // Health check endpoint
 app.get('/healthz', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -303,29 +357,26 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Сервер запущен на порту ${PORT}`);
-  console.log(`🌐 Health check доступен по адресу: http://localhost:${PORT}/healthz`);
-  console.log(`📊 API endpoints:`);
-  console.log(`   POST /api/generate-technical-plan - генерация технического плана`);
-  console.log(`   GET  /api/furniture - получение данных мебели`);
-  console.log(`   POST /api/auth/register - регистрация пользователя`);
-  console.log(`   POST /api/auth/login - вход пользователя`);
-  console.log(`   GET  /api/auth/settings - получение настроек пользователя`);
-  console.log(`   POST /api/auth/settings - сохранение настроек пользователя`);
-  console.log(`   GET  /api/auth/agency - получение данных агентства`);
-  console.log(`   POST /api/auth/agency - сохранение данных агентства`);
-  console.log(`   GET  /healthz - проверка здоровья сервера`);
-  console.log(`✅ Приложение готово к работе!`);
-  console.log(`🔧 Переменные окружения:`);
-  console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'не установлено'}`);
-  console.log(`   PORT: ${PORT}`);
-  console.log(`   COMETAPI ключ настроен: ${isCometApiKeyValid ? 'Да' : 'Нет'}`);
-  console.log(`🔍 Проверка модулей:`);
-  console.log(`   sharp: ${typeof sharp !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
-  console.log(`   express: ${typeof express !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
-  console.log(`   multer: ${typeof multer !== 'undefined' ? '✅ Загружен' : '❌ Не загружен'}`);
-  console.log(`🎯 Сервер успешно запущен и слушает порт ${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`🚀 Сервер запущен на ${HOST}:${PORT}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`🌐 Health check: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/healthz`);
+    console.log(`📊 API endpoints:`);
+    console.log(`   POST /api/generate-technical-plan - генерация технического плана`);
+    console.log(`   GET  /api/furniture - получение данных мебели`);
+    console.log(`   POST /api/auth/register - регистрация пользователя`);
+    console.log(`   POST /api/auth/login - вход пользователя`);
+    console.log(`   GET  /api/auth/settings - получение настроек пользователя`);
+    console.log(`   POST /api/auth/settings - сохранение настроек пользователя`);
+    console.log(`   GET  /api/auth/agency - получение данных агентства`);
+    console.log(`   POST /api/auth/agency - сохранение данных агентства`);
+    console.log(`   GET  /healthz - проверка здоровья сервера`);
+    console.log(`🔧 Переменные окружения:`);
+    console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'не установлено'}`);
+    console.log(`   PORT: ${PORT}`);
+    console.log(`   HOST: ${HOST}`);
+    console.log(`   COMETAPI ключ настроен: ${isCometApiKeyValid ? 'Да' : 'Нет'}`);
+  }
 });
 
 // Обработка ошибок сервера

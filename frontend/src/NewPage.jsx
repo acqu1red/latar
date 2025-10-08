@@ -37,6 +37,7 @@ import {
   PanelLeft,
   ChevronDown,
   Paperclip,
+  Filter,
   X,
   ThumbsUp,
   ThumbsDown,
@@ -2842,15 +2843,9 @@ function AdvancedMainArea({
               isAtBottom={showMessages}
               onImageClick={onImageClick}
               setModelFromOutside={modelTo3D}
-              additionalButtons={showMessages ? (
-                <AdvancedInlineButtons
-                  backgroundType={backgroundType}
-                  onBackgroundChange={onBackgroundChange}
-                  modelMenuOpen={modelMenuOpen}
-                  onModelMenuToggle={onModelMenuToggle}
-                  openUpward={showMessages}
-                />
-              ) : null}
+              additionalButtons={null}
+              backgroundType={backgroundType}
+              onBackgroundChange={onBackgroundChange}
               model={model}
               onModelSelect={onModelSelect}
               on3DInfoOpen={() => setIs3DInfoOpen(true)}
@@ -3159,11 +3154,14 @@ function AdvancedMainArea({
    );
  }
 
-function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOpen, onModelMenuToggle, onFilesSelected, onSendMessage, isGenerating = false, isAtBottom = false, additionalButtons = null, onImageClick, onModelChange, setModelFromOutside, model, onModelSelect, on3DInfoOpen }) {
+function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOpen, onModelMenuToggle, onFilesSelected, onSendMessage, isGenerating = false, isAtBottom = false, additionalButtons = null, onImageClick, onModelChange, setModelFromOutside, model, onModelSelect, on3DInfoOpen, backgroundType, onBackgroundChange }) {
   const [query, setQuery] = useState("");
   const [techplanMode, setTechplanMode] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showSendTooltip, setShowSendTooltip] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const filtersButtonRef = useRef(null);
+  const filtersMenuRef = useRef(null);
 
   // Отслеживаем изменения модели извне
   useEffect(() => {
@@ -3183,12 +3181,27 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
     }
   }, [setModelFromOutside, onModelChange, onModelSelect]);
   const fileInputRef = useRef(null);
+  // Закрытие всплывающих окон по клику вне области
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      const clickedInsideFilters = !!(filtersMenuRef.current && filtersMenuRef.current.contains(target));
+      const clickedOnFiltersButton = !!(filtersButtonRef.current && filtersButtonRef.current.contains(target));
+      const clickedInsideModelMenu = !!target.closest('[data-model-menu]');
+      if (!clickedInsideFilters && !clickedOnFiltersButton && !clickedInsideModelMenu) {
+        if (showFilters) setShowFilters(false);
+        if (modelMenuOpen) onModelMenuToggle?.(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFilters, modelMenuOpen, onModelMenuToggle]);
 
   const canSend = attachments.length > 0 && (model === "3d" ? query.trim().length > 0 : techplanMode !== null);
 
   return (
-    <div className={`relative z-20 w-full max-w-4xl mx-auto ${attachments.length > 0 ? 'rounded-2xl' : 'rounded-full'} bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5`}>
-      <div className="flex items-center gap-3 pl-8 md:pl-10 pr-2 py-0.5">
+    <div className={`relative z-20 w-full max-w-4xl mx-auto ${isAtBottom ? 'rounded-2xl' : (attachments.length > 0 ? 'rounded-2xl' : 'rounded-full')} bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5`}>
+      <div className="flex items-center gap-3 pl-8 md:pl-10 pr-2 py-0.5 min-h-[48px]">
         <div className="relative">
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -3198,6 +3211,21 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
           >
             <Paperclip className="h-5 w-5 text-white hover:text-white transition-transform duration-200 group-hover:scale-110" />
           </button>
+          {/* Кнопка фильтров рядом со скрепкой (только когда панель внизу) */}
+          {isAtBottom && (
+            <button
+              ref={filtersButtonRef}
+              onClick={() => {
+                // Тоггл окна фильтров, заодно закрываем меню модели
+                setShowFilters((v) => !v);
+                onModelMenuToggle?.(false);
+              }}
+              className="ml-1 p-1.5 rounded-full hover:bg-white/10 transition-all duration-200 group hover:scale-110"
+              title="Фильтры"
+            >
+              <Filter className="h-5 w-5 text-white" />
+            </button>
+          )}
           
           {/* Скрытый input для выбора файлов */}
           <input
@@ -3229,7 +3257,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
         )}
 
         {model === "techplan" && (
-           <div className="flex-1 py-1 flex items-center gap-3 px-6">
+           <div className="flex-1 h-10 flex items-center gap-3 px-6">
             <AdvancedToggleChip
               label="С мебелью"
               active={techplanMode === "with"}
@@ -3251,7 +3279,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
         )}
 
         {model === "cleanup" && (
-           <div className="flex-1 py-1 flex items-center gap-4 px-6">
+           <div className="flex-1 h-10 flex items-center gap-4 px-6">
             <div className="text-sm text-neutral-400">Удаление объектов</div>
           </div>
         )}
@@ -3326,6 +3354,19 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
         </div>
       </div>
       
+      {/* Выпадающее меню фильтров */}
+      {showFilters && (
+        <FiltersMenu
+          refEl={filtersMenuRef}
+          backgroundType={backgroundType}
+          onBackgroundChange={(val) => {
+            onBackgroundChange?.(val);
+            setShowFilters(false);
+          }}
+          onClose={() => setShowFilters(false)}
+        />
+      )}
+
       {/* Attachments preview */}
       {attachments.length > 0 && (
         <div className="px-4 md:px-6 pb-4">
@@ -3378,7 +3419,7 @@ function AdvancedToggleChip({ label, active, onClick }) {
       onClick={onClick}
       className={`rounded-full px-4 py-2 text-sm transition ${
         active
-          ? "text-white"
+          ? "text-white border border-white/40"
           : "text-neutral-300 hover:bg-white/10"
       }`}
     >
@@ -3387,12 +3428,61 @@ function AdvancedToggleChip({ label, active, onClick }) {
   );
 }
 
+// Выпадающее меню фильтров с вложенным пунктом "Фон страницы"
+function FiltersMenu({ backgroundType, onBackgroundChange, onClose, refEl }) {
+  const [openBackground, setOpenBackground] = useState(false);
+
+  return (
+    <div ref={refEl} className="absolute left-2 bottom-full mb-2 z-50 w-64 rounded-2xl border border-white/10 bg-[#3e3f42] p-2 shadow-2xl">
+      <div className="text-xs text-neutral-300 mb-1 px-2">Фильтры</div>
+      <div className="space-y-1" data-background-menu>
+        <button
+          onClick={() => setOpenBackground((v) => !v)}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/10 transition"
+        >
+          <Layers className="h-4 w-4 text-white" />
+          <span className="text-sm text-white">Фон страницы</span>
+          <ChevronDown className={`ml-auto h-3 w-3 text-white opacity-70 transition-transform ${openBackground ? 'rotate-180' : ''}`} />
+        </button>
+
+        {openBackground && (
+          <div className="mt-1 space-y-1">
+            {[
+              { id: 'standard', label: 'Стандартный' },
+              { id: 'interactive', label: 'Интерактивный' },
+              { id: 'alternative', label: 'Альтернативный' },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => {
+                  onBackgroundChange?.(opt.id);
+                  onClose?.();
+                }}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/10 transition`}
+              >
+                <span className="text-xs text-white">{opt.label}</span>
+                {backgroundType === opt.id && <Check className="ml-auto h-4 w-4 text-white" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AdvancedModelMenu({ value, onChange, isOpen, onToggle, openUpward = false }) {
   const [open, setOpen] = useState(false);
   
   // Используем внешнее состояние, если оно передано
   const isMenuOpen = isOpen !== undefined ? isOpen : open;
-  const toggleMenu = onToggle || (() => setOpen(!open));
+  const toggleMenu = (next) => {
+    if (onToggle) {
+      if (typeof next === 'boolean') onToggle(next); else onToggle(!isMenuOpen);
+    } else {
+      if (typeof next === 'boolean') setOpen(next); else setOpen(!isMenuOpen);
+    }
+  };
   const items = [
     { key: "techplan", label: "Создание по техплану", sub: "Перерисовать 2D план из фото техплана", Icon: AdvancedIconTechplan },
     { key: "cleanup", label: "Удаление объектов", sub: "Очистить фото комнаты от мебели и мусора", Icon: AdvancedIconCleanup },
@@ -3405,7 +3495,10 @@ function AdvancedModelMenu({ value, onChange, isOpen, onToggle, openUpward = fal
     <div className="relative" data-model-menu>
       <button
         type="button"
-        onClick={toggleMenu}
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleMenu();
+        }}
         className="flex items-center gap-2 rounded-full px-4 py-2 text-sm text-white hover:bg-white/10"
       >
         <current.Icon className="h-4 w-4 text-white" />
@@ -3419,13 +3512,10 @@ function AdvancedModelMenu({ value, onChange, isOpen, onToggle, openUpward = fal
           {items.map((it, idx) => (
             <button
               key={it.key}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 onChange(it.key);
-                if (onToggle) {
-                  onToggle(false);
-                } else {
-                  setOpen(false);
-                }
+                toggleMenu(false);
               }}
                className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-white/10 transition`}
             >
@@ -3972,7 +4062,7 @@ function AdvancedMessageDisplay({
   );
 }
 
-export default function MonochromeClaudeStyle() {
+function MonochromeClaudeStyle() {
   const { user, logout, saveSettings, loadSettings, refreshUser, grantOrganizationAccess, fetchOrganizationUsers } = useAuth();
   const [model, setModel] = useState("techplan");
   const [showModelMenu, setShowModelMenu] = useState(false);
@@ -5145,3 +5235,5 @@ export default function MonochromeClaudeStyle() {
     </div>
   );
 }
+
+export default MonochromeClaudeStyle;
