@@ -302,7 +302,8 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     const response = await fetch(COMETAPI_IMAGE_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        // CometAPI ожидает ключ напрямую без Bearer
+        'Authorization': `${apiKey}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
@@ -318,25 +319,81 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     const result = await response.json();
 
     let base64Image;
-    if (result?.data?.image) {
+
+    // Вариант 1: старый формат { data: { image: base64 } }
+    if (result?.data?.image && typeof result.data.image === 'string') {
       base64Image = result.data.image;
     }
 
+    // Вариант 2: Gemini-подобный формат candidates -> content(parts[]) -> inline_data
     if (!base64Image) {
       const candidates = result?.candidates || result?.contents || result?.responses;
       if (Array.isArray(candidates) && candidates.length > 0) {
         const first = candidates[0].content || candidates[0];
         const parts = first?.parts || first;
         if (Array.isArray(parts)) {
-          const imagePart = parts.find(p => p?.inline_data?.data);
-          if (imagePart?.inline_data?.data) {
-            base64Image = imagePart.inline_data.data;
+          // ищем часть с изображением
+          const inlinePart = parts.find(p => p?.inline_data?.data || p?.inline_data?.image);
+          if (inlinePart?.inline_data?.data) {
+            base64Image = inlinePart.inline_data.data;
+          } else if (inlinePart?.inline_data?.image) {
+            base64Image = inlinePart.inline_data.image;
           }
         }
       }
     }
 
+    // Вариант 3: media массив с { mime_type, data }
+    if (!base64Image && Array.isArray(result?.media)) {
+      const mediaItem = result.media.find(m => typeof m?.data === 'string');
+      if (mediaItem?.data) base64Image = mediaItem.data;
+    }
+
+    // Вариант 4: плоский поиск по известным путям
+    if (!base64Image && typeof result?.image === 'string') base64Image = result.image;
+    if (!base64Image && typeof result?.output === 'string') base64Image = result.output;
+
+    // Вариант 5: глубокий поиск по объекту первых найденных 2-3 уровней
     if (!base64Image) {
+      const tryExtractBase64 = (obj, depth = 0) => {
+        if (!obj || depth > 3) return null;
+        if (typeof obj === 'string') {
+          // эвристика base64-строки
+          return obj.length > 200 ? obj : null;
+        }
+        if (Array.isArray(obj)) {
+          for (const it of obj) {
+            const found = tryExtractBase64(it, depth + 1);
+            if (found) return found;
+          }
+          return null;
+        }
+        if (typeof obj === 'object') {
+          // приоритетные ключи
+          const preferredKeys = ['image', 'data', 'inline_data'];
+          for (const k of preferredKeys) {
+            if (obj[k]) {
+              const found = tryExtractBase64(obj[k], depth + 1);
+              if (found) return found;
+            }
+          }
+          // иначе любой ключ
+          for (const k of Object.keys(obj)) {
+            if (!preferredKeys.includes(k)) {
+              const found = tryExtractBase64(obj[k], depth + 1);
+              if (found) return found;
+            }
+          }
+        }
+        return null;
+      };
+      const guess = tryExtractBase64(result);
+      if (guess) base64Image = guess;
+    }
+
+    if (!base64Image) {
+      const preview = JSON.stringify(result).slice(0, 1000);
+      console.error('⚠️ Ответ COMETAPI без изображения, превью:', preview);
       throw new Error('COMETAPI не вернул изображение в ожидаемом формате');
     }
 
