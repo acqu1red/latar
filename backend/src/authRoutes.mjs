@@ -26,6 +26,16 @@ export const authenticateToken = (req, res, next) => {
   });
 };
 
+const formatUser = (user) => ({
+  id: user.id,
+  username: user.username,
+  name: user.name,
+  role: user.role,
+  accessPrefix: user.access_prefix,
+  plansUsed: user.plans_used,
+  regenerationsUsed: user.regenerations_used
+});
+
 // Регистрация
 router.post('/register', async (req, res) => {
   try {
@@ -48,6 +58,7 @@ router.post('/register', async (req, res) => {
     // Создание пользователя
     const result = userDB.create(username, name, passwordHash, telegram);
     const userId = result.lastInsertRowid;
+    const createdUser = userDB.findById(userId);
 
     // Создание токена
     const token = jwt.sign(
@@ -59,7 +70,7 @@ router.post('/register', async (req, res) => {
     res.json({
       success: true,
       token,
-      user: { id: userId, username, name }
+      user: formatUser(createdUser)
     });
   } catch (error) {
     console.error('Ошибка регистрации:', error);
@@ -99,7 +110,7 @@ router.post('/login', async (req, res) => {
     res.json({
       success: true,
       token,
-      user: { id: user.id, username: user.username, name: user.name }
+      user: formatUser(user)
     });
   } catch (error) {
     console.error('Ошибка входа:', error);
@@ -118,7 +129,7 @@ router.get('/me', authenticateToken, (req, res) => {
     // Удаляем хеш пароля из ответа
     delete user.password_hash;
 
-    res.json({ user });
+    res.json({ user: formatUser(user) });
   } catch (error) {
     console.error('Ошибка получения данных пользователя:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
@@ -186,6 +197,50 @@ router.post('/agency', authenticateToken, (req, res) => {
   } catch (error) {
     console.error('Ошибка сохранения данных агентства:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Выдать доступ "Организация"
+router.post('/grant-access', authenticateToken, (req, res) => {
+  try {
+    const requester = userDB.findById(req.user.id);
+    if (!requester || requester.role !== 'director') {
+      return res.status(403).json({ error: 'Недостаточно прав для выдачи доступа' });
+    }
+
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ error: 'Укажите псевдоним пользователя' });
+    }
+
+    const targetUser = userDB.findByUsername(username);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    userDB.setAccessPrefix(targetUser.id, 'Организация');
+    const updatedUser = userDB.findById(targetUser.id);
+
+    res.json({ success: true, user: formatUser(updatedUser) });
+  } catch (error) {
+    console.error('Ошибка выдачи доступа:', error);
+    res.status(500).json({ error: 'Ошибка сервера при выдаче доступа' });
+  }
+});
+
+// Получить список пользователей с префиксом "Организация"
+router.get('/organizations', authenticateToken, (req, res) => {
+  try {
+    const requester = userDB.findById(req.user.id);
+    if (!requester || requester.role !== 'director') {
+      return res.status(403).json({ error: 'Недостаточно прав для просмотра списка' });
+    }
+
+    const organizations = userDB.getByPrefix('Организация').map(formatUser);
+    res.json({ users: organizations });
+  } catch (error) {
+    console.error('Ошибка получения списка организаций:', error);
+    res.status(500).json({ error: 'Ошибка сервера при получении списка' });
   }
 });
 

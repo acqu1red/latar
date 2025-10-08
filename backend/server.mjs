@@ -5,8 +5,10 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
+import jwt from 'jsonwebtoken';
 import { generateTechnicalPlan, checkCometApiHealth } from './src/cometApiGenerator.mjs';
 import authRoutes from './src/authRoutes.mjs';
+import { userDB } from './src/database.mjs';
 
 // Загружаем переменные окружения из .env файла
 import dotenv from 'dotenv';
@@ -40,6 +42,11 @@ requiredFiles.forEach(file => {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+const guestUsage = new Map();
+const MAX_GUEST_PLANS = 1;
+const MAX_USER_PLANS = 1;
 
 // Проверяем файловую систему
 console.log('🔍 Проверка файловой системы:');
@@ -181,6 +188,45 @@ app.post('/api/generate-technical-plan', upload.single('image'), async (req, res
         error: 'Сервис генерации технических планов временно недоступен. API ключ не настроен.',
         code: 'API_KEY_MISSING'
       });
+    }
+
+    const authHeader = req.headers['authorization'];
+    let authUser = null;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        authUser = userDB.findById(decoded.id);
+        if (!authUser) {
+          return res.status(401).json({ error: 'Пользователь не найден' });
+        }
+      } catch (err) {
+        console.error('Ошибка проверки токена при генерации плана:', err);
+        return res.status(401).json({ error: 'Неверный токен' });
+      }
+    }
+
+    const isDirector = authUser?.role === 'director';
+    const isOrganization = authUser?.access_prefix === 'Организация';
+
+    if (authUser && !isDirector && !isOrganization) {
+      if (authUser.plans_used >= MAX_USER_PLANS) {
+        return res.status(403).json({ error: 'Лимит генераций исчерпан', code: 'PLAN_LIMIT' });
+      }
+      userDB.incrementPlanUsage(authUser.id);
+      authUser.plans_used += 1;
+    }
+
+    if (!authUser) {
+      const forwarded = req.headers['x-forwarded-for'];
+      const clientIp = forwarded ? forwarded.split(',')[0].trim() : req.ip;
+      const usage = guestUsage.get(clientIp) || { plans: 0 };
+      if (usage.plans >= MAX_GUEST_PLANS) {
+        return res.status(403).json({ error: 'Лимит генераций для гостей исчерпан', code: 'GUEST_LIMIT' });
+      }
+      usage.plans += 1;
+      guestUsage.set(clientIp, usage);
     }
 
     const imagePath = req.file.path;

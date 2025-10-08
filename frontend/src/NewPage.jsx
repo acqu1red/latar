@@ -67,6 +67,7 @@ import {
   Save,
   Download,
   Key,
+  Box,
   Lock,
   Shield,
   Sparkles,
@@ -487,9 +488,9 @@ function BackgroundParticles() {
 
 // === Models (RU) ===
 const MODEL_OPTIONS = [
-  { id: "cleanup", label: "Удаление объектов" },
-  { id: "techplan", label: "Создание по техплану" },
-  { id: "3d", label: "3D план" },
+  { id: "cleanup", label: "Удаление объектов", description: "Удаляет ненужные объекты с плана", Icon: Trash2 },
+  { id: "techplan", label: "Создание по техплану", description: "Создает технический план помещения", Icon: FileText },
+  { id: "3d", label: "3D план", description: "Создает 3D визуализацию плана", Icon: Box },
 ];
 
 // === Site styles ===
@@ -913,7 +914,7 @@ function BackgroundPreview({ type }) {
 
 // Модальное окно "Регистрация/Вход" - Премиум дизайн
 // Новый компонент личного кабинета — точный референсный размер и стиль
-function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChange, on3DInfoOpen }) {
+function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChange, on3DInfoOpen, onGrantAccess, onOpenOrganizationList }) {
   const [activeTab, setActiveTab] = useState('account');
 
   // Appearance
@@ -935,8 +936,38 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   const [allowHistory, setAllowHistory] = useState(false);
   const [allowDetails, setAllowDetails] = useState(false);
   const [memoryUsage] = useState({ used: 74.23, total: 1070 });
+  const [selectedPanel, setSelectedPanel] = useState('layers');
+  const [grantUsername, setGrantUsername] = useState('');
+  const [grantStatus, setGrantStatus] = useState(null);
+  const [grantError, setGrantError] = useState('');
+  const [grantLoading, setGrantLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setGrantStatus(null);
+      setGrantError('');
+      setGrantUsername('');
+      setGrantLoading(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleGrantAccessClick = async () => {
+    if (!onGrantAccess || !grantUsername.trim()) return;
+    setGrantLoading(true);
+    setGrantStatus(null);
+    setGrantError('');
+    const result = await onGrantAccess(grantUsername.trim());
+    if (result?.success) {
+      setGrantStatus('success');
+      setGrantUsername('');
+    } else {
+      setGrantStatus('error');
+      setGrantError(result?.error || 'Не удалось выдать доступ');
+    }
+    setGrantLoading(false);
+  };
 
   const tabs = [
     { id: 'account', label: 'Учётка', icon: User },
@@ -948,30 +979,82 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   const Toggle = ({ value, onChange, disabled }) => (
     <button
       onClick={() => !disabled && onChange(!value)}
-      className={`relative h-[20px] w-[36px] rounded-full transition ${
-        disabled ? 'bg-white/10 opacity-40' : value ? 'bg-white' : 'bg-white/10'
+      className={`relative h-[26px] w-[46px] rounded-full transition ${
+        disabled ? 'bg-white/12 opacity-40' : value ? 'bg-white' : 'bg-white/10'
       }`}
       disabled={disabled}
+      aria-pressed={value}
     >
       <span
-        className={`absolute top-0.5 h-[16px] w-[16px] rounded-full bg-black transition ${
-          value ? 'left-[18px]' : 'left-[2px]'
+        className={`absolute top-1 h-[22px] w-[22px] rounded-full bg-black transition-all shadow-sm ${
+          value ? 'left-[22px]' : 'left-[2px]'
         }`}
       />
     </button>
   );
 
   const Row = ({ icon: Icon, left, right }) => (
-    <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/70">
-          <Icon className="h-4 w-4" />
+    <div className="flex items-center justify-between rounded-lg border border-white/10 px-8 py-6 min-h-[64px]">
+      <div className="flex items-center gap-4">
+        <div className="flex h-14 w-14 min-w-[56px] items-center justify-center rounded-lg border border-white/10 text-white/80">
+          <Icon className="h-7 w-7" />
         </div>
-        <div className="text-sm text-white">{left}</div>
+        <div className="text-base text-white font-medium">{left}</div>
       </div>
-      <div>{right}</div>
+      <div className="ml-6">{right}</div>
     </div>
   );
+
+  // Panel selector: предоставляет выбор боковой панели (увеличенные иконки/строки)
+  const PanelSelector = () => {
+    const options = [
+      { id: 'layers', label: 'Слои', icon: Layers },
+      { id: 'tools', label: 'Инструменты', icon: Settings },
+      { id: 'files', label: 'Файлы', icon: FileText },
+      { id: 'assets', label: 'Активы', icon: Folder },
+    ];
+
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-[0.12em] text-white/60">Панели</div>
+            <div className="text-lg font-semibold text-white">Выбор боковой панели</div>
+          </div>
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/30 text-white/80">
+            <PanelLeft className="h-7 w-7" />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {options.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => {
+                setSelectedPanel(opt.id);
+                setSidePanel(true);
+              }}
+              className={`flex w-full items-center justify-between rounded-2xl border border-white/10 px-10 py-7 min-h-[84px] transition-all duration-200 hover:border-white/20 hover:bg-white/10 ${selectedPanel === opt.id ? 'bg-white/10 border-white/20 shadow-lg shadow-black/20' : ''}`}
+            >
+              <div className="flex items-center gap-6 text-left">
+                <div className="flex h-16 w-16 min-w-[64px] items-center justify-center rounded-xl border border-white/15 bg-black/40 text-white">
+                  <opt.icon className="h-10 w-10" />
+                </div>
+                <div className="text-lg font-semibold text-white">{opt.label}</div>
+              </div>
+              <div className="ml-8 text-white/80">
+                {selectedPanel === opt.id ? (
+                  <Check className="h-7 w-7" />
+                ) : (
+                  <ChevronRight className="h-6 w-6 text-neutral-300" />
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const AccountTab = () => (
     <div className="flex flex-col h-full space-y-4">
@@ -989,7 +1072,62 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
           </div>
         </div>
 
-      <Row icon={Layers} left="Перейти на Plan 3D" right={<button onClick={() => setIs3DInfoOpen(true)} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10">Скоро</button>} />
+        <Row
+          icon={Layers}
+          left="Перейти на Plan 3D"
+          right={
+            <button
+              onClick={on3DInfoOpen}
+              className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10"
+            >
+              Скоро
+            </button>
+          }
+        />
+
+        {user?.role === 'director' && (
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 space-y-3">
+            <div>
+              <div className="text-sm font-semibold text-white">Доступ для организаций</div>
+              <div className="text-xs text-neutral-400 mt-1">Назначьте префикс «Организация», чтобы снять лимиты</div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                value={grantUsername}
+                onChange={(e) => {
+                  setGrantUsername(e.target.value);
+                  setGrantStatus(null);
+                  setGrantError('');
+                }}
+                placeholder="Псевдоним пользователя"
+                className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-sm text-white placeholder:text-neutral-500 focus:border-white/30 focus:outline-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleGrantAccessClick}
+                  disabled={grantLoading || !grantUsername.trim()}
+                  className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-xs font-medium text-white transition hover:bg-white/20 disabled:opacity-60"
+                >
+                  {grantLoading ? 'Выдача...' : 'Дать доступ'}
+                </button>
+                <button
+                  onClick={() => onOpenOrganizationList?.()}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-white transition hover:bg-white/15"
+                >
+                  Список
+                </button>
+              </div>
+            </div>
+            {grantStatus === 'success' && (
+              <div className="text-xs text-green-400">Доступ успешно выдан.</div>
+            )}
+            {grantStatus === 'error' && (
+              <div className="text-xs text-red-400">{grantError}</div>
+            )}
+          </div>
+        )}
+
         <div className="text-xs text-neutral-400 pt-1">Язык <span className="ml-1 text-white">Русский</span></div>
       </div>
       
@@ -1140,6 +1278,10 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
       <Row icon={Bell} left="Получать уведомление, когда Plan AI заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
       <Row icon={Keyboard} left="Включить подсказки автодополнения" right={<Toggle value={autoComplete} onChange={setAutoComplete} />} />
       <Row icon={Sparkles} left="Включить звёздный фон" right={<Toggle value={starBackground} onChange={setStarBackground} />} />
+      {/* Panel selector UI */}
+      <div className="pt-2">
+        <PanelSelector />
+      </div>
     </div>
   );
 
@@ -1147,6 +1289,21 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   const DataTab = () => (
     <div className="space-y-4">
       <Row icon={Sparkles} left="Улучшить модель" right={<Toggle value={allowHistory} onChange={setAllowHistory} />} />
+      {user && (
+        <div className="rounded-lg border border-white/10 px-4 py-3 space-y-2 bg-black/20">
+          <div className="text-xs uppercase tracking-[0.1em] text-white/50">Доступ</div>
+          <div className="text-sm text-white">
+            {user.role === 'director' || user.accessPrefix === 'Организация'
+              ? 'Безлимит генераций и повторов.'
+              : `Генерации использованы: ${user.plansUsed ?? 0} из 1.`}
+          </div>
+          <div className="text-xs text-neutral-400">
+            {user.role === 'director' || user.accessPrefix === 'Организация'
+              ? 'Префикс «Организация» активирован.'
+              : 'Повторить доступно до 3 раз в каждом чате без префикса.'}
+          </div>
+        </div>
+      )}
       <div className="rounded-lg border border-white/10 px-4 py-3">
         <div className="text-xs text-neutral-400">Использовано {memoryUsage.used} МБ из {(memoryUsage.total / 1000).toFixed(1)} ГБ</div>
         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
@@ -1187,14 +1344,14 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
         // ВНИМАНИЕ: размер окна максимально приближен к скриншотам (относительный)
         className="relative flex overflow-hidden rounded-2xl border border-white/10 bg-[#161618] shadow-2xl"
         style={{
-          width: 'min(700px, 36vw)',   // ~ строго как на скринах (примерно 34–36% ширины экрана)
-          height: 'min(560px, 70vh)',  // пропорциональная высота ~ 70vh, но не выше 560px
+          width: 'min(860px, 58vw)',   // увеличенная ширина для панели
+          height: 'min(640px, 78vh)',  // немного выше
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Левая колонка — вкладки */}
-        <div className="flex w-[190px] shrink-0 flex-col border-r border-white/10 bg-black/15">
-          <div className="flex h-13 items-center px-3 text-sm font-semibold text-white/90">Настройки</div>
+        <div className="flex w-[230px] shrink-0 flex-col border-r border-white/10 bg-black/15">
+          <div className="flex h-13 items-center px-4 text-sm font-semibold text-white/90">Настройки</div>
           <nav className="flex-1 space-y-1 px-2 pb-3">
             {tabs.map((tab) => (
               <button
@@ -1301,11 +1458,11 @@ function AuthModal({ isOpen, onClose }) {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-md overflow-hidden bg-black border border-white/20 rounded-3xl shadow-2xl" 
+        className="relative w-full max-w-[360px] mx-auto overflow-hidden bg-black border border-white/20 rounded-2xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent p-6">
+        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent px-5 py-4">
           <button 
             onClick={onClose} 
             className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
@@ -1313,10 +1470,10 @@ function AuthModal({ isOpen, onClose }) {
             <X className="h-5 w-5" />
           </button>
           
-          <h2 className="text-2xl font-bold text-white tracking-tight">
+          <h2 className="text-xl font-bold text-white tracking-tight">
             {mode === 'register' ? 'Запустить Plan AI' : 'Вход в систему'}
           </h2>
-          <p className="text-neutral-400 text-sm mt-1">
+          <p className="text-neutral-400 text-xs mt-1">
             {mode === 'register' 
               ? 'Начнем работу с Вашей организацией по созданию планировок с AI' 
               : 'Войдите в свой аккаунт для доступа к функциям'}
@@ -1324,7 +1481,7 @@ function AuthModal({ isOpen, onClose }) {
         </div>
         
         {/* Content */}
-        <div className="p-6">
+        <div className="px-5 py-5">
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
               <div>
@@ -1554,6 +1711,62 @@ function Plan3DInfoModal({ isOpen, onClose }) {
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function OrganizationUsersModal({ isOpen, onClose, users = [], isLoading = false, error = '' }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg mx-4 rounded-2xl border border-white/10 bg-[#111113] p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Пользователи с префиксом «Организация»</h3>
+            <p className="text-xs text-neutral-400 mt-1">Доступ без ограничений активирован</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition"
+            aria-label="Закрыть"
+          >
+            <X className="h-4 w-4 text-neutral-300" />
+          </button>
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-10 text-sm text-neutral-300">Загрузка...</div>
+        ) : (
+          <div className="space-y-3">
+            {error && (
+              <div className="rounded-lg border border-red-400/40 bg-red-400/10 px-3 py-2 text-xs text-red-300">
+                {error}
+              </div>
+            )}
+            {users.length === 0 && !error ? (
+              <div className="text-center text-xs text-neutral-400 py-6">
+                Пока нет пользователей с префиксом «Организация».
+              </div>
+            ) : (
+              <div className="max-h-64 overflow-y-auto space-y-2 custom-scrollbar">
+                {users.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/40 px-3 py-2">
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-medium text-white">{item.name}</div>
+                      <div className="text-xs text-neutral-400">@{item.username}</div>
+                    </div>
+                    <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-white/70">
+                      Организация
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1868,14 +2081,14 @@ function AdvancedSidebar({
   }
 
   return (
-    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-56 relative">
+    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-72 relative">
       {/* Top: search */}
       <div className="p-2">
-        <div className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2 py-1.5 ring-1 ring-white/10 hover:ring-white/20 transition">
+        <div className="flex items-center gap-1.5 rounded-lg bg-white/5 px-4 py-2 ring-1 ring-white/10 hover:ring-white/20 transition">
           <Search className="h-3 w-3 text-neutral-400" />
           <input
             placeholder="Поиск"
-            className="bg-transparent placeholder:text-neutral-500 text-xs outline-none w-full"
+            className="bg-transparent placeholder:text-neutral-500 text-sm outline-none w-full"
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
           />
@@ -1883,7 +2096,7 @@ function AdvancedSidebar({
       </div>
 
       {/* Nav */}
-      <nav className="px-1.5 text-xs flex-1 overflow-y-auto custom-scrollbar">
+       <nav className="px-1.5 text-sm flex-1 overflow-y-auto custom-scrollbar">
         <AdvancedSectionTitle>Главное</AdvancedSectionTitle>
         <AdvancedNavItem onClick={onCreateChat} Icon={Plus} label="Новый чат" />
         <AdvancedNavItem onClick={onShowGallery} Icon={Images} label="Создано" />
@@ -2123,7 +2336,7 @@ function AdvancedSidebar({
 
 function AdvancedSectionTitle({ children, className = "" }) {
   return (
-    <div className={`px-1.5 pb-0.5 pt-3 text-[10px] uppercase tracking-wider text-neutral-500 ${className}`}>
+     <div className={`px-1.5 pb-0.5 pt-3 text-xs uppercase tracking-wider text-neutral-500 ${className}`}>
       {children}
     </div>
   );
@@ -2133,7 +2346,7 @@ function AdvancedNavItem({ Icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-1.5 rounded-md px-2 py-1.5 my-0.5 transition text-left ${
+      className={`w-full flex items-center gap-1.5 rounded-md px-4 py-2 my-0.5 transition text-left text-sm ${
         active
           ? "bg-white/10 text-white"
           : "text-neutral-300 hover:bg-white/5 hover:text-white"
@@ -2181,7 +2394,7 @@ function AdvancedHistoryLinkWithMenu({ chat, active = false, onClick, onRename, 
       <div className="flex items-center gap-1 w-full min-h-[32px]">
         <button 
           onClick={onClick}
-          className={`flex-1 text-left py-1.5 px-3 rounded-md truncate cursor-pointer transition min-h-[32px] ${
+            className={`flex-1 text-left py-2 px-4 rounded-md truncate cursor-pointer transition min-h-[32px] text-sm ${
             active 
               ? "text-white bg-white/10" 
               : "text-neutral-400 hover:text-neutral-200 hover:bg-white/5"
@@ -2206,14 +2419,14 @@ function AdvancedHistoryLinkWithMenu({ chat, active = false, onClick, onRename, 
         <div className="absolute right-0 top-full mt-1 bg-neutral-900 border border-white/10 rounded-lg shadow-2xl overflow-hidden z-50 min-w-[160px]">
           <button
             onClick={(e) => { e.stopPropagation(); onRename(); setMenuOpen(false); }}
-            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/5 transition text-left"
+            className="w-full flex items-center gap-2 px-4 py-2 hover:bg-white/5 transition text-left text-sm"
           >
             <Edit2 className="h-3.5 w-3.5 text-neutral-400" />
             <span className="text-sm text-white">Переименовать</span>
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onPin(); setMenuOpen(false); }}
-            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/5 transition text-left"
+            className="w-full flex items-center gap-2 px-4 py-2 hover:bg-white/5 transition text-left text-sm"
           >
             <Pin className="h-3.5 w-3.5 text-neutral-400" />
             <span className="text-sm text-white">{chat.pinned ? 'Открепить' : 'Закрепить'}</span>
@@ -2221,7 +2434,7 @@ function AdvancedHistoryLinkWithMenu({ chat, active = false, onClick, onRename, 
           <div className="border-t border-white/5"></div>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); setMenuOpen(false); }}
-            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-red-500/10 transition text-left"
+            className="w-full flex items-center gap-2 px-4 py-2 hover:bg-red-500/10 transition text-left text-sm"
           >
             <Trash2 className="h-3.5 w-3.5 text-red-400" />
             <span className="text-sm text-red-400">Удалить</span>
@@ -2236,7 +2449,7 @@ function AdvancedHistoryLink({ label, active = false, onClick }) {
   return (
     <button 
       onClick={onClick}
-      className={`block w-full text-left py-1.5 px-3 rounded-md truncate cursor-pointer transition ${
+      className={`block w-full text-left py-2 px-4 rounded-md truncate cursor-pointer transition text-sm ${
         active 
           ? "text-white bg-white/10" 
           : "text-neutral-400 hover:text-neutral-200 hover:bg-white/5"
@@ -2249,7 +2462,7 @@ function AdvancedHistoryLink({ label, active = false, onClick }) {
 
 function AdvancedHistoryDate({ label }) {
   return (
-    <div className="px-3 pt-4 pb-1 text-[11px] uppercase tracking-wider text-neutral-500">{label}</div>
+    <div className="px-3 pt-4 pb-1 text-xs uppercase tracking-wider text-neutral-500">{label}</div>
   );
 }
 
@@ -2670,8 +2883,8 @@ function AdvancedMainArea({
         <div className="flex items-center justify-center gap-2">
           {/* Plan AI logo - Ultimate Monochrome Luxury */}
           <svg 
-            width="64" 
-            height="64" 
+            width="80" 
+            height="80" 
             viewBox="0 0 400 400" 
             xmlns="http://www.w3.org/2000/svg" 
             aria-label="Plan AI logo"
@@ -2929,7 +3142,7 @@ function AdvancedMainArea({
           </svg>
           
           {/* Premium typography - aligned with logo */}
-          <span className="text-5xl font-light tracking-[-0.03em] text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.35)]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: '1' }}>
+          <span className="text-6xl font-light tracking-[-0.03em] text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.35)]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: '1' }}>
             Plan AI
           </span>
         </div>
@@ -2974,16 +3187,16 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
   const canSend = attachments.length > 0 && (model === "3d" ? query.trim().length > 0 : techplanMode !== null);
 
   return (
-    <div className="relative z-20 w-full max-w-xl mx-auto rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5">
-      <div className="flex items-center gap-2 px-3 md:px-4">
+    <div className={`relative z-20 w-full max-w-4xl mx-auto ${attachments.length > 0 ? 'rounded-2xl' : 'rounded-full'} bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5`}>
+      <div className="flex items-center gap-3 pl-8 md:pl-10 pr-2 py-0.5">
         <div className="relative">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-0.5 rounded-md hover:bg-white/10 transition-all duration-200 group hover:scale-110"
+            className="p-1.5 rounded-full hover:bg-white/10 transition-all duration-200 group hover:scale-110"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
           >
-            <Paperclip className="h-4 w-4 text-neutral-400 hover:text-neutral-200 transition-transform duration-200 group-hover:scale-110" />
+            <Paperclip className="h-5 w-5 text-white hover:text-white transition-transform duration-200 group-hover:scale-110" />
           </button>
           
           {/* Скрытый input для выбора файлов */}
@@ -2998,7 +3211,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
           
           {/* Подсказка при наведении */}
           {showTooltip && (
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded-md whitespace-nowrap z-50 text-center">
+             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/80 text-white text-sm rounded-md whitespace-nowrap z-50 text-center">
               Прикрепить
               <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/80"></div>
             </div>
@@ -3009,14 +3222,14 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
         {model === "3d" && (
           <input
             placeholder="Что ты хочешь узнать?"
-            className="flex-1 bg-transparent py-4 md:py-5 text-[15px] placeholder:text-neutral-500 outline-none"
+             className="flex-1 bg-transparent py-1 text-[16px] placeholder:text-neutral-500 outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         )}
 
         {model === "techplan" && (
-          <div className="flex-1 py-3 md:py-4 flex items-center gap-2">
+           <div className="flex-1 py-1 flex items-center gap-3 px-6">
             <AdvancedToggleChip
               label="С мебелью"
               active={techplanMode === "with"}
@@ -3025,6 +3238,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
                 onAdvanced?.();
               }}
             />
+            <div className="h-4 w-px bg-white/20"></div>
             <AdvancedToggleChip
               label="Без мебели"
               active={techplanMode === "without"}
@@ -3037,13 +3251,13 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
         )}
 
         {model === "cleanup" && (
-          <div className="flex-1 py-3 md:py-4 flex items-center gap-2">
+           <div className="flex-1 py-1 flex items-center gap-4 px-6">
             <div className="text-sm text-neutral-400">Удаление объектов</div>
           </div>
         )}
 
         {/* Right controls: model selector + Send button */}
-        <div className="hidden md:flex items-center gap-2 text-xs">
+         <div className="hidden md:flex items-center gap-3 text-sm pr-0 ml-4">
           <AdvancedModelMenu
             value={model}
             onChange={(m) => {
@@ -3067,7 +3281,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
             <button
               type="button"
               disabled={!canSend || isGenerating}
-              className="ml-1 rounded-full p-1.5 ring-1 ring-white/10 bg-white hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group hover:scale-110"
+              className="ml-1 rounded-full p-2 ring-1 ring-white/10 bg-white hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group hover:scale-110"
               onClick={() => {
                 if (!canSend || isGenerating) return;
                 const payload = { model, query, techplanMode, attachments };
@@ -3078,13 +3292,13 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="h-4 w-4 text-black"
+                   className="h-5 w-5 text-black"
                 >
                   ✷
                 </motion.div>
               ) : (
               <svg 
-                className="h-4 w-4 transition-transform duration-200 group-hover:scale-110 text-black" 
+                 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110 text-black"
                 viewBox="0 0 24 24" 
                 fill="none" 
                 stroke="currentColor" 
@@ -3100,7 +3314,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
             {/* Подсказка для недоступной кнопки отправки */}
             {showSendTooltip && !canSend && (
               <div 
-                className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded-md whitespace-nowrap z-50 text-center"
+                 className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/80 text-white text-sm rounded-md whitespace-nowrap z-50 text-center"
                 onMouseEnter={() => setShowSendTooltip(true)}
                 onMouseLeave={() => setShowSendTooltip(false)}
               >
@@ -3162,10 +3376,10 @@ function AdvancedToggleChip({ label, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md px-2.5 py-1.5 text-xs ring-1 transition ${
+      className={`rounded-full px-4 py-2 text-sm transition ${
         active
-          ? "bg-white/15 ring-white/20 text-white"
-          : "bg-white/5 ring-white/10 text-neutral-300 hover:bg-white/10"
+          ? "text-white"
+          : "text-neutral-300 hover:bg-white/10"
       }`}
     >
       {label}
@@ -3192,14 +3406,14 @@ function AdvancedModelMenu({ value, onChange, isOpen, onToggle, openUpward = fal
       <button
         type="button"
         onClick={toggleMenu}
-        className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
+        className="flex items-center gap-2 rounded-full px-4 py-2 text-sm text-white hover:bg-white/10"
       >
-        <current.Icon className="h-3.5 w-3.5" />
+        <current.Icon className="h-4 w-4 text-white" />
         <span>{current.label}</span>
-        <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+        <ChevronDown className="h-4 w-4 text-white opacity-70" />
       </button>
       {isMenuOpen && (
-        <div className={`absolute right-0 w-56 min-h-[160px] rounded-lg border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+         <div className={`absolute right-0 w-96 min-h-[160px] rounded-2xl border border-white/10 bg-[#3e3f42] p-3 shadow-2xl z-[100] ${
           openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
         }`}>
           {items.map((it, idx) => (
@@ -3213,18 +3427,19 @@ function AdvancedModelMenu({ value, onChange, isOpen, onToggle, openUpward = fal
                   setOpen(false);
                 }
               }}
-              className={`w-full text-left px-1.5 py-1.5 rounded-md hover:bg-white/10 transition ${
-                value === it.key ? "bg-white/10" : ""
-              }`}
+               className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-white/10 transition`}
             >
-              <div className="flex items-center gap-1.5">
-                <it.Icon className="h-3.5 w-3.5 text-neutral-200" />
-                <div className="flex-1">
-                  <div className="text-xs font-medium">{it.label}</div>
-                  <div className="text-[10px] text-neutral-400 mt-0.5">{it.sub}</div>
-                </div>
-                {value === it.key && <Check className="h-3.5 w-3.5" />}
+              <it.Icon className="h-5 w-5 text-white" />
+              <div className="flex-1 text-left">
+                <div className="text-xs font-medium text-white">{it.label}</div>
+                <div className="text-[10px] text-neutral-400 mt-1">{it.sub}</div>
               </div>
+              {value === it.key && it.key !== "3d" && <Check className="h-5 w-5 text-white" />}
+              {it.key === "3d" && (
+                <div className="px-2 py-1 bg-white/10 rounded-lg border border-white/20">
+                  <span className="text-xs font-medium text-white">Скоро</span>
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -3377,9 +3592,9 @@ function AdvancedInlineButtons({ backgroundType, onBackgroundChange, modelMenuOp
   ];
 
   const backgroundOptions = [
-    { id: "standard", label: "Стандартный", description: "Чистый фон без частиц" },
-    { id: "interactive", label: "Интерактивный", description: "Фон с частицами и взаимодействием" },
-    { id: "alternative", label: "Альтернативный", description: "Космический фон с летающими точками" }
+    { id: "standard", label: "Стандартный", description: "Чистый фон без частиц", Icon: Layers },
+    { id: "interactive", label: "Интерактивный", description: "Фон с частицами и взаимодействием", Icon: Sparkles },
+    { id: "alternative", label: "Альтернативный", description: "Космический фон с летающими точками", Icon: Eye }
   ];
 
   // Закрытие меню при клике вне области
@@ -3414,14 +3629,14 @@ function AdvancedInlineButtons({ backgroundType, onBackgroundChange, modelMenuOp
             setThemesMenuOpen(false);
             onModelMenuToggle?.(false);
           }}
-          className="flex items-center gap-1.5 rounded-full px-2 py-1.5 ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
+          className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm ring-1 ring-white/20"
         >
-          <Layers className="h-3 w-3" />
-          <span className="text-xs">Фон страницы</span>
-          <ChevronDown className="h-3 w-3 opacity-70" />
+          <Layers className="h-3 w-3 text-white" />
+          <span className="text-sm text-white">Фон страницы</span>
+          <ChevronDown className="h-3 w-3 text-white opacity-70" />
         </button>
         {backgroundMenuOpen && (
-          <div className={`absolute left-0 w-56 min-h-[160px] rounded-lg border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+          <div className={`absolute left-0 w-96 min-h-[160px] rounded-2xl border border-white/10 bg-[#3e3f42] p-3 shadow-2xl z-[100] ${
             openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}>
             {backgroundOptions.map((option) => (
@@ -3431,12 +3646,14 @@ function AdvancedInlineButtons({ backgroundType, onBackgroundChange, modelMenuOp
                   onBackgroundChange?.(option.id);
                   setBackgroundMenuOpen(false);
                 }}
-                className={`w-full text-left px-2 py-2 rounded-lg hover:bg-white/10 transition ${
-                  backgroundType === option.id ? "bg-white/10" : ""
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-white/10 transition`}
               >
-                <div className="text-xs font-medium">{option.label}</div>
-                <div className="text-[10px] text-neutral-400 mt-0.5">{option.description}</div>
+                <option.Icon className="h-5 w-5 text-white" />
+                <div className="flex-1 text-left">
+                  <div className="text-xs font-medium text-white">{option.label}</div>
+                  <div className="text-[10px] text-neutral-400 mt-1">{option.description}</div>
+                </div>
+                {backgroundType === option.id && <Check className="h-5 w-5 text-white" />}
               </button>
             ))}
           </div>
@@ -3463,9 +3680,9 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
   ];
 
   const backgroundOptions = [
-    { id: "standard", label: "Стандартный", description: "Чистый фон без частиц" },
-    { id: "interactive", label: "Интерактивный", description: "Фон с частицами и взаимодействием" },
-    { id: "alternative", label: "Альтернативный", description: "Космический фон с летающими точками" }
+    { id: "standard", label: "Стандартный", description: "Чистый фон без частиц", Icon: Layers },
+    { id: "interactive", label: "Интерактивный", description: "Фон с частицами и взаимодействием", Icon: Sparkles },
+    { id: "alternative", label: "Альтернативный", description: "Космический фон с летающими точками", Icon: Eye }
   ];
 
   // Закрытие меню при клике вне области
@@ -3500,14 +3717,14 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
             setThemesMenuOpen(false); // Закрываем другое меню
             onModelMenuToggle?.(false); // Закрываем меню модели
           }}
-          className="flex items-center gap-2 rounded-full px-3 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
+          className="flex items-center gap-2 rounded-full px-4 py-2 text-sm ring-1 ring-white/20"
         >
-        <Layers className="h-4 w-4" />
-          <span className="text-sm">Фон страницы</span>
-          <ChevronDown className="h-3 w-3 opacity-70" />
+        <Layers className="h-4 w-4 text-white" />
+          <span className="text-sm text-white">Фон страницы</span>
+          <ChevronDown className="h-3 w-3 text-white opacity-70" />
       </button>
         {backgroundMenuOpen && (
-          <div className={`absolute left-0 w-56 min-h-[160px] rounded-lg border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+          <div className={`absolute left-0 w-96 min-h-[160px] rounded-2xl border border-white/10 bg-[#3e3f42] p-3 shadow-2xl z-[100] ${
             openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}>
             {backgroundOptions.map((option) => (
@@ -3517,12 +3734,14 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
                   onBackgroundChange?.(option.id);
                   setBackgroundMenuOpen(false);
                 }}
-                className={`w-full text-left px-2 py-2 rounded-lg hover:bg-white/10 transition ${
-                  backgroundType === option.id ? "bg-white/10" : ""
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-white/10 transition`}
               >
-                <div className="text-xs font-medium">{option.label}</div>
-                <div className="text-[10px] text-neutral-400 mt-0.5">{option.description}</div>
+                <option.Icon className="h-5 w-5 text-white" />
+                <div className="flex-1 text-left">
+                  <div className="text-xs font-medium text-white">{option.label}</div>
+                  <div className="text-[10px] text-neutral-400 mt-1">{option.description}</div>
+                </div>
+                {backgroundType === option.id && <Check className="h-5 w-5 text-white" />}
               </button>
             ))}
           </div>
@@ -3754,7 +3973,7 @@ function AdvancedMessageDisplay({
 }
 
 export default function MonochromeClaudeStyle() {
-  const { user, logout, saveSettings, loadSettings } = useAuth();
+  const { user, logout, saveSettings, loadSettings, refreshUser, grantOrganizationAccess, fetchOrganizationUsers } = useAuth();
   const [model, setModel] = useState("techplan");
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [value, setValue] = useState("");
@@ -3871,6 +4090,23 @@ export default function MonochromeClaudeStyle() {
   ]);
   const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
   const [galleryModelFilter, setGalleryModelFilter] = useState('all');
+  const [limitNotice, setLimitNotice] = useState('');
+  const [regenerationUsage, setRegenerationUsage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`regenerations@${userId}`);
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
+  const [organizationModal, setOrganizationModal] = useState({ isOpen: false, loading: false, users: [], error: '' });
+  const [guestPlanCount, setGuestPlanCount] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    const saved = localStorage.getItem('guestPlansUsed');
+    return saved ? parseInt(saved, 10) || 0 : 0;
+  });
+  const isDirector = user?.role === 'director';
+  const isOrganizationUser = user?.accessPrefix === 'Организация';
+  const hasUnlimitedAccess = isDirector || isOrganizationUser;
 
   // Confirmation modals state
   const [confirmModal, setConfirmModal] = useState({
@@ -3911,6 +4147,43 @@ export default function MonochromeClaudeStyle() {
     const timeoutId = setTimeout(saveUserSettings, 500);
     return () => clearTimeout(timeoutId);
   }, [siteStyle, backgroundType, user]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`regenerations@${userId}`, JSON.stringify(regenerationUsage));
+    }
+  }, [regenerationUsage, userId]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`regenerations@${userId}`);
+      setRegenerationUsage(saved ? JSON.parse(saved) : {});
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!user && typeof window !== 'undefined') {
+      localStorage.setItem('guestPlansUsed', guestPlanCount.toString());
+    }
+  }, [guestPlanCount, user]);
+
+  useEffect(() => {
+    if (user) {
+      setGuestPlanCount(0);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!limitNotice) return;
+    const timer = setTimeout(() => setLimitNotice(''), 5000);
+    return () => clearTimeout(timer);
+  }, [limitNotice]);
+
+  useEffect(() => {
+    if (hasUnlimitedAccess && Object.keys(regenerationUsage).length) {
+      setRegenerationUsage({});
+    }
+  }, [hasUnlimitedAccess]);
 
 
   // Advanced message system states
@@ -4027,6 +4300,19 @@ export default function MonochromeClaudeStyle() {
   // Advanced message system handlers
   const handleAdvancedSendMessage = async (payload) => {
     const { model, query, techplanMode, attachments } = payload;
+
+    if (model === "techplan") {
+      if (!hasUnlimitedAccess) {
+        if (user && (user.plansUsed ?? 0) >= 1) {
+          setLimitNotice('Лимит генераций исчерпан. Обратитесь к директору за доступом «Организация».');
+          return;
+        }
+        if (!user && guestPlanCount >= 1) {
+          setLimitNotice('Гостевой лимит генераций исчерпан. Попросите доступ «Организация» у директора.');
+          return;
+        }
+      }
+    }
     
     // Создаем сообщение пользователя
     const userMessage = {
@@ -4063,13 +4349,23 @@ export default function MonochromeClaudeStyle() {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Ошибка генерации технического плана');
+          const err = new Error(errorData.error || 'Ошибка генерации технического плана');
+          if (errorData.code) err.code = errorData.code;
+          throw err;
         }
 
         // Получаем изображение как blob
         const imageBlob = await response.blob();
         responseImage = URL.createObjectURL(imageBlob);
         responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
+
+        if (!hasUnlimitedAccess) {
+          if (user) {
+            await refreshUser();
+          } else {
+            setGuestPlanCount((prev) => prev + 1);
+          }
+        }
       } else if (model === "cleanup" && attachments.length > 0) {
         // Удаление объектов
         const formData = new FormData();
@@ -4121,6 +4417,17 @@ export default function MonochromeClaudeStyle() {
       }, 100);
     } catch (error) {
       console.error('Ошибка генерации:', error);
+      if (error.code === 'PLAN_LIMIT' || error.code === 'GUEST_LIMIT') {
+        setLimitNotice(error.message);
+        if (error.code === 'PLAN_LIMIT') {
+          await refreshUser();
+        }
+        if (error.code === 'GUEST_LIMIT') {
+          setGuestPlanCount(1);
+        }
+      } else if (model === 'techplan') {
+        setLimitNotice(error.message);
+      }
       const errorResponse = {
         messageId: userMessage.id,
         text: `Ошибка: ${error.message}`,
@@ -4168,6 +4475,13 @@ export default function MonochromeClaudeStyle() {
   };
 
   const handleAdvancedRegenerate = async (messageId) => {
+    const regenLimit = hasUnlimitedAccess ? Infinity : 3;
+    const currentRegenCount = regenerationUsage[activeChatId] || 0;
+    if (regenLimit !== Infinity && currentRegenCount >= regenLimit) {
+      setLimitNotice('Лимит повторов достигнут. Обратитесь к директору за доступом «Организация».');
+      return;
+    }
+
     setAdvancedIsGenerating(true);
     
     // Симуляция повторной генерации
@@ -4191,6 +4505,13 @@ export default function MonochromeClaudeStyle() {
             : msg
         )
       }));
+
+      if (regenLimit !== Infinity) {
+        setRegenerationUsage(prev => ({
+          ...prev,
+          [activeChatId]: (prev[activeChatId] || 0) + 1
+        }));
+      }
     }, 2000);
   };
 
@@ -4229,6 +4550,16 @@ export default function MonochromeClaudeStyle() {
       content = `Удаление объектов — Полностью`;
     } else if (isPlan) {
       content = `Создание по техплану — ${planFurniture === "with" ? "С мебелью" : "Без мебели"}`;
+      if (!hasUnlimitedAccess) {
+        if (user && (user.plansUsed ?? 0) >= 1) {
+          setLimitNotice('Лимит генераций исчерпан. Обратитесь к директору за доступом «Организация».');
+          return;
+        }
+        if (!user && guestPlanCount >= 1) {
+          setLimitNotice('Гостевой лимит генераций исчерпан. Попросите доступ «Организация» у директора.');
+          return;
+        }
+      }
     }
     const msg = {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -4277,13 +4608,23 @@ export default function MonochromeClaudeStyle() {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Ошибка генерации технического плана');
+          const err = new Error(errorData.error || 'Ошибка генерации технического плана');
+          if (errorData.code) err.code = errorData.code;
+          throw err;
         }
 
         // Получаем изображение как blob
         const imageBlob = await response.blob();
         responseImage = URL.createObjectURL(imageBlob);
         responseText = `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}".`;
+
+        if (!hasUnlimitedAccess) {
+          if (user) {
+            await refreshUser();
+          } else {
+            setGuestPlanCount((prev) => prev + 1);
+          }
+        }
       } else {
         // Обычная обработка для других моделей
         responseText = `Вот результат обработки вашего запроса "${content}".`;
@@ -4300,6 +4641,17 @@ export default function MonochromeClaudeStyle() {
       }));
     } catch (error) {
       console.error('Ошибка генерации:', error);
+      if (isPlan && (error.code === 'PLAN_LIMIT' || error.code === 'GUEST_LIMIT')) {
+        setLimitNotice(error.message);
+        if (error.code === 'PLAN_LIMIT') {
+          await refreshUser();
+        }
+        if (error.code === 'GUEST_LIMIT') {
+          setGuestPlanCount(1);
+        }
+      } else if (isPlan) {
+        setLimitNotice(error.message);
+      }
       setResponses(prev => ({
         ...prev,
         [msg.id]: {
@@ -4368,6 +4720,10 @@ export default function MonochromeClaudeStyle() {
     setHasFirstMessage(false);
     setIsGenerating(false);
     setResponses({});
+    setRegenerationUsage(prev => ({
+      ...prev,
+      [id]: 0
+    }));
   };
 
   const deleteActiveChat = () => {
@@ -4381,6 +4737,11 @@ export default function MonochromeClaudeStyle() {
       setIsGenerating(false);
       setResponses({});
       return next;
+    });
+    setRegenerationUsage(prev => {
+      const nextUsage = { ...prev };
+      delete nextUsage[activeChatId];
+      return nextUsage;
     });
   };
 
@@ -4400,6 +4761,11 @@ export default function MonochromeClaudeStyle() {
       }
       
       return next;
+    });
+    setRegenerationUsage(prev => {
+      const nextUsage = { ...prev };
+      delete nextUsage[chatId];
+      return nextUsage;
     });
   };
 
@@ -4447,6 +4813,13 @@ export default function MonochromeClaudeStyle() {
   };
 
   const regenerateResponse = (messageId) => {
+    const regenLimit = hasUnlimitedAccess ? Infinity : 3;
+    const currentRegenCount = regenerationUsage[activeChatId] || 0;
+    if (regenLimit !== Infinity && currentRegenCount >= regenLimit) {
+      setLimitNotice('Лимит повторов достигнут. Обратитесь к директору за доступом «Организация».');
+      return;
+    }
+
     setIsGenerating(true);
     setTimeout(() => {
       setIsGenerating(false);
@@ -4458,6 +4831,13 @@ export default function MonochromeClaudeStyle() {
           canRegenerate: true
         }
       }));
+
+      if (regenLimit !== Infinity) {
+        setRegenerationUsage(prev => ({
+          ...prev,
+          [activeChatId]: (prev[activeChatId] || 0) + 1
+        }));
+      }
     }, 2000);
   };
 
@@ -4524,8 +4904,16 @@ export default function MonochromeClaudeStyle() {
       cancelText: 'Отмена',
       onConfirm: () => {
         logout();
-        navigate('/login');
-        setConfirmModal({ ...confirmModal, isOpen: false });
+        navigate('/');
+        setConfirmModal({
+          isOpen: false,
+          type: 'danger',
+          title: '',
+          message: '',
+          confirmText: 'Подтвердить',
+          cancelText: 'Отмена',
+          onConfirm: null
+        });
       }
     });
   };
@@ -4536,6 +4924,28 @@ export default function MonochromeClaudeStyle() {
     } else {
       setIsProfileOpen(true);
     }
+  };
+
+  const handleGrantOrganizationAccess = async (username) => {
+    const result = await grantOrganizationAccess(username);
+    if (result?.success) {
+      await refreshUser();
+    }
+    return result;
+  };
+
+  const handleOpenOrganizationList = async () => {
+    setOrganizationModal({ isOpen: true, loading: true, users: [], error: '' });
+    const list = await fetchOrganizationUsers();
+    if (list) {
+      setOrganizationModal({ isOpen: true, loading: false, users: list, error: '' });
+    } else {
+      setOrganizationModal({ isOpen: true, loading: false, users: [], error: 'Не удалось получить список пользователей.' });
+    }
+  };
+
+  const handleCloseOrganizationModal = () => {
+    setOrganizationModal(prev => ({ ...prev, isOpen: false }));
   };
 
   // Gallery functions
@@ -4669,6 +5079,13 @@ export default function MonochromeClaudeStyle() {
             model={model}
             onModelSelect={setModel}
           />
+          {limitNotice && (
+            <div className="mx-auto max-w-3xl w-full px-4 mb-4">
+              <div className="rounded-xl border border-yellow-400/30 bg-yellow-400/10 px-4 py-3 text-xs text-yellow-200">
+                {limitNotice}
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Image Modal */}
@@ -4695,6 +5112,8 @@ export default function MonochromeClaudeStyle() {
           backgroundType={backgroundType}
           onBackgroundChange={setBackgroundType}
           on3DInfoOpen={() => setIs3DInfoOpen(true)}
+          onGrantAccess={handleGrantOrganizationAccess}
+          onOpenOrganizationList={handleOpenOrganizationList}
         />
         <AuthModal 
           isOpen={isAuthOpen} 
@@ -4703,6 +5122,25 @@ export default function MonochromeClaudeStyle() {
         <Plan3DInfoModal 
           isOpen={is3DInfoOpen} 
           onClose={() => setIs3DInfoOpen(false)} 
+        />
+        <OrganizationUsersModal
+          isOpen={organizationModal.isOpen}
+          onClose={handleCloseOrganizationModal}
+          users={organizationModal.users}
+          isLoading={organizationModal.loading}
+          error={organizationModal.error}
+        />
+        
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+          onConfirm={confirmModal.onConfirm}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmText={confirmModal.confirmText}
+          cancelText={confirmModal.cancelText}
+          type={confirmModal.type}
         />
     </div>
   );

@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import bcrypt from 'bcrypt';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,6 +21,10 @@ db.exec(`
     name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     telegram TEXT,
+    role TEXT NOT NULL DEFAULT 'user',
+    access_prefix TEXT,
+    plans_used INTEGER NOT NULL DEFAULT 0,
+    regenerations_used INTEGER NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -59,6 +64,18 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_agency_user_id ON agency_data(user_id);
 `);
 
+const ensureColumn = (table, column, definition) => {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!columns.some(col => col.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+};
+
+ensureColumn('users', 'role', "TEXT NOT NULL DEFAULT 'user'");
+ensureColumn('users', 'access_prefix', 'TEXT');
+ensureColumn('users', 'plans_used', 'INTEGER NOT NULL DEFAULT 0');
+ensureColumn('users', 'regenerations_used', 'INTEGER NOT NULL DEFAULT 0');
+
 // Функции для работы с пользователями
 export const userDB = {
   // Создать пользователя
@@ -92,6 +109,70 @@ export const userDB = {
       WHERE id = ?
     `);
     return stmt.run(...values, id);
+  },
+
+  setAccessPrefix: (id, prefix) => {
+    if (prefix === 'Организация') {
+      const stmt = db.prepare(`
+        UPDATE users
+        SET access_prefix = ?, plans_used = 0, regenerations_used = 0, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `);
+      return stmt.run(prefix, id);
+    }
+
+    const stmt = db.prepare(`
+      UPDATE users
+      SET access_prefix = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+    return stmt.run(prefix, id);
+  },
+
+  incrementPlanUsage: (id) => {
+    const stmt = db.prepare(`
+      UPDATE users
+      SET plans_used = plans_used + 1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+    return stmt.run(id);
+  },
+
+  resetPlanUsage: (id) => {
+    const stmt = db.prepare(`
+      UPDATE users
+      SET plans_used = 0, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+    return stmt.run(id);
+  },
+
+  incrementRegeneration: (id) => {
+    const stmt = db.prepare(`
+      UPDATE users
+      SET regenerations_used = regenerations_used + 1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+    return stmt.run(id);
+  },
+
+  resetRegeneration: (id) => {
+    const stmt = db.prepare(`
+      UPDATE users
+      SET regenerations_used = 0, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+    return stmt.run(id);
+  },
+
+  getByPrefix: (prefix) => {
+    const stmt = db.prepare(`
+      SELECT id, username, name, access_prefix, role, created_at
+      FROM users
+      WHERE access_prefix = ?
+      ORDER BY created_at DESC
+    `);
+    return stmt.all(prefix);
   }
 };
 
@@ -185,6 +266,24 @@ export const agencyDB = {
     }
   }
 };
+
+const directorUsername = 'developers';
+const directorPassword = 'developers1488PLAN';
+
+try {
+  const existingDirector = userDB.findByUsername(directorUsername);
+  if (!existingDirector) {
+    const passwordHash = bcrypt.hashSync(directorPassword, 10);
+    const result = userDB.create(directorUsername, 'Директор', passwordHash);
+    const directorId = result.lastInsertRowid;
+    userDB.update(directorId, { role: 'director' });
+    console.log('✅ Директорский аккаунт создан: developers');
+  } else if (existingDirector.role !== 'director') {
+    userDB.update(existingDirector.id, { role: 'director' });
+  }
+} catch (err) {
+  console.error('❌ Ошибка при инициализации аккаунта директора:', err);
+}
 
 export default db;
 
