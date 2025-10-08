@@ -1,8 +1,8 @@
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 // Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
-// Для сценария prompt + исходное изображение используем image_to_image
-const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/runwayml/v1/image_to_image';
+// По умолчанию используем Nano-Banana (Gemini 2.5 Flash Image) generateContent
+const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
 
 import fs from 'fs';
 import path from 'path';
@@ -277,50 +277,75 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     console.log(`🎨 Генерация технического плана (режим: ${mode})`);
     console.log(`📁 Изображение: ${imagePath}`);
     
-    // Создаем FormData для отправки
-    const formData = new FormData();
-    
-    // Добавляем изображение
-    formData.append('image', fs.createReadStream(imagePath));
-    
-    // Минимальный набор: prompt + image
-    const model = process.env.COMETAPI_MODEL || 'gen4_image';
-    formData.append('prompt', prompt);
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64 = imageBuffer.toString('base64');
+    const ext = path.extname(imagePath).toLowerCase();
+    const mime = ext === '.png' ? 'image/png' : 'image/jpeg';
 
-    console.log('📤 Отправка запроса к COMETAPI...');
-    
-    const response = await fetch(`${COMETAPI_IMAGE_URL}?model=${encodeURIComponent(model)}`, {
+    const requestBody = {
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: mime, data: base64 } }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseModalities: ['IMAGE']
+      }
+    };
+
+    console.log('📤 Отправка запроса к COMETAPI (Nano-Banana)...');
+
+    const response = await fetch(COMETAPI_IMAGE_URL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        ...formData.getHeaders()
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
-      body: formData
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Ошибка COMETAPI:', response.status, errorText, 'URL:', COMETAPI_IMAGE_URL);
-      throw new Error(`COMETAPI ошибка ${response.status} [${COMETAPI_IMAGE_URL}]: ${errorText}`);
+      throw new Error(`COMETAPI ошибка ${response.status} [${COMETAPI_IMAGE_URL}]: ${errorText?.slice(0, 500)}`);
     }
 
     const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(`COMETAPI вернул ошибку: ${result.error || 'Неизвестная ошибка'}`);
+
+    let base64Image;
+    if (result?.data?.image) {
+      base64Image = result.data.image;
     }
 
-    if (!result.data || !result.data.image) {
-      throw new Error('COMETAPI не вернул изображение');
+    if (!base64Image) {
+      const candidates = result?.candidates || result?.contents || result?.responses;
+      if (Array.isArray(candidates) && candidates.length > 0) {
+        const first = candidates[0].content || candidates[0];
+        const parts = first?.parts || first;
+        if (Array.isArray(parts)) {
+          const imagePart = parts.find(p => p?.inline_data?.data);
+          if (imagePart?.inline_data?.data) {
+            base64Image = imagePart.inline_data.data;
+          }
+        }
+      }
     }
 
-    // Декодируем base64 изображение
-    const imageBuffer = Buffer.from(result.data.image, 'base64');
-    
+    if (!base64Image) {
+      throw new Error('COMETAPI не вернул изображение в ожидаемом формате');
+    }
+
+    const outBuffer = Buffer.from(base64Image, 'base64');
+
     console.log('✅ Технический план успешно сгенерирован');
-    console.log(`📊 Размер изображения: ${imageBuffer.length} байт`);
+    console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
     
-    return imageBuffer;
+    return outBuffer;
 
   } catch (error) {
     console.error('❌ Ошибка генерации технического плана:', error);
