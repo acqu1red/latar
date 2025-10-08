@@ -4431,7 +4431,8 @@ function MonochromeClaudeStyle() {
       if (model === "techplan" && attachments.length > 0) {
         // Генерация технического плана
         const formData = new FormData();
-        formData.append('image', attachments[0].file);
+        // прикладываем все изображения
+        attachments.forEach((att) => formData.append('image', att.file));
         formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
 
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
@@ -4450,20 +4451,27 @@ function MonochromeClaudeStyle() {
               errorCode = errorData?.code;
             } else {
               const text = await response.text();
-              // отрежем возможную HTML-страницу ошибки от прокси/серверов
               errorMessage = text?.slice(0, 300) || errorMessage;
             }
-          } catch (_) {
-            // игнорируем ошибки парсинга тела
-          }
+          } catch (_) {}
           const err = new Error(errorMessage);
           if (errorCode) err.code = errorCode;
           throw err;
         }
 
-        // Получаем изображение как blob
-        const imageBlob = await response.blob();
-        responseImage = URL.createObjectURL(imageBlob);
+        // Поддержка множественных результатов
+        const contentType = response.headers.get('content-type') || '';
+        let responseImages = [];
+        if (contentType.includes('application/json')) {
+          const data = await response.json();
+          if (Array.isArray(data?.images)) {
+            responseImages = data.images;
+          }
+        } else {
+          const imageBlob = await response.blob();
+          responseImages = [URL.createObjectURL(imageBlob)];
+        }
+        responseImage = responseImages[0] || null;
         responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
 
         if (!hasUnlimitedAccess) {
@@ -4476,7 +4484,7 @@ function MonochromeClaudeStyle() {
       } else if (model === "cleanup" && attachments.length > 0) {
         // Удаление объектов
         const formData = new FormData();
-        formData.append('image', attachments[0].file);
+        attachments.forEach((att) => formData.append('image', att.file));
 
         const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
           method: 'POST',
@@ -4488,9 +4496,19 @@ function MonochromeClaudeStyle() {
           throw new Error(errorData.error || 'Ошибка удаления объектов');
         }
 
-        // Получаем изображение как blob
-        const imageBlob = await response.blob();
-        responseImage = URL.createObjectURL(imageBlob);
+        // Поддержка множественных результатов
+        const contentType2 = response.headers.get('content-type') || '';
+        let responseImages2 = [];
+        if (contentType2.includes('application/json')) {
+          const data = await response.json();
+          if (Array.isArray(data?.images)) {
+            responseImages2 = data.images;
+          }
+        } else {
+          const imageBlob = await response.blob();
+          responseImages2 = [URL.createObjectURL(imageBlob)];
+        }
+        responseImage = responseImages2[0] || null;
         responseText = `Объекты успешно удалены с изображения.`;
       } else {
         // Обычная обработка для других моделей
@@ -4501,6 +4519,7 @@ function MonochromeClaudeStyle() {
         messageId: userMessage.id,
         text: responseText,
         image: responseImage,
+        images: (typeof responseImages !== 'undefined' ? responseImages : undefined) || (typeof responseImages2 !== 'undefined' ? responseImages2 : undefined),
         rating: null,
         canRegenerate: true
       };

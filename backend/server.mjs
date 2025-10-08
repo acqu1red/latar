@@ -207,10 +207,10 @@ const upload = multer({
 
 
 // Маршрут для генерации технического плана
-app.post('/api/generate-technical-plan', upload.single('image'), async (req, res) => {
+app.post('/api/generate-technical-plan', upload.array('image', 10), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Изображение не загружено' });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'Изображения не загружены' });
     }
 
     const { mode } = req.body; // 'withFurniture' или 'withoutFurniture'
@@ -268,18 +268,26 @@ app.post('/api/generate-technical-plan', upload.single('image'), async (req, res
       guestUsage.set(clientIp, usage);
     }
 
-    const imagePath = req.file.path;
-    
-    console.log(`Обработка изображения для генерации технического плана (режим: ${mode}):`, imagePath);
+    const imagePaths = req.files.map(f => f.path);
+    console.log(`Обработка ${imagePaths.length} изображений для генерации технического плана (режим: ${mode})`);
 
-    // Генерируем технический план
-    const planBuffer = await generateTechnicalPlan(imagePath, mode);
-    
-    // Удаляем временный файл
-    fs.unlinkSync(imagePath);
+    const buffers = [];
+    for (const img of imagePaths) {
+      const buf = await generateTechnicalPlan(img, mode);
+      buffers.push(buf);
+    }
 
-    res.setHeader('Content-Type', 'image/jpeg');
-    res.send(planBuffer);
+    // Удаляем временные файлы
+    for (const p of imagePaths) {
+      try { fs.unlinkSync(p); } catch {}
+    }
+
+    if (buffers.length === 1) {
+      res.setHeader('Content-Type', 'image/jpeg');
+      return res.send(buffers[0]);
+    }
+    const payload = buffers.map(b => `data:image/jpeg;base64,${b.toString('base64')}`);
+    res.status(200).json({ images: payload });
 
   } catch (error) {
     console.error('Ошибка генерации технического плана:', error);
@@ -288,7 +296,7 @@ app.post('/api/generate-technical-plan', upload.single('image'), async (req, res
 });
 
 // Маршрут для удаления объектов (очистка комнаты)
-app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
+app.post('/api/remove-objects', upload.array('image', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'Изображения не загружены' });
@@ -303,15 +311,20 @@ app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
 
     const imagePaths = req.files.map(f => f.path);
 
-    const buffer = await generateCleanupImage({ imagePaths });
+    const buffers = await generateCleanupImage({ imagePaths });
 
     // Чистим временные файлы
     for (const p of imagePaths) {
       try { fs.unlinkSync(p); } catch {}
     }
 
-    res.setHeader('Content-Type', 'image/jpeg');
-    res.send(buffer);
+    // Возвращаем массив изображений как base64 для нескольких файлов, и одиночный буфер если был 1 файл
+    if (buffers.length === 1) {
+      res.setHeader('Content-Type', 'image/jpeg');
+      return res.send(buffers[0]);
+    }
+    const payload = buffers.map(b => `data:image/jpeg;base64,${b.toString('base64')}`);
+    res.status(200).json({ images: payload });
   } catch (error) {
     console.error('Ошибка удаления объектов:', error);
     res.status(500).json({ error: 'Ошибка удаления объектов: ' + error.message });

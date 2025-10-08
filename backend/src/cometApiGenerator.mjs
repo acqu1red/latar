@@ -1,8 +1,8 @@
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 // Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
-// По умолчанию используем Nano-Banana (Gemini 2.5 Flash Image) generateContent
-const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
+// Модель: gemini-2.5-flash-preview-09-2025 (CometAPI, формат generateContent)
+const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent';
 
 import fs from 'fs';
 import path from 'path';
@@ -219,32 +219,108 @@ Output:
 Generate one photorealistic image of the same room, empty (bare walls + floor only), same size/aspect as the input.`;
 
   try {
-    const formData = new FormData();
-    // Одно изображение как источник
-    formData.append('image', fs.createReadStream(imagePaths[0]));
-    const model = process.env.COMETAPI_MODEL || 'gen4_image';
-    formData.append('prompt', prompt);
+    const outputs = [];
+    for (const imagePath of imagePaths) {
+      const imageBuffer = fs.readFileSync(imagePath);
+      const base64 = imageBuffer.toString('base64');
+      const ext = path.extname(imagePath).toLowerCase();
+      const mime = ext === '.png' ? 'image/png' : 'image/jpeg';
 
-    const response = await fetch(`${COMETAPI_IMAGE_URL}?model=${encodeURIComponent(model)}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        ...formData.getHeaders()
-      },
-      body: formData
-    });
+      const requestBody = {
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: prompt },
+              { inline_data: { mime_type: mime, data: base64 } }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseModalities: ['IMAGE']
+        }
+      };
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`COMETAPI ошибка ${response.status} [${COMETAPI_IMAGE_URL}]: ${errorText}`);
+      const response = await fetch(COMETAPI_IMAGE_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `${apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`COMETAPI ошибка ${response.status} [${COMETAPI_IMAGE_URL}]: ${errorText}`);
+      }
+
+      const result = await response.json();
+
+      // Извлекаем base64 из разнообразных возможных форматов
+      let base64Image;
+      if (result?.data?.image && typeof result.data.image === 'string') {
+        base64Image = result.data.image;
+      }
+      if (!base64Image) {
+        const candidates = result?.candidates || result?.contents || result?.responses;
+        if (Array.isArray(candidates) && candidates.length > 0) {
+          const first = candidates[0].content || candidates[0];
+          const parts = first?.parts || first;
+          if (Array.isArray(parts)) {
+            const inlinePart = parts.find(p => p?.inline_data?.data || p?.inline_data?.image);
+            if (inlinePart?.inline_data?.data) base64Image = inlinePart.inline_data.data;
+            else if (inlinePart?.inline_data?.image) base64Image = inlinePart.inline_data.image;
+          }
+        }
+      }
+      if (!base64Image && Array.isArray(result?.media)) {
+        const mediaItem = result.media.find(m => typeof m?.data === 'string');
+        if (mediaItem?.data) base64Image = mediaItem.data;
+      }
+      if (!base64Image && typeof result?.image === 'string') base64Image = result.image;
+      if (!base64Image && typeof result?.output === 'string') base64Image = result.output;
+      if (!base64Image) {
+        const tryExtractBase64 = (obj, depth = 0) => {
+          if (!obj || depth > 3) return null;
+          if (typeof obj === 'string') return obj.length > 200 ? obj : null;
+          if (Array.isArray(obj)) {
+            for (const it of obj) {
+              const found = tryExtractBase64(it, depth + 1);
+              if (found) return found;
+            }
+            return null;
+          }
+          if (typeof obj === 'object') {
+            const preferredKeys = ['image', 'data', 'inline_data'];
+            for (const k of preferredKeys) {
+              if (obj[k]) {
+                const found = tryExtractBase64(obj[k], depth + 1);
+                if (found) return found;
+              }
+            }
+            for (const k of Object.keys(obj)) {
+              if (!preferredKeys.includes(k)) {
+                const found = tryExtractBase64(obj[k], depth + 1);
+                if (found) return found;
+              }
+            }
+          }
+          return null;
+        };
+        base64Image = tryExtractBase64(result);
+      }
+
+      if (!base64Image) {
+        const preview = JSON.stringify(result).slice(0, 500);
+        throw new Error('COMETAPI не вернул изображение в ожидаемом формате: ' + preview);
+      }
+
+      outputs.push(Buffer.from(base64Image, 'base64'));
     }
 
-    const result = await response.json();
-    if (!result.success || !result.data?.image) {
-      throw new Error(`COMETAPI вернул ошибку: ${result.error || 'Нет изображения'}`);
-    }
-
-    return Buffer.from(result.data.image, 'base64');
+    return outputs;
   } catch (e) {
     console.error('❌ Ошибка генерации очистки комнаты:', e);
     throw e;
