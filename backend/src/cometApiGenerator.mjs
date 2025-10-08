@@ -1,7 +1,9 @@
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 // Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
-const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1/images/generate';
+// Согласно актуальной документации CometAPI для Runway Gen-4:
+// https://api.cometapi.com/runwayml/v1/text_to_image
+const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/runwayml/v1/text_to_image';
 
 import fs from 'fs';
 import path from 'path';
@@ -226,7 +228,7 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
       const p = imagePaths[i];
       if (fs.existsSync(p)) formData.append(`image${i+1}`, fs.createReadStream(p));
     }
-    formData.append('model', 'nano-banana-hd');
+    formData.append('model', process.env.COMETAPI_MODEL || 'gen4_image');
     formData.append('prompt', prompt);
     formData.append('max_tokens', '1000');
     formData.append('temperature', '0.05');
@@ -292,7 +294,7 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     formData.append('image', fs.createReadStream(imagePath));
     
     // Добавляем параметры запроса
-    formData.append('model', 'nano-banana-hd');
+    formData.append('model', process.env.COMETAPI_MODEL || 'gen4_image');
     formData.append('prompt', prompt);
     formData.append('max_tokens', '1000');
     formData.append('temperature', '0.1');
