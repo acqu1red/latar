@@ -1,5 +1,8 @@
 import fetch from 'node-fetch';
 import FormData from 'form-data';
+// Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
+const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1/images/generate';
+
 import fs from 'fs';
 import path from 'path';
 
@@ -230,7 +233,7 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
     formData.append('top_p', '0.9');
     formData.append('stream', 'false');
 
-    const response = await fetch('https://api.cometapi.com/v1/image/generate', {
+    const response = await fetch(COMETAPI_IMAGE_URL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -241,7 +244,7 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`COMETAPI ошибка ${response.status}: ${errorText}`);
+      throw new Error(`COMETAPI ошибка ${response.status} [${COMETAPI_IMAGE_URL}]: ${errorText}`);
     }
 
     const result = await response.json();
@@ -298,7 +301,7 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
 
     console.log('📤 Отправка запроса к COMETAPI...');
     
-    const response = await fetch('https://api.cometapi.com/v1/image/generate', {
+    const response = await fetch(COMETAPI_IMAGE_URL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -309,8 +312,8 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Ошибка COMETAPI:', response.status, errorText);
-      throw new Error(`COMETAPI ошибка ${response.status}: ${errorText}`);
+      console.error('❌ Ошибка COMETAPI:', response.status, errorText, 'URL:', COMETAPI_IMAGE_URL);
+      throw new Error(`COMETAPI ошибка ${response.status} [${COMETAPI_IMAGE_URL}]: ${errorText}`);
     }
 
     const result = await response.json();
