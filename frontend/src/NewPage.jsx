@@ -4109,7 +4109,8 @@ function MonochromeClaudeStyle() {
   const [hasFirstMessage, setHasFirstMessage] = useState(false);
   const [responses, setResponses] = useState({}); // { messageId: { text, rating, canRegenerate } }
 
-  // Right drawer
+  // Left/Right drawers
+  const [leftOpen, setLeftOpen] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
   const [rightTab, setRightTab] = useState("chats"); // 'chats' | 'settings'
 
@@ -4755,8 +4756,7 @@ function MonochromeClaudeStyle() {
       setIsGenerating(false);
     }
     
-    // cleanup
-    attachments.forEach((a) => URL.revokeObjectURL(a.url));
+    // cleanup: очищаем список, не отзывая blob-URL (они нужны для предпросмотра в истории)
     setAttachments([]);
     setValue("");
   };
