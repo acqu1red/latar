@@ -4761,8 +4761,12 @@ function MonochromeClaudeStyle() {
     setValue("");
   };
 
-  // Attachments cleanup on unmount
-  useEffect(() => () => { attachments.forEach((a) => URL.revokeObjectURL(a.url)); }, [attachments]);
+  // Attachments cleanup on unmount (не отзываем blob URL сразу, чтобы не ломать предпросмотр истории)
+  useEffect(() => {
+    return () => {
+      // намеренно ничего не делаем здесь
+    };
+  }, [attachments]);
 
   useEffect(() => {
     const onKey = (e) => {

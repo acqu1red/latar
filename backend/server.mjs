@@ -96,11 +96,11 @@ if (!isCometApiKeyValid) {
 // Доверяем заголовкам прокси (важно для Timeweb/NGINX)
 app.set('trust proxy', 1);
 
-// CORS: список доменов берём из CORS_ORIGIN (CSV), иначе дефолт
+// CORS: разрешаем запросы c известных источников (и опционально любые, если явно задано)
 const defaultCorsOrigins = [
   'https://acqu1red.github.io',
-  'https://acqu1red.github.io/latar',
   'https://acqu1red-latar-4004.twc1.net',
+  'https://acqu1red-latar-c0f7.twc1.net',
   'http://localhost:3000',
   'http://localhost:5173'
 ];
@@ -108,27 +108,36 @@ const envCorsOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
+const allowAllCors = process.env.CORS_ALLOW_ALL === 'true';
 const allowedOrigins = envCorsOrigins.length > 0 ? envCorsOrigins : defaultCorsOrigins;
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Разрешаем запросы без Origin (например, curl/healthchecks)
+const corsOptions = {
+  origin: allowAllCors ? true : (origin, callback) => {
     if (!origin) return callback(null, true);
     const isAllowed = allowedOrigins.includes(origin);
-    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+    return callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
 
-// Явно разрешаем preflight-запросы для всех маршрутов
-app.options('*', cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    const isAllowed = allowedOrigins.includes(origin);
-    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
-  },
-  credentials: true
-}));
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Фоллбек на случай, если какой-то middleware ответил без CORS-заголовков
+app.use((req, res, next) => {
+  const origin = req.get('Origin');
+  if (allowAllCors || (origin && allowedOrigins.includes(origin))) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 
 // Логирование запросов (тише в production)
 app.use((req, res, next) => {
