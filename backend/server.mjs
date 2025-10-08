@@ -194,7 +194,8 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 5 * 1024 * 1024, // 5MB limit (уменьшили для снижения нагрузки)
+    files: 5 // максимум 5 файлов
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -207,10 +208,17 @@ const upload = multer({
 
 
 // Маршрут для генерации технического плана
-app.post('/api/generate-technical-plan', upload.array('image', 10), async (req, res) => {
+app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'Изображения не загружены' });
+    }
+
+    // Ограничиваем количество изображений для предотвращения перегрузки
+    if (req.files.length > 5) {
+      return res.status(400).json({ 
+        error: 'Слишком много изображений. Максимум 5 изображений за раз.' 
+      });
     }
 
     const { mode } = req.body; // 'withFurniture' или 'withoutFurniture'
@@ -272,9 +280,19 @@ app.post('/api/generate-technical-plan', upload.array('image', 10), async (req, 
     console.log(`Обработка ${imagePaths.length} изображений для генерации технического плана (режим: ${mode})`);
 
     const buffers = [];
-    for (const img of imagePaths) {
+    for (let i = 0; i < imagePaths.length; i++) {
+      const img = imagePaths[i];
+      console.log(`📸 Обработка изображения ${i + 1}/${imagePaths.length}: ${img}`);
+      
       const buf = await generateTechnicalPlan(img, mode);
       buffers.push(buf);
+      
+      // Добавляем задержку между запросами для снижения нагрузки на COMETAPI
+      if (i < imagePaths.length - 1) {
+        const delay = 2000 + Math.random() * 1000; // 2-3 секунды
+        console.log(`⏳ Задержка ${Math.round(delay)}мс перед следующим изображением...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
 
     // Удаляем временные файлы
@@ -296,10 +314,17 @@ app.post('/api/generate-technical-plan', upload.array('image', 10), async (req, 
 });
 
 // Маршрут для удаления объектов (очистка комнаты)
-app.post('/api/remove-objects', upload.array('image', 10), async (req, res) => {
+app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'Изображения не загружены' });
+    }
+
+    // Ограничиваем количество изображений для предотвращения перегрузки
+    if (req.files.length > 5) {
+      return res.status(400).json({ 
+        error: 'Слишком много изображений. Максимум 5 изображений за раз.' 
+      });
     }
 
     if (!isCometApiKeyValid) {
@@ -310,8 +335,23 @@ app.post('/api/remove-objects', upload.array('image', 10), async (req, res) => {
     }
 
     const imagePaths = req.files.map(f => f.path);
+    console.log(`Обработка ${imagePaths.length} изображений для удаления объектов`);
 
-    const buffers = await generateCleanupImage({ imagePaths });
+    const buffers = [];
+    for (let i = 0; i < imagePaths.length; i++) {
+      const img = imagePaths[i];
+      console.log(`🧹 Обработка изображения ${i + 1}/${imagePaths.length}: ${img}`);
+      
+      const buf = await generateCleanupImage({ imagePaths: [img] });
+      buffers.push(buf[0]); // generateCleanupImage возвращает массив
+      
+      // Добавляем задержку между запросами для снижения нагрузки на COMETAPI
+      if (i < imagePaths.length - 1) {
+        const delay = 2000 + Math.random() * 1000; // 2-3 секунды
+        console.log(`⏳ Задержка ${Math.round(delay)}мс перед следующим изображением...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
 
     // Чистим временные файлы
     for (const p of imagePaths) {

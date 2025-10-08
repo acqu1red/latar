@@ -241,20 +241,24 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
         }
       };
 
-      const response = await fetch(COMETAPI_IMAGE_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `${apiKey}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-      });
+      const response = await retryWithBackoff(async () => {
+        const resp = await fetch(COMETAPI_IMAGE_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `${apiKey}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`COMETAPI ошибка ${response.status} [${COMETAPI_IMAGE_URL}]: ${errorText}`);
-      }
+        if (!resp.ok) {
+          const errorText = await resp.text();
+          throw new Error(`COMETAPI ошибка ${resp.status} [${COMETAPI_IMAGE_URL}]: ${errorText}`);
+        }
+        
+        return resp;
+      });
 
       const result = await response.json();
 
@@ -328,6 +332,34 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
 }
 
 /**
+ * Retry функция с экспоненциальной задержкой
+ * @param {Function} fn - Функция для выполнения
+ * @param {number} maxRetries - Максимальное количество попыток
+ * @param {number} baseDelay - Базовая задержка в мс
+ * @returns {Promise<any>}
+ */
+async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isLastAttempt = attempt === maxRetries - 1;
+      const isServerError = error.message.includes('500') || 
+                           error.message.includes('当前分组上游负载已饱和') ||
+                           error.message.includes('shell_api_error');
+      
+      if (isLastAttempt || !isServerError) {
+        throw error;
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      console.log(`⏳ Попытка ${attempt + 1}/${maxRetries} неудачна, повтор через ${Math.round(delay)}мс...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
+/**
  * Генерирует технический план квартиры с помощью COMETAPI nano-banana-hd
  * @param {string} imagePath - Путь к загруженному изображению
  * @param {string} mode - Режим: 'withFurniture' или 'withoutFurniture'
@@ -374,23 +406,29 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     };
 
     console.log('📤 Отправка запроса к COMETAPI (Nano-Banana)...');
+    console.log(`📝 Промпт длина: ${prompt.length} символов`);
+    console.log(`🖼️ Изображение: ${mime}, ${base64.length} символов base64`);
 
-    const response = await fetch(COMETAPI_IMAGE_URL, {
-      method: 'POST',
-      headers: {
-        // CometAPI ожидает ключ напрямую без Bearer
-        'Authorization': `${apiKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
+    // Используем retry логику для обработки ошибок сервера
+    const response = await retryWithBackoff(async () => {
+      const resp = await fetch(COMETAPI_IMAGE_URL, {
+        method: 'POST',
+        headers: {
+          // CometAPI ожидает ключ напрямую без Bearer
+          'Authorization': `${apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!resp.ok) {
+        const errorText = await resp.text();
+        throw new Error(`COMETAPI ошибка ${resp.status} [${COMETAPI_IMAGE_URL}]: ${errorText?.slice(0, 500)}`);
+      }
+      
+      return resp;
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Ошибка COMETAPI:', response.status, errorText, 'URL:', COMETAPI_IMAGE_URL);
-      throw new Error(`COMETAPI ошибка ${response.status} [${COMETAPI_IMAGE_URL}]: ${errorText?.slice(0, 500)}`);
-    }
 
     const result = await response.json();
 

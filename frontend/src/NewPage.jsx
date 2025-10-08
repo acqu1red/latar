@@ -2516,7 +2516,7 @@ function AdvancedMainArea({
 
   // Обработчик открытия 3D модального окна
   const handleOpen3DModal = () => {
-    setIs3DInfoOpen(true);
+    setIs3DModalOpen(true);
     setShowPromoCard(false);
   };
 
@@ -2791,7 +2791,7 @@ function AdvancedMainArea({
                 additionalButtons={null}
                 model={model}
                 onModelSelect={onModelSelect}
-                on3DInfoOpen={() => setIs3DInfoOpen(true)}
+                on3DInfoOpen={() => setIs3DModalOpen(true)}
           />
         </motion.div>
 
@@ -2849,7 +2849,7 @@ function AdvancedMainArea({
               onBackgroundChange={onBackgroundChange}
               model={model}
               onModelSelect={onModelSelect}
-              on3DInfoOpen={() => setIs3DInfoOpen(true)}
+              on3DInfoOpen={() => setIs3DModalOpen(true)}
             />
           </motion.div>
         </div>
@@ -4429,11 +4429,21 @@ function MonochromeClaudeStyle() {
       let responseImage = null;
 
       if (model === "techplan" && attachments.length > 0) {
+        // Проверяем лимит изображений
+        if (attachments.length > 5) {
+          throw new Error('Слишком много изображений. Максимум 5 изображений за раз.');
+        }
+
         // Генерация технического плана
         const formData = new FormData();
         // прикладываем все изображения
         attachments.forEach((att) => formData.append('image', att.file));
         formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+
+        // Показываем прогресс для множественных изображений
+        if (attachments.length > 1) {
+          responseText = `Обрабатываю ${attachments.length} изображений по очереди для снижения нагрузки на сервер...`;
+        }
 
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
@@ -4449,6 +4459,11 @@ function MonochromeClaudeStyle() {
               const errorData = await response.json();
               errorMessage = errorData?.error || errorMessage;
               errorCode = errorData?.code;
+              
+              // Специальная обработка ошибок COMETAPI
+              if (errorMessage.includes('当前分组上游负载已饱和') || errorMessage.includes('shell_api_error')) {
+                errorMessage = 'Сервер перегружен, попробуйте через несколько минут. Система автоматически повторит попытку.';
+              }
             } else {
               const text = await response.text();
               errorMessage = text?.slice(0, 300) || errorMessage;
@@ -4482,9 +4497,19 @@ function MonochromeClaudeStyle() {
           }
         }
       } else if (model === "cleanup" && attachments.length > 0) {
+        // Проверяем лимит изображений
+        if (attachments.length > 5) {
+          throw new Error('Слишком много изображений. Максимум 5 изображений за раз.');
+        }
+
         // Удаление объектов
         const formData = new FormData();
         attachments.forEach((att) => formData.append('image', att.file));
+
+        // Показываем прогресс для множественных изображений
+        if (attachments.length > 1) {
+          responseText = `Обрабатываю ${attachments.length} изображений по очереди для снижения нагрузки на сервер...`;
+        }
 
         const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
           method: 'POST',
@@ -5240,7 +5265,7 @@ function MonochromeClaudeStyle() {
           user={user}
           backgroundType={backgroundType}
           onBackgroundChange={setBackgroundType}
-          on3DInfoOpen={() => setIs3DInfoOpen(true)}
+          on3DInfoOpen={() => setIs3DModalOpen(true)}
           onGrantAccess={handleGrantOrganizationAccess}
           onOpenOrganizationList={handleOpenOrganizationList}
         />
@@ -5249,8 +5274,8 @@ function MonochromeClaudeStyle() {
           onClose={() => setIsAuthOpen(false)}
         />
         <Plan3DInfoModal 
-          isOpen={is3DInfoOpen} 
-          onClose={() => setIs3DInfoOpen(false)} 
+          isOpen={is3DModalOpen} 
+          onClose={() => setIs3DModalOpen(false)} 
         />
         <OrganizationUsersModal
           isOpen={organizationModal.isOpen}
