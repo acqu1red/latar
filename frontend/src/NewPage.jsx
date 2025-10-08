@@ -4440,9 +4440,24 @@ function MonochromeClaudeStyle() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          const err = new Error(errorData.error || 'Ошибка генерации технического плана');
-          if (errorData.code) err.code = errorData.code;
+          const contentType = response.headers.get('content-type') || '';
+          let errorMessage = 'Ошибка генерации технического плана';
+          let errorCode;
+          try {
+            if (contentType.includes('application/json')) {
+              const errorData = await response.json();
+              errorMessage = errorData?.error || errorMessage;
+              errorCode = errorData?.code;
+            } else {
+              const text = await response.text();
+              // отрежем возможную HTML-страницу ошибки от прокси/серверов
+              errorMessage = text?.slice(0, 300) || errorMessage;
+            }
+          } catch (_) {
+            // игнорируем ошибки парсинга тела
+          }
+          const err = new Error(errorMessage);
+          if (errorCode) err.code = errorCode;
           throw err;
         }
 
