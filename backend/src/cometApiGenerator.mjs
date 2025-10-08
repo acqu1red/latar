@@ -1,8 +1,8 @@
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 // Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
-// Модель: gemini-2.5-flash-preview-09-2025 (CometAPI, формат generateContent)
-const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent';
+// Модель: gemini-2.5-flash-image-preview (CometAPI, формат generateContent)
+const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
 
 import fs from 'fs';
 import path from 'path';
@@ -273,9 +273,14 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
           const first = candidates[0].content || candidates[0];
           const parts = first?.parts || first;
           if (Array.isArray(parts)) {
-            const inlinePart = parts.find(p => p?.inline_data?.data || p?.inline_data?.image);
+            const inlinePart = parts.find(p => 
+              p?.inline_data?.data || p?.inline_data?.image || 
+              p?.inlineData?.data || p?.inlineData?.image
+            );
             if (inlinePart?.inline_data?.data) base64Image = inlinePart.inline_data.data;
             else if (inlinePart?.inline_data?.image) base64Image = inlinePart.inline_data.image;
+            else if (inlinePart?.inlineData?.data) base64Image = inlinePart.inlineData.data;
+            else if (inlinePart?.inlineData?.image) base64Image = inlinePart.inlineData.image;
           }
         }
       }
@@ -446,12 +451,19 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
         const first = candidates[0].content || candidates[0];
         const parts = first?.parts || first;
         if (Array.isArray(parts)) {
-          // ищем часть с изображением
-          const inlinePart = parts.find(p => p?.inline_data?.data || p?.inline_data?.image);
+          // ищем часть с изображением (поддерживаем оба формата: inline_data и inlineData)
+          const inlinePart = parts.find(p => 
+            p?.inline_data?.data || p?.inline_data?.image || 
+            p?.inlineData?.data || p?.inlineData?.image
+          );
           if (inlinePart?.inline_data?.data) {
             base64Image = inlinePart.inline_data.data;
           } else if (inlinePart?.inline_data?.image) {
             base64Image = inlinePart.inline_data.image;
+          } else if (inlinePart?.inlineData?.data) {
+            base64Image = inlinePart.inlineData.data;
+          } else if (inlinePart?.inlineData?.image) {
+            base64Image = inlinePart.inlineData.image;
           }
         }
       }

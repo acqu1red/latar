@@ -256,16 +256,33 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
 
     const isDirector = authUser?.role === 'director';
     const isOrganization = authUser?.access_prefix === 'Организация';
+    const hasUnlimitedAccess = isDirector || isOrganization;
 
-    if (authUser && !isDirector && !isOrganization) {
-      if (authUser.plans_used >= MAX_USER_PLANS) {
-        return res.status(403).json({ error: 'Лимит генераций исчерпан', code: 'PLAN_LIMIT' });
+    console.log(`🔍 Проверка лимитов:`, {
+      userId: authUser?.id,
+      username: authUser?.username,
+      role: authUser?.role,
+      accessPrefix: authUser?.access_prefix,
+      isDirector,
+      isOrganization,
+      hasUnlimitedAccess
+    });
+
+    if (authUser) {
+      // Авторизованный пользователь
+      if (!hasUnlimitedAccess) {
+        // Обычный пользователь - проверяем лимиты
+        if (authUser.plans_used >= MAX_USER_PLANS) {
+          return res.status(403).json({ error: 'Лимит генераций исчерпан', code: 'PLAN_LIMIT' });
+        }
+        userDB.incrementPlanUsage(authUser.id);
+        authUser.plans_used += 1;
+        console.log(`📊 Пользователь ${authUser.username} использовал генерацию (${authUser.plans_used}/${MAX_USER_PLANS})`);
+      } else {
+        console.log(`♾️ Пользователь ${authUser.username} имеет безлимитный доступ`);
       }
-      userDB.incrementPlanUsage(authUser.id);
-      authUser.plans_used += 1;
-    }
-
-    if (!authUser) {
+    } else {
+      // Гость - проверяем лимиты по IP
       const forwarded = req.headers['x-forwarded-for'];
       const clientIp = forwarded ? forwarded.split(',')[0].trim() : req.ip;
       const usage = guestUsage.get(clientIp) || { plans: 0 };
@@ -274,6 +291,7 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
       }
       usage.plans += 1;
       guestUsage.set(clientIp, usage);
+      console.log(`👤 Гость с IP ${clientIp} использовал генерацию (${usage.plans}/${MAX_GUEST_PLANS})`);
     }
 
     const imagePaths = req.files.map(f => f.path);
@@ -332,6 +350,64 @@ app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
         error: 'Сервис временно недоступен. API ключ не настроен.',
         code: 'API_KEY_MISSING'
       });
+    }
+
+    // Проверяем лимиты для удаления объектов
+    const authHeader = req.headers['authorization'];
+    let authUser = null;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        authUser = userDB.findById(decoded.id);
+        if (!authUser) {
+          return res.status(401).json({ error: 'Пользователь не найден' });
+        }
+      } catch (err) {
+        console.error('Ошибка проверки токена при удалении объектов:', err);
+        return res.status(401).json({ error: 'Неверный токен' });
+      }
+    }
+
+    const isDirector = authUser?.role === 'director';
+    const isOrganization = authUser?.access_prefix === 'Организация';
+    const hasUnlimitedAccess = isDirector || isOrganization;
+
+    console.log(`🔍 Проверка лимитов (удаление объектов):`, {
+      userId: authUser?.id,
+      username: authUser?.username,
+      role: authUser?.role,
+      accessPrefix: authUser?.access_prefix,
+      isDirector,
+      isOrganization,
+      hasUnlimitedAccess
+    });
+
+    if (authUser) {
+      // Авторизованный пользователь
+      if (!hasUnlimitedAccess) {
+        // Обычный пользователь - проверяем лимиты
+        if (authUser.plans_used >= MAX_USER_PLANS) {
+          return res.status(403).json({ error: 'Лимит генераций исчерпан', code: 'PLAN_LIMIT' });
+        }
+        userDB.incrementPlanUsage(authUser.id);
+        authUser.plans_used += 1;
+        console.log(`📊 Пользователь ${authUser.username} использовал удаление объектов (${authUser.plans_used}/${MAX_USER_PLANS})`);
+      } else {
+        console.log(`♾️ Пользователь ${authUser.username} имеет безлимитный доступ для удаления объектов`);
+      }
+    } else {
+      // Гость - проверяем лимиты по IP
+      const forwarded = req.headers['x-forwarded-for'];
+      const clientIp = forwarded ? forwarded.split(',')[0].trim() : req.ip;
+      const usage = guestUsage.get(clientIp) || { plans: 0 };
+      if (usage.plans >= MAX_GUEST_PLANS) {
+        return res.status(403).json({ error: 'Лимит генераций для гостей исчерпан', code: 'GUEST_LIMIT' });
+      }
+      usage.plans += 1;
+      guestUsage.set(clientIp, usage);
+      console.log(`👤 Гость с IP ${clientIp} использовал удаление объектов (${usage.plans}/${MAX_GUEST_PLANS})`);
     }
 
     const imagePaths = req.files.map(f => f.path);

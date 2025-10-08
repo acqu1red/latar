@@ -2497,7 +2497,8 @@ function AdvancedMainArea({
   onGalleryDelete,
   onGalleryDownload,
   model,
-  onModelSelect
+  onModelSelect,
+  on3DInfoOpen
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showPromoCard, setShowPromoCard] = useState(true);
@@ -2791,7 +2792,7 @@ function AdvancedMainArea({
                 additionalButtons={null}
                 model={model}
                 onModelSelect={onModelSelect}
-                on3DInfoOpen={() => setIs3DModalOpen(true)}
+                on3DInfoOpen={on3DInfoOpen}
           />
         </motion.div>
 
@@ -2849,7 +2850,7 @@ function AdvancedMainArea({
               onBackgroundChange={onBackgroundChange}
               model={model}
               onModelSelect={onModelSelect}
-              on3DInfoOpen={() => setIs3DModalOpen(true)}
+              on3DInfoOpen={on3DInfoOpen}
             />
           </motion.div>
         </div>
@@ -3198,7 +3199,11 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilters, modelMenuOpen, onModelMenuToggle]);
 
-  const canSend = attachments.length > 0 && (model === "3d" ? query.trim().length > 0 : techplanMode !== null);
+  const canSend = attachments.length > 0 && (
+    model === "3d" ? query.trim().length > 0 : 
+    model === "cleanup" ? true : 
+    techplanMode !== null
+  );
 
   return (
     <div className={`relative z-20 w-full max-w-4xl mx-auto ${isAtBottom ? 'rounded-2xl' : (attachments.length > 0 ? 'rounded-2xl' : 'rounded-full')} bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5`}>
@@ -3291,7 +3296,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
             value={model}
             onChange={(m) => {
               if (m === "3d") {
-                on3DInfoOpen?.();
+                on3DInfoOpen && on3DInfoOpen();
               } else {
                 onModelSelect?.(m);
                 onAdvanced?.();
@@ -3374,7 +3379,6 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
           <div className="text-xs text-neutral-500 mb-2">Прикрепленные файлы: {attachments.length}</div>
           <div className="flex flex-wrap gap-2">
             {attachments.map((attachment) => {
-              console.log('AdvancedSearchBar rendering attachment:', attachment);
               return (
               <div key={attachment.id} className="relative group">
                 <div 
@@ -4074,6 +4078,18 @@ function MonochromeClaudeStyle() {
   const fileInputRef = useRef(null);
   const textRef = useRef(null);
 
+  // Очистка blob URL при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      // Очищаем все blob URL при размонтировании
+      attachments.forEach((item) => {
+        if (item.url && item.url.startsWith('blob:')) {
+          URL.revokeObjectURL(item.url);
+        }
+      });
+    };
+  }, [attachments]);
+
   // Site style (persisted per user)
   const [userId] = useState(() => {
     if (typeof window === "undefined") return "anon";
@@ -4299,7 +4315,7 @@ function MonochromeClaudeStyle() {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [is3DInfoOpen, setIs3DInfoOpen] = useState(false);
+  const [is3DInfoModalOpen, setIs3DInfoModalOpen] = useState(false);
   
   // Navigate
   const navigate = useNavigate();
@@ -4447,6 +4463,9 @@ function MonochromeClaudeStyle() {
 
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
+          headers: {
+            'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+          },
           body: formData
         });
 
@@ -4483,8 +4502,13 @@ function MonochromeClaudeStyle() {
             responseImages = data.images;
           }
         } else {
+          // Конвертируем blob в base64 для прямого использования
           const imageBlob = await response.blob();
-          responseImages = [URL.createObjectURL(imageBlob)];
+          const reader = new FileReader();
+          responseImages = await new Promise((resolve) => {
+            reader.onload = () => resolve([reader.result]);
+            reader.readAsDataURL(imageBlob);
+          });
         }
         responseImage = responseImages[0] || null;
         responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
@@ -4513,6 +4537,9 @@ function MonochromeClaudeStyle() {
 
         const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
           method: 'POST',
+          headers: {
+            'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+          },
           body: formData
         });
 
@@ -4530,8 +4557,13 @@ function MonochromeClaudeStyle() {
             responseImages2 = data.images;
           }
         } else {
+          // Конвертируем blob в base64 для прямого использования
           const imageBlob = await response.blob();
-          responseImages2 = [URL.createObjectURL(imageBlob)];
+          const reader = new FileReader();
+          responseImages2 = await new Promise((resolve) => {
+            reader.onload = () => resolve([reader.result]);
+            reader.readAsDataURL(imageBlob);
+          });
         }
         responseImage = responseImages2[0] || null;
         responseText = `Объекты успешно удалены с изображения.`;
@@ -4754,6 +4786,9 @@ function MonochromeClaudeStyle() {
 
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
+          headers: {
+            'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+          },
           body: formData
         });
 
@@ -4764,9 +4799,13 @@ function MonochromeClaudeStyle() {
           throw err;
         }
 
-        // Получаем изображение как blob
+        // Получаем изображение как base64
         const imageBlob = await response.blob();
-        responseImage = URL.createObjectURL(imageBlob);
+        const reader = new FileReader();
+        responseImage = await new Promise((resolve) => {
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(imageBlob);
+        });
         responseText = `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}".`;
 
         if (!hasUnlimitedAccess) {
@@ -4949,8 +4988,12 @@ function MonochromeClaudeStyle() {
     console.log('clearAllAttachments called');
     setAttachments((prev) => {
       console.log('Previous attachments:', prev);
-      // НЕ очищаем URL, так как они используются в сообщениях
-      // prev.forEach((item) => URL.revokeObjectURL(item.url));
+      // Очищаем blob URL для освобождения памяти
+      prev.forEach((item) => {
+        if (item.url && item.url.startsWith('blob:')) {
+          URL.revokeObjectURL(item.url);
+        }
+      });
       return [];
     });
   };
@@ -5232,6 +5275,7 @@ function MonochromeClaudeStyle() {
             onGalleryDownload={handleGalleryDownload}
             model={model}
             onModelSelect={setModel}
+            on3DInfoOpen={() => setIs3DInfoModalOpen(true)}
           />
           {limitNotice && (
             <div className="mx-auto max-w-3xl w-full px-4 mb-4">
@@ -5265,7 +5309,7 @@ function MonochromeClaudeStyle() {
           user={user}
           backgroundType={backgroundType}
           onBackgroundChange={setBackgroundType}
-          on3DInfoOpen={() => setIs3DModalOpen(true)}
+          on3DInfoOpen={() => setIs3DInfoModalOpen(true)}
           onGrantAccess={handleGrantOrganizationAccess}
           onOpenOrganizationList={handleOpenOrganizationList}
         />
@@ -5274,8 +5318,8 @@ function MonochromeClaudeStyle() {
           onClose={() => setIsAuthOpen(false)}
         />
         <Plan3DInfoModal 
-          isOpen={is3DModalOpen} 
-          onClose={() => setIs3DModalOpen(false)} 
+          isOpen={is3DInfoModalOpen} 
+          onClose={() => setIs3DInfoModalOpen(false)} 
         />
         <OrganizationUsersModal
           isOpen={organizationModal.isOpen}
