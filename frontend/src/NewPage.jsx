@@ -79,6 +79,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from './AuthContext';
+import { API_BASE_URL } from './config';
 import { useNavigate } from 'react-router-dom';
 
 // ===== Confirmation Modal Component =====
@@ -4432,7 +4433,7 @@ function MonochromeClaudeStyle() {
         formData.append('image', attachments[0].file);
         formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
 
-        const response = await fetch('/api/generate-technical-plan', {
+        const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           body: formData
         });
@@ -4461,7 +4462,7 @@ function MonochromeClaudeStyle() {
         const formData = new FormData();
         formData.append('image', attachments[0].file);
 
-        const response = await fetch('/api/remove-objects', {
+        const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
           method: 'POST',
           body: formData
         });
@@ -4691,7 +4692,7 @@ function MonochromeClaudeStyle() {
         formData.append('image', attachments[0].file);
         formData.append('mode', planFurniture === "with" ? "withFurniture" : "withoutFurniture");
 
-        const response = await fetch('/api/generate-technical-plan', {
+        const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           body: formData
         });
