@@ -1,9 +1,8 @@
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 // Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
-// Согласно актуальной документации CometAPI для Runway Gen-4:
-// https://api.cometapi.com/runwayml/v1/text_to_image
-const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/runwayml/v1/text_to_image';
+// Для сценария prompt + исходное изображение используем image_to_image
+const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/runwayml/v1/image_to_image';
 
 import fs from 'fs';
 import path from 'path';
@@ -221,21 +220,12 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
 
   try {
     const formData = new FormData();
-    // Поддержим одно изображение как основное; доп. изображения можно прикладывать с именами image2, image3 ... если API поддерживает
+    // Одно изображение как источник
     formData.append('image', fs.createReadStream(imagePaths[0]));
-    // Если API поддерживает множественные — добавьте по аналогии:
-    for (let i = 1; i < imagePaths.length; i++) {
-      const p = imagePaths[i];
-      if (fs.existsSync(p)) formData.append(`image${i+1}`, fs.createReadStream(p));
-    }
-    formData.append('model', process.env.COMETAPI_MODEL || 'gen4_image');
+    const model = process.env.COMETAPI_MODEL || 'gen4_image';
     formData.append('prompt', prompt);
-    formData.append('max_tokens', '1000');
-    formData.append('temperature', '0.05');
-    formData.append('top_p', '0.9');
-    formData.append('stream', 'false');
 
-    const response = await fetch(COMETAPI_IMAGE_URL, {
+    const response = await fetch(`${COMETAPI_IMAGE_URL}?model=${encodeURIComponent(model)}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -293,17 +283,13 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     // Добавляем изображение
     formData.append('image', fs.createReadStream(imagePath));
     
-    // Добавляем параметры запроса
-    formData.append('model', process.env.COMETAPI_MODEL || 'gen4_image');
+    // Минимальный набор: prompt + image
+    const model = process.env.COMETAPI_MODEL || 'gen4_image';
     formData.append('prompt', prompt);
-    formData.append('max_tokens', '1000');
-    formData.append('temperature', '0.1');
-    formData.append('top_p', '0.9');
-    formData.append('stream', 'false');
 
     console.log('📤 Отправка запроса к COMETAPI...');
     
-    const response = await fetch(COMETAPI_IMAGE_URL, {
+    const response = await fetch(`${COMETAPI_IMAGE_URL}?model=${encodeURIComponent(model)}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
