@@ -120,6 +120,16 @@ app.use(cors({
   credentials: true
 }));
 
+// Явно разрешаем preflight-запросы для всех маршрутов
+app.options('*', cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const isAllowed = allowedOrigins.includes(origin);
+    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+  },
+  credentials: true
+}));
+
 // Логирование запросов (тише в production)
 app.use((req, res, next) => {
   if (process.env.NODE_ENV !== 'production') {
