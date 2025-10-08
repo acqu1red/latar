@@ -487,9 +487,9 @@ function BackgroundParticles() {
 
 // === Models (RU) ===
 const MODEL_OPTIONS = [
-  { id: "remove", label: "Удаление объектов" },
-  { id: "plan", label: "Создание по техплану" },
-  { id: "builder", label: "AI Конструктор" },
+  { id: "cleanup", label: "Удаление объектов" },
+  { id: "techplan", label: "Создание по техплану" },
+  { id: "3d", label: "3D план" },
 ];
 
 // === Site styles ===
@@ -913,7 +913,7 @@ function BackgroundPreview({ type }) {
 
 // Модальное окно "Регистрация/Вход" - Премиум дизайн
 // Новый компонент личного кабинета — точный референсный размер и стиль
-function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChange }) {
+function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChange, on3DInfoOpen }) {
   const [activeTab, setActiveTab] = useState('account');
 
   // Appearance
@@ -989,7 +989,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
           </div>
         </div>
 
-      <Row icon={Layers} left="Перейти на Plan 3D" right={<button className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10">Улучшить</button>} />
+      <Row icon={Layers} left="Перейти на Plan 3D" right={<button onClick={() => setIs3DInfoOpen(true)} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10">Скоро</button>} />
         <div className="text-xs text-neutral-400 pt-1">Язык <span className="ml-1 text-white">Русский</span></div>
       </div>
       
@@ -1033,9 +1033,10 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onClick={on3DInfoOpen}
             className="relative z-10 rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
           >
-            Улучшить
+            Скоро
           </motion.button>
         </motion.div>
       </div>
@@ -1450,6 +1451,114 @@ function AuthModal({ isOpen, onClose }) {
 }
 
 // Модальное окно "Список изменений" - Премиум дизайн
+function Plan3DInfoModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-2xl mx-4 rounded-2xl border border-white/10 bg-[#0b0b0e] p-8 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Plan AI 3D</h2>
+              <p className="text-sm text-neutral-400">Скоро в разработке</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+          >
+            <X className="h-4 w-4 text-neutral-400" />
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-white mb-2">Как это будет работать</h3>
+            <p className="text-neutral-400 text-sm">
+              Мы создаем революционную систему преобразования 2D планов в 3D пространство
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <FileText className="h-4 w-4 text-blue-400" />
+                </div>
+                <h4 className="font-medium text-white">1. Загрузка техплана</h4>
+              </div>
+              <p className="text-sm text-neutral-400">
+                Загружаете фотографию техплана или план помещения
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <Settings className="h-4 w-4 text-green-400" />
+                </div>
+                <h4 className="font-medium text-white">2. Векторизация</h4>
+              </div>
+              <p className="text-sm text-neutral-400">
+                ИИ автоматически распознает стены, двери, окна и создает векторную модель
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                  <Building2 className="h-4 w-4 text-purple-400" />
+                </div>
+                <h4 className="font-medium text-white">3. 3D преобразование</h4>
+              </div>
+              <p className="text-sm text-neutral-400">
+                Преобразуем 2D план в полноценное 3D пространство с правильными пропорциями
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-orange-400" />
+                </div>
+                <h4 className="font-medium text-white">4. Расстановка объектов</h4>
+              </div>
+              <p className="text-sm text-neutral-400">
+                Автоматически расставляем мебель и объекты в 3D пространстве
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+            <div className="flex items-center gap-3 mb-2">
+              <Sparkles className="h-5 w-5 text-blue-400" />
+              <h4 className="font-medium text-white">Результат</h4>
+            </div>
+            <p className="text-sm text-neutral-300">
+              Полноценная 3D модель вашего помещения с возможностью виртуального тура, 
+              изменения планировки и подбора мебели в реальном времени
+            </p>
+          </div>
+
+          <div className="flex justify-center">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors"
+            >
+              Понятно
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ChangelogModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
@@ -1702,37 +1811,37 @@ function AdvancedSidebar({
 
   if (isCollapsed) {
   return (
-      <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-16">
-        <div className="p-3">
-          <div className="w-full h-10 rounded-xl bg-white/5 flex items-center justify-center">
-            <Search className="h-5 w-5 text-neutral-400" />
+      <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-12">
+        <div className="p-2">
+          <div className="w-full h-8 rounded-lg bg-white/5 flex items-center justify-center">
+            <Search className="h-4 w-4 text-neutral-400" />
           </div>
         </div>
-        <nav className="px-2 text-sm flex-1 space-y-2">
+        <nav className="px-1.5 text-xs flex-1 space-y-1.5">
           <button 
             onClick={onCreateChat}
-            className="w-full h-10 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
+            className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
             title="Новый чат"
           >
-            <Plus className="h-4 w-4 text-neutral-400" />
+            <Plus className="h-3 w-3 text-neutral-400" />
           </button>
           <button 
             onClick={onShowGallery}
-            className="w-full h-10 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
+            className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
             title="Создано"
           >
-            <Images className="h-4 w-4 text-neutral-400" />
+            <Images className="h-3 w-3 text-neutral-400" />
           </button>
           <button 
             onClick={onHomeClick}
-            className="w-full h-10 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
+            className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
             title="На главную"
           >
-            <Home className="h-4 w-4 text-neutral-400" />
+            <Home className="h-3 w-3 text-neutral-400" />
           </button>
           <button 
             onClick={onHowItWorks}
-            className="w-full h-10 rounded-lg bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
+            className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
             title="Как это работает"
           >
             <HelpCircle className="h-4 w-4 text-neutral-400" />
@@ -1759,14 +1868,14 @@ function AdvancedSidebar({
   }
 
   return (
-    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-64 relative">
+    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-56 relative">
       {/* Top: search */}
-      <div className="p-3">
-        <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <Search className="h-4 w-4 text-neutral-400" />
+      <div className="p-2">
+        <div className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2 py-1.5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <Search className="h-3 w-3 text-neutral-400" />
           <input
             placeholder="Поиск"
-            className="bg-transparent placeholder:text-neutral-500 text-sm outline-none w-full"
+            className="bg-transparent placeholder:text-neutral-500 text-xs outline-none w-full"
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
           />
@@ -1774,7 +1883,7 @@ function AdvancedSidebar({
       </div>
 
       {/* Nav */}
-      <nav className="px-2 text-sm flex-1 overflow-y-auto custom-scrollbar">
+      <nav className="px-1.5 text-xs flex-1 overflow-y-auto custom-scrollbar">
         <AdvancedSectionTitle>Главное</AdvancedSectionTitle>
         <AdvancedNavItem onClick={onCreateChat} Icon={Plus} label="Новый чат" />
         <AdvancedNavItem onClick={onShowGallery} Icon={Images} label="Создано" />
@@ -2014,7 +2123,7 @@ function AdvancedSidebar({
 
 function AdvancedSectionTitle({ children, className = "" }) {
   return (
-    <div className={`px-2 pb-1 pt-4 text-[11px] uppercase tracking-wider text-neutral-500 ${className}`}>
+    <div className={`px-1.5 pb-0.5 pt-3 text-[10px] uppercase tracking-wider text-neutral-500 ${className}`}>
       {children}
     </div>
   );
@@ -2024,13 +2133,13 @@ function AdvancedNavItem({ Icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 my-0.5 transition text-left ${
+      className={`w-full flex items-center gap-1.5 rounded-md px-2 py-1.5 my-0.5 transition text-left ${
         active
           ? "bg-white/10 text-white"
           : "text-neutral-300 hover:bg-white/5 hover:text-white"
       }`}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-3 w-3" />
       <span className="truncate">{label}</span>
     </button>
   );
@@ -2171,7 +2280,9 @@ function AdvancedMainArea({
   galleryModelFilter,
   setGalleryModelFilter,
   onGalleryDelete,
-  onGalleryDownload
+  onGalleryDownload,
+  model,
+  onModelSelect
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showPromoCard, setShowPromoCard] = useState(true);
@@ -2190,7 +2301,7 @@ function AdvancedMainArea({
 
   // Обработчик открытия 3D модального окна
   const handleOpen3DModal = () => {
-    setIs3DModalOpen(true);
+    setIs3DInfoOpen(true);
     setShowPromoCard(false);
   };
 
@@ -2208,7 +2319,7 @@ function AdvancedMainArea({
   const GalleryContent = () => {
     const filteredImages = galleryModelFilter === 'all' 
       ? galleryImages 
-      : galleryImages.filter(img => img.model.toLowerCase().replace(/\s/g, '-') === galleryModelFilter);
+      : galleryImages.filter(img => img.model === galleryModelFilter);
 
     return (
       <div className="flex-1 flex flex-col">
@@ -2233,14 +2344,18 @@ function AdvancedMainArea({
             <div className="mb-8 flex items-center justify-between">
               <div className="relative">
                 <button
-                  onClick={() => setGalleryModelFilter(galleryModelFilter === 'all' ? 'dalle3' : 'all')}
+                  onClick={() => {
+                    const filters = ['all', 'techplan', 'cleanup'];
+                    const currentIndex = filters.indexOf(galleryModelFilter);
+                    const nextIndex = (currentIndex + 1) % filters.length;
+                    setGalleryModelFilter(filters[nextIndex]);
+                  }}
                   className="flex items-center gap-2 rounded-full px-4 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10 transition"
                 >
                   <span className="text-sm">
                     {galleryModelFilter === 'all' ? 'Все модели' : 
-                     galleryModelFilter === 'dalle3' ? 'DALL-E 3' :
-                     galleryModelFilter === 'midjourney' ? 'Midjourney' :
-                     galleryModelFilter === 'stable-diffusion' ? 'Stable Diffusion' : 'Все модели'}
+                     galleryModelFilter === 'techplan' ? 'Создание по техплану' :
+                     galleryModelFilter === 'cleanup' ? 'Удаление объектов' : 'Все модели'}
                   </span>
                   <ChevronDown className="h-3 w-3 opacity-70" />
                 </button>
@@ -2374,25 +2489,6 @@ function AdvancedMainArea({
           </motion.div>
         )}
         
-        {/* Model Selection Panel - Fixed at bottom */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/5 bg-black/40 backdrop-blur-lg">
-          <div className="mx-auto max-w-3xl px-6 py-3">
-            <AdvancedSearchBar 
-              onAdvanced={() => {}}
-              onAttach={onAttach}
-              attachments={attachments}
-              modelMenuOpen={modelMenuOpen}
-              onModelMenuToggle={onModelMenuToggle}
-              onFilesSelected={onFilesSelected}
-              onSendMessage={onSendFromGallery}
-              isGenerating={isGenerating}
-              isAtBottom={true}
-              onImageClick={onImageClick}
-              setModelFromOutside={null}
-              additionalButtons={null}
-            />
-          </div>
-        </div>
       </div>
     );
   };
@@ -2478,6 +2574,9 @@ function AdvancedMainArea({
                 onImageClick={onImageClick}
                 setModelFromOutside={modelTo3D}
                 additionalButtons={null}
+                model={model}
+                onModelSelect={onModelSelect}
+                on3DInfoOpen={() => setIs3DInfoOpen(true)}
           />
         </motion.div>
 
@@ -2539,6 +2638,9 @@ function AdvancedMainArea({
                   openUpward={showMessages}
                 />
               ) : null}
+              model={model}
+              onModelSelect={onModelSelect}
+              on3DInfoOpen={() => setIs3DInfoOpen(true)}
             />
           </motion.div>
         </div>
@@ -2564,12 +2666,12 @@ function AdvancedMainArea({
 
  function AdvancedLogoMark() {
    return (
-       <div className="group flex flex-col items-center justify-center gap-3 select-none cursor-pointer">
-        <div className="flex items-center justify-center gap-3">
+       <div className="group flex flex-col items-center justify-center gap-2 select-none cursor-pointer">
+        <div className="flex items-center justify-center gap-2">
           {/* Plan AI logo - Ultimate Monochrome Luxury */}
           <svg 
-            width="84" 
-            height="84" 
+            width="64" 
+            height="64" 
             viewBox="0 0 400 400" 
             xmlns="http://www.w3.org/2000/svg" 
             aria-label="Plan AI logo"
@@ -2827,7 +2929,7 @@ function AdvancedMainArea({
           </svg>
           
           {/* Premium typography - aligned with logo */}
-          <span className="text-7xl font-light tracking-[-0.03em] text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.35)]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: '1' }}>
+          <span className="text-5xl font-light tracking-[-0.03em] text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.35)]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: '1' }}>
             Plan AI
           </span>
         </div>
@@ -2835,7 +2937,7 @@ function AdvancedMainArea({
         {/* Subtitle - centered with animation */}
         <div className="flex items-center justify-center gap-2.5 transition-all duration-700 group-hover:gap-3.5 opacity-70 group-hover:opacity-100">
           <div className="h-[0.5px] w-8 bg-gradient-to-r from-transparent via-white/50 to-white/30 transition-all duration-700 group-hover:w-12"></div>
-          <span className="text-[9px] font-medium tracking-[0.35em] text-gray-400/70 uppercase transition-all duration-700 group-hover:text-gray-300/90 group-hover:tracking-[0.42em]">
+          <span className="text-[8px] font-medium tracking-[0.3em] text-gray-400/70 uppercase transition-all duration-700 group-hover:text-gray-300/90 group-hover:tracking-[0.35em]">
             ARCHITECTURE INTELLIGENCE
           </span>
           <div className="h-[0.5px] w-8 bg-gradient-to-l from-transparent via-white/50 to-white/30 transition-all duration-700 group-hover:w-12"></div>
@@ -2844,9 +2946,8 @@ function AdvancedMainArea({
    );
  }
 
-function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOpen, onModelMenuToggle, onFilesSelected, onSendMessage, isGenerating = false, isAtBottom = false, additionalButtons = null, onImageClick, onModelChange, setModelFromOutside }) {
+function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOpen, onModelMenuToggle, onFilesSelected, onSendMessage, isGenerating = false, isAtBottom = false, additionalButtons = null, onImageClick, onModelChange, setModelFromOutside, model, onModelSelect, on3DInfoOpen }) {
   const [query, setQuery] = useState("");
-  const [model, setModel] = useState("techplan");
   const [techplanMode, setTechplanMode] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showSendTooltip, setShowSendTooltip] = useState(false);
@@ -2861,28 +2962,28 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
   // Устанавливаем модель извне
   useEffect(() => {
     if (setModelFromOutside) {
-      setModel(setModelFromOutside);
+      onModelSelect?.(setModelFromOutside);
       // Сбрасываем значение после установки
       if (onModelChange) {
         onModelChange(setModelFromOutside);
       }
     }
-  }, [setModelFromOutside, onModelChange]);
+  }, [setModelFromOutside, onModelChange, onModelSelect]);
   const fileInputRef = useRef(null);
 
   const canSend = attachments.length > 0 && (model === "3d" ? query.trim().length > 0 : techplanMode !== null);
 
   return (
-    <div className="relative z-20 w-full max-w-2xl mx-auto rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5">
-      <div className="flex items-center gap-3 px-4 md:px-6">
+    <div className="relative z-20 w-full max-w-xl mx-auto rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5">
+      <div className="flex items-center gap-2 px-3 md:px-4">
         <div className="relative">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-1 rounded-lg hover:bg-white/10 transition-all duration-200 group hover:scale-110"
+            className="p-0.5 rounded-md hover:bg-white/10 transition-all duration-200 group hover:scale-110"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
           >
-            <Paperclip className="h-5 w-5 text-neutral-400 hover:text-neutral-200 transition-transform duration-200 group-hover:scale-110" />
+            <Paperclip className="h-4 w-4 text-neutral-400 hover:text-neutral-200 transition-transform duration-200 group-hover:scale-110" />
           </button>
           
           {/* Скрытый input для выбора файлов */}
@@ -2935,12 +3036,6 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
           </div>
         )}
 
-        {model === "remove" && (
-          <div className="flex-1 py-3 md:py-4 flex items-center gap-2">
-            <div className="text-sm text-neutral-400">Удаление объектов</div>
-          </div>
-        )}
-
         {model === "cleanup" && (
           <div className="flex-1 py-3 md:py-4 flex items-center gap-2">
             <div className="text-sm text-neutral-400">Удаление объектов</div>
@@ -2948,12 +3043,16 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
         )}
 
         {/* Right controls: model selector + Send button */}
-        <div className="hidden md:flex items-center gap-3 text-sm">
+        <div className="hidden md:flex items-center gap-2 text-xs">
           <AdvancedModelMenu
             value={model}
             onChange={(m) => {
-              setModel(m);
-              onAdvanced?.();
+              if (m === "3d") {
+                on3DInfoOpen?.();
+              } else {
+                onModelSelect?.(m);
+                onAdvanced?.();
+              }
             }}
             isOpen={modelMenuOpen}
             onToggle={onModelMenuToggle}
@@ -2968,7 +3067,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
             <button
               type="button"
               disabled={!canSend || isGenerating}
-              className="ml-1 rounded-full p-2 ring-1 ring-white/10 bg-white hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group hover:scale-110"
+              className="ml-1 rounded-full p-1.5 ring-1 ring-white/10 bg-white hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group hover:scale-110"
               onClick={() => {
                 if (!canSend || isGenerating) return;
                 const payload = { model, query, techplanMode, attachments };
@@ -2979,13 +3078,13 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="h-5 w-5 text-black"
+                  className="h-4 w-4 text-black"
                 >
                   ✷
                 </motion.div>
               ) : (
               <svg 
-                className="h-5 w-5 transition-transform duration-200 group-hover:scale-110 text-black" 
+                className="h-4 w-4 transition-transform duration-200 group-hover:scale-110 text-black" 
                 viewBox="0 0 24 24" 
                 fill="none" 
                 stroke="currentColor" 
@@ -3063,7 +3162,7 @@ function AdvancedToggleChip({ label, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md px-3 py-2 text-sm ring-1 transition ${
+      className={`rounded-md px-2.5 py-1.5 text-xs ring-1 transition ${
         active
           ? "bg-white/15 ring-white/20 text-white"
           : "bg-white/5 ring-white/10 text-neutral-300 hover:bg-white/10"
@@ -3093,14 +3192,14 @@ function AdvancedModelMenu({ value, onChange, isOpen, onToggle, openUpward = fal
       <button
         type="button"
         onClick={toggleMenu}
-        className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
+        className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
       >
-        <current.Icon className="h-4 w-4" />
+        <current.Icon className="h-3.5 w-3.5" />
         <span>{current.label}</span>
-        <ChevronDown className="h-4 w-4 opacity-70" />
+        <ChevronDown className="h-3.5 w-3.5 opacity-70" />
       </button>
       {isMenuOpen && (
-        <div className={`absolute right-0 w-64 min-h-[200px] rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+        <div className={`absolute right-0 w-56 min-h-[160px] rounded-lg border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
           openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
         }`}>
           {items.map((it, idx) => (
@@ -3114,17 +3213,17 @@ function AdvancedModelMenu({ value, onChange, isOpen, onToggle, openUpward = fal
                   setOpen(false);
                 }
               }}
-              className={`w-full text-left px-2 py-2 rounded-lg hover:bg-white/10 transition ${
+              className={`w-full text-left px-1.5 py-1.5 rounded-md hover:bg-white/10 transition ${
                 value === it.key ? "bg-white/10" : ""
               }`}
             >
-              <div className="flex items-center gap-2">
-                <it.Icon className="h-4 w-4 text-neutral-200" />
+              <div className="flex items-center gap-1.5">
+                <it.Icon className="h-3.5 w-3.5 text-neutral-200" />
                 <div className="flex-1">
                   <div className="text-xs font-medium">{it.label}</div>
                   <div className="text-[10px] text-neutral-400 mt-0.5">{it.sub}</div>
                 </div>
-                {value === it.key && <Check className="h-3 w-3" />}
+                {value === it.key && <Check className="h-3.5 w-3.5" />}
               </div>
             </button>
           ))}
@@ -3308,12 +3407,6 @@ function AdvancedInlineButtons({ backgroundType, onBackgroundChange, modelMenuOp
 
   return (
     <>
-      <button className="flex items-center gap-2 rounded-full px-3 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10">
-        <ImageIcon className="h-4 w-4" />
-        <span className="text-sm">Параметры плана</span>
-      </button>
-
-
       <div className="relative" data-background-menu>
         <button 
           onClick={() => {
@@ -3321,14 +3414,14 @@ function AdvancedInlineButtons({ backgroundType, onBackgroundChange, modelMenuOp
             setThemesMenuOpen(false);
             onModelMenuToggle?.(false);
           }}
-          className="flex items-center gap-2 rounded-full px-3 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
+          className="flex items-center gap-1.5 rounded-full px-2 py-1.5 ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
         >
-          <Layers className="h-4 w-4" />
-          <span className="text-sm">Фон страницы</span>
+          <Layers className="h-3 w-3" />
+          <span className="text-xs">Фон страницы</span>
           <ChevronDown className="h-3 w-3 opacity-70" />
         </button>
         {backgroundMenuOpen && (
-          <div className={`absolute left-0 w-64 min-h-[200px] rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+          <div className={`absolute left-0 w-56 min-h-[160px] rounded-lg border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
             openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}>
             {backgroundOptions.map((option) => (
@@ -3350,40 +3443,6 @@ function AdvancedInlineButtons({ backgroundType, onBackgroundChange, modelMenuOp
         )}
       </div>
 
-      <div className="relative" data-themes-menu>
-        <button
-          onClick={() => {
-            setThemesMenuOpen((v) => !v);
-            setBackgroundMenuOpen(false);
-            onModelMenuToggle?.(false);
-          }}
-          className="flex items-center gap-2 rounded-full px-3 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
-        >
-          <Palette className="h-4 w-4" />
-          <span className="text-sm">{bg ? `Фон: ${bg}` : "Фоны"}</span>
-          <ChevronDown className="h-3 w-3 opacity-70" />
-        </button>
-        {themesMenuOpen && (
-          <div className={`absolute left-0 w-64 min-h-[200px] rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
-            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
-          }`}>
-            {bgOptions.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => {
-                  setBg(opt);
-                  setThemesMenuOpen(false);
-                }}
-                className={`w-full text-left px-2 py-2 rounded-lg hover:bg-white/10 transition ${
-                  bg === opt ? "bg-white/10" : ""
-                }`}
-              >
-                <div className="text-xs font-medium">{opt}</div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
     </>
   );
 }
@@ -3434,12 +3493,6 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
 
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-wrap items-center justify-center gap-3">
-      <button className="flex items-center gap-2 rounded-full px-3 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10">
-        <ImageIcon className="h-4 w-4" />
-        <span className="text-sm">Параметры плана</span>
-      </button>
-
-
       <div className="relative" data-background-menu>
         <button 
           onClick={() => {
@@ -3454,7 +3507,7 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
           <ChevronDown className="h-3 w-3 opacity-70" />
       </button>
         {backgroundMenuOpen && (
-          <div className={`absolute left-0 w-64 min-h-[200px] rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
+          <div className={`absolute left-0 w-56 min-h-[160px] rounded-lg border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
             openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}>
             {backgroundOptions.map((option) => (
@@ -3476,40 +3529,6 @@ function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen
         )}
       </div>
 
-      <div className="relative" data-themes-menu>
-        <button
-          onClick={() => {
-            setThemesMenuOpen((v) => !v);
-            setBackgroundMenuOpen(false); // Закрываем другое меню
-            onModelMenuToggle?.(false); // Закрываем меню модели
-          }}
-          className="flex items-center gap-2 rounded-full px-3 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10"
-        >
-          <Palette className="h-4 w-4" />
-          <span className="text-sm">{bg ? `Фон: ${bg}` : "Фоны"}</span>
-          <ChevronDown className="h-3 w-3 opacity-70" />
-        </button>
-        {themesMenuOpen && (
-          <div className={`absolute left-0 w-64 min-h-[200px] rounded-xl border border-white/10 bg-[#0b0b0e] p-1 shadow-xl z-[100] ${
-            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
-          }`}>
-            {bgOptions.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => {
-                  setBg(opt);
-                  setThemesMenuOpen(false);
-                }}
-                className={`w-full text-left px-2 py-2 rounded-lg hover:bg-white/10 transition ${
-                  bg === opt ? "bg-white/10" : ""
-                }`}
-              >
-                <div className="text-xs font-medium">{opt}</div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -3539,7 +3558,7 @@ function AdvancedSuperBanner({ showMessages = false, onUpgradeClick }) {
           onClick={onUpgradeClick}
           className="rounded-xl bg-white/90 text-black px-4 py-2 text-sm hover:bg-white transition font-medium"
         >
-          Улучшить
+          Скоро
         </motion.button>
       </motion.div>
     </div>
@@ -3598,23 +3617,23 @@ function AdvancedMessageDisplay({
   if (!isGenerating && !message && !result) return null;
 
   return (
-    <div className="relative z-20 mx-auto max-w-4xl px-6 w-full">
+    <div className="relative z-20 mx-auto max-w-3xl px-4 w-full">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="space-y-6"
+        className="space-y-4"
       >
         {/* Сообщение пользователя */}
         {message && (
           <div className="flex justify-end">
-            <div className="max-w-[80%] rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur px-6 py-4">
-              <div className="text-sm text-white whitespace-pre-wrap">{message.text}</div>
+            <div className="max-w-[80%] rounded-xl bg-white/10 ring-1 ring-white/20 backdrop-blur px-4 py-3">
+              <div className="text-xs text-white whitespace-pre-wrap">{message.text}</div>
               {message.attachments && message.attachments.length > 0 && (
-                 <div className="mt-3 flex flex-wrap gap-2">
+                 <div className="mt-2 flex flex-wrap gap-1.5">
                    {message.attachments.map((att) => (
                      <div key={att.id} className="relative group">
-                       <div className="w-16 h-16 rounded-lg bg-white/5 border border-white/10 overflow-hidden">
+                       <div className="w-12 h-12 rounded-md bg-white/5 border border-white/10 overflow-hidden">
                          <img 
                            src={att.url} 
                            alt={att.name}
@@ -3625,7 +3644,7 @@ function AdvancedMessageDisplay({
                    ))}
                  </div>
               )}
-              <div className="mt-2 text-xs text-neutral-400">
+              <div className="mt-1.5 text-[10px] text-neutral-400">
                 {new Date().toLocaleTimeString()}
               </div>
             </div>
@@ -3635,18 +3654,18 @@ function AdvancedMessageDisplay({
         {/* Анимация генерации */}
         {isGenerating && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur px-6 py-4">
-              <div className="flex items-center gap-3 text-sm text-white">
+            <div className="max-w-[80%] rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur px-4 py-3">
+              <div className="flex items-center gap-2 text-xs text-white">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="text-2xl"
+                  className="text-lg"
                 >
                   ✷
                 </motion.div>
                 <span className="font-medium">Модель анализирует изображения...</span>
               </div>
-              <div className="text-xs text-neutral-400 mt-2">
+              <div className="text-[10px] text-neutral-400 mt-1.5">
                 Обработка фотографий и генерация результата
               </div>
             </div>
@@ -3656,15 +3675,15 @@ function AdvancedMessageDisplay({
         {/* Результат от модели */}
         {result && !isGenerating && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur px-6 py-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                  <span className="text-xs font-bold text-white">AI</span>
+            <div className="max-w-[80%] rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-white">AI</span>
                 </div>
-                <span className="text-sm font-medium text-white">Модель</span>
+                <span className="text-xs font-medium text-white">Модель</span>
               </div>
               
-              <div className="text-sm text-white whitespace-pre-wrap mb-4">
+              <div className="text-xs text-white whitespace-pre-wrap mb-3">
                 {result.text}
               </div>
               
@@ -3736,7 +3755,7 @@ function AdvancedMessageDisplay({
 
 export default function MonochromeClaudeStyle() {
   const { user, logout, saveSettings, loadSettings } = useAuth();
-  const [model, setModel] = useState(MODEL_OPTIONS[0]);
+  const [model, setModel] = useState("techplan");
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [value, setValue] = useState("");
   const [removeDepth, setRemoveDepth] = useState(null); // null | 'surface' | 'partial' | 'full' // surface | partial | full
@@ -3745,9 +3764,34 @@ export default function MonochromeClaudeStyle() {
   const fileInputRef = useRef(null);
   const textRef = useRef(null);
 
+  // Site style (persisted per user)
+  const [userId] = useState(() => {
+    if (typeof window === "undefined") return "anon";
+    return localStorage.getItem("userId") || "anon";
+  });
+
   // Chats state
-  const [chats, setChats] = useState(() => [{ id: `chat-${Date.now()}`, title: "Новый чат", messages: [] }]);
-  const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id);
+  const [chats, setChats] = useState(() => {
+    // Загружаем чаты из localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`chats@${userId}`);
+      if (saved) {
+        const parsedChats = JSON.parse(saved);
+        return parsedChats.length > 0 ? parsedChats : [{ id: `chat-${Date.now()}`, title: "Новый чат", messages: [] }];
+      }
+    }
+    return [{ id: `chat-${Date.now()}`, title: "Новый чат", messages: [] }];
+  });
+  const [activeChatId, setActiveChatId] = useState(() => {
+    // Загружаем активный чат из localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`activeChatId@${userId}`);
+      if (saved) {
+        return saved;
+      }
+    }
+    return chats[0]?.id;
+  });
   const activeChat = chats.find((c) => c.id === activeChatId) || chats[0];
 
   // Generation state
@@ -3759,14 +3803,9 @@ export default function MonochromeClaudeStyle() {
   const [rightOpen, setRightOpen] = useState(false);
   const [rightTab, setRightTab] = useState("chats"); // 'chats' | 'settings'
 
-  // Site style (persisted per user)
-  const [userId] = useState(() => {
-    if (typeof window === "undefined") return "anon";
-    return localStorage.getItem("userId") || "anon";
-  });
   const [siteStyle, setSiteStyle] = useState(() => {
     if (typeof window === "undefined") return STYLE_OPTIONS[0].id; // Advanced by default
-    return localStorage.getItem(`siteStyle@${localStorage.getItem("userId") || "anon"}`) || STYLE_OPTIONS[0].id;
+    return localStorage.getItem(`siteStyle@${userId}`) || STYLE_OPTIONS[0].id;
   });
   useEffect(() => {
     if (typeof document !== "undefined") {
@@ -3873,11 +3912,19 @@ export default function MonochromeClaudeStyle() {
     return () => clearTimeout(timeoutId);
   }, [siteStyle, backgroundType, user]);
 
+
   // Advanced message system states
   const [advancedCurrentMessage, setAdvancedCurrentMessage] = useState(null);
   const [advancedCurrentResult, setAdvancedCurrentResult] = useState(null);
   const [advancedIsGenerating, setAdvancedIsGenerating] = useState(false);
-  const [advancedMessageHistory, setAdvancedMessageHistory] = useState([]);
+  const [advancedMessageHistory, setAdvancedMessageHistory] = useState(() => {
+    // Загружаем историю сообщений из localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`advancedMessageHistory@${userId}`);
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  }); // { chatId: [messages] }
 
   // Image modal state
   const [imageModal, setImageModal] = useState({ isOpen: false, url: '', alt: '' });
@@ -3887,9 +3934,31 @@ export default function MonochromeClaudeStyle() {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [is3DInfoOpen, setIs3DInfoOpen] = useState(false);
   
   // Navigate
   const navigate = useNavigate();
+
+  // Сохраняем историю сообщений в localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`advancedMessageHistory@${userId}`, JSON.stringify(advancedMessageHistory));
+    }
+  }, [advancedMessageHistory, userId]);
+
+  // Сохраняем чаты в localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`chats@${userId}`, JSON.stringify(chats));
+    }
+  }, [chats, userId]);
+
+  // Сохраняем активный чат в localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && activeChatId) {
+      localStorage.setItem(`activeChatId@${userId}`, activeChatId);
+    }
+  }, [activeChatId, userId]);
 
   // Фильтрация чатов и настроек по поисковому запросу
   const [searchResults, setSearchResults] = useState({ chats: [], settings: [] });
@@ -3944,7 +4013,7 @@ export default function MonochromeClaudeStyle() {
         setSiteStyle(setting.id);
         break;
       case 'model':
-        setModel(MODEL_OPTIONS.find(m => m.id === setting.id) || MODEL_OPTIONS[0]);
+        setModel(setting.id);
         break;
       case 'background':
         setBackgroundType(setting.id);
@@ -3964,7 +4033,8 @@ export default function MonochromeClaudeStyle() {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       text: model === "3d" ? query : 
             model === "techplan" ? `Создание по техплану — ${techplanMode === "with" ? "С мебелью" : "Без мебели"}` :
-            "Удаление объектов",
+            model === "cleanup" ? "Удаление объектов" :
+            "Неизвестная модель",
       attachments: attachments.map((a) => ({ id: a.id, name: a.name, url: a.url })),
       time: new Date().toISOString(),
     };
@@ -4000,6 +4070,25 @@ export default function MonochromeClaudeStyle() {
         const imageBlob = await response.blob();
         responseImage = URL.createObjectURL(imageBlob);
         responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
+      } else if (model === "cleanup" && attachments.length > 0) {
+        // Удаление объектов
+        const formData = new FormData();
+        formData.append('image', attachments[0].file);
+
+        const response = await fetch('/api/remove-objects', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Ошибка удаления объектов');
+        }
+
+        // Получаем изображение как blob
+        const imageBlob = await response.blob();
+        responseImage = URL.createObjectURL(imageBlob);
+        responseText = `Объекты успешно удалены с изображения.`;
       } else {
         // Обычная обработка для других моделей
         responseText = `Вот результат обработки вашего запроса "${userMessage.text}".`;
@@ -4015,12 +4104,15 @@ export default function MonochromeClaudeStyle() {
 
       setAdvancedCurrentResult(aiResponse);
       
-      // Добавляем сообщения в историю
-      setAdvancedMessageHistory(prev => [
+      // Добавляем сообщения в историю для текущего чата
+      setAdvancedMessageHistory(prev => ({
         ...prev,
-        { ...userMessage, type: 'user' },
-        { ...aiResponse, type: 'ai', time: new Date().toISOString() }
-      ]);
+        [activeChatId]: [
+          ...(prev[activeChatId] || []),
+          { ...userMessage, type: 'user' },
+          { ...aiResponse, type: 'ai', time: new Date().toISOString() }
+        ]
+      }));
       
       // Очищаем текущие сообщения после добавления в историю
       setTimeout(() => {
@@ -4039,11 +4131,14 @@ export default function MonochromeClaudeStyle() {
       setAdvancedCurrentResult(errorResponse);
       
       // Добавляем сообщения в историю даже при ошибке
-      setAdvancedMessageHistory(prev => [
+      setAdvancedMessageHistory(prev => ({
         ...prev,
-        { ...userMessage, type: 'user' },
-        { ...errorResponse, type: 'ai', time: new Date().toISOString() }
-      ]);
+        [activeChatId]: [
+          ...(prev[activeChatId] || []),
+          { ...userMessage, type: 'user' },
+          { ...errorResponse, type: 'ai', time: new Date().toISOString() }
+        ]
+      }));
       
       // Очищаем текущие сообщения после добавления в историю
       setTimeout(() => {
@@ -4061,14 +4156,15 @@ export default function MonochromeClaudeStyle() {
       rating
     } : null);
     
-    // Обновляем рейтинг в истории
-    setAdvancedMessageHistory(prev => 
-      prev.map(msg => 
+    // Обновляем рейтинг в истории для текущего чата
+    setAdvancedMessageHistory(prev => ({
+      ...prev,
+      [activeChatId]: (prev[activeChatId] || []).map(msg => 
         msg.messageId === messageId && msg.type === 'ai' 
           ? { ...msg, rating }
           : msg
       )
-    );
+    }));
   };
 
   const handleAdvancedRegenerate = async (messageId) => {
@@ -4086,14 +4182,15 @@ export default function MonochromeClaudeStyle() {
       
       setAdvancedCurrentResult(updatedResult);
       
-      // Обновляем сообщение в истории
-      setAdvancedMessageHistory(prev => 
-        prev.map(msg => 
+      // Обновляем сообщение в истории для текущего чата
+      setAdvancedMessageHistory(prev => ({
+        ...prev,
+        [activeChatId]: (prev[activeChatId] || []).map(msg => 
           msg.messageId === messageId && msg.type === 'ai' 
             ? { ...updatedResult, type: 'ai', time: new Date().toISOString() }
             : msg
         )
-      );
+      }));
     }, 2000);
   };
 
@@ -4118,8 +4215,8 @@ export default function MonochromeClaudeStyle() {
 
   const settingsBtnRef = useRef(null);
 
-  const isRemove = model.id === "remove";
-  const isPlan = model.id === "plan";
+  const isRemove = model === "cleanup";
+  const isPlan = model === "techplan";
 
   const canSend = (isRemove || isPlan)
     ? attachments.length > 0
@@ -4136,7 +4233,7 @@ export default function MonochromeClaudeStyle() {
     const msg = {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       role: "user",
-      model: model.id,
+      model: model,
       text: content,
       attachments: attachments.map((a) => ({ id: a.id, name: a.name, url: a.url })),
       time: new Date().toISOString(),
@@ -4264,8 +4361,7 @@ export default function MonochromeClaudeStyle() {
     setAttachments([]);
     setPlanFurniture(null);
     
-    // Очищаем историю сообщений при создании нового чата
-    setAdvancedMessageHistory([]);
+    // Очищаем только текущие сообщения при создании нового чата
     setAdvancedCurrentMessage(null);
     setAdvancedCurrentResult(null);
     setRemoveDepth(null);
@@ -4393,13 +4489,20 @@ export default function MonochromeClaudeStyle() {
     
     if (confirm(`Вы уверены, что хотите удалить чат "${chatTitle}"? Это действие нельзя отменить.`)) {
       setChats(chats.filter(c => c.id !== chatId));
+      
+      // Удаляем историю сообщений для этого чата
+      setAdvancedMessageHistory(prev => {
+        const newHistory = { ...prev };
+        delete newHistory[chatId];
+        return newHistory;
+      });
+      
       if (activeChatId === chatId && chats.length > 1) {
         const remainingChats = chats.filter(c => c.id !== chatId);
         setActiveChatId(remainingChats[0]?.id || null);
       }
       
-      // Очищаем историю сообщений при удалении чата
-      setAdvancedMessageHistory([]);
+      // Очищаем текущие сообщения при удалении чата
       setAdvancedCurrentMessage(null);
       setAdvancedCurrentResult(null);
     }
@@ -4475,8 +4578,7 @@ export default function MonochromeClaudeStyle() {
     setAttachments([]);
     setPlanFurniture(null);
     
-    // Очищаем историю сообщений
-    setAdvancedMessageHistory([]);
+    // Очищаем только текущие сообщения
     setAdvancedCurrentMessage(null);
     setAdvancedCurrentResult(null);
     setRemoveDepth(null);
@@ -4507,8 +4609,7 @@ export default function MonochromeClaudeStyle() {
               setIsGenerating(false);
               setResponses({});
               
-              // Очищаем историю сообщений при переключении чатов
-              setAdvancedMessageHistory([]);
+              // Очищаем только текущие сообщения при переключении чатов
               setAdvancedCurrentMessage(null);
               setAdvancedCurrentResult(null);
             }}
@@ -4550,7 +4651,7 @@ export default function MonochromeClaudeStyle() {
             isGenerating={advancedIsGenerating}
             currentMessage={advancedCurrentMessage}
             currentResult={advancedCurrentResult}
-            messageHistory={advancedMessageHistory}
+            messageHistory={advancedMessageHistory[activeChatId] || []}
             onRate={handleAdvancedRate}
             onRegenerate={handleAdvancedRegenerate}
             onDownload={handleAdvancedDownload}
@@ -4565,6 +4666,8 @@ export default function MonochromeClaudeStyle() {
             setGalleryModelFilter={setGalleryModelFilter}
             onGalleryDelete={handleGalleryDelete}
             onGalleryDownload={handleGalleryDownload}
+            model={model}
+            onModelSelect={setModel}
           />
         </div>
         
@@ -4591,11 +4694,16 @@ export default function MonochromeClaudeStyle() {
           user={user}
           backgroundType={backgroundType}
           onBackgroundChange={setBackgroundType}
+          on3DInfoOpen={() => setIs3DInfoOpen(true)}
         />
         <AuthModal 
           isOpen={isAuthOpen} 
           onClose={() => setIsAuthOpen(false)}
-      />
+        />
+        <Plan3DInfoModal 
+          isOpen={is3DInfoOpen} 
+          onClose={() => setIs3DInfoOpen(false)} 
+        />
     </div>
   );
 }
