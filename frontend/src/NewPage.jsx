@@ -83,7 +83,17 @@ import { API_BASE_URL } from './config';
 import { useNavigate } from 'react-router-dom';
 
 // ===== Confirmation Modal Component =====
-function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Подтвердить", cancelText = "Отмена", type = "danger" }) {
+function ConfirmationModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message, 
+  confirmText = "Подтвердить", 
+  cancelText = "Отмена", 
+  type = "danger",
+  showRememberOption = false
+}) {
   if (!isOpen) return null;
 
   const getIcon = () => {
@@ -102,6 +112,11 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
       case 'info': return 'bg-blue-600 hover:bg-blue-700 text-white';
       default: return 'bg-red-600 hover:bg-red-700 text-white';
     }
+  };
+
+  const handleConfirm = () => {
+    const rememberChoice = showRememberOption && document.getElementById('remember-choice')?.checked;
+    onConfirm(rememberChoice);
   };
 
   return (
@@ -129,7 +144,21 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
         </div>
 
         {/* Message */}
-        <p className="text-neutral-300 text-sm mb-6 leading-relaxed">{message}</p>
+        <p className="text-neutral-300 text-sm mb-4 leading-relaxed">{message}</p>
+        
+        {/* Remember option */}
+        {showRememberOption && (
+          <div className="mb-6 flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="remember-choice"
+              className="w-4 h-4 rounded border-white/20 bg-transparent text-blue-500 focus:ring-blue-500 focus:ring-2"
+            />
+            <label htmlFor="remember-choice" className="text-xs text-neutral-400 cursor-pointer">
+              Больше не спрашивать
+            </label>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3 justify-end">
@@ -140,12 +169,124 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
             {cancelText}
           </button>
           <button
-            onClick={onConfirm}
+            onClick={handleConfirm}
             className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${getButtonStyle()}`}
           >
             {confirmText}
           </button>
         </div>
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ===== Rename Chat Modal Component =====
+function RenameChatModal({ isOpen, onClose, onConfirm, currentTitle, showRememberOption = false }) {
+  const [newTitle, setNewTitle] = useState(currentTitle || '');
+  
+  // Обновляем состояние при изменении currentTitle
+  useEffect(() => {
+    setNewTitle(currentTitle || '');
+  }, [currentTitle]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (newTitle.trim()) {
+      const rememberChoice = showRememberOption && document.getElementById('remember-choice')?.checked;
+      onConfirm(newTitle.trim(), rememberChoice);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        transition={{ duration: 0.2 }}
+        className="relative w-full max-w-md mx-4 bg-[#161618] border border-white/10 rounded-2xl p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 border border-white/10">
+            <Settings className="h-5 w-5 text-blue-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">Переименовать чат</h3>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="text-sm text-neutral-400 block mb-2">
+              Новое название чата
+            </label>
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
+              placeholder="Введите название чата"
+              autoFocus
+              maxLength={50}
+            />
+          </div>
+          
+          {/* Remember option */}
+          {showRememberOption && (
+            <div className="mb-6 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="remember-choice"
+                className="w-4 h-4 rounded border-white/20 bg-transparent text-blue-500 focus:ring-blue-500 focus:ring-2"
+              />
+              <label htmlFor="remember-choice" className="text-xs text-neutral-400 cursor-pointer">
+                Больше не спрашивать
+              </label>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-neutral-300 hover:text-white transition-colors border border-white/10 rounded-lg hover:bg-white/5"
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              disabled={!newTitle.trim()}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-600 disabled:cursor-not-allowed transition-colors rounded-lg"
+            >
+              Переименовать
+            </button>
+          </div>
+        </form>
 
         {/* Close button */}
         <button
@@ -920,147 +1061,58 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   const [activeTab, setActiveTab] = useState('account');
 
   // Appearance
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('userSettings_theme');
-    return saved || 'system';
-  });
+  const [theme, setTheme] = useState('system');
+  const [showMarkdown, setShowMarkdown] = useState(false);
+  const [wrapLongLines, setWrapLongLines] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
 
   // Behavior
-  const [notifications, setNotifications] = useState(() => {
-    const saved = localStorage.getItem('userSettings_notifications');
-    return saved ? JSON.parse(saved) : false;
-  });
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [sidePanel, setSidePanel] = useState(false);
+  const [notifications, setNotifications] = useState(false);
+  const [autoComplete, setAutoComplete] = useState(true);
+  const [starBackground, setStarBackground] = useState(false);
+
 
   // Data
-  const [allowHistory, setAllowHistory] = useState(() => {
-    const saved = localStorage.getItem('userSettings_allowHistory');
-    return saved ? JSON.parse(saved) : false;
+  const [allowHistory, setAllowHistory] = useState(false);
+  
+  // User settings for confirmations
+  const [userSettings, setUserSettings] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`userSettings@${user?.id || 'guest'}`);
+      return saved ? JSON.parse(saved) : {
+        skipDeleteConfirmation: false,
+        skipRenameConfirmation: false,
+        showActionNotifications: true
+      };
+    }
+    return {
+      skipDeleteConfirmation: false,
+      skipRenameConfirmation: false,
+      showActionNotifications: true
+    };
   });
-  const [modelImprovement, setModelImprovement] = useState(() => {
-    const saved = localStorage.getItem('userSettings_modelImprovement');
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [allowDetails, setAllowDetails] = useState(() => {
-    const saved = localStorage.getItem('userSettings_allowDetails');
-    return saved ? JSON.parse(saved) : false;
-  });
+  
+  // Функция для обновления настроек
+  const updateUserSettings = (newSettings) => {
+    setUserSettings(prev => ({ ...prev, ...newSettings }));
+  };
+  
+  // Сохраняем настройки пользователя в localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && user?.id) {
+      localStorage.setItem(`userSettings@${user.id}`, JSON.stringify(userSettings));
+    }
+  }, [userSettings, user?.id]);
+  const [allowDetails, setAllowDetails] = useState(false);
   const [memoryUsage] = useState({ used: 74.23, total: 1070 });
+  const [selectedPanel, setSelectedPanel] = useState('layers');
   const [grantUsername, setGrantUsername] = useState('');
   const [grantStatus, setGrantStatus] = useState(null);
   const [grantError, setGrantError] = useState('');
   const [grantLoading, setGrantLoading] = useState(false);
-
-  // Функции для сохранения настроек
-  const saveSetting = (key, value) => {
-    try {
-      localStorage.setItem(`userSettings_${key}`, JSON.stringify(value));
-    } catch (error) {
-      if (error.name === 'QuotaExceededError') {
-        // Очищаем старые настройки и пробуем снова
-        console.warn('localStorage переполнен, очищаем старые настройки...');
-        try {
-          // Удаляем старые настройки, оставляя только важные
-          const importantKeys = ['theme', 'notifications', 'allowHistory', 'modelImprovement'];
-          const keysToRemove = [];
-          
-          for (let i = 0; i < localStorage.length; i++) {
-            const storageKey = localStorage.key(i);
-            if (storageKey && storageKey.startsWith('userSettings_') && !importantKeys.includes(storageKey.replace('userSettings_', ''))) {
-              keysToRemove.push(storageKey);
-            }
-          }
-          
-          keysToRemove.forEach(key => localStorage.removeItem(key));
-          
-          // Пробуем сохранить снова
-          localStorage.setItem(`userSettings_${key}`, JSON.stringify(value));
-        } catch (retryError) {
-          console.error('Не удалось сохранить настройку после очистки localStorage:', retryError);
-        }
-      } else {
-        console.error('Ошибка при сохранении настройки:', error);
-      }
-    }
-  };
-
-  // Функция для отправки уведомлений
-  const sendNotification = (title, body) => {
-    if (notifications && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
-        body: body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico'
-      });
-    }
-  };
-
-  // Функция для принудительной очистки localStorage
-  const clearOldSettings = () => {
-    try {
-      const importantKeys = ['theme', 'notifications', 'allowHistory', 'modelImprovement', 'siteStyle', 'backgroundType'];
-      const keysToRemove = [];
-      
-      for (let i = 0; i < localStorage.length; i++) {
-        const storageKey = localStorage.key(i);
-        if (storageKey && storageKey.startsWith('userSettings_') && !importantKeys.includes(storageKey.replace('userSettings_', ''))) {
-          keysToRemove.push(storageKey);
-        }
-      }
-      
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      console.log(`Принудительно очищено ${keysToRemove.length} старых настроек из localStorage`);
-      alert(`Очищено ${keysToRemove.length} старых настроек. Пожалуйста, перезагрузите страницу.`);
-    } catch (error) {
-      console.error('Ошибка при принудительной очистке localStorage:', error);
-    }
-  };
-
-  // Функции для применения настроек
-  const applySettings = () => {
-    // Применяем настройки темы
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else if (theme === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else {
-      // system - определяем по системным настройкам
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-
-    // Применяем настройки уведомлений
-    if (notifications && 'Notification' in window) {
-      if (Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
-    }
-  };
-
-  // Сохраняем настройки при изменении
-  useEffect(() => {
-    saveSetting('theme', theme);
-    applySettings();
-  }, [theme]);
-
-  useEffect(() => {
-    saveSetting('notifications', notifications);
-    applySettings();
-  }, [notifications]);
-
-  useEffect(() => {
-    saveSetting('allowHistory', allowHistory);
-  }, [allowHistory]);
-
-  useEffect(() => {
-    saveSetting('modelImprovement', modelImprovement);
-  }, [modelImprovement]);
-
-  useEffect(() => {
-    saveSetting('allowDetails', allowDetails);
-  }, [allowDetails]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -1320,28 +1372,24 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
         ))}
       </div>
 
+      <div className="space-y-2">
+        <Row icon={Eye} left="Показывать предпросмотр разговоров в истории" right={<Toggle value={showPreview} onChange={setShowPreview} />} />
+      </div>
     </div>
   );
 
   const BehaviorTab = () => (
     <div className="space-y-2">
+      <Row icon={ArrowUp} left="Включить автопрокрутку" right={<Toggle value={autoScroll} onChange={setAutoScroll} />} />
+      <Row icon={Sparkles} left="Показывать предложения для продолжения" right={<Toggle value={showSuggestions} onChange={setShowSuggestions} />} />
       <Row icon={Bell} left="Получать уведомление, когда Plan AI заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
+      <Row icon={Bell} left="Уведомления при действиях" right={<Toggle value={userSettings.showActionNotifications} onChange={(value) => updateUserSettings({ showActionNotifications: value })} />} />
     </div>
   );
 
-
   const DataTab = () => (
     <div className="space-y-4">
-      <Row icon={Sparkles} left="Улучшить модель" right={<Toggle value={modelImprovement} onChange={setModelImprovement} />} />
-      
-      <div className="pt-2 border-t border-white/10">
-        <button
-          onClick={clearOldSettings}
-          className="w-full px-3 py-2 text-xs text-neutral-400 hover:text-white hover:bg-white/5 rounded-md transition-colors"
-        >
-          Очистить старые настройки
-        </button>
-      </div>
+      <Row icon={Sparkles} left="Улучшить модель" right={<Toggle value={allowHistory} onChange={setAllowHistory} />} />
       {user && (
         <div className="rounded-lg border border-white/10 px-4 py-3 space-y-2 bg-black/20">
           <div className="text-xs uppercase tracking-[0.1em] text-white/50">Доступ</div>
@@ -2076,13 +2124,13 @@ function AdvancedSidebar({
 
   if (isCollapsed) {
   return (
-      <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-12 h-screen">
-        <div className="p-2 flex-shrink-0">
+      <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-12">
+        <div className="p-2">
           <div className="w-full h-8 rounded-lg bg-white/5 flex items-center justify-center">
             <Search className="h-4 w-4 text-neutral-400" />
           </div>
         </div>
-        <nav className="px-1.5 text-xs flex-1 space-y-1.5 overflow-y-auto custom-scrollbar min-h-0">
+        <nav className="px-1.5 text-xs flex-1 space-y-1.5">
           <button 
             onClick={onCreateChat}
             className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
@@ -2112,7 +2160,7 @@ function AdvancedSidebar({
             <HelpCircle className="h-4 w-4 text-neutral-400" />
           </button>
         </nav>
-        <div className="flex-shrink-0 p-3 flex flex-col items-center gap-2">
+        <div className="p-3 flex flex-col items-center gap-2">
           <button 
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             className="size-9 rounded-full grid place-items-center text-xs font-semibold hover:scale-105 transition bg-black border border-white/30 text-white"
@@ -2133,9 +2181,9 @@ function AdvancedSidebar({
   }
 
   return (
-    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-72 relative h-screen">
+    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-72 relative">
       {/* Top: search */}
-      <div className="p-2 flex-shrink-0">
+      <div className="p-2">
         <div className="flex items-center gap-1.5 rounded-lg bg-white/5 px-4 py-2 ring-1 ring-white/10 hover:ring-white/20 transition">
           <Search className="h-3 w-3 text-neutral-400" />
           <input
@@ -2148,7 +2196,7 @@ function AdvancedSidebar({
       </div>
 
       {/* Nav */}
-       <nav className="px-1.5 text-sm flex-1 overflow-y-auto custom-scrollbar min-h-0">
+       <nav className="px-1.5 text-sm flex-1 overflow-y-auto custom-scrollbar">
         <AdvancedSectionTitle>Главное</AdvancedSectionTitle>
         <AdvancedNavItem onClick={onCreateChat} Icon={Plus} label="Новый чат" />
         <AdvancedNavItem onClick={onShowGallery} Icon={Images} label="Создано" />
@@ -2309,23 +2357,23 @@ function AdvancedSidebar({
         )}
       </nav>
 
-      <div className="flex-shrink-0 px-3 py-3 border-t border-white/5 relative">
+      <div className="mt-auto px-3 py-3 border-t border-white/5 relative">
         <div className="flex items-center justify-between">
           <button 
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex items-center gap-2 hover:bg-white/5 p-1.5 rounded-lg transition flex-1 min-w-0"
+            className="flex items-center gap-2 hover:bg-white/5 p-1.5 rounded-lg transition flex-1"
           >
-            <div className="size-8 rounded-full grid place-items-center text-sm font-semibold bg-black border border-white/30 text-white flex-shrink-0">
+            <div className="size-8 rounded-full grid place-items-center text-sm font-semibold bg-black border border-white/30 text-white">
               {user?.name?.charAt(0).toUpperCase() || '?'}
             </div>
-            <div className="flex-1 text-left min-w-0">
+            <div className="flex-1 text-left">
               <div className="text-sm text-white truncate">{user?.name || 'Аноним'}</div>
               <div className="text-xs text-neutral-500 truncate">{user?.username || ''}</div>
             </div>
           </button>
           <button 
             onClick={onCollapse}
-            className="text-neutral-500 hover:text-neutral-300 transition p-2 flex-shrink-0" 
+            className="text-neutral-500 hover:text-neutral-300 transition p-2" 
             title="Свернуть панель"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -2412,7 +2460,40 @@ function AdvancedNavItem({ Icon, label, active, onClick }) {
 
 function AdvancedHistoryLinkWithMenu({ chat, active = false, onClick, onRename, onDelete, onPin, isMenuOpen, setMenuOpen }) {
   const [isHovered, setIsHovered] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const containerRef = useRef(null);
+  
+  // Закрытие меню при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen, setMenuOpen]);
+  
+  // Обработчик правого клика
+  const handleRightClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Получаем позицию клика относительно контейнера
+    const rect = containerRef.current.getBoundingClientRect();
+    setMenuPosition({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+    
+    setMenuOpen(true);
+  };
   
   // Управление видимостью трех точек
   useEffect(() => {
@@ -2446,6 +2527,7 @@ function AdvancedHistoryLinkWithMenu({ chat, active = false, onClick, onRename, 
       <div className="flex items-center gap-1 w-full min-h-[32px]">
         <button 
           onClick={onClick}
+          onContextMenu={handleRightClick}
             className={`flex-1 text-left py-2 px-4 rounded-md truncate cursor-pointer transition min-h-[32px] text-sm ${
             active 
               ? "text-white bg-white/10" 
@@ -2457,17 +2539,16 @@ function AdvancedHistoryLinkWithMenu({ chat, active = false, onClick, onRename, 
             <span className="truncate">{chat.title || "Новый чат"}</span>
           </div>
         </button>
-        
-        <button
-          onClick={(e) => { e.stopPropagation(); setMenuOpen(!isMenuOpen); }}
-          className="p-1.5 hover:bg-white/10 rounded-md transition flex-shrink-0 min-h-[32px] flex items-center justify-center opacity-100"
-        >
-          <MoreVertical className="h-3.5 w-3.5 text-neutral-400" />
-        </button>
       </div>
       
       {isMenuOpen && (
-        <div className="absolute right-0 top-full mt-1 bg-neutral-900 border border-white/10 rounded-lg shadow-2xl overflow-hidden z-50 min-w-[160px]">
+        <div 
+          className="absolute bg-neutral-900 border border-white/10 rounded-lg shadow-2xl overflow-hidden z-50 min-w-[160px]"
+          style={{
+            left: `${menuPosition.x}px`,
+            top: `${menuPosition.y}px`
+          }}
+        >
           <button
             onClick={(e) => { e.stopPropagation(); onRename(); setMenuOpen(false); }}
             className="w-full flex items-center gap-2 px-4 py-2 hover:bg-white/5 transition text-left text-sm"
@@ -2557,8 +2638,6 @@ function AdvancedMainArea({
 
   // Показываем сообщения, если есть активное сообщение, результат, история или идет генерация
   const showMessages = currentMessage || currentResult || messageHistory.length > 0 || isGenerating;
-
-
 
   // Обработчик активации 3D режима
   const handle3DActivation = () => {
@@ -2813,7 +2892,6 @@ function AdvancedMainArea({
               onImageClick={onImageClick}
             />
           )}
-
         </div>
       )}
 
@@ -3931,9 +4009,51 @@ function AdvancedSuperBanner({ showMessages = false, onUpgradeClick }) {
   );
 }
 
+// === Custom Hook for Safe Blob URL Management ===
+function useBlobUrl(file) {
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!file) {
+      setBlobUrl(null);
+      setError(false);
+      return;
+    }
+
+    try {
+      const url = URL.createObjectURL(file);
+      setBlobUrl(url);
+      setError(false);
+      
+      return () => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          console.warn('Ошибка при освобождении blob URL:', err);
+        }
+      };
+    } catch (err) {
+      console.error('Ошибка создания blob URL:', err);
+      setError(true);
+      setBlobUrl(null);
+    }
+  }, [file]);
+
+  return { blobUrl, error };
+}
+
+
 // === Image Modal Component ===
 function ImageModal({ isOpen, imageUrl, imageAlt, onClose }) {
+  const [imageError, setImageError] = useState(false);
+  
   if (!isOpen) return null;
+
+  // Проверяем, что imageUrl существует и не является освобожденным blob URL
+  const isValidImageUrl = imageUrl && 
+    (!imageUrl.startsWith('blob:') || 
+     (imageUrl.startsWith('blob:') && !imageError));
 
   return (
     <div 
@@ -3954,11 +4074,22 @@ function ImageModal({ isOpen, imageUrl, imageAlt, onClose }) {
         </button>
         
         {/* Изображение */}
-        <img
-          src={imageUrl}
-          alt={imageAlt}
-          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-        />
+        {isValidImageUrl ? (
+          <img
+            src={imageUrl}
+            alt={imageAlt}
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            onError={() => {
+              console.warn('Ошибка загрузки изображения в модальном окне:', imageUrl);
+              setImageError(true);
+            }}
+          />
+        ) : (
+          <div className="max-w-md max-h-md bg-gray-800 rounded-lg p-8 text-center text-white">
+            <div className="text-lg font-medium mb-2">Изображение недоступно</div>
+            <div className="text-sm text-gray-400">Файл был удален или поврежден</div>
+          </div>
+        )}
       </div>
       
       {/* Клик по фону для закрытия */}
@@ -3999,12 +4130,23 @@ function AdvancedMessageDisplay({
                  <div className="mt-2 flex flex-wrap gap-1.5">
                    {message.attachments.map((att) => (
                      <div key={att.id} className="relative group">
-                       <div className="w-12 h-12 rounded-md bg-white/5 border border-white/10 overflow-hidden">
-                         <img 
-                           src={att.url} 
-                           alt={att.name}
-                           className="w-full h-full object-cover"
-                         />
+                       <div className="w-12 h-12 rounded-md bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                         {att.url && !att.url.includes('blob:') ? (
+                           <img 
+                             src={att.url} 
+                             alt={att.name}
+                             className="w-full h-full object-cover"
+                             onError={(e) => {
+                               console.warn('Ошибка загрузки прикрепленного изображения:', att.url);
+                               e.target.style.display = 'none';
+                             }}
+                           />
+                         ) : (
+                           <div className="text-xs text-white/60 text-center px-1">
+                             <div className="truncate">{att.name}</div>
+                             <div className="text-[10px]">{(att.size / 1024).toFixed(0)}KB</div>
+                           </div>
+                         )}
                        </div>
                      </div>
                    ))}
@@ -4054,13 +4196,17 @@ function AdvancedMessageDisplay({
               </div>
               
               {/* Сгенерированное изображение */}
-              {result.image && (
+              {result.image && !result.image.includes('blob:') && (
                 <div className="mb-4">
                   <img 
                     src={result.image} 
                     alt="Результат генерации" 
                     className="w-full max-w-md rounded-lg ring-1 ring-white/20 cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={() => onImageClick?.(result.image, "Результат генерации")}
+                    onError={(e) => {
+                      console.warn('Ошибка загрузки изображения результата:', result.image);
+                      e.target.style.display = 'none';
+                    }}
                   />
                 </div>
               )}
@@ -4121,39 +4267,6 @@ function AdvancedMessageDisplay({
 
 function MonochromeClaudeStyle() {
   const { user, logout, saveSettings, loadSettings, refreshUser, grantOrganizationAccess, fetchOrganizationUsers } = useAuth();
-  
-  // Очистка localStorage при инициализации для предотвращения QuotaExceededError
-  useEffect(() => {
-    try {
-      // Проверяем размер localStorage
-      let totalSize = 0;
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key) {
-          totalSize += localStorage.getItem(key).length;
-        }
-      }
-      
-      // Если размер больше 4MB (примерно 80% от лимита), очищаем старые данные
-      if (totalSize > 4 * 1024 * 1024) {
-        console.warn('localStorage близок к переполнению, очищаем старые данные...');
-        const importantKeys = ['theme', 'notifications', 'allowHistory', 'modelImprovement', 'siteStyle', 'backgroundType'];
-        const keysToRemove = [];
-        
-        for (let i = 0; i < localStorage.length; i++) {
-          const storageKey = localStorage.key(i);
-          if (storageKey && storageKey.startsWith('userSettings_') && !importantKeys.includes(storageKey.replace('userSettings_', ''))) {
-            keysToRemove.push(storageKey);
-          }
-        }
-        
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-        console.log(`Очищено ${keysToRemove.length} старых настроек из localStorage`);
-      }
-    } catch (error) {
-      console.error('Ошибка при проверке размера localStorage:', error);
-    }
-  }, []);
   const [model, setModel] = useState("techplan");
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [value, setValue] = useState("");
@@ -4169,11 +4282,88 @@ function MonochromeClaudeStyle() {
       // Очищаем все blob URL при размонтировании
       attachments.forEach((item) => {
         if (item.url && item.url.startsWith('blob:')) {
-          URL.revokeObjectURL(item.url);
+          try {
+            URL.revokeObjectURL(item.url);
+          } catch (error) {
+            console.warn('Ошибка при освобождении blob URL при размонтировании:', error);
+          }
         }
       });
     };
   }, [attachments]);
+
+  // Очистка всех blob URL при инициализации компонента
+  useEffect(() => {
+    // Очищаем все возможные blob URL при загрузке страницы
+    const cleanupBlobUrls = () => {
+      try {
+        // Получаем все ключи localStorage
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.includes('advancedMessageHistory')) {
+            try {
+              const data = localStorage.getItem(key);
+              if (data) {
+                const parsed = JSON.parse(data);
+                // Проверяем и очищаем blob URL в истории
+                Object.keys(parsed).forEach(chatId => {
+                  const messages = parsed[chatId];
+                  if (Array.isArray(messages)) {
+                    messages.forEach(msg => {
+                      if (msg.attachments) {
+                        msg.attachments.forEach(att => {
+                          if (att.url && att.url.startsWith('blob:')) {
+                            att.url = null; // Убираем blob URL
+                          }
+                        });
+                      }
+                    });
+                  }
+                });
+                localStorage.setItem(key, JSON.stringify(parsed));
+              }
+            } catch (error) {
+              console.warn('Ошибка очистки blob URL в localStorage:', error);
+            }
+          }
+        });
+      } catch (error) {
+        console.warn('Ошибка при очистке blob URL:', error);
+      }
+    };
+
+    cleanupBlobUrls();
+    
+    // Периодическая очистка localStorage каждые 5 минут
+    const cleanupInterval = setInterval(() => {
+      try {
+        const keys = Object.keys(localStorage);
+        let totalSize = 0;
+        
+        // Подсчитываем общий размер данных
+        keys.forEach(key => {
+          const value = localStorage.getItem(key);
+          if (value) {
+            totalSize += new Blob([value]).size;
+          }
+        });
+        
+        // Если общий размер больше 8MB, очищаем старые данные
+        if (totalSize > 8 * 1024 * 1024) {
+          console.warn('localStorage переполнен, выполняем очистку');
+          keys.forEach(key => {
+            if (key.includes('advancedMessageHistory') || key.includes('chats@')) {
+              localStorage.removeItem(key);
+            }
+          });
+        }
+      } catch (error) {
+        console.warn('Ошибка при периодической очистке localStorage:', error);
+      }
+    }, 5 * 60 * 1000); // 5 минут
+    
+    return () => clearInterval(cleanupInterval);
+  }, []);
 
   // Site style (persisted per user)
   const [userId] = useState(() => {
@@ -4235,40 +4425,6 @@ function MonochromeClaudeStyle() {
   const [backgroundType, setBackgroundType] = useState("alternative");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   
-
-  // Функции для сохранения настроек
-  const saveSetting = (key, value) => {
-    try {
-      localStorage.setItem(`userSettings_${key}`, JSON.stringify(value));
-    } catch (error) {
-      if (error.name === 'QuotaExceededError') {
-        // Очищаем старые настройки и пробуем снова
-        console.warn('localStorage переполнен, очищаем старые настройки...');
-        try {
-          // Удаляем старые настройки, оставляя только важные
-          const importantKeys = ['theme', 'notifications', 'allowHistory', 'modelImprovement'];
-          const keysToRemove = [];
-          
-          for (let i = 0; i < localStorage.length; i++) {
-            const storageKey = localStorage.key(i);
-            if (storageKey && storageKey.startsWith('userSettings_') && !importantKeys.includes(storageKey.replace('userSettings_', ''))) {
-              keysToRemove.push(storageKey);
-            }
-          }
-          
-          keysToRemove.forEach(key => localStorage.removeItem(key));
-          
-          // Пробуем сохранить снова
-          localStorage.setItem(`userSettings_${key}`, JSON.stringify(value));
-        } catch (retryError) {
-          console.error('Не удалось сохранить настройку после очистки localStorage:', retryError);
-        }
-      } else {
-        console.error('Ошибка при сохранении настройки:', error);
-      }
-    }
-  };
-
   // Gallery states
   const [showGallery, setShowGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState([
@@ -4420,20 +4576,26 @@ function MonochromeClaudeStyle() {
   const [advancedMessageHistory, setAdvancedMessageHistory] = useState(() => {
     // Загружаем историю сообщений из localStorage
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`advancedMessageHistory@${userId}`);
-      return saved ? JSON.parse(saved) : {};
+      try {
+        const saved = localStorage.getItem(`advancedMessageHistory@${userId}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Проверяем размер данных и очищаем если слишком много
+          const dataSize = new Blob([saved]).size;
+          if (dataSize > 10 * 1024 * 1024) { // Больше 10MB
+            console.warn('История сообщений слишком большая, очищаем');
+            localStorage.removeItem(`advancedMessageHistory@${userId}`);
+            return {};
+          }
+          return parsed;
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки истории сообщений:', error);
+        localStorage.removeItem(`advancedMessageHistory@${userId}`);
+      }
     }
     return {};
   }); // { chatId: [messages] }
-
-  // Функция для автоматического переименования чата
-  const updateChatTitle = (chatId, newTitle) => {
-    setChats(prev => prev.map(chat => 
-      chat.id === chatId 
-        ? { ...chat, title: newTitle, lastMessageTime: new Date().toISOString() }
-        : chat
-    ));
-  };
 
   // Image modal state
   const [imageModal, setImageModal] = useState({ isOpen: false, url: '', alt: '' });
@@ -4445,13 +4607,133 @@ function MonochromeClaudeStyle() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [is3DInfoModalOpen, setIs3DInfoModalOpen] = useState(false);
   
-  // Navigate
-  const navigate = useNavigate();
-
-  // Сохраняем историю сообщений в localStorage
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Подтвердить',
+    cancelText: 'Отмена',
+    onConfirm: null,
+    onCancel: null,
+    showRememberOption: false
+  });
+  
+  // Rename chat modal state
+  const [renameModal, setRenameModal] = useState({
+    isOpen: false,
+    chatId: null,
+    currentTitle: '',
+    showRememberOption: false
+  });
+  
+  // User settings for confirmations
+  const [userSettings, setUserSettings] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`userSettings@${userId}`);
+      return saved ? JSON.parse(saved) : {
+        skipDeleteConfirmation: false,
+        skipRenameConfirmation: false,
+        showActionNotifications: true
+      };
+    }
+    return {
+      skipDeleteConfirmation: false,
+      skipRenameConfirmation: false,
+      showActionNotifications: true
+    };
+  });
+  
+  // Сохраняем настройки пользователя в localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`advancedMessageHistory@${userId}`, JSON.stringify(advancedMessageHistory));
+      localStorage.setItem(`userSettings@${userId}`, JSON.stringify(userSettings));
+    }
+  }, [userSettings, userId]);
+  
+  // Функция для обновления настроек
+  const updateUserSettings = (newSettings) => {
+    setUserSettings(prev => ({ ...prev, ...newSettings }));
+  };
+  
+  // Обработчики для модального окна переименования
+  const handleRenameConfirm = (newTitle, rememberChoice) => {
+    if (renameModal.chatId && newTitle.trim()) {
+      setChats(chats.map(c => 
+        c.id === renameModal.chatId ? { ...c, title: newTitle.trim() } : c
+      ));
+    }
+    
+    if (rememberChoice) {
+      updateUserSettings({ skipRenameConfirmation: true });
+    }
+    
+    setRenameModal({
+      isOpen: false,
+      chatId: null,
+      currentTitle: '',
+      showRememberOption: false
+    });
+  };
+  
+  const handleRenameCancel = () => {
+    setRenameModal({
+      isOpen: false,
+      chatId: null,
+      currentTitle: '',
+      showRememberOption: false
+    });
+  };
+
+  // Сохраняем историю сообщений в localStorage с ограничениями
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        // Ограничиваем количество сообщений в истории (максимум 20 на чат)
+        const limitedHistory = {};
+        Object.keys(advancedMessageHistory).forEach(chatId => {
+          const messages = advancedMessageHistory[chatId];
+          if (messages && messages.length > 20) {
+            // Берем только последние 20 сообщений
+            limitedHistory[chatId] = messages.slice(-20);
+          } else {
+            limitedHistory[chatId] = messages;
+          }
+        });
+
+        // Проверяем размер данных перед сохранением
+        const dataString = JSON.stringify(limitedHistory);
+        const dataSize = new Blob([dataString]).size;
+        
+        // Если размер больше 2MB, очищаем старые чаты
+        if (dataSize > 2 * 1024 * 1024) {
+          console.warn('История сообщений слишком большая, очищаем старые чаты');
+          const chatIds = Object.keys(limitedHistory);
+          const chatsToKeep = chatIds.slice(-2); // Оставляем только последние 2 чата
+          const cleanedHistory = {};
+          chatsToKeep.forEach(chatId => {
+            cleanedHistory[chatId] = limitedHistory[chatId];
+          });
+          localStorage.setItem(`advancedMessageHistory@${userId}`, JSON.stringify(cleanedHistory));
+        } else {
+          localStorage.setItem(`advancedMessageHistory@${userId}`, dataString);
+        }
+      } catch (error) {
+        console.error('Ошибка сохранения истории сообщений:', error);
+        // Если ошибка QuotaExceededError, очищаем историю
+        if (error.name === 'QuotaExceededError') {
+          console.warn('localStorage переполнен, очищаем историю сообщений');
+          // Очищаем все данные истории для этого пользователя
+          localStorage.removeItem(`advancedMessageHistory@${userId}`);
+          // Также очищаем другие возможные ключи
+          const keys = Object.keys(localStorage);
+          keys.forEach(key => {
+            if (key.includes('advancedMessageHistory') || key.includes('chats@')) {
+              localStorage.removeItem(key);
+            }
+          });
+        }
+      }
     }
   }, [advancedMessageHistory, userId]);
 
@@ -4679,8 +4961,32 @@ function MonochromeClaudeStyle() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Ошибка удаления объектов');
+          const contentType = response.headers.get('content-type') || '';
+          let errorMessage = 'Ошибка удаления объектов';
+          let errorCode;
+          
+          try {
+            if (contentType.includes('application/json')) {
+              const errorData = await response.json();
+              errorMessage = errorData?.error || errorMessage;
+              errorCode = errorData?.code;
+              
+              // Специальная обработка ошибок COMETAPI
+              if (errorMessage.includes('Сервис генерации временно недоступен') || 
+                  errorMessage.includes('No available channels') ||
+                  errorMessage.includes('comet_api_error')) {
+                errorMessage = 'Сервис генерации временно недоступен. Попробуйте позже.';
+              } else if (errorMessage.includes('API_KEY_MISSING')) {
+                errorMessage = 'Сервис временно недоступен. Обратитесь к администратору.';
+              } else if (errorMessage.includes('PLAN_LIMIT') || errorMessage.includes('GUEST_LIMIT')) {
+                errorMessage = 'Лимит генераций исчерпан. Войдите в аккаунт или попробуйте позже.';
+              }
+            }
+          } catch (parseError) {
+            console.error('Ошибка парсинга ответа об ошибке:', parseError);
+          }
+          
+          throw new Error(errorMessage);
         }
 
         // Поддержка множественных результатов
@@ -4693,7 +4999,7 @@ function MonochromeClaudeStyle() {
           }
         } else {
           // Конвертируем blob в base64 для прямого использования
-        const imageBlob = await response.blob();
+          const imageBlob = await response.blob();
           const reader = new FileReader();
           responseImages2 = await new Promise((resolve) => {
             reader.onload = () => resolve([reader.result]);
@@ -4723,13 +5029,24 @@ function MonochromeClaudeStyle() {
         ...prev,
         [activeChatId]: [
           ...(prev[activeChatId] || []),
-          { ...userMessage, type: 'user' },
+          { 
+            ...userMessage, 
+            type: 'user',
+            // Убираем attachments с blob URL из истории
+            attachments: userMessage.attachments?.map(att => ({
+              id: att.id,
+              name: att.name,
+              size: att.size,
+              // Не сохраняем blob URL в истории
+              url: null
+            }))
+          },
           { ...aiResponse, type: 'ai', time: new Date().toISOString() }
         ]
       }));
-
-      // Автоматически переименовываем чат на основе последнего запроса
-      updateChatTitle(activeChatId, userMessage.text);
+      
+      // Автоматически переименовываем чат по модели
+      autoRenameChat(activeChatId, model);
       
       // Очищаем текущие сообщения после добавления в историю
       setTimeout(() => {
@@ -4738,6 +5055,21 @@ function MonochromeClaudeStyle() {
       }, 100);
     } catch (error) {
       console.error('Ошибка генерации:', error);
+      
+      // Определяем тип ошибки для более точной обработки
+      let errorMessage = error.message;
+      let isCometApiError = false;
+      
+      if (errorMessage.includes('Сервис генерации временно недоступен') || 
+          errorMessage.includes('No available channels') ||
+          errorMessage.includes('comet_api_error') ||
+          errorMessage.includes('503')) {
+        isCometApiError = true;
+        errorMessage = 'Сервис генерации временно недоступен. Попробуйте позже.';
+      } else if (errorMessage.includes('API_KEY_MISSING')) {
+        errorMessage = 'Сервис временно недоступен. Обратитесь к администратору.';
+      }
+      
       if (error.code === 'PLAN_LIMIT' || error.code === 'GUEST_LIMIT') {
         setLimitNotice(error.message);
         if (error.code === 'PLAN_LIMIT') {
@@ -4746,14 +5078,15 @@ function MonochromeClaudeStyle() {
         if (error.code === 'GUEST_LIMIT') {
           setGuestPlanCount(1);
         }
-      } else if (model === 'techplan') {
-        setLimitNotice(error.message);
+      } else if (model === 'techplan' || model === 'cleanup') {
+        setLimitNotice(errorMessage);
       }
+      
       const errorResponse = {
         messageId: userMessage.id,
-        text: `Ошибка: ${error.message}`,
+        text: `Ошибка: ${errorMessage}`,
         rating: null,
-        canRegenerate: true
+        canRegenerate: !isCometApiError // Не позволяем повторную генерацию при ошибках COMETAPI
       };
 
       setAdvancedCurrentResult(errorResponse);
@@ -4763,13 +5096,24 @@ function MonochromeClaudeStyle() {
         ...prev,
         [activeChatId]: [
           ...(prev[activeChatId] || []),
-          { ...userMessage, type: 'user' },
+          { 
+            ...userMessage, 
+            type: 'user',
+            // Убираем attachments с blob URL из истории
+            attachments: userMessage.attachments?.map(att => ({
+              id: att.id,
+              name: att.name,
+              size: att.size,
+              // Не сохраняем blob URL в истории
+              url: null
+            }))
+          },
           { ...errorResponse, type: 'ai', time: new Date().toISOString() }
         ]
       }));
-
-      // Автоматически переименовываем чат на основе последнего запроса даже при ошибке
-      updateChatTitle(activeChatId, userMessage.text);
+      
+      // Автоматически переименовываем чат по модели даже при ошибке
+      autoRenameChat(activeChatId, model);
       
       // Очищаем текущие сообщения после добавления в историю
       setTimeout(() => {
@@ -4979,15 +5323,6 @@ function MonochromeClaudeStyle() {
         )
       }));
 
-      // Находим последнее пользовательское сообщение для переименования чата
-      const currentHistory = advancedMessageHistory[activeChatId] || [];
-      const lastUserMessage = currentHistory
-        .filter(msg => msg.type === 'user')
-        .pop();
-      if (lastUserMessage) {
-        updateChatTitle(activeChatId, lastUserMessage.text);
-      }
-
       if (regenLimit !== Infinity) {
         setRegenerationUsage(prev => ({
           ...prev,
@@ -5143,6 +5478,21 @@ function MonochromeClaudeStyle() {
       }));
     } catch (error) {
       console.error('Ошибка генерации:', error);
+      
+      // Определяем тип ошибки для более точной обработки
+      let errorMessage = error.message;
+      let isCometApiError = false;
+      
+      if (errorMessage.includes('Сервис генерации временно недоступен') || 
+          errorMessage.includes('No available channels') ||
+          errorMessage.includes('comet_api_error') ||
+          errorMessage.includes('503')) {
+        isCometApiError = true;
+        errorMessage = 'Сервис генерации временно недоступен. Попробуйте позже.';
+      } else if (errorMessage.includes('API_KEY_MISSING')) {
+        errorMessage = 'Сервис временно недоступен. Обратитесь к администратору.';
+      }
+      
       if (isPlan && (error.code === 'PLAN_LIMIT' || error.code === 'GUEST_LIMIT')) {
         setLimitNotice(error.message);
         if (error.code === 'PLAN_LIMIT') {
@@ -5152,14 +5502,15 @@ function MonochromeClaudeStyle() {
           setGuestPlanCount(1);
         }
       } else if (isPlan) {
-        setLimitNotice(error.message);
+        setLimitNotice(errorMessage);
       }
+      
       setResponses(prev => ({
         ...prev,
         [msg.id]: {
-          text: `Ошибка: ${error.message}`,
+          text: `Ошибка: ${errorMessage}`,
           rating: null,
-          canRegenerate: true
+          canRegenerate: !isCometApiError // Не позволяем повторную генерацию при ошибках COMETAPI
         }
       }));
     } finally {
@@ -5291,7 +5642,13 @@ function MonochromeClaudeStyle() {
   const removeAttachment = (id) => {
     setAttachments((prev) => {
       const item = prev.find((x) => x.id === id);
-      if (item) URL.revokeObjectURL(item.url);
+      if (item && item.url && item.url.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(item.url);
+        } catch (error) {
+          console.warn('Ошибка при освобождении blob URL:', error);
+        }
+      }
       return prev.filter((x) => x.id !== id);
     });
   };
@@ -5303,7 +5660,11 @@ function MonochromeClaudeStyle() {
       // Очищаем blob URL для освобождения памяти
       prev.forEach((item) => {
         if (item.url && item.url.startsWith('blob:')) {
-          URL.revokeObjectURL(item.url);
+          try {
+            URL.revokeObjectURL(item.url);
+          } catch (error) {
+            console.warn('Ошибка при освобождении blob URL:', error);
+          }
         }
       });
       return [];
@@ -5350,25 +5711,65 @@ function MonochromeClaudeStyle() {
     }, 2000);
   };
 
-  // Chat management handlers
-  const handleCreateNewChat = () => {
-    setShowGallery(false); // Закрываем галерею при создании нового чата
-    createChat();
+  // Функция для автоматического переименования чата
+  const autoRenameChat = (chatId, model) => {
+    let newTitle = "Новый чат";
+    
+    switch (model) {
+      case "techplan":
+        if (techplanMode === "with") {
+          newTitle = "Создание по техплану — С мебелью";
+        } else {
+          newTitle = "Создание по техплану — Без мебели";
+        }
+        break;
+      case "cleanup":
+        newTitle = "Удаление объектов";
+        break;
+      case "3d":
+        newTitle = "3D генерация";
+        break;
+      default:
+        newTitle = "Новый чат";
+    }
+    
+    // Обновляем название чата только если оно еще "Новый чат"
+    setChats(prev => prev.map(chat => 
+      chat.id === chatId && chat.title === "Новый чат"
+        ? { ...chat, title: newTitle }
+        : chat
+    ));
   };
   
   const handleHomeClick = () => {
     navigate('/');
   };
   
+  const handleCreateNewChat = () => {
+    setShowGallery(false); // Закрываем галерею при создании нового чата
+    createChat();
+  };
+  
   const handleRenameChat = (chatId) => {
     const chat = chats.find(c => c.id === chatId);
     const currentTitle = chat?.title || 'Новый чат';
     
-    const newTitle = prompt('Введите новое название чата:', currentTitle);
-    if (newTitle !== null && newTitle.trim() !== '') {
-      setChats(chats.map(c => 
-        c.id === chatId ? { ...c, title: newTitle.trim() } : c
-      ));
+    if (userSettings.skipRenameConfirmation) {
+      // Если пользователь отключил подтверждения, сразу показываем модальное окно переименования
+      setRenameModal({
+        isOpen: true,
+        chatId: chatId,
+        currentTitle: currentTitle,
+        showRememberOption: false
+      });
+    } else {
+      // Показываем модальное окно переименования с опцией "Больше не спрашивать"
+      setRenameModal({
+        isOpen: true,
+        chatId: chatId,
+        currentTitle: currentTitle,
+        showRememberOption: true
+      });
     }
   };
   
@@ -5376,7 +5777,8 @@ function MonochromeClaudeStyle() {
     const chat = chats.find(c => c.id === chatId);
     const chatTitle = chat?.title || 'Новый чат';
     
-    if (confirm(`Вы уверены, что хотите удалить чат "${chatTitle}"? Это действие нельзя отменить.`)) {
+    if (userSettings.skipDeleteConfirmation) {
+      // Если пользователь отключил подтверждения, сразу удаляем
       setChats(chats.filter(c => c.id !== chatId));
       
       // Удаляем историю сообщений для этого чата
@@ -5394,6 +5796,43 @@ function MonochromeClaudeStyle() {
       // Очищаем текущие сообщения при удалении чата
       setAdvancedCurrentMessage(null);
       setAdvancedCurrentResult(null);
+    } else {
+      // Показываем модальное окно подтверждения
+      setConfirmationModal({
+        isOpen: true,
+        title: 'Удалить чат',
+        message: `Вы уверены, что хотите удалить чат "${chatTitle}"? Это действие нельзя отменить.`,
+        confirmText: 'Удалить',
+        cancelText: 'Отмена',
+        showRememberOption: true,
+        onConfirm: (rememberChoice) => {
+          setChats(chats.filter(c => c.id !== chatId));
+          
+          // Удаляем историю сообщений для этого чата
+          setAdvancedMessageHistory(prev => {
+            const newHistory = { ...prev };
+            delete newHistory[chatId];
+            return newHistory;
+          });
+          
+          if (activeChatId === chatId && chats.length > 1) {
+            const remainingChats = chats.filter(c => c.id !== chatId);
+            setActiveChatId(remainingChats[0]?.id || null);
+          }
+          
+          // Очищаем текущие сообщения при удалении чата
+          setAdvancedCurrentMessage(null);
+          setAdvancedCurrentResult(null);
+          
+          if (rememberChoice) {
+            updateUserSettings({ skipDeleteConfirmation: true });
+          }
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        },
+        onClose: () => {
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        }
+      });
     }
   };
   
@@ -5507,19 +5946,6 @@ function MonochromeClaudeStyle() {
     
     // Отправляем сообщение в новый чат
     handleAdvancedSendMessage(payload);
-    
-    // Переименовываем чат на основе типа запроса
-    const title = payload.model === "techplan" 
-      ? `Создание по техплану — ${payload.techplanMode === "with" ? "С мебелью" : "Без мебели"}`
-      : payload.model === "cleanup" 
-      ? "Удаление объектов"
-      : payload.model === "3d"
-      ? "3D план помещения"
-      : "Новый чат";
-    
-    setTimeout(() => {
-      updateChatTitle(id, title);
-    }, 100);
   };
 
   // Advanced style layout (единственный доступный стиль)
@@ -5528,7 +5954,7 @@ function MonochromeClaudeStyle() {
         {backgroundType === "standard" && null /* Стандартный фон - только цвет, без частиц */}
         {backgroundType === "interactive" && <BackgroundParticles />}
         {backgroundType === "alternative" && <AlternativeBackground />}
-        <div className={`relative z-10 grid h-screen transition-all duration-300 overflow-hidden ${
+        <div className={`relative z-10 grid h-screen transition-all duration-300 ${
           isSidebarCollapsed ? 'grid-cols-[64px_1fr]' : 'grid-cols-[256px_1fr]'
         }`}>
           <AdvancedSidebar 
@@ -5617,6 +6043,27 @@ function MonochromeClaudeStyle() {
           imageUrl={imageModal.url}
           imageAlt={imageModal.alt}
           onClose={handleImageModalClose}
+        />
+        
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+          onConfirm={confirmationModal.onConfirm}
+          onClose={confirmationModal.onClose}
+          showRememberOption={confirmationModal.showRememberOption}
+        />
+        
+        {/* Rename Chat Modal */}
+        <RenameChatModal
+          isOpen={renameModal.isOpen}
+          onClose={handleRenameCancel}
+          onConfirm={handleRenameConfirm}
+          currentTitle={renameModal.currentTitle}
+          showRememberOption={renameModal.showRememberOption}
         />
         
         {/* Feature Modals */}

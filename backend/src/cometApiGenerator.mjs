@@ -291,34 +291,12 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
       if (!base64Image && typeof result?.image === 'string') base64Image = result.image;
       if (!base64Image && typeof result?.output === 'string') base64Image = result.output;
       if (!base64Image) {
-        const tryExtractBase64 = async (obj, depth = 0) => {
+        const tryExtractBase64 = (obj, depth = 0) => {
           if (!obj || depth > 3) return null;
-          if (typeof obj === 'string') {
-            // Проверяем, является ли строка base64
-            if (obj.length > 200) return obj;
-            
-            // Проверяем, является ли строка Markdown с изображением
-            const markdownImageMatch = obj.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/);
-            if (markdownImageMatch) {
-              try {
-                const imageUrl = markdownImageMatch[1];
-                console.log('🖼️ Найдено изображение в Markdown:', imageUrl);
-                
-                // Загружаем изображение по URL
-                const imageResponse = await fetch(imageUrl);
-                if (imageResponse.ok) {
-                  const imageBuffer = await imageResponse.buffer();
-                  return imageBuffer.toString('base64');
-                }
-              } catch (error) {
-                console.error('❌ Ошибка загрузки изображения из Markdown:', error);
-              }
-            }
-            return null;
-          }
+          if (typeof obj === 'string') return obj.length > 200 ? obj : null;
           if (Array.isArray(obj)) {
             for (const it of obj) {
-              const found = await tryExtractBase64(it, depth + 1);
+              const found = tryExtractBase64(it, depth + 1);
               if (found) return found;
             }
             return null;
@@ -327,20 +305,20 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
             const preferredKeys = ['image', 'data', 'inline_data'];
             for (const k of preferredKeys) {
               if (obj[k]) {
-                const found = await tryExtractBase64(obj[k], depth + 1);
+                const found = tryExtractBase64(obj[k], depth + 1);
                 if (found) return found;
               }
             }
             for (const k of Object.keys(obj)) {
               if (!preferredKeys.includes(k)) {
-                const found = await tryExtractBase64(obj[k], depth + 1);
+                const found = tryExtractBase64(obj[k], depth + 1);
                 if (found) return found;
               }
             }
           }
           return null;
         };
-        base64Image = await tryExtractBase64(result);
+        base64Image = tryExtractBase64(result);
       }
 
       if (!base64Image) {
@@ -371,16 +349,31 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
       return await fn();
     } catch (error) {
       const isLastAttempt = attempt === maxRetries - 1;
+      
+      // Определяем типы ошибок для повторных попыток
       const isServerError = error.message.includes('500') || 
+                           error.message.includes('502') ||
+                           error.message.includes('503') ||
+                           error.message.includes('504') ||
                            error.message.includes('当前分组上游负载已饱和') ||
-                           error.message.includes('shell_api_error');
+                           error.message.includes('shell_api_error') ||
+                           error.message.includes('No available channels') ||
+                           error.message.includes('comet_api_error');
+      
+      // Специальная обработка ошибки 503 (No available channels)
+      if (error.message.includes('503') && error.message.includes('No available channels')) {
+        console.error('🚫 COMETAPI: Нет доступных каналов для модели. Сервис перегружен.');
+        throw new Error('Сервис генерации временно недоступен. Попробуйте позже.');
+      }
       
       if (isLastAttempt || !isServerError) {
+        // Логируем финальную ошибку с подробностями
+        console.error(`❌ Финальная ошибка после ${attempt + 1} попыток:`, error.message);
         throw error;
       }
       
       const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
-      console.log(`⏳ Попытка ${attempt + 1}/${maxRetries} неудачна, повтор через ${Math.round(delay)}мс...`);
+      console.log(`⏳ Попытка ${attempt + 1}/${maxRetries} неудачна (${error.message.slice(0, 100)}...), повтор через ${Math.round(delay)}мс...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -503,34 +496,15 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
 
     // Вариант 5: глубокий поиск по объекту первых найденных 2-3 уровней
     if (!base64Image) {
-      const tryExtractBase64 = async (obj, depth = 0) => {
+      const tryExtractBase64 = (obj, depth = 0) => {
         if (!obj || depth > 3) return null;
         if (typeof obj === 'string') {
-          // Проверяем, является ли строка base64
-          if (obj.length > 200) return obj;
-          
-          // Проверяем, является ли строка Markdown с изображением
-          const markdownImageMatch = obj.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/);
-          if (markdownImageMatch) {
-            try {
-              const imageUrl = markdownImageMatch[1];
-              console.log('🖼️ Найдено изображение в Markdown:', imageUrl);
-              
-              // Загружаем изображение по URL
-              const imageResponse = await fetch(imageUrl);
-              if (imageResponse.ok) {
-                const imageBuffer = await imageResponse.buffer();
-                return imageBuffer.toString('base64');
-              }
-            } catch (error) {
-              console.error('❌ Ошибка загрузки изображения из Markdown:', error);
-            }
-          }
-          return null;
+          // эвристика base64-строки
+          return obj.length > 200 ? obj : null;
         }
         if (Array.isArray(obj)) {
           for (const it of obj) {
-            const found = await tryExtractBase64(it, depth + 1);
+            const found = tryExtractBase64(it, depth + 1);
             if (found) return found;
           }
           return null;
@@ -540,21 +514,21 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
           const preferredKeys = ['image', 'data', 'inline_data'];
           for (const k of preferredKeys) {
             if (obj[k]) {
-              const found = await tryExtractBase64(obj[k], depth + 1);
+              const found = tryExtractBase64(obj[k], depth + 1);
               if (found) return found;
             }
           }
           // иначе любой ключ
           for (const k of Object.keys(obj)) {
             if (!preferredKeys.includes(k)) {
-              const found = await tryExtractBase64(obj[k], depth + 1);
+              const found = tryExtractBase64(obj[k], depth + 1);
               if (found) return found;
             }
           }
         }
         return null;
       };
-      const guess = await tryExtractBase64(result);
+      const guess = tryExtractBase64(result);
       if (guess) base64Image = guess;
     }
 
