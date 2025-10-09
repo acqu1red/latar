@@ -794,8 +794,8 @@ function ThreeDModeModal({ isOpen, onClose, onActivate }) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
-                onActivate();
                 onClose();
+                onActivate();
               }}
               className="flex-1 bg-white hover:bg-neutral-200 text-black font-bold py-3 rounded-xl transition-all shadow-lg shadow-white/10 flex items-center justify-center gap-2 text-sm"
             >
@@ -2641,14 +2641,14 @@ function AdvancedMainArea({
 
   // Обработчик активации 3D режима
   const handle3DActivation = () => {
-    // Переключаем модель на 3D план
-    setModelTo3D("3d");
+    // Открываем модальное окно Plan AI 3D
+    on3DInfoOpen && on3DInfoOpen();
   };
 
   // Обработчик открытия 3D модального окна
   const handleOpen3DModal = () => {
-    setIs3DModalOpen(true);
-    setShowPromoCard(false);
+    // Открываем модальное окно Plan AI 3D
+    on3DInfoOpen && on3DInfoOpen();
   };
 
   // Сбрасываем modelTo3D после установки
