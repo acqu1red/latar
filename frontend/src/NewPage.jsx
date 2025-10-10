@@ -1295,27 +1295,28 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
         {[
+          { id: 'standard', label: 'Стандартный', icon: '🎯' },
           { id: 'interactive', label: 'Интерактивный', icon: '✨' },
           { id: 'alternative', label: 'Альтернативный', icon: '🎨' }
-        ].map((backgroundType) => (
+        ].map((bgType) => (
           <button
-            key={backgroundType.id}
-            onClick={() => onBackgroundChange(backgroundType.id)}
+            key={bgType.id}
+            onClick={() => onBackgroundChange(bgType.id)}
             className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 px-3 py-4 text-xs transition ${
-              backgroundType === backgroundType.id
+              backgroundType === bgType.id
                 ? 'border-white/40 text-white'
                 : 'border-white/10 text-neutral-300 hover:border-white/20'
             }`}
           >
             <div className="relative flex h-10 w-14 items-center justify-center rounded-lg overflow-hidden">
-              {backgroundType.id === 'standard' && (
+              {bgType.id === 'standard' && (
                 <div className="absolute inset-0 bg-[#161618]">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-[8px] text-neutral-500">Фон</div>
                   </div>
                 </div>
               )}
-              {backgroundType.id === 'interactive' && (
+              {bgType.id === 'interactive' && (
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-pink-900 to-red-900">
                   <div className="absolute inset-0 bg-black/20"></div>
                   {/* Интерактивные частицы */}
@@ -1340,7 +1341,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
                   ))}
                 </div>
               )}
-              {backgroundType.id === 'alternative' && (
+              {bgType.id === 'alternative' && (
                 <div className="absolute inset-0 bg-gradient-to-br from-green-900 via-teal-900 to-cyan-900">
                   <div className="absolute inset-0 bg-black/20"></div>
                   {/* Альтернативные частицы */}
@@ -1365,9 +1366,9 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
                   ))}
                 </div>
               )}
-              <span className="relative z-10 text-white text-lg">{backgroundType.icon}</span>
+              <span className="relative z-10 text-white text-lg">{bgType.icon}</span>
             </div>
-            {backgroundType.label}
+            {bgType.label}
           </button>
         ))}
       </div>
@@ -2066,7 +2067,6 @@ function AdvancedSidebar({
   searchResults = { chats: [], settings: [] },
   onSettingSelect,
   onCreateChat,
-  onShowGallery,
   onHomeClick,
   onHowItWorks,
   user,
@@ -2139,13 +2139,6 @@ function AdvancedSidebar({
             <Plus className="h-3 w-3 text-neutral-400" />
           </button>
           <button 
-            onClick={onShowGallery}
-            className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
-            title="Создано"
-          >
-            <Images className="h-3 w-3 text-neutral-400" />
-          </button>
-          <button 
             onClick={onHomeClick}
             className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
             title="На главную"
@@ -2199,7 +2192,6 @@ function AdvancedSidebar({
        <nav className="px-1.5 text-sm flex-1 overflow-y-auto custom-scrollbar">
         <AdvancedSectionTitle>Главное</AdvancedSectionTitle>
         <AdvancedNavItem onClick={onCreateChat} Icon={Plus} label="Новый чат" />
-        <AdvancedNavItem onClick={onShowGallery} Icon={Images} label="Создано" />
         <AdvancedNavItem onClick={onHomeClick} Icon={Home} label="Вернуться на главную" />
         <AdvancedNavItem onClick={onHowItWorks} Icon={HelpCircle} label="Как это работает" />
         
@@ -2607,7 +2599,6 @@ function AdvancedMainArea({
   onModelMenuToggle, 
   onFilesSelected,
   onSendMessage,
-  onSendFromGallery,
   isGenerating = false,
   currentMessage = null,
   currentResult = null,
@@ -2617,15 +2608,6 @@ function AdvancedMainArea({
   onDownload,
   onImageClick,
   onModelChange,
-  showGallery = false,
-  setShowGallery,
-  galleryImages = [],
-  selectedGalleryImage,
-  setSelectedGalleryImage,
-  galleryModelFilter,
-  setGalleryModelFilter,
-  onGalleryDelete,
-  onGalleryDownload,
   model,
   onModelSelect,
   on3DInfoOpen
@@ -2661,193 +2643,12 @@ function AdvancedMainArea({
     }
   }, [modelTo3D]);
 
-  // Gallery component
-  const GalleryContent = () => {
-    const filteredImages = galleryModelFilter === 'all' 
-      ? galleryImages 
-      : galleryImages.filter(img => img.model === galleryModelFilter);
-
-    return (
-      <div className="flex-1 flex flex-col">
-        {/* Gallery Header */}
-        <div className="border-b border-white/5 bg-black/20 backdrop-blur-sm">
-          <div className="mx-auto max-w-7xl px-6 py-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold text-white">Создано</h1>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-neutral-400">
-                  {filteredImages.length} изображений
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Gallery Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="mx-auto max-w-7xl px-6 py-8">
-            {/* Filter Bar */}
-            <div className="mb-8 flex items-center justify-between">
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    const filters = ['all', 'techplan', 'cleanup'];
-                    const currentIndex = filters.indexOf(galleryModelFilter);
-                    const nextIndex = (currentIndex + 1) % filters.length;
-                    setGalleryModelFilter(filters[nextIndex]);
-                  }}
-                  className="flex items-center gap-2 rounded-full px-4 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10 transition"
-                >
-                  <span className="text-sm">
-                    {galleryModelFilter === 'all' ? 'Все модели' : 
-                     galleryModelFilter === 'techplan' ? 'Создание по техплану' :
-                     galleryModelFilter === 'cleanup' ? 'Удаление объектов' : 'Все модели'}
-                  </span>
-                  <ChevronDown className="h-3 w-3 opacity-70" />
-                </button>
-              </div>
-            </div>
-
-            {/* Gallery Grid */}
-            {filteredImages.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredImages.map((image) => (
-                  <motion.div
-                    key={image.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="group relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/20 cursor-pointer"
-                    onClick={() => setSelectedGalleryImage(image)}
-                  >
-                    <img
-                      src={image.url}
-                      alt={image.prompt}
-                      className="h-full w-full object-cover transition group-hover:scale-105"
-                    />
-                    
-                    {/* Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition">
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <p className="text-sm text-white line-clamp-2 mb-2">{image.prompt}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-neutral-400">{image.model}</span>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onGalleryDownload(image.url, image.id);
-                              }}
-                              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition"
-                              title="Скачать"
-                            >
-                              <Download className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onGalleryDelete(image.id);
-                              }}
-                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition"
-                              title="Удалить"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-400" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <p className="text-neutral-400 mb-2">Нет изображений для выбранной модели</p>
-                <button
-                  onClick={() => setGalleryModelFilter('all')}
-                  className="text-sm text-white/70 hover:text-white underline"
-                >
-                  Показать все
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Image Modal */}
-        {selectedGalleryImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-            onClick={() => setSelectedGalleryImage(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="relative max-w-5xl w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close button */}
-              <button
-                onClick={() => setSelectedGalleryImage(null)}
-                className="absolute -top-12 right-0 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              {/* Image */}
-              <div className="rounded-xl overflow-hidden border border-white/20">
-                <img
-                  src={selectedGalleryImage.url}
-                  alt={selectedGalleryImage.prompt}
-                  className="w-full h-auto"
-                />
-              </div>
-
-              {/* Info */}
-              <div className="mt-4 rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm p-6">
-                <p className="text-white mb-3">{selectedGalleryImage.prompt}</p>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-400">Модель: {selectedGalleryImage.model}</span>
-                  <span className="text-neutral-400">
-                    {new Date(selectedGalleryImage.createdAt).toLocaleDateString('ru-RU')}
-                  </span>
-                </div>
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={() => onGalleryDownload(selectedGalleryImage.url, selectedGalleryImage.id)}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-4 py-2 transition"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Скачать</span>
-                  </button>
-                  <button
-                    onClick={() => onGalleryDelete(selectedGalleryImage.id)}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 px-4 py-2 transition"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-400" />
-                    <span className="text-red-400">Удалить</span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-        
-      </div>
-    );
-  };
 
   return (
     <main className="relative flex flex-col h-screen">
-      {/* Gallery View */}
-      {showGallery ? (
-        <GalleryContent />
-      ) : (
-        <>
-          {/* Сообщения в верхней части */}
-          {showMessages && (
+      <>
+        {/* Сообщения в верхней части */}
+        {showMessages && (
         <div className="flex-1 pt-16 overflow-y-auto custom-scrollbar">
           {/* История сообщений */}
           {messageHistory.length > 0 && (
@@ -2997,8 +2798,7 @@ function AdvancedMainArea({
         onClose={() => setIs3DModalOpen(false)}
         onActivate={handle3DActivation}
       />
-        </>
-      )}
+      </>
     </main>
   );
 }
@@ -4425,54 +4225,6 @@ function MonochromeClaudeStyle() {
   const [backgroundType, setBackgroundType] = useState("alternative");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   
-  // Gallery states
-  const [showGallery, setShowGallery] = useState(false);
-  const [galleryImages, setGalleryImages] = useState([
-    {
-      id: 1,
-      url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
-      prompt: 'Современный интерьер квартиры с панорамными окнами',
-      model: 'DALL-E 3',
-      createdAt: new Date('2024-01-15'),
-    },
-    {
-      id: 2,
-      url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800',
-      prompt: 'Минималистичная кухня в скандинавском стиле',
-      model: 'Midjourney',
-      createdAt: new Date('2024-01-14'),
-    },
-    {
-      id: 3,
-      url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
-      prompt: 'Уютная спальня с деревянными элементами',
-      model: 'DALL-E 3',
-      createdAt: new Date('2024-01-13'),
-    },
-    {
-      id: 4,
-      url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
-      prompt: 'Современная ванная комната с мраморной отделкой',
-      model: 'Stable Diffusion',
-      createdAt: new Date('2024-01-12'),
-    },
-    {
-      id: 5,
-      url: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800',
-      prompt: 'Просторная гостиная с камином',
-      model: 'DALL-E 3',
-      createdAt: new Date('2024-01-11'),
-    },
-    {
-      id: 6,
-      url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
-      prompt: 'Домашний офис с большим столом',
-      model: 'Midjourney',
-      createdAt: new Date('2024-01-10'),
-    },
-  ]);
-  const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
-  const [galleryModelFilter, setGalleryModelFilter] = useState('all');
   const [limitNotice, setLimitNotice] = useState('');
   const [regenerationUsage, setRegenerationUsage] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -4705,18 +4457,29 @@ function MonochromeClaudeStyle() {
         const dataString = JSON.stringify(limitedHistory);
         const dataSize = new Blob([dataString]).size;
         
-        // Если размер больше 2MB, очищаем старые чаты
-        if (dataSize > 2 * 1024 * 1024) {
+        // Если размер больше 1MB, очищаем старые чаты
+        if (dataSize > 1 * 1024 * 1024) {
           console.warn('История сообщений слишком большая, очищаем старые чаты');
           const chatIds = Object.keys(limitedHistory);
-          const chatsToKeep = chatIds.slice(-2); // Оставляем только последние 2 чата
+          const chatsToKeep = chatIds.slice(-1); // Оставляем только последний чат
           const cleanedHistory = {};
           chatsToKeep.forEach(chatId => {
             cleanedHistory[chatId] = limitedHistory[chatId];
           });
-          localStorage.setItem(`advancedMessageHistory@${userId}`, JSON.stringify(cleanedHistory));
+          
+          try {
+            localStorage.setItem(`advancedMessageHistory@${userId}`, JSON.stringify(cleanedHistory));
+          } catch (quotaError) {
+            console.warn('localStorage переполнен, очищаем всю историю');
+            localStorage.removeItem(`advancedMessageHistory@${userId}`);
+          }
         } else {
-          localStorage.setItem(`advancedMessageHistory@${userId}`, dataString);
+          try {
+            localStorage.setItem(`advancedMessageHistory@${userId}`, dataString);
+          } catch (quotaError) {
+            console.warn('localStorage переполнен, очищаем всю историю');
+            localStorage.removeItem(`advancedMessageHistory@${userId}`);
+          }
         }
       } catch (error) {
         console.error('Ошибка сохранения истории сообщений:', error);
@@ -5046,7 +4809,7 @@ function MonochromeClaudeStyle() {
       }));
       
       // Автоматически переименовываем чат по модели
-      autoRenameChat(activeChatId, model);
+      autoRenameChat(activeChatId, model, techplanMode);
       
       // Очищаем текущие сообщения после добавления в историю
       setTimeout(() => {
@@ -5113,7 +4876,7 @@ function MonochromeClaudeStyle() {
       }));
       
       // Автоматически переименовываем чат по модели даже при ошибке
-      autoRenameChat(activeChatId, model);
+      autoRenameChat(activeChatId, model, techplanMode);
       
       // Очищаем текущие сообщения после добавления в историю
       setTimeout(() => {
@@ -5712,7 +5475,7 @@ function MonochromeClaudeStyle() {
   };
 
   // Функция для автоматического переименования чата
-  const autoRenameChat = (chatId, model) => {
+  const autoRenameChat = (chatId, model, techplanMode = null) => {
     let newTitle = "Новый чат";
     
     switch (model) {
@@ -5746,7 +5509,6 @@ function MonochromeClaudeStyle() {
   };
   
   const handleCreateNewChat = () => {
-    setShowGallery(false); // Закрываем галерею при создании нового чата
     createChat();
   };
   
@@ -5896,57 +5658,7 @@ function MonochromeClaudeStyle() {
     setOrganizationModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Gallery functions
-  const handleGalleryDelete = (id) => {
-    if (confirm('Вы уверены, что хотите удалить это изображение?')) {
-      setGalleryImages(galleryImages.filter(img => img.id !== id));
-      if (selectedGalleryImage?.id === id) {
-        setSelectedGalleryImage(null);
-      }
-    }
-  };
 
-  const handleGalleryDownload = (url, id) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `image-${id}.jpg`;
-    link.click();
-  };
-
-  const handleShowGallery = () => {
-    setShowGallery(true);
-  };
-
-  const handleSendFromGallery = (payload) => {
-    // Закрываем галерею
-    setShowGallery(false);
-    
-    // Создаем новый чат (это очистит всю историю)
-    const id = `chat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const chat = { 
-      id, 
-      title: "Новый чат", 
-      messages: [],
-      createdAt: new Date().toISOString(),
-      lastMessageTime: new Date().toISOString()
-    };
-    setChats((prev) => [chat, ...prev]);
-    setActiveChatId(id);
-    setValue("");
-    setAttachments([]);
-    setPlanFurniture(null);
-    
-    // Очищаем только текущие сообщения
-    setAdvancedCurrentMessage(null);
-    setAdvancedCurrentResult(null);
-    setRemoveDepth(null);
-    setHasFirstMessage(false);
-    setIsGenerating(false);
-    setResponses({});
-    
-    // Отправляем сообщение в новый чат
-    handleAdvancedSendMessage(payload);
-  };
 
   // Advanced style layout (единственный доступный стиль)
     return (
@@ -5961,7 +5673,6 @@ function MonochromeClaudeStyle() {
             chats={filteredChats}
             activeChatId={activeChatId}
             onChatSelect={(chatId) => {
-              setShowGallery(false); // Закрываем галерею при переключении на чат
               setActiveChatId(chatId);
               setHasFirstMessage(chats.find(c => c.id === chatId)?.messages.length > 0);
               setIsGenerating(false);
@@ -5978,7 +5689,6 @@ function MonochromeClaudeStyle() {
             searchResults={searchResults}
             onSettingSelect={handleSettingSelect}
             onCreateChat={handleCreateNewChat}
-            onShowGallery={handleShowGallery}
             onHomeClick={handleHomeClick}
             onHowItWorks={() => setIsHowItWorksOpen(true)}
             user={user}
@@ -6005,25 +5715,7 @@ function MonochromeClaudeStyle() {
             onModelMenuToggle={setModelMenuOpen}
             onFilesSelected={onFilesSelected}
             onSendMessage={handleAdvancedSendMessage}
-            onSendFromGallery={handleSendFromGallery}
-            isGenerating={advancedIsGenerating}
-            currentMessage={advancedCurrentMessage}
-            currentResult={advancedCurrentResult}
-            messageHistory={advancedMessageHistory[activeChatId] || []}
-            onRate={handleAdvancedRate}
-            onRegenerate={handleAdvancedRegenerate}
-            onDownload={handleAdvancedDownload}
-            onImageClick={handleImageClick}
             onModelChange={setModel}
-            showGallery={showGallery}
-            setShowGallery={setShowGallery}
-            galleryImages={galleryImages}
-            selectedGalleryImage={selectedGalleryImage}
-            setSelectedGalleryImage={setSelectedGalleryImage}
-            galleryModelFilter={galleryModelFilter}
-            setGalleryModelFilter={setGalleryModelFilter}
-            onGalleryDelete={handleGalleryDelete}
-            onGalleryDownload={handleGalleryDownload}
             model={model}
             onModelSelect={setModel}
             on3DInfoOpen={() => setIs3DInfoModalOpen(true)}
