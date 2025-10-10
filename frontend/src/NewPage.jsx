@@ -689,7 +689,7 @@ function ThreeDModeModal({ isOpen, onClose, onActivate }) {
             </motion.div>
             <div>
               <h2 className="text-2xl font-bold text-white tracking-tight">
-                ARCPLAN 3D
+                Plan AI 3D
               </h2>
               <p className="text-neutral-400 text-sm mt-1">
                 Превратите 2D планы в 3D визуализацию
@@ -1064,8 +1064,11 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   const [theme, setTheme] = useState('system');
   const [showMarkdown, setShowMarkdown] = useState(false);
   const [wrapLongLines, setWrapLongLines] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
 
   // Behavior
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const [sidePanel, setSidePanel] = useState(false);
   const [notifications, setNotifications] = useState(false);
   const [autoComplete, setAutoComplete] = useState(true);
@@ -1095,37 +1098,6 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   // Функция для обновления настроек
   const updateUserSettings = (newSettings) => {
     setUserSettings(prev => ({ ...prev, ...newSettings }));
-  };
-  
-  // Функция для отправки уведомлений
-  const sendNotification = (title, body) => {
-    if (!notifications) return;
-    
-    // Проверяем поддержку уведомлений
-    if (!("Notification" in window)) {
-      console.log("Этот браузер не поддерживает уведомления");
-      return;
-    }
-
-    // Проверяем разрешение на уведомления
-    if (Notification.permission === "granted") {
-      new Notification(title, {
-        body: body,
-        icon: "/favicon.ico",
-        badge: "/favicon.ico"
-      });
-    } else if (Notification.permission !== "denied") {
-      // Запрашиваем разрешение
-      Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-          new Notification(title, {
-            body: body,
-            icon: "/favicon.ico",
-            badge: "/favicon.ico"
-          });
-        }
-      });
-    }
   };
   
   // Сохраняем настройки пользователя в localStorage
@@ -1171,6 +1143,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
 
   const tabs = [
     { id: 'account', label: 'Учётка', icon: User },
+    { id: 'appearance', label: 'Оформление', icon: Palette },
     { id: 'behavior', label: 'Поведение', icon: Settings },
     { id: 'data', label: 'Управление данными', icon: Shield },
   ];
@@ -1268,7 +1241,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
         <div className="text-xs text-neutral-400 pt-1">Язык <span className="ml-1 text-white">Русский</span></div>
       </div>
       
-      {/* ARCPLAN 3D кнопка */}
+      {/* Plan AI 3D кнопка */}
       <div className="flex justify-center">
         <motion.div 
           whileHover={{ scale: 1.05 }}
@@ -1301,7 +1274,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
           <div className="relative z-10">
             <div className="text-sm font-medium flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-white" />
-              ARCPLAN 3D
+              Plan AI 3D
             </div>
             <div className="text-xs text-neutral-400">Попробуй расширенные возможности</div>
           </div>
@@ -1318,9 +1291,98 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
     </div>
   );
 
+  const AppearanceTab = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { id: 'interactive', label: 'Интерактивный', icon: '✨' },
+          { id: 'alternative', label: 'Альтернативный', icon: '🎨' }
+        ].map((backgroundType) => (
+          <button
+            key={backgroundType.id}
+            onClick={() => onBackgroundChange(backgroundType.id)}
+            className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 px-3 py-4 text-xs transition ${
+              backgroundType === backgroundType.id
+                ? 'border-white/40 text-white'
+                : 'border-white/10 text-neutral-300 hover:border-white/20'
+            }`}
+          >
+            <div className="relative flex h-10 w-14 items-center justify-center rounded-lg overflow-hidden">
+              {backgroundType.id === 'standard' && (
+                <div className="absolute inset-0 bg-[#161618]">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-[8px] text-neutral-500">Фон</div>
+                  </div>
+                </div>
+              )}
+              {backgroundType.id === 'interactive' && (
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-pink-900 to-red-900">
+                  <div className="absolute inset-0 bg-black/20"></div>
+                  {/* Интерактивные частицы */}
+                  {[...Array(3)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1 h-1 bg-white/40 rounded-full"
+                      style={{
+                        left: `${20 + i * 30}%`,
+                        top: `${30 + i * 20}%`,
+                      }}
+                      animate={{
+                        opacity: [0.3, 0.8, 0.3],
+                        scale: [0.5, 1, 0.5],
+                      }}
+                      transition={{
+                        duration: 2 + i * 0.5,
+                        repeat: Infinity,
+                        delay: i * 0.3,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              {backgroundType.id === 'alternative' && (
+                <div className="absolute inset-0 bg-gradient-to-br from-green-900 via-teal-900 to-cyan-900">
+                  <div className="absolute inset-0 bg-black/20"></div>
+                  {/* Альтернативные частицы */}
+                  {[...Array(4)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1 h-1 bg-cyan-300/50 rounded-full"
+                      style={{
+                        left: `${15 + i * 25}%`,
+                        top: `${25 + i * 15}%`,
+                      }}
+                      animate={{
+                        opacity: [0.2, 0.7, 0.2],
+                        scale: [0.3, 1.2, 0.3],
+                      }}
+                      transition={{
+                        duration: 3 + i * 0.3,
+                        repeat: Infinity,
+                        delay: i * 0.4,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              <span className="relative z-10 text-white text-lg">{backgroundType.icon}</span>
+            </div>
+            {backgroundType.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <Row icon={Eye} left="Показывать предпросмотр разговоров в истории" right={<Toggle value={showPreview} onChange={setShowPreview} />} />
+      </div>
+    </div>
+  );
+
   const BehaviorTab = () => (
     <div className="space-y-2">
-      <Row icon={Bell} left="Получать уведомление, когда ARCPLAN заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
+      <Row icon={ArrowUp} left="Включить автопрокрутку" right={<Toggle value={autoScroll} onChange={setAutoScroll} />} />
+      <Row icon={Sparkles} left="Показывать предложения для продолжения" right={<Toggle value={showSuggestions} onChange={setShowSuggestions} />} />
+      <Row icon={Bell} left="Получать уведомление, когда Plan AI заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
       <Row icon={Bell} left="Уведомления при действиях" right={<Toggle value={userSettings.showActionNotifications} onChange={(value) => updateUserSettings({ showActionNotifications: value })} />} />
     </div>
   );
@@ -1328,12 +1390,37 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   const DataTab = () => (
     <div className="space-y-4">
       <Row icon={Sparkles} left="Улучшить модель" right={<Toggle value={allowHistory} onChange={setAllowHistory} />} />
+      {user && (
+        <div className="rounded-lg border border-white/10 px-4 py-3 space-y-2 bg-black/20">
+          <div className="text-xs uppercase tracking-[0.1em] text-white/50">Доступ</div>
+          <div className="text-sm text-white">
+            {user.role === 'director' || user.accessPrefix === 'Организация'
+              ? 'Безлимит генераций и повторов.'
+              : `Генерации использованы: ${user.plansUsed ?? 0} из 1.`}
+          </div>
+          <div className="text-xs text-neutral-400">
+            {user.role === 'director' || user.accessPrefix === 'Организация'
+              ? 'Префикс «Организация» активирован.'
+              : 'Повторить доступно до 3 раз в каждом чате без префикса.'}
+          </div>
+        </div>
+      )}
+      <div className="rounded-lg border border-white/10 px-4 py-3">
+        <div className="text-xs text-neutral-400">Использовано {memoryUsage.used} МБ из {(memoryUsage.total / 1000).toFixed(1)} ГБ</div>
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-white"
+            style={{ width: `${(memoryUsage.used / memoryUsage.total) * 100}%` }}
+          />
+        </div>
+      </div>
     </div>
   );
 
   const renderContent = () => {
     switch (activeTab) {
       case 'account': return <AccountTab />;
+      case 'appearance': return <AppearanceTab />;
       case 'behavior': return <BehaviorTab />;
       case 'data': return <DataTab />;
       default: return null;
@@ -1484,7 +1571,7 @@ function AuthModal({ isOpen, onClose }) {
           </button>
           
           <h2 className="text-xl font-bold text-white tracking-tight">
-            {mode === 'register' ? 'Запустить ARCPLAN' : 'Вход в систему'}
+            {mode === 'register' ? 'Запустить Plan AI' : 'Вход в систему'}
           </h2>
           <p className="text-neutral-400 text-xs mt-1">
             {mode === 'register' 
@@ -1596,7 +1683,7 @@ function AuthModal({ isOpen, onClose }) {
             >
               {loading 
                 ? (mode === 'register' ? 'Запуск...' : 'Вход...') 
-                : (mode === 'register' ? 'Запустить ARCPLAN' : 'Войти')}
+                : (mode === 'register' ? 'Запустить Plan AI' : 'Войти')}
             </motion.button>
           </form>
           
@@ -1634,7 +1721,7 @@ function Plan3DInfoModal({ isOpen, onClose }) {
               <Building2 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">ARCPLAN 3D</h2>
+              <h2 className="text-xl font-semibold text-white">Plan AI 3D</h2>
               <p className="text-sm text-neutral-400">Скоро в разработке</p>
             </div>
           </div>
@@ -1979,6 +2066,7 @@ function AdvancedSidebar({
   searchResults = { chats: [], settings: [] },
   onSettingSelect,
   onCreateChat,
+  onShowGallery,
   onHomeClick,
   onHowItWorks,
   user,
@@ -2051,6 +2139,13 @@ function AdvancedSidebar({
             <Plus className="h-3 w-3 text-neutral-400" />
           </button>
           <button 
+            onClick={onShowGallery}
+            className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
+            title="Создано"
+          >
+            <Images className="h-3 w-3 text-neutral-400" />
+          </button>
+          <button 
             onClick={onHomeClick}
             className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
             title="На главную"
@@ -2104,6 +2199,7 @@ function AdvancedSidebar({
        <nav className="px-1.5 text-sm flex-1 overflow-y-auto custom-scrollbar">
         <AdvancedSectionTitle>Главное</AdvancedSectionTitle>
         <AdvancedNavItem onClick={onCreateChat} Icon={Plus} label="Новый чат" />
+        <AdvancedNavItem onClick={onShowGallery} Icon={Images} label="Создано" />
         <AdvancedNavItem onClick={onHomeClick} Icon={Home} label="Вернуться на главную" />
         <AdvancedNavItem onClick={onHowItWorks} Icon={HelpCircle} label="Как это работает" />
         
@@ -2511,6 +2607,7 @@ function AdvancedMainArea({
   onModelMenuToggle, 
   onFilesSelected,
   onSendMessage,
+  onSendFromGallery,
   isGenerating = false,
   currentMessage = null,
   currentResult = null,
@@ -2520,6 +2617,15 @@ function AdvancedMainArea({
   onDownload,
   onImageClick,
   onModelChange,
+  showGallery = false,
+  setShowGallery,
+  galleryImages = [],
+  selectedGalleryImage,
+  setSelectedGalleryImage,
+  galleryModelFilter,
+  setGalleryModelFilter,
+  onGalleryDelete,
+  onGalleryDownload,
   model,
   onModelSelect,
   on3DInfoOpen
@@ -2535,13 +2641,13 @@ function AdvancedMainArea({
 
   // Обработчик активации 3D режима
   const handle3DActivation = () => {
-    // Открываем модальное окно ARCPLAN 3D
+    // Открываем модальное окно Plan AI 3D
     on3DInfoOpen && on3DInfoOpen();
   };
 
   // Обработчик открытия 3D модального окна
   const handleOpen3DModal = () => {
-    // Открываем модальное окно ARCPLAN 3D
+    // Открываем модальное окно Plan AI 3D
     on3DInfoOpen && on3DInfoOpen();
   };
 
@@ -2555,12 +2661,193 @@ function AdvancedMainArea({
     }
   }, [modelTo3D]);
 
+  // Gallery component
+  const GalleryContent = () => {
+    const filteredImages = galleryModelFilter === 'all' 
+      ? galleryImages 
+      : galleryImages.filter(img => img.model === galleryModelFilter);
+
+    return (
+      <div className="flex-1 flex flex-col">
+        {/* Gallery Header */}
+        <div className="border-b border-white/5 bg-black/20 backdrop-blur-sm">
+          <div className="mx-auto max-w-7xl px-6 py-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold text-white">Создано</h1>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-neutral-400">
+                  {filteredImages.length} изображений
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Gallery Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="mx-auto max-w-7xl px-6 py-8">
+            {/* Filter Bar */}
+            <div className="mb-8 flex items-center justify-between">
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    const filters = ['all', 'techplan', 'cleanup'];
+                    const currentIndex = filters.indexOf(galleryModelFilter);
+                    const nextIndex = (currentIndex + 1) % filters.length;
+                    setGalleryModelFilter(filters[nextIndex]);
+                  }}
+                  className="flex items-center gap-2 rounded-full px-4 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10 transition"
+                >
+                  <span className="text-sm">
+                    {galleryModelFilter === 'all' ? 'Все модели' : 
+                     galleryModelFilter === 'techplan' ? 'Создание по техплану' :
+                     galleryModelFilter === 'cleanup' ? 'Удаление объектов' : 'Все модели'}
+                  </span>
+                  <ChevronDown className="h-3 w-3 opacity-70" />
+                </button>
+              </div>
+            </div>
+
+            {/* Gallery Grid */}
+            {filteredImages.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredImages.map((image) => (
+                  <motion.div
+                    key={image.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="group relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/20 cursor-pointer"
+                    onClick={() => setSelectedGalleryImage(image)}
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.prompt}
+                      className="h-full w-full object-cover transition group-hover:scale-105"
+                    />
+                    
+                    {/* Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition">
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <p className="text-sm text-white line-clamp-2 mb-2">{image.prompt}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-neutral-400">{image.model}</span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onGalleryDownload(image.url, image.id);
+                              }}
+                              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition"
+                              title="Скачать"
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onGalleryDelete(image.id);
+                              }}
+                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition"
+                              title="Удалить"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-400" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <p className="text-neutral-400 mb-2">Нет изображений для выбранной модели</p>
+                <button
+                  onClick={() => setGalleryModelFilter('all')}
+                  className="text-sm text-white/70 hover:text-white underline"
+                >
+                  Показать все
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Image Modal */}
+        {selectedGalleryImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+            onClick={() => setSelectedGalleryImage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="relative max-w-5xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedGalleryImage(null)}
+                className="absolute -top-12 right-0 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              {/* Image */}
+              <div className="rounded-xl overflow-hidden border border-white/20">
+                <img
+                  src={selectedGalleryImage.url}
+                  alt={selectedGalleryImage.prompt}
+                  className="w-full h-auto"
+                />
+              </div>
+
+              {/* Info */}
+              <div className="mt-4 rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm p-6">
+                <p className="text-white mb-3">{selectedGalleryImage.prompt}</p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-neutral-400">Модель: {selectedGalleryImage.model}</span>
+                  <span className="text-neutral-400">
+                    {new Date(selectedGalleryImage.createdAt).toLocaleDateString('ru-RU')}
+                  </span>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={() => onGalleryDownload(selectedGalleryImage.url, selectedGalleryImage.id)}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-4 py-2 transition"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Скачать</span>
+                  </button>
+                  <button
+                    onClick={() => onGalleryDelete(selectedGalleryImage.id)}
+                    className="flex items-center justify-center gap-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 px-4 py-2 transition"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-400" />
+                    <span className="text-red-400">Удалить</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+        
+      </div>
+    );
+  };
 
   return (
     <main className="relative flex flex-col h-screen">
-      <>
-        {/* Сообщения в верхней части */}
-        {showMessages && (
+      {/* Gallery View */}
+      {showGallery ? (
+        <GalleryContent />
+      ) : (
+        <>
+          {/* Сообщения в верхней части */}
+          {showMessages && (
         <div className="flex-1 pt-16 overflow-y-auto custom-scrollbar">
           {/* История сообщений */}
           {messageHistory.length > 0 && (
@@ -2710,7 +2997,8 @@ function AdvancedMainArea({
         onClose={() => setIs3DModalOpen(false)}
         onActivate={handle3DActivation}
       />
-      </>
+        </>
+      )}
     </main>
   );
 }
@@ -2720,13 +3008,13 @@ function AdvancedMainArea({
    return (
        <div className="group flex flex-col items-center justify-center gap-2 select-none cursor-pointer">
         <div className="flex items-center justify-center gap-2">
-          {/* ARCPLAN logo - Ultimate Monochrome Luxury */}
+          {/* Plan AI logo - Ultimate Monochrome Luxury */}
           <svg 
             width="80" 
             height="80" 
             viewBox="0 0 400 400" 
             xmlns="http://www.w3.org/2000/svg" 
-            aria-label="ARCPLAN logo"
+            aria-label="Plan AI logo"
             className="transition-all duration-700 group-hover:scale-[1.08] translate-y-1"
             style={{ filter: 'drop-shadow(0 0 25px rgba(255,255,255,0.15))' }}
           >
@@ -2982,7 +3270,7 @@ function AdvancedMainArea({
           
           {/* Premium typography - aligned with logo */}
           <span className="text-6xl font-light tracking-[-0.03em] text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.35)]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: '1' }}>
-            ARCPLAN
+            Plan AI
           </span>
         </div>
         
@@ -3503,7 +3791,7 @@ function AdvancedPromoCard({ onClose, on3DClick }) {
               onClick={on3DClick}
               className="shrink-0 rounded-lg bg-white/90 text-black px-3 py-1.5 text-xs hover:bg-white transition font-medium"
             >
-              Подробнее
+              Перейти
             </motion.button>
           </div>
         </div>
@@ -3704,7 +3992,7 @@ function AdvancedSuperBanner({ showMessages = false, onUpgradeClick }) {
         <div>
           <div className="text-sm font-medium flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-white" />
-            ARCPLAN 3D
+            Plan AI 3D
           </div>
           <div className="text-xs text-neutral-400">Попробуй расширенные возможности</div>
         </div>
@@ -4082,22 +4370,6 @@ function MonochromeClaudeStyle() {
     if (typeof window === "undefined") return "anon";
     return localStorage.getItem("userId") || "anon";
   });
-  
-  // Настройка уведомлений
-  const [notifications, setNotifications] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`notifications@${userId}`);
-      return saved ? JSON.parse(saved) : false;
-    }
-    return false;
-  });
-  
-  // Сохраняем настройку уведомлений в localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`notifications@${userId}`, JSON.stringify(notifications));
-    }
-  }, [notifications, userId]);
 
   // Chats state
   const [chats, setChats] = useState(() => {
@@ -4153,6 +4425,54 @@ function MonochromeClaudeStyle() {
   const [backgroundType, setBackgroundType] = useState("alternative");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   
+  // Gallery states
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryImages, setGalleryImages] = useState([
+    {
+      id: 1,
+      url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
+      prompt: 'Современный интерьер квартиры с панорамными окнами',
+      model: 'DALL-E 3',
+      createdAt: new Date('2024-01-15'),
+    },
+    {
+      id: 2,
+      url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800',
+      prompt: 'Минималистичная кухня в скандинавском стиле',
+      model: 'Midjourney',
+      createdAt: new Date('2024-01-14'),
+    },
+    {
+      id: 3,
+      url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
+      prompt: 'Уютная спальня с деревянными элементами',
+      model: 'DALL-E 3',
+      createdAt: new Date('2024-01-13'),
+    },
+    {
+      id: 4,
+      url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
+      prompt: 'Современная ванная комната с мраморной отделкой',
+      model: 'Stable Diffusion',
+      createdAt: new Date('2024-01-12'),
+    },
+    {
+      id: 5,
+      url: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800',
+      prompt: 'Просторная гостиная с камином',
+      model: 'DALL-E 3',
+      createdAt: new Date('2024-01-11'),
+    },
+    {
+      id: 6,
+      url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+      prompt: 'Домашний офис с большим столом',
+      model: 'Midjourney',
+      createdAt: new Date('2024-01-10'),
+    },
+  ]);
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
+  const [galleryModelFilter, setGalleryModelFilter] = useState('all');
   const [limitNotice, setLimitNotice] = useState('');
   const [regenerationUsage, setRegenerationUsage] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -4345,7 +4665,7 @@ function MonochromeClaudeStyle() {
     }
     
     if (rememberChoice) {
-      updateUserSettings({ showActionNotifications: false });
+      updateUserSettings({ skipRenameConfirmation: true });
     }
     
     setRenameModal({
@@ -4385,29 +4705,18 @@ function MonochromeClaudeStyle() {
         const dataString = JSON.stringify(limitedHistory);
         const dataSize = new Blob([dataString]).size;
         
-        // Если размер больше 1MB, очищаем старые чаты
-        if (dataSize > 1 * 1024 * 1024) {
+        // Если размер больше 2MB, очищаем старые чаты
+        if (dataSize > 2 * 1024 * 1024) {
           console.warn('История сообщений слишком большая, очищаем старые чаты');
           const chatIds = Object.keys(limitedHistory);
-          const chatsToKeep = chatIds.slice(-1); // Оставляем только последний чат
+          const chatsToKeep = chatIds.slice(-2); // Оставляем только последние 2 чата
           const cleanedHistory = {};
           chatsToKeep.forEach(chatId => {
             cleanedHistory[chatId] = limitedHistory[chatId];
           });
-          
-          try {
-            localStorage.setItem(`advancedMessageHistory@${userId}`, JSON.stringify(cleanedHistory));
-          } catch (quotaError) {
-            console.warn('localStorage переполнен, очищаем всю историю');
-            localStorage.removeItem(`advancedMessageHistory@${userId}`);
-          }
+          localStorage.setItem(`advancedMessageHistory@${userId}`, JSON.stringify(cleanedHistory));
         } else {
-          try {
-            localStorage.setItem(`advancedMessageHistory@${userId}`, dataString);
-          } catch (quotaError) {
-            console.warn('localStorage переполнен, очищаем всю историю');
-            localStorage.removeItem(`advancedMessageHistory@${userId}`);
-          }
+          localStorage.setItem(`advancedMessageHistory@${userId}`, dataString);
         }
       } catch (error) {
         console.error('Ошибка сохранения истории сообщений:', error);
@@ -4507,38 +4816,6 @@ function MonochromeClaudeStyle() {
   };
 
   // Advanced message system handlers
-  
-  // Функция для отправки уведомлений
-  const sendNotification = (title, body) => {
-    if (!notifications) return;
-    
-    // Проверяем поддержку уведомлений
-    if (!("Notification" in window)) {
-      console.log("Этот браузер не поддерживает уведомления");
-      return;
-    }
-
-    // Проверяем разрешение на уведомления
-    if (Notification.permission === "granted") {
-      new Notification(title, {
-        body: body,
-        icon: "/favicon.ico",
-        badge: "/favicon.ico"
-      });
-    } else if (Notification.permission !== "denied") {
-      // Запрашиваем разрешение
-      Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-          new Notification(title, {
-            body: body,
-            icon: "/favicon.ico",
-            badge: "/favicon.ico"
-          });
-        }
-      });
-    }
-  };
-  
   const handleAdvancedSendMessage = async (payload) => {
     const { model, query, techplanMode, attachments } = payload;
 
@@ -4591,21 +4868,10 @@ function MonochromeClaudeStyle() {
         }
 
         // Генерация технического плана
-        const imageData = attachments.map(att => {
-          // Конвертируем файл в base64
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(att.file);
-          });
-        });
-        
-        const base64Images = await Promise.all(imageData);
-        
-        const requestBody = {
-          images: base64Images,
-          mode: techplanMode === "with" ? "withFurniture" : "withoutFurniture"
-        };
+        const formData = new FormData();
+        // прикладываем все изображения
+        attachments.forEach((att) => formData.append('image', att.file));
+        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4615,10 +4881,9 @@ function MonochromeClaudeStyle() {
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: JSON.stringify(requestBody)
+          body: formData
         });
 
         if (!response.ok) {
@@ -4645,37 +4910,25 @@ function MonochromeClaudeStyle() {
           throw err;
         }
 
-        // Обработка ответа с новой системой URL
+        // Поддержка множественных результатов
         const contentType = response.headers.get('content-type') || '';
         let responseImages = [];
-        
         if (contentType.includes('application/json')) {
           const data = await response.json();
-          if (data.success) {
-            if (data.result) {
-              // Одиночный результат
-              responseImages = [data.result.imageUrl];
-              responseText = data.message || `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}"`;
-            } else if (data.results && Array.isArray(data.results)) {
-              // Множественные результаты
-              responseImages = data.results.map(r => r.imageUrl);
-              responseText = data.message || `Создано ${data.results.length} технических планов в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}"`;
-            }
-          } else {
-            throw new Error(data.error || 'Ошибка генерации технического плана');
+          if (Array.isArray(data?.images)) {
+            responseImages = data.images;
           }
         } else {
-          // Fallback для старого формата (если сервер еще не обновлен)
-          const imageBlob = await response.blob();
+          // Конвертируем blob в base64 для прямого использования
+        const imageBlob = await response.blob();
           const reader = new FileReader();
           responseImages = await new Promise((resolve) => {
             reader.onload = () => resolve([reader.result]);
             reader.readAsDataURL(imageBlob);
           });
-          responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}"`;
         }
-        
         responseImage = responseImages[0] || null;
+        responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
 
         if (!hasUnlimitedAccess) {
           if (user) {
@@ -4691,20 +4944,8 @@ function MonochromeClaudeStyle() {
         }
 
         // Удаление объектов
-        const imageData = attachments.map(att => {
-          // Конвертируем файл в base64
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(att.file);
-          });
-        });
-        
-        const base64Images = await Promise.all(imageData);
-        
-        const requestBody = {
-          images: base64Images
-        };
+        const formData = new FormData();
+        attachments.forEach((att) => formData.append('image', att.file));
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4714,10 +4955,9 @@ function MonochromeClaudeStyle() {
         const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: JSON.stringify(requestBody)
+          body: formData
         });
 
         if (!response.ok) {
@@ -4749,37 +4989,25 @@ function MonochromeClaudeStyle() {
           throw new Error(errorMessage);
         }
 
-        // Обработка ответа с новой системой URL для удаления объектов
+        // Поддержка множественных результатов
         const contentType2 = response.headers.get('content-type') || '';
         let responseImages2 = [];
-        
         if (contentType2.includes('application/json')) {
           const data = await response.json();
-          if (data.success) {
-            if (data.result) {
-              // Одиночный результат
-              responseImages2 = [data.result.imageUrl];
-              responseText = data.message || 'Объекты успешно удалены с изображения';
-            } else if (data.results && Array.isArray(data.results)) {
-              // Множественные результаты
-              responseImages2 = data.results.map(r => r.imageUrl);
-              responseText = data.message || `Объекты удалены с ${data.results.length} изображений`;
-            }
-          } else {
-            throw new Error(data.error || 'Ошибка удаления объектов');
+          if (Array.isArray(data?.images)) {
+            responseImages2 = data.images;
           }
         } else {
-          // Fallback для старого формата
+          // Конвертируем blob в base64 для прямого использования
           const imageBlob = await response.blob();
           const reader = new FileReader();
           responseImages2 = await new Promise((resolve) => {
             reader.onload = () => resolve([reader.result]);
             reader.readAsDataURL(imageBlob);
           });
-          responseText = 'Объекты успешно удалены с изображения';
         }
-        
         responseImage = responseImages2[0] || null;
+        responseText = `Объекты успешно удалены с изображения.`;
       } else {
         // Обычная обработка для других моделей
         responseText = `Вот результат обработки вашего запроса "${userMessage.text}".`;
@@ -4795,12 +5023,6 @@ function MonochromeClaudeStyle() {
       };
 
       setAdvancedCurrentResult(aiResponse);
-      
-      // Отправляем уведомление о завершении генерации
-      sendNotification(
-        "ARCPLAN завершил размышления", 
-        "Ваш ответ готов!"
-      );
       
       // Добавляем сообщения в историю для текущего чата
       setAdvancedMessageHistory(prev => ({
@@ -4824,7 +5046,7 @@ function MonochromeClaudeStyle() {
       }));
       
       // Автоматически переименовываем чат по модели
-      autoRenameChat(activeChatId, model, techplanMode);
+      autoRenameChat(activeChatId, model);
       
       // Очищаем текущие сообщения после добавления в историю
       setTimeout(() => {
@@ -4891,7 +5113,7 @@ function MonochromeClaudeStyle() {
       }));
       
       // Автоматически переименовываем чат по модели даже при ошибке
-      autoRenameChat(activeChatId, model, techplanMode);
+      autoRenameChat(activeChatId, model);
       
       // Очищаем текущие сообщения после добавления в историю
       setTimeout(() => {
@@ -4958,21 +5180,10 @@ function MonochromeClaudeStyle() {
         }
 
         // Генерация технического плана
-        const imageData = attachments.map(att => {
-          // Конвертируем файл в base64
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(att.file);
-          });
-        });
-        
-        const base64Images = await Promise.all(imageData);
-        
-        const requestBody = {
-          images: base64Images,
-          mode: techplanMode === "with" ? "withFurniture" : "withoutFurniture"
-        };
+        const formData = new FormData();
+        // прикладываем все изображения
+        attachments.forEach((att) => formData.append('image', att.file));
+        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4982,10 +5193,9 @@ function MonochromeClaudeStyle() {
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: JSON.stringify(requestBody)
+          body: formData
         });
 
         if (!response.ok) {
@@ -5046,20 +5256,8 @@ function MonochromeClaudeStyle() {
         }
 
         // Удаление объектов
-        const imageData = attachments.map(att => {
-          // Конвертируем файл в base64
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(att.file);
-          });
-        });
-        
-        const base64Images = await Promise.all(imageData);
-        
-        const requestBody = {
-          images: base64Images
-        };
+        const formData = new FormData();
+        attachments.forEach((att) => formData.append('image', att.file));
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -5069,10 +5267,9 @@ function MonochromeClaudeStyle() {
         const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: JSON.stringify(requestBody)
+          body: formData
         });
 
         if (!response.ok) {
@@ -5230,29 +5427,16 @@ function MonochromeClaudeStyle() {
 
       if (isPlan && attachments.length > 0) {
         // Генерация технического плана
-        const imageData = attachments.map(att => {
-          // Конвертируем файл в base64
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(att.file);
-          });
-        });
-        
-        const base64Images = await Promise.all(imageData);
-        
-        const requestBody = {
-          images: base64Images,
-          mode: planFurniture === "with" ? "withFurniture" : "withoutFurniture"
-        };
+        const formData = new FormData();
+        formData.append('image', attachments[0].file);
+        formData.append('mode', planFurniture === "with" ? "withFurniture" : "withoutFurniture");
 
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: JSON.stringify(requestBody)
+          body: formData
         });
 
         if (!response.ok) {
@@ -5262,21 +5446,14 @@ function MonochromeClaudeStyle() {
           throw err;
         }
 
-        // Обработка ответа с новой системой URL
-        const data = await response.json();
-        if (data.success) {
-          if (data.result) {
-            // Одиночный результат
-            responseImage = data.result.imageUrl;
-            responseText = data.message || `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}"`;
-          } else if (data.results && Array.isArray(data.results)) {
-            // Множественные результаты
-            responseImage = data.results[0].imageUrl;
-            responseText = data.message || `Создано ${data.results.length} технических планов в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}"`;
-          }
-        } else {
-          throw new Error(data.error || 'Ошибка генерации технического плана');
-        }
+        // Получаем изображение как base64
+        const imageBlob = await response.blob();
+        const reader = new FileReader();
+        responseImage = await new Promise((resolve) => {
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(imageBlob);
+        });
+        responseText = `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}".`;
 
         if (!hasUnlimitedAccess) {
           if (user) {
@@ -5535,7 +5712,7 @@ function MonochromeClaudeStyle() {
   };
 
   // Функция для автоматического переименования чата
-  const autoRenameChat = (chatId, model, techplanMode = null) => {
+  const autoRenameChat = (chatId, model) => {
     let newTitle = "Новый чат";
     
     switch (model) {
@@ -5569,6 +5746,7 @@ function MonochromeClaudeStyle() {
   };
   
   const handleCreateNewChat = () => {
+    setShowGallery(false); // Закрываем галерею при создании нового чата
     createChat();
   };
   
@@ -5576,8 +5754,8 @@ function MonochromeClaudeStyle() {
     const chat = chats.find(c => c.id === chatId);
     const currentTitle = chat?.title || 'Новый чат';
     
-    if (!userSettings.showActionNotifications) {
-      // Если пользователь отключил уведомления при действиях, сразу показываем модальное окно переименования
+    if (userSettings.skipRenameConfirmation) {
+      // Если пользователь отключил подтверждения, сразу показываем модальное окно переименования
       setRenameModal({
         isOpen: true,
         chatId: chatId,
@@ -5599,8 +5777,8 @@ function MonochromeClaudeStyle() {
     const chat = chats.find(c => c.id === chatId);
     const chatTitle = chat?.title || 'Новый чат';
     
-    if (!userSettings.showActionNotifications) {
-      // Если пользователь отключил уведомления при действиях, сразу удаляем
+    if (userSettings.skipDeleteConfirmation) {
+      // Если пользователь отключил подтверждения, сразу удаляем
       setChats(chats.filter(c => c.id !== chatId));
       
       // Удаляем историю сообщений для этого чата
@@ -5647,7 +5825,7 @@ function MonochromeClaudeStyle() {
           setAdvancedCurrentResult(null);
           
           if (rememberChoice) {
-            updateUserSettings({ showActionNotifications: false });
+            updateUserSettings({ skipDeleteConfirmation: true });
           }
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         },
@@ -5718,7 +5896,57 @@ function MonochromeClaudeStyle() {
     setOrganizationModal(prev => ({ ...prev, isOpen: false }));
   };
 
+  // Gallery functions
+  const handleGalleryDelete = (id) => {
+    if (confirm('Вы уверены, что хотите удалить это изображение?')) {
+      setGalleryImages(galleryImages.filter(img => img.id !== id));
+      if (selectedGalleryImage?.id === id) {
+        setSelectedGalleryImage(null);
+      }
+    }
+  };
 
+  const handleGalleryDownload = (url, id) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `image-${id}.jpg`;
+    link.click();
+  };
+
+  const handleShowGallery = () => {
+    setShowGallery(true);
+  };
+
+  const handleSendFromGallery = (payload) => {
+    // Закрываем галерею
+    setShowGallery(false);
+    
+    // Создаем новый чат (это очистит всю историю)
+    const id = `chat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const chat = { 
+      id, 
+      title: "Новый чат", 
+      messages: [],
+      createdAt: new Date().toISOString(),
+      lastMessageTime: new Date().toISOString()
+    };
+    setChats((prev) => [chat, ...prev]);
+    setActiveChatId(id);
+    setValue("");
+    setAttachments([]);
+    setPlanFurniture(null);
+    
+    // Очищаем только текущие сообщения
+    setAdvancedCurrentMessage(null);
+    setAdvancedCurrentResult(null);
+    setRemoveDepth(null);
+    setHasFirstMessage(false);
+    setIsGenerating(false);
+    setResponses({});
+    
+    // Отправляем сообщение в новый чат
+    handleAdvancedSendMessage(payload);
+  };
 
   // Advanced style layout (единственный доступный стиль)
     return (
@@ -5733,6 +5961,7 @@ function MonochromeClaudeStyle() {
             chats={filteredChats}
             activeChatId={activeChatId}
             onChatSelect={(chatId) => {
+              setShowGallery(false); // Закрываем галерею при переключении на чат
               setActiveChatId(chatId);
               setHasFirstMessage(chats.find(c => c.id === chatId)?.messages.length > 0);
               setIsGenerating(false);
@@ -5749,6 +5978,7 @@ function MonochromeClaudeStyle() {
             searchResults={searchResults}
             onSettingSelect={handleSettingSelect}
             onCreateChat={handleCreateNewChat}
+            onShowGallery={handleShowGallery}
             onHomeClick={handleHomeClick}
             onHowItWorks={() => setIsHowItWorksOpen(true)}
             user={user}
@@ -5775,7 +6005,25 @@ function MonochromeClaudeStyle() {
             onModelMenuToggle={setModelMenuOpen}
             onFilesSelected={onFilesSelected}
             onSendMessage={handleAdvancedSendMessage}
+            onSendFromGallery={handleSendFromGallery}
+            isGenerating={advancedIsGenerating}
+            currentMessage={advancedCurrentMessage}
+            currentResult={advancedCurrentResult}
+            messageHistory={advancedMessageHistory[activeChatId] || []}
+            onRate={handleAdvancedRate}
+            onRegenerate={handleAdvancedRegenerate}
+            onDownload={handleAdvancedDownload}
+            onImageClick={handleImageClick}
             onModelChange={setModel}
+            showGallery={showGallery}
+            setShowGallery={setShowGallery}
+            galleryImages={galleryImages}
+            selectedGalleryImage={selectedGalleryImage}
+            setSelectedGalleryImage={setSelectedGalleryImage}
+            galleryModelFilter={galleryModelFilter}
+            setGalleryModelFilter={setGalleryModelFilter}
+            onGalleryDelete={handleGalleryDelete}
+            onGalleryDownload={handleGalleryDownload}
             model={model}
             onModelSelect={setModel}
             on3DInfoOpen={() => setIs3DInfoModalOpen(true)}

@@ -224,7 +224,7 @@ const DemoHero = () => {
             {/* Title that stays in place */}
             <FadeIn delay={0.2}>
               <h2 className="text-2xl md:text-4xl font-bold text-white mb-6 leading-tight">
-                Магия ARCPLAN
+                Магия Plan AI
                 <span className="block bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
                 в действии
                 </span>
@@ -242,7 +242,7 @@ const DemoHero = () => {
                 <FadeIn delay={0.1}>
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 text-sm text-zinc-300 mb-6">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    Демонстрация ARCPLAN
+                    Демонстрация Plan AI
                   </div>
                 </FadeIn>
                 
@@ -1055,7 +1055,7 @@ const HomePage: React.FC = () => {
 
             <SlideInFromLeft delay={0.2}>
               <h1 className="mt-6 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight leading-tight" style={{ fontFamily: 'New York, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-                ARCPLAN превращает фотографии в<br />
+                Plan AI превращает фотографии в<br />
                 идеальные планировки за секунды
             </h1>
             </SlideInFromLeft>
@@ -1111,7 +1111,7 @@ const HomePage: React.FC = () => {
             </FadeIn>
             <FadeIn delay={0.1}>
               <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-                От стартапов до крупных предприятий — ARCPLAN помогает создавать идеальные планировки
+                От стартапов до крупных предприятий — Plan AI помогает создавать идеальные планировки
               </p>
             </FadeIn>
           </div>
@@ -1538,7 +1538,7 @@ const HomePage: React.FC = () => {
                     <Shield className="h-4 w-4" />
                   </div>
                   <span className="group-hover:text-zinc-300 transition-colors duration-300">
-                    Агенства по всей России ускоряют свою работу с ARCPLAN
+                    Агенства по всей России ускоряют свою работу с Plan AI
                   </span>
               </div>
             </FadeIn>
@@ -1547,7 +1547,7 @@ const HomePage: React.FC = () => {
                 <blockquote className="text-3xl md:text-4xl leading-relaxed text-zinc-100 group-hover:text-white transition-colors duration-300 font-medium">
                   «Каждый сэкономленный цент - это заработанный цент. 
                   <span className="block mt-2 text-zinc-300 group-hover:text-zinc-200 transition-colors duration-300">
-                    Зарабатывай быстро - вместе с ARCPLAN».
+                    Зарабатывай быстро - вместе с Plan AI».
                   </span>
               </blockquote>
             </FadeIn>
@@ -1600,7 +1600,7 @@ const HomePage: React.FC = () => {
                   category: "СТОИМОСТЬ"
                 },
                 { 
-                  q: "Как интегрируется ARCPLAN в существующие процессы?", 
+                  q: "Как интегрируется Plan AI в существующие процессы?", 
                   a: "Интеграция происходит через API или веб-интерфейс. Поддерживаем интеграцию с CRM-системами, базами данных объектов и существующими рабочими процессами агентства.",
                   category: "ИНТЕГРАЦИЯ"
                 },
@@ -1692,7 +1692,7 @@ const HomePage: React.FC = () => {
               <div className="text-sm uppercase tracking-[0.2em] text-zinc-500">Готовы к пилоту?</div>
             </FadeIn>
             <FadeIn delay={0.05}>
-              <h3 className="mt-2 text-3xl md:text-4xl font-semibold text-zinc-50">Запустим ARCPLAN в вашем агентстве</h3>
+              <h3 className="mt-2 text-3xl md:text-4xl font-semibold text-zinc-50">Запустим Plan AI в вашем агентстве</h3>
             </FadeIn>
             <FadeIn delay={0.1}>
               <p className="mt-2 text-zinc-400 max-w-2xl">Оставьте контакты — подготовим демо на ваших данных и обсудим интеграцию.</p>
@@ -1709,7 +1709,7 @@ const HomePage: React.FC = () => {
         <Container className="py-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2 text-zinc-400">
             <div className="h-6 w-6 rounded-lg bg-zinc-100 text-zinc-900 grid place-content-center text-[10px] font-bold">FM</div>
-            <span>© {new Date().getFullYear()} ARCPLAN</span>
+            <span>© {new Date().getFullYear()} Plan AI</span>
           </div>
           <div className="text-zinc-500 text-sm">Оптимизация на уровне ИИ</div>
         </Container>
@@ -1968,7 +1968,7 @@ const HomePage: React.FC = () => {
           content={
             <div className="space-y-4">
               <p className="text-white/80 leading-relaxed">
-                Загрузите фото помещения, ARCPLAN удалит мебель, гарнитуры и мусор, 
+                Загрузите фото помещения, Plan AI удалит мебель, гарнитуры и мусор, 
                 сохранив стены и декор. Скачайте чистое изображение помещения.
               </p>
               <div className="space-y-3">
