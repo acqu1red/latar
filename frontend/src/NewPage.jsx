@@ -1064,11 +1064,8 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   const [theme, setTheme] = useState('system');
   const [showMarkdown, setShowMarkdown] = useState(false);
   const [wrapLongLines, setWrapLongLines] = useState(false);
-  const [showPreview, setShowPreview] = useState(true);
 
   // Behavior
-  const [autoScroll, setAutoScroll] = useState(true);
-  const [showSuggestions, setShowSuggestions] = useState(true);
   const [sidePanel, setSidePanel] = useState(false);
   const [notifications, setNotifications] = useState(false);
   const [autoComplete, setAutoComplete] = useState(true);
@@ -1098,6 +1095,37 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   // Функция для обновления настроек
   const updateUserSettings = (newSettings) => {
     setUserSettings(prev => ({ ...prev, ...newSettings }));
+  };
+  
+  // Функция для отправки уведомлений
+  const sendNotification = (title, body) => {
+    if (!notifications) return;
+    
+    // Проверяем поддержку уведомлений
+    if (!("Notification" in window)) {
+      console.log("Этот браузер не поддерживает уведомления");
+      return;
+    }
+
+    // Проверяем разрешение на уведомления
+    if (Notification.permission === "granted") {
+      new Notification(title, {
+        body: body,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico"
+      });
+    } else if (Notification.permission !== "denied") {
+      // Запрашиваем разрешение
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          new Notification(title, {
+            body: body,
+            icon: "/favicon.ico",
+            badge: "/favicon.ico"
+          });
+        }
+      });
+    }
   };
   
   // Сохраняем настройки пользователя в localStorage
@@ -1143,7 +1171,6 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
 
   const tabs = [
     { id: 'account', label: 'Учётка', icon: User },
-    { id: 'appearance', label: 'Оформление', icon: Palette },
     { id: 'behavior', label: 'Поведение', icon: Settings },
     { id: 'data', label: 'Управление данными', icon: Shield },
   ];
@@ -1291,98 +1318,8 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
     </div>
   );
 
-  const AppearanceTab = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { id: 'standard', label: 'Стандартный', icon: '🎯' },
-          { id: 'interactive', label: 'Интерактивный', icon: '✨' },
-          { id: 'alternative', label: 'Альтернативный', icon: '🎨' }
-        ].map((bgType) => (
-          <button
-            key={bgType.id}
-            onClick={() => onBackgroundChange(bgType.id)}
-            className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 px-3 py-4 text-xs transition ${
-              backgroundType === bgType.id
-                ? 'border-white/40 text-white'
-                : 'border-white/10 text-neutral-300 hover:border-white/20'
-            }`}
-          >
-            <div className="relative flex h-10 w-14 items-center justify-center rounded-lg overflow-hidden">
-              {bgType.id === 'standard' && (
-                <div className="absolute inset-0 bg-[#161618]">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-[8px] text-neutral-500">Фон</div>
-                  </div>
-                </div>
-              )}
-              {bgType.id === 'interactive' && (
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-pink-900 to-red-900">
-                  <div className="absolute inset-0 bg-black/20"></div>
-                  {/* Интерактивные частицы */}
-                  {[...Array(3)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="absolute w-1 h-1 bg-white/40 rounded-full"
-                      style={{
-                        left: `${20 + i * 30}%`,
-                        top: `${30 + i * 20}%`,
-                      }}
-                      animate={{
-                        opacity: [0.3, 0.8, 0.3],
-                        scale: [0.5, 1, 0.5],
-                      }}
-                      transition={{
-                        duration: 2 + i * 0.5,
-                        repeat: Infinity,
-                        delay: i * 0.3,
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-              {bgType.id === 'alternative' && (
-                <div className="absolute inset-0 bg-gradient-to-br from-green-900 via-teal-900 to-cyan-900">
-                  <div className="absolute inset-0 bg-black/20"></div>
-                  {/* Альтернативные частицы */}
-                  {[...Array(4)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="absolute w-1 h-1 bg-cyan-300/50 rounded-full"
-                      style={{
-                        left: `${15 + i * 25}%`,
-                        top: `${25 + i * 15}%`,
-                      }}
-                      animate={{
-                        opacity: [0.2, 0.7, 0.2],
-                        scale: [0.3, 1.2, 0.3],
-                      }}
-                      transition={{
-                        duration: 3 + i * 0.3,
-                        repeat: Infinity,
-                        delay: i * 0.4,
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-              <span className="relative z-10 text-white text-lg">{bgType.icon}</span>
-            </div>
-            {bgType.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-2">
-        <Row icon={Eye} left="Показывать предпросмотр разговоров в истории" right={<Toggle value={showPreview} onChange={setShowPreview} />} />
-      </div>
-    </div>
-  );
-
   const BehaviorTab = () => (
     <div className="space-y-2">
-      <Row icon={ArrowUp} left="Включить автопрокрутку" right={<Toggle value={autoScroll} onChange={setAutoScroll} />} />
-      <Row icon={Sparkles} left="Показывать предложения для продолжения" right={<Toggle value={showSuggestions} onChange={setShowSuggestions} />} />
       <Row icon={Bell} left="Получать уведомление, когда Plan AI заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
       <Row icon={Bell} left="Уведомления при действиях" right={<Toggle value={userSettings.showActionNotifications} onChange={(value) => updateUserSettings({ showActionNotifications: value })} />} />
     </div>
@@ -1391,37 +1328,12 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
   const DataTab = () => (
     <div className="space-y-4">
       <Row icon={Sparkles} left="Улучшить модель" right={<Toggle value={allowHistory} onChange={setAllowHistory} />} />
-      {user && (
-        <div className="rounded-lg border border-white/10 px-4 py-3 space-y-2 bg-black/20">
-          <div className="text-xs uppercase tracking-[0.1em] text-white/50">Доступ</div>
-          <div className="text-sm text-white">
-            {user.role === 'director' || user.accessPrefix === 'Организация'
-              ? 'Безлимит генераций и повторов.'
-              : `Генерации использованы: ${user.plansUsed ?? 0} из 1.`}
-          </div>
-          <div className="text-xs text-neutral-400">
-            {user.role === 'director' || user.accessPrefix === 'Организация'
-              ? 'Префикс «Организация» активирован.'
-              : 'Повторить доступно до 3 раз в каждом чате без префикса.'}
-          </div>
-        </div>
-      )}
-      <div className="rounded-lg border border-white/10 px-4 py-3">
-        <div className="text-xs text-neutral-400">Использовано {memoryUsage.used} МБ из {(memoryUsage.total / 1000).toFixed(1)} ГБ</div>
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-white"
-            style={{ width: `${(memoryUsage.used / memoryUsage.total) * 100}%` }}
-          />
-        </div>
-      </div>
     </div>
   );
 
   const renderContent = () => {
     switch (activeTab) {
       case 'account': return <AccountTab />;
-      case 'appearance': return <AppearanceTab />;
       case 'behavior': return <BehaviorTab />;
       case 'data': return <DataTab />;
       default: return null;
@@ -3591,7 +3503,7 @@ function AdvancedPromoCard({ onClose, on3DClick }) {
               onClick={on3DClick}
               className="shrink-0 rounded-lg bg-white/90 text-black px-3 py-1.5 text-xs hover:bg-white transition font-medium"
             >
-              Перейти
+              Подробнее
             </motion.button>
           </div>
         </div>
@@ -4170,6 +4082,22 @@ function MonochromeClaudeStyle() {
     if (typeof window === "undefined") return "anon";
     return localStorage.getItem("userId") || "anon";
   });
+  
+  // Настройка уведомлений
+  const [notifications, setNotifications] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`notifications@${userId}`);
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
+  
+  // Сохраняем настройку уведомлений в localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`notifications@${userId}`, JSON.stringify(notifications));
+    }
+  }, [notifications, userId]);
 
   // Chats state
   const [chats, setChats] = useState(() => {
@@ -4417,7 +4345,7 @@ function MonochromeClaudeStyle() {
     }
     
     if (rememberChoice) {
-      updateUserSettings({ skipRenameConfirmation: true });
+      updateUserSettings({ showActionNotifications: false });
     }
     
     setRenameModal({
@@ -4579,6 +4507,38 @@ function MonochromeClaudeStyle() {
   };
 
   // Advanced message system handlers
+  
+  // Функция для отправки уведомлений
+  const sendNotification = (title, body) => {
+    if (!notifications) return;
+    
+    // Проверяем поддержку уведомлений
+    if (!("Notification" in window)) {
+      console.log("Этот браузер не поддерживает уведомления");
+      return;
+    }
+
+    // Проверяем разрешение на уведомления
+    if (Notification.permission === "granted") {
+      new Notification(title, {
+        body: body,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico"
+      });
+    } else if (Notification.permission !== "denied") {
+      // Запрашиваем разрешение
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          new Notification(title, {
+            body: body,
+            icon: "/favicon.ico",
+            badge: "/favicon.ico"
+          });
+        }
+      });
+    }
+  };
+  
   const handleAdvancedSendMessage = async (payload) => {
     const { model, query, techplanMode, attachments } = payload;
 
@@ -4786,6 +4746,12 @@ function MonochromeClaudeStyle() {
       };
 
       setAdvancedCurrentResult(aiResponse);
+      
+      // Отправляем уведомление о завершении генерации
+      sendNotification(
+        "Plan AI завершил размышления", 
+        "Ваш ответ готов!"
+      );
       
       // Добавляем сообщения в историю для текущего чата
       setAdvancedMessageHistory(prev => ({
@@ -5516,8 +5482,8 @@ function MonochromeClaudeStyle() {
     const chat = chats.find(c => c.id === chatId);
     const currentTitle = chat?.title || 'Новый чат';
     
-    if (userSettings.skipRenameConfirmation) {
-      // Если пользователь отключил подтверждения, сразу показываем модальное окно переименования
+    if (!userSettings.showActionNotifications) {
+      // Если пользователь отключил уведомления при действиях, сразу показываем модальное окно переименования
       setRenameModal({
         isOpen: true,
         chatId: chatId,
@@ -5539,8 +5505,8 @@ function MonochromeClaudeStyle() {
     const chat = chats.find(c => c.id === chatId);
     const chatTitle = chat?.title || 'Новый чат';
     
-    if (userSettings.skipDeleteConfirmation) {
-      // Если пользователь отключил подтверждения, сразу удаляем
+    if (!userSettings.showActionNotifications) {
+      // Если пользователь отключил уведомления при действиях, сразу удаляем
       setChats(chats.filter(c => c.id !== chatId));
       
       // Удаляем историю сообщений для этого чата
@@ -5587,7 +5553,7 @@ function MonochromeClaudeStyle() {
           setAdvancedCurrentResult(null);
           
           if (rememberChoice) {
-            updateUserSettings({ skipDeleteConfirmation: true });
+            updateUserSettings({ showActionNotifications: false });
           }
           setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         },
