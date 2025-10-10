@@ -67,7 +67,7 @@ const RegisterPage: React.FC = () => {
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 pt-20 pb-28">
           <div className="max-w-md mx-auto">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-semibold text-zinc-50 mb-2">Запустить Plan AI</h1>
+              <h1 className="text-3xl font-semibold text-zinc-50 mb-2">Запустить ARCPLAN</h1>
               <p className="text-zinc-400 mb-4">Начнем работу с Вашей организацией по созданию планировок с AI</p>
               <div className="flex flex-wrap justify-center gap-4 text-sm text-zinc-500">
                 <div className="flex items-center gap-2">
@@ -189,7 +189,7 @@ const RegisterPage: React.FC = () => {
                   disabled={loading}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-zinc-100 text-zinc-950 px-4 py-3 text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
                 >
-                  {loading ? 'Запуск...' : 'Запустить Plan AI'}
+                  {loading ? 'Запуск...' : 'Запустить ARCPLAN'}
                 </button>
               </form>
 

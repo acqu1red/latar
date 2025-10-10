@@ -689,7 +689,7 @@ function ThreeDModeModal({ isOpen, onClose, onActivate }) {
             </motion.div>
             <div>
               <h2 className="text-2xl font-bold text-white tracking-tight">
-                Plan AI 3D
+                ARCPLAN 3D
               </h2>
               <p className="text-neutral-400 text-sm mt-1">
                 Превратите 2D планы в 3D визуализацию
@@ -1268,7 +1268,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
         <div className="text-xs text-neutral-400 pt-1">Язык <span className="ml-1 text-white">Русский</span></div>
       </div>
       
-      {/* Plan AI 3D кнопка */}
+      {/* ARCPLAN 3D кнопка */}
       <div className="flex justify-center">
         <motion.div 
           whileHover={{ scale: 1.05 }}
@@ -1301,7 +1301,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
           <div className="relative z-10">
             <div className="text-sm font-medium flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-white" />
-              Plan AI 3D
+              ARCPLAN 3D
             </div>
             <div className="text-xs text-neutral-400">Попробуй расширенные возможности</div>
           </div>
@@ -1320,7 +1320,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
 
   const BehaviorTab = () => (
     <div className="space-y-2">
-      <Row icon={Bell} left="Получать уведомление, когда Plan AI заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
+      <Row icon={Bell} left="Получать уведомление, когда ARCPLAN заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
       <Row icon={Bell} left="Уведомления при действиях" right={<Toggle value={userSettings.showActionNotifications} onChange={(value) => updateUserSettings({ showActionNotifications: value })} />} />
     </div>
   );
@@ -1484,7 +1484,7 @@ function AuthModal({ isOpen, onClose }) {
           </button>
           
           <h2 className="text-xl font-bold text-white tracking-tight">
-            {mode === 'register' ? 'Запустить Plan AI' : 'Вход в систему'}
+            {mode === 'register' ? 'Запустить ARCPLAN' : 'Вход в систему'}
           </h2>
           <p className="text-neutral-400 text-xs mt-1">
             {mode === 'register' 
@@ -1596,7 +1596,7 @@ function AuthModal({ isOpen, onClose }) {
             >
               {loading 
                 ? (mode === 'register' ? 'Запуск...' : 'Вход...') 
-                : (mode === 'register' ? 'Запустить Plan AI' : 'Войти')}
+                : (mode === 'register' ? 'Запустить ARCPLAN' : 'Войти')}
             </motion.button>
           </form>
           
@@ -1634,7 +1634,7 @@ function Plan3DInfoModal({ isOpen, onClose }) {
               <Building2 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">Plan AI 3D</h2>
+              <h2 className="text-xl font-semibold text-white">ARCPLAN 3D</h2>
               <p className="text-sm text-neutral-400">Скоро в разработке</p>
             </div>
           </div>
@@ -2535,13 +2535,13 @@ function AdvancedMainArea({
 
   // Обработчик активации 3D режима
   const handle3DActivation = () => {
-    // Открываем модальное окно Plan AI 3D
+    // Открываем модальное окно ARCPLAN 3D
     on3DInfoOpen && on3DInfoOpen();
   };
 
   // Обработчик открытия 3D модального окна
   const handleOpen3DModal = () => {
-    // Открываем модальное окно Plan AI 3D
+    // Открываем модальное окно ARCPLAN 3D
     on3DInfoOpen && on3DInfoOpen();
   };
 
@@ -2720,13 +2720,13 @@ function AdvancedMainArea({
    return (
        <div className="group flex flex-col items-center justify-center gap-2 select-none cursor-pointer">
         <div className="flex items-center justify-center gap-2">
-          {/* Plan AI logo - Ultimate Monochrome Luxury */}
+          {/* ARCPLAN logo - Ultimate Monochrome Luxury */}
           <svg 
             width="80" 
             height="80" 
             viewBox="0 0 400 400" 
             xmlns="http://www.w3.org/2000/svg" 
-            aria-label="Plan AI logo"
+            aria-label="ARCPLAN logo"
             className="transition-all duration-700 group-hover:scale-[1.08] translate-y-1"
             style={{ filter: 'drop-shadow(0 0 25px rgba(255,255,255,0.15))' }}
           >
@@ -2982,7 +2982,7 @@ function AdvancedMainArea({
           
           {/* Premium typography - aligned with logo */}
           <span className="text-6xl font-light tracking-[-0.03em] text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.35)]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: '1' }}>
-            Plan AI
+            ARCPLAN
           </span>
         </div>
         
@@ -3704,7 +3704,7 @@ function AdvancedSuperBanner({ showMessages = false, onUpgradeClick }) {
         <div>
           <div className="text-sm font-medium flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-white" />
-            Plan AI 3D
+            ARCPLAN 3D
           </div>
           <div className="text-xs text-neutral-400">Попробуй расширенные возможности</div>
         </div>
@@ -4633,25 +4633,37 @@ function MonochromeClaudeStyle() {
           throw err;
         }
 
-        // Поддержка множественных результатов
+        // Обработка ответа с новой системой URL
         const contentType = response.headers.get('content-type') || '';
         let responseImages = [];
+        
         if (contentType.includes('application/json')) {
           const data = await response.json();
-          if (Array.isArray(data?.images)) {
-            responseImages = data.images;
+          if (data.success) {
+            if (data.result) {
+              // Одиночный результат
+              responseImages = [data.result.imageUrl];
+              responseText = data.message || `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}"`;
+            } else if (data.results && Array.isArray(data.results)) {
+              // Множественные результаты
+              responseImages = data.results.map(r => r.imageUrl);
+              responseText = data.message || `Создано ${data.results.length} технических планов в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}"`;
+            }
+          } else {
+            throw new Error(data.error || 'Ошибка генерации технического плана');
           }
         } else {
-          // Конвертируем blob в base64 для прямого использования
-        const imageBlob = await response.blob();
+          // Fallback для старого формата (если сервер еще не обновлен)
+          const imageBlob = await response.blob();
           const reader = new FileReader();
           responseImages = await new Promise((resolve) => {
             reader.onload = () => resolve([reader.result]);
             reader.readAsDataURL(imageBlob);
           });
+          responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}"`;
         }
+        
         responseImage = responseImages[0] || null;
-        responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
 
         if (!hasUnlimitedAccess) {
           if (user) {
@@ -4712,25 +4724,37 @@ function MonochromeClaudeStyle() {
           throw new Error(errorMessage);
         }
 
-        // Поддержка множественных результатов
+        // Обработка ответа с новой системой URL для удаления объектов
         const contentType2 = response.headers.get('content-type') || '';
         let responseImages2 = [];
+        
         if (contentType2.includes('application/json')) {
           const data = await response.json();
-          if (Array.isArray(data?.images)) {
-            responseImages2 = data.images;
+          if (data.success) {
+            if (data.result) {
+              // Одиночный результат
+              responseImages2 = [data.result.imageUrl];
+              responseText = data.message || 'Объекты успешно удалены с изображения';
+            } else if (data.results && Array.isArray(data.results)) {
+              // Множественные результаты
+              responseImages2 = data.results.map(r => r.imageUrl);
+              responseText = data.message || `Объекты удалены с ${data.results.length} изображений`;
+            }
+          } else {
+            throw new Error(data.error || 'Ошибка удаления объектов');
           }
         } else {
-          // Конвертируем blob в base64 для прямого использования
+          // Fallback для старого формата
           const imageBlob = await response.blob();
           const reader = new FileReader();
           responseImages2 = await new Promise((resolve) => {
             reader.onload = () => resolve([reader.result]);
             reader.readAsDataURL(imageBlob);
           });
+          responseText = 'Объекты успешно удалены с изображения';
         }
+        
         responseImage = responseImages2[0] || null;
-        responseText = `Объекты успешно удалены с изображения.`;
       } else {
         // Обычная обработка для других моделей
         responseText = `Вот результат обработки вашего запроса "${userMessage.text}".`;
@@ -4749,7 +4773,7 @@ function MonochromeClaudeStyle() {
       
       // Отправляем уведомление о завершении генерации
       sendNotification(
-        "Plan AI завершил размышления", 
+        "ARCPLAN завершил размышления", 
         "Ваш ответ готов!"
       );
       
