@@ -4836,7 +4836,7 @@ function MonochromeClaudeStyle() {
     const userMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       text: model === "3d" ? query : 
-            model === "techplan" ? `Создание по техплану — ${techplanMode === "with" ? "С мебелью" : "Без мебели"}` :
+            model === "techplan" ? `Создание по техплану — ${(techplanMode || "without") === "with" ? "С мебелью" : "Без мебели"}` :
             model === "cleanup" ? "Удаление объектов" :
             "Неизвестная модель",
       attachments: attachments.map((a) => ({ id: a.id, name: a.name, url: a.url })),
@@ -4882,7 +4882,7 @@ function MonochromeClaudeStyle() {
 
         const requestBody = {
           images: images,
-          mode: techplanMode === "with" ? "withFurniture" : "withoutFurniture"
+          mode: (techplanMode || "without") === "with" ? "withFurniture" : "withoutFurniture"
         };
 
         // Показываем прогресс для множественных изображений
@@ -4938,7 +4938,7 @@ function MonochromeClaudeStyle() {
         }
         
         responseImage = responseImages[0] || null;
-        responseText = data.message || `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
+        responseText = data.message || `Технический план успешно создан в режиме "${(techplanMode || "without") === "with" ? "С мебелью" : "Без мебели"}".`;
 
         if (!hasUnlimitedAccess) {
           if (user) {
@@ -5204,7 +5204,7 @@ function MonochromeClaudeStyle() {
 
         const requestBody = {
           images: images,
-          mode: techplanMode === "with" ? "withFurniture" : "withoutFurniture"
+          mode: (techplanMode || "without") === "with" ? "withFurniture" : "withoutFurniture"
         };
 
         // Показываем прогресс для множественных изображений
@@ -5260,7 +5260,7 @@ function MonochromeClaudeStyle() {
         }
         
         responseImage = responseImages[0] || null;
-        responseText = data.message || `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
+        responseText = data.message || `Технический план успешно создан в режиме "${(techplanMode || "without") === "with" ? "С мебелью" : "Без мебели"}".`;
 
         if (!hasUnlimitedAccess) {
           if (user) {

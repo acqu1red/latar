@@ -6,8 +6,8 @@ const getApiBaseUrl = () => {
   }
   
   // Определяем URL в зависимости от окружения
-  if (import.meta.env.PROD) {
-    // Production: используем Timeweb URL
+  if (import.meta.env.MODE === 'production') {
+    // Production: используем исходный Timeweb URL для бэкенда
     return 'https://acqu1red-latar-4004.twc1.net';
   } else {
     // Development: используем localhost
