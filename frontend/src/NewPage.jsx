@@ -4591,10 +4591,21 @@ function MonochromeClaudeStyle() {
         }
 
         // Генерация технического плана
-        const formData = new FormData();
-        // прикладываем все изображения
-        attachments.forEach((att) => formData.append('image', att.file));
-        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+        const imageData = attachments.map(att => {
+          // Конвертируем файл в base64
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(att.file);
+          });
+        });
+        
+        const base64Images = await Promise.all(imageData);
+        
+        const requestBody = {
+          images: base64Images,
+          mode: techplanMode === "with" ? "withFurniture" : "withoutFurniture"
+        };
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4604,9 +4615,10 @@ function MonochromeClaudeStyle() {
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           headers: {
+            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: formData
+          body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -4679,8 +4691,20 @@ function MonochromeClaudeStyle() {
         }
 
         // Удаление объектов
-        const formData = new FormData();
-        attachments.forEach((att) => formData.append('image', att.file));
+        const imageData = attachments.map(att => {
+          // Конвертируем файл в base64
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(att.file);
+          });
+        });
+        
+        const base64Images = await Promise.all(imageData);
+        
+        const requestBody = {
+          images: base64Images
+        };
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4690,9 +4714,10 @@ function MonochromeClaudeStyle() {
         const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
           method: 'POST',
           headers: {
+            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: formData
+          body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -4933,10 +4958,21 @@ function MonochromeClaudeStyle() {
         }
 
         // Генерация технического плана
-        const formData = new FormData();
-        // прикладываем все изображения
-        attachments.forEach((att) => formData.append('image', att.file));
-        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+        const imageData = attachments.map(att => {
+          // Конвертируем файл в base64
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(att.file);
+          });
+        });
+        
+        const base64Images = await Promise.all(imageData);
+        
+        const requestBody = {
+          images: base64Images,
+          mode: techplanMode === "with" ? "withFurniture" : "withoutFurniture"
+        };
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4946,9 +4982,10 @@ function MonochromeClaudeStyle() {
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           headers: {
+            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: formData
+          body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -5009,8 +5046,20 @@ function MonochromeClaudeStyle() {
         }
 
         // Удаление объектов
-        const formData = new FormData();
-        attachments.forEach((att) => formData.append('image', att.file));
+        const imageData = attachments.map(att => {
+          // Конвертируем файл в base64
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(att.file);
+          });
+        });
+        
+        const base64Images = await Promise.all(imageData);
+        
+        const requestBody = {
+          images: base64Images
+        };
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -5020,9 +5069,10 @@ function MonochromeClaudeStyle() {
         const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
           method: 'POST',
           headers: {
+            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: formData
+          body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -5180,16 +5230,29 @@ function MonochromeClaudeStyle() {
 
       if (isPlan && attachments.length > 0) {
         // Генерация технического плана
-        const formData = new FormData();
-        formData.append('image', attachments[0].file);
-        formData.append('mode', planFurniture === "with" ? "withFurniture" : "withoutFurniture");
+        const imageData = attachments.map(att => {
+          // Конвертируем файл в base64
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(att.file);
+          });
+        });
+        
+        const base64Images = await Promise.all(imageData);
+        
+        const requestBody = {
+          images: base64Images,
+          mode: planFurniture === "with" ? "withFurniture" : "withoutFurniture"
+        };
 
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           headers: {
+            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: formData
+          body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -5199,14 +5262,21 @@ function MonochromeClaudeStyle() {
           throw err;
         }
 
-        // Получаем изображение как base64
-        const imageBlob = await response.blob();
-        const reader = new FileReader();
-        responseImage = await new Promise((resolve) => {
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(imageBlob);
-        });
-        responseText = `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}".`;
+        // Обработка ответа с новой системой URL
+        const data = await response.json();
+        if (data.success) {
+          if (data.result) {
+            // Одиночный результат
+            responseImage = data.result.imageUrl;
+            responseText = data.message || `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}"`;
+          } else if (data.results && Array.isArray(data.results)) {
+            // Множественные результаты
+            responseImage = data.results[0].imageUrl;
+            responseText = data.message || `Создано ${data.results.length} технических планов в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}"`;
+          }
+        } else {
+          throw new Error(data.error || 'Ошибка генерации технического плана');
+        }
 
         if (!hasUnlimitedAccess) {
           if (user) {

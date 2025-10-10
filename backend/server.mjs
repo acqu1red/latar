@@ -1,10 +1,8 @@
 import express from 'express';
-import multer from 'multer';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import sharp from 'sharp';
 import jwt from 'jsonwebtoken';
 import { generateTechnicalPlan, checkCometApiHealth, generateCleanupImage } from './src/cometApiGenerator.mjs';
 import authRoutes from './src/authRoutes.mjs';
@@ -17,13 +15,6 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Создаем папку uploads если её нет (в корне проекта)
-const uploadsDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('📁 Создана папка uploads');
-}
 
 // Проверяем существование необходимых файлов
 console.log('🔍 Проверка файлов:');
@@ -61,7 +52,6 @@ console.log('Текущая директория:', process.cwd());
 console.log('Содержимое директории:', fs.readdirSync(process.cwd()));
 console.log('Существует ли server.mjs:', fs.existsSync('server.mjs'));
 console.log('Существует ли package.json:', fs.existsSync('package.json'));
-console.log('Существует ли папка uploads:', fs.existsSync('uploads'));
 
 // Проверяем наличие API ключа
 console.log('🔍 Проверка API ключа:');
@@ -150,9 +140,6 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'frontend/dist')));
 
-// Статический маршрут для временных изображений
-app.use('/temp-images', express.static(path.join(__dirname, '..', 'uploads')));
-
 // Auth routes
 app.use('/api/auth', authRoutes);
 
@@ -177,53 +164,31 @@ app.get('/new/*', (req, res) => {
 
 // SPA маршрут переносим ниже, после определения всех API-роутов
 
-// Настройка multer для загрузки файлов
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit (уменьшили для снижения нагрузки)
-    files: 5 // максимум 5 файлов
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Только изображения разрешены!'), false);
-    }
-  }
-});
-
-
 // Маршрут для генерации технического плана
-app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, res) => {
+app.post('/api/generate-technical-plan', async (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
+    console.log('📥 Получен запрос на генерацию технического плана');
+    console.log('📋 Тело запроса:', {
+      hasImages: !!req.body.images,
+      imagesLength: req.body.images?.length,
+      mode: req.body.mode,
+      bodyKeys: Object.keys(req.body)
+    });
+    
+    const { images, mode } = req.body;
+    
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      console.log('❌ Ошибка: изображения не загружены');
       return res.status(400).json({ error: 'Изображения не загружены' });
     }
 
     // Ограничиваем количество изображений для предотвращения перегрузки
-    if (req.files.length > 5) {
+    if (images.length > 5) {
       return res.status(400).json({ 
         error: 'Слишком много изображений. Максимум 5 изображений за раз.' 
       });
     }
 
-    const { mode } = req.body; // 'withFurniture' или 'withoutFurniture'
-    
     if (!mode || !['withFurniture', 'withoutFurniture'].includes(mode)) {
       return res.status(400).json({ 
         error: 'Неверный режим. Допустимые значения: withFurniture, withoutFurniture' 
@@ -295,64 +260,75 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
       console.log(`👤 Гость с IP ${clientIp} использовал генерацию (${usage.plans}/${MAX_GUEST_PLANS})`);
     }
 
-    const imagePaths = req.files.map(f => f.path);
-    console.log(`Обработка ${imagePaths.length} изображений для генерации технического плана (режим: ${mode})`);
+    console.log(`Обработка ${images.length} изображений для генерации технического плана (режим: ${mode})`);
 
     const results = [];
-    for (let i = 0; i < imagePaths.length; i++) {
-      const img = imagePaths[i];
-      const originalFile = req.files[i];
-      console.log(`📸 Обработка изображения ${i + 1}/${imagePaths.length}: ${img}`);
+    for (let i = 0; i < images.length; i++) {
+      const imageData = images[i];
+      console.log(`📸 Обработка изображения ${i + 1}/${images.length}`);
       
-      // Генерируем технический план
-      const buffer = await generateTechnicalPlan(img, mode);
-      
-      // Генерируем URL для результата
-      const urlData = generateImageUrl('generated_plan', originalFile.originalname, {
-        mode,
-        originalSize: originalFile.size,
-        processedAt: new Date().toISOString()
-      });
-      
-      // Загружаем изображение на внешний сервис
-      const uploadResult = await uploadToExternalService(buffer, urlData.filename);
-      
-      // Сохраняем URL в базу данных
-      const dbResult = imageUrlsDB.save(
-        authUser?.id || null,
-        'generated_plan',
-        originalFile.originalname,
-        uploadResult.imageUrl,
-        uploadResult.thumbnailUrl,
-        {
-          ...urlData.metadata,
-          uploadResult: {
-            service: uploadResult.service || 'temporary',
-            deleteData: uploadResult.deleteHash || uploadResult.publicId || uploadResult.localPath
+      // Создаем временный файл из base64
+      const tempFilePath = path.join(__dirname, `temp_${Date.now()}_${i}.jpg`);
+      try {
+        // Извлекаем base64 данные
+        const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Записываем во временный файл
+        fs.writeFileSync(tempFilePath, buffer);
+        
+        // Генерируем технический план
+        const generatedBuffer = await generateTechnicalPlan(tempFilePath, mode);
+        
+        // Генерируем URL для результата
+        const urlData = generateImageUrl('generated_plan', `plan_${i}.jpg`, {
+          mode,
+          originalSize: buffer.length,
+          processedAt: new Date().toISOString()
+        });
+        
+        // Загружаем изображение на внешний сервис
+        const uploadResult = await uploadToExternalService(generatedBuffer, urlData.filename);
+        
+        // Сохраняем URL в базу данных
+        const dbResult = imageUrlsDB.save(
+          authUser?.id || null,
+          'generated_plan',
+          `plan_${i}.jpg`,
+          uploadResult.imageUrl,
+          uploadResult.thumbnailUrl,
+          {
+            ...urlData.metadata,
+            uploadResult: {
+              service: uploadResult.service || 'temporary',
+              deleteData: uploadResult.deleteHash || uploadResult.publicId || uploadResult.localPath
+            }
           }
+        );
+        
+        results.push({
+          id: dbResult.lastInsertRowid,
+          imageUrl: uploadResult.imageUrl,
+          thumbnailUrl: uploadResult.thumbnailUrl,
+          originalFilename: `plan_${i}.jpg`,
+          mode,
+          createdAt: new Date().toISOString()
+        });
+        
+        // Добавляем задержку между запросами для снижения нагрузки на COMETAPI
+        if (i < images.length - 1) {
+          const delay = 2000 + Math.random() * 1000; // 2-3 секунды
+          console.log(`⏳ Задержка ${Math.round(delay)}мс перед следующим изображением...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
-      );
-      
-      results.push({
-        id: dbResult.lastInsertRowid,
-        imageUrl: uploadResult.imageUrl,
-        thumbnailUrl: uploadResult.thumbnailUrl,
-        originalFilename: originalFile.originalname,
-        mode,
-        createdAt: new Date().toISOString()
-      });
-      
-      // Добавляем задержку между запросами для снижения нагрузки на COMETAPI
-      if (i < imagePaths.length - 1) {
-        const delay = 2000 + Math.random() * 1000; // 2-3 секунды
-        console.log(`⏳ Задержка ${Math.round(delay)}мс перед следующим изображением...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+      } finally {
+        // Удаляем временный файл
+        try { 
+          fs.unlinkSync(tempFilePath); 
+        } catch (unlinkError) {
+          console.warn('Не удалось удалить временный файл:', tempFilePath);
+        }
       }
-    }
-
-    // Удаляем временные файлы
-    for (const p of imagePaths) {
-      try { fs.unlinkSync(p); } catch {}
     }
 
     // Возвращаем результаты с URL
@@ -377,14 +353,16 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
 });
 
 // Маршрут для удаления объектов (очистка комнаты)
-app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
+app.post('/api/remove-objects', async (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
+    const { images } = req.body;
+    
+    if (!images || !Array.isArray(images) || images.length === 0) {
       return res.status(400).json({ error: 'Изображения не загружены' });
     }
 
     // Ограничиваем количество изображений для предотвращения перегрузки
-    if (req.files.length > 5) {
+    if (images.length > 5) {
       return res.status(400).json({ 
         error: 'Слишком много изображений. Максимум 5 изображений за раз.' 
       });
@@ -455,62 +433,73 @@ app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
       console.log(`👤 Гость с IP ${clientIp} использовал удаление объектов (${usage.plans}/${MAX_GUEST_PLANS})`);
     }
 
-    const imagePaths = req.files.map(f => f.path);
-    console.log(`Обработка ${imagePaths.length} изображений для удаления объектов`);
+    console.log(`Обработка ${images.length} изображений для удаления объектов`);
 
     const results = [];
-    for (let i = 0; i < imagePaths.length; i++) {
-      const img = imagePaths[i];
-      const originalFile = req.files[i];
-      console.log(`🧹 Обработка изображения ${i + 1}/${imagePaths.length}: ${img}`);
+    for (let i = 0; i < images.length; i++) {
+      const imageData = images[i];
+      console.log(`🧹 Обработка изображения ${i + 1}/${images.length}`);
       
-      // Генерируем очищенное изображение
-      const buffer = await generateCleanupImage({ imagePaths: [img] });
-      
-      // Генерируем URL для результата
-      const urlData = generateImageUrl('generated_cleanup', originalFile.originalname, {
-        originalSize: originalFile.size,
-        processedAt: new Date().toISOString()
-      });
-      
-      // Загружаем изображение на внешний сервис
-      const uploadResult = await uploadToExternalService(buffer[0], urlData.filename);
-      
-      // Сохраняем URL в базу данных
-      const dbResult = imageUrlsDB.save(
-        authUser?.id || null,
-        'generated_cleanup',
-        originalFile.originalname,
-        uploadResult.imageUrl,
-        uploadResult.thumbnailUrl,
-        {
-          ...urlData.metadata,
-          uploadResult: {
-            service: uploadResult.service || 'temporary',
-            deleteData: uploadResult.deleteHash || uploadResult.publicId || uploadResult.localPath
+      // Создаем временный файл из base64
+      const tempFilePath = path.join(__dirname, `temp_cleanup_${Date.now()}_${i}.jpg`);
+      try {
+        // Извлекаем base64 данные
+        const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Записываем во временный файл
+        fs.writeFileSync(tempFilePath, buffer);
+        
+        // Генерируем очищенное изображение
+        const generatedBuffer = await generateCleanupImage({ imagePaths: [tempFilePath] });
+        
+        // Генерируем URL для результата
+        const urlData = generateImageUrl('generated_cleanup', `cleanup_${i}.jpg`, {
+          originalSize: buffer.length,
+          processedAt: new Date().toISOString()
+        });
+        
+        // Загружаем изображение на внешний сервис
+        const uploadResult = await uploadToExternalService(generatedBuffer[0], urlData.filename);
+        
+        // Сохраняем URL в базу данных
+        const dbResult = imageUrlsDB.save(
+          authUser?.id || null,
+          'generated_cleanup',
+          `cleanup_${i}.jpg`,
+          uploadResult.imageUrl,
+          uploadResult.thumbnailUrl,
+          {
+            ...urlData.metadata,
+            uploadResult: {
+              service: uploadResult.service || 'temporary',
+              deleteData: uploadResult.deleteHash || uploadResult.publicId || uploadResult.localPath
+            }
           }
+        );
+        
+        results.push({
+          id: dbResult.lastInsertRowid,
+          imageUrl: uploadResult.imageUrl,
+          thumbnailUrl: uploadResult.thumbnailUrl,
+          originalFilename: `cleanup_${i}.jpg`,
+          createdAt: new Date().toISOString()
+        });
+        
+        // Добавляем задержку между запросами для снижения нагрузки на COMETAPI
+        if (i < images.length - 1) {
+          const delay = 2000 + Math.random() * 1000; // 2-3 секунды
+          console.log(`⏳ Задержка ${Math.round(delay)}мс перед следующим изображением...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
-      );
-      
-      results.push({
-        id: dbResult.lastInsertRowid,
-        imageUrl: uploadResult.imageUrl,
-        thumbnailUrl: uploadResult.thumbnailUrl,
-        originalFilename: originalFile.originalname,
-        createdAt: new Date().toISOString()
-      });
-      
-      // Добавляем задержку между запросами для снижения нагрузки на COMETAPI
-      if (i < imagePaths.length - 1) {
-        const delay = 2000 + Math.random() * 1000; // 2-3 секунды
-        console.log(`⏳ Задержка ${Math.round(delay)}мс перед следующим изображением...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+      } finally {
+        // Удаляем временный файл
+        try { 
+          fs.unlinkSync(tempFilePath); 
+        } catch (unlinkError) {
+          console.warn('Не удалось удалить временный файл:', tempFilePath);
+        }
       }
-    }
-
-    // Чистим временные файлы
-    for (const p of imagePaths) {
-      try { fs.unlinkSync(p); } catch {}
     }
 
     // Возвращаем результаты с URL
@@ -694,13 +683,9 @@ app.get('/api/images/stats', async (req, res) => {
   }
 });
 
-// Обработка ошибок multer
+// Обработка ошибок
 app.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'Файл слишком большой. Максимальный размер: 10MB' });
-    }
-  }
+  console.error('Ошибка сервера:', error);
   res.status(500).json({ error: error.message });
 });
 

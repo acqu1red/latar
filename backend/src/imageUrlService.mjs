@@ -198,27 +198,16 @@ async function uploadToCloudinary(imageBuffer, filename) {
 }
 
 /**
- * Загрузка во временное хранилище (локальная папка)
+ * Загрузка во временное хранилище (без сохранения файлов)
  */
 async function uploadToTemporary(imageBuffer, filename) {
-  const fs = await import('fs');
-  const path = await import('path');
-  
-  const uploadDir = path.join(process.cwd(), 'uploads');
-  const filePath = path.join(uploadDir, filename);
-  
-  // Создаем папку если не существует
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-  
-  // Сохраняем файл
-  fs.writeFileSync(filePath, imageBuffer);
+  // Не сохраняем файлы, просто возвращаем URL
+  // В реальном проекте здесь можно использовать внешние сервисы
   
   return {
     imageUrl: `${EXTERNAL_SERVICES.temporary.baseUrl}${filename}`,
     thumbnailUrl: `${EXTERNAL_SERVICES.temporary.baseUrl}thumb_${filename}`,
-    localPath: filePath
+    service: 'temporary'
   };
 }
 
@@ -292,13 +281,8 @@ async function deleteFromCloudinary(publicId) {
 }
 
 async function deleteFromTemporary(localPath) {
-  const fs = await import('fs');
-  
-  try {
-    fs.unlinkSync(localPath);
-  } catch (error) {
-    console.error(`Ошибка удаления временного файла: ${error.message}`);
-  }
+  // Файлы не сохраняются, поэтому нечего удалять
+  console.log('Файлы не сохраняются локально, удаление не требуется');
 }
 
 /**
