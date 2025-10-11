@@ -376,7 +376,7 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
         // Генерируем URL для результата
         const urlData = generateImageUrl('generated_plan', `plan_${i}.jpg`, {
           mode,
-          originalSize: buffer.length,
+          originalSize: file.buffer.length,
           processedAt: new Date().toISOString()
         });
         
@@ -409,7 +409,7 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
         });
         
         // Добавляем задержку между запросами для снижения нагрузки на COMETAPI
-        if (i < images.length - 1) {
+        if (i < files.length - 1) {
           const delay = 2000 + Math.random() * 1000; // 2-3 секунды
           console.log(`⏳ Задержка ${Math.round(delay)}мс перед следующим изображением...`);
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -557,7 +557,7 @@ app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
         });
         
         // Добавляем задержку между запросами для снижения нагрузки на COMETAPI
-        if (i < images.length - 1) {
+        if (i < files.length - 1) {
           const delay = 2000 + Math.random() * 1000; // 2-3 секунды
           console.log(`⏳ Задержка ${Math.round(delay)}мс перед следующим изображением...`);
           await new Promise(resolve => setTimeout(resolve, delay));
