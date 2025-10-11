@@ -27,7 +27,7 @@ const EXTERNAL_SERVICES = {
   // Встроенный сервис для временных URL
   temporary: {
     enabled: true,
-    baseUrl: process.env.TEMPORARY_IMAGE_BASE_URL || 'https://your-domain.com/temp-images/',
+    baseUrl: process.env.TEMPORARY_IMAGE_BASE_URL || 'http://localhost:3001/temp-images/',
     maxAge: 24 * 60 * 60 * 1000 // 24 часа
   }
 };

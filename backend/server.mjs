@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
 import { generateTechnicalPlan, checkCometApiHealth, generateCleanupImage } from './src/cometApiGenerator.mjs';
 import authRoutes from './src/authRoutes.mjs';
 import { userDB, imageUrlsDB } from './src/database.mjs';
@@ -41,6 +42,15 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Настройка multer для обработки файлов
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB лимит на файл
+    files: 5 // максимум 5 файлов
+  }
+});
 
 const guestUsage = new Map();
 const MAX_GUEST_PLANS = 1;
@@ -143,6 +153,16 @@ app.use(express.static(path.join(__dirname, '..', 'frontend/dist')));
 // Auth routes
 app.use('/api/auth', authRoutes);
 
+// Маршрут для временных изображений (заглушка)
+app.get('/temp-images/:filename', (req, res) => {
+  // В реальном проекте здесь можно отдавать реальные изображения
+  // Пока что возвращаем заглушку
+  res.status(404).json({ 
+    error: 'Изображение не найдено',
+    message: 'Временные изображения не сохраняются локально. Используйте внешние сервисы для production.'
+  });
+});
+
 // Специальный маршрут для поддомена new
 app.get('/new', (req, res) => {
   const newHtmlPath = path.join(__dirname, '..', 'frontend/dist/new.html');
@@ -165,25 +185,26 @@ app.get('/new/*', (req, res) => {
 // SPA маршрут переносим ниже, после определения всех API-роутов
 
 // Маршрут для генерации технического плана
-app.post('/api/generate-technical-plan', async (req, res) => {
+app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, res) => {
   try {
     console.log('📥 Получен запрос на генерацию технического плана');
     console.log('📋 Тело запроса:', {
-      hasImages: !!req.body.images,
-      imagesLength: req.body.images?.length,
+      hasFiles: !!req.files,
+      filesLength: req.files?.length,
       mode: req.body.mode,
       bodyKeys: Object.keys(req.body)
     });
     
-    const { images, mode } = req.body;
+    const files = req.files;
+    const { mode } = req.body;
     
-    if (!images || !Array.isArray(images) || images.length === 0) {
+    if (!files || !Array.isArray(files) || files.length === 0) {
       console.log('❌ Ошибка: изображения не загружены');
       return res.status(400).json({ error: 'Изображения не загружены' });
     }
 
     // Ограничиваем количество изображений для предотвращения перегрузки
-    if (images.length > 5) {
+    if (files.length > 5) {
       return res.status(400).json({ 
         error: 'Слишком много изображений. Максимум 5 изображений за раз.' 
       });
@@ -260,22 +281,18 @@ app.post('/api/generate-technical-plan', async (req, res) => {
       console.log(`👤 Гость с IP ${clientIp} использовал генерацию (${usage.plans}/${MAX_GUEST_PLANS})`);
     }
 
-    console.log(`Обработка ${images.length} изображений для генерации технического плана (режим: ${mode})`);
+    console.log(`Обработка ${files.length} изображений для генерации технического плана (режим: ${mode})`);
 
     const results = [];
-    for (let i = 0; i < images.length; i++) {
-      const imageData = images[i];
-      console.log(`📸 Обработка изображения ${i + 1}/${images.length}`);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      console.log(`📸 Обработка изображения ${i + 1}/${files.length}: ${file.originalname}`);
       
-      // Создаем временный файл из base64
+      // Создаем временный файл из загруженного файла
       const tempFilePath = path.join(__dirname, `temp_${Date.now()}_${i}.jpg`);
       try {
-        // Извлекаем base64 данные
-        const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
-        
-        // Записываем во временный файл
-        fs.writeFileSync(tempFilePath, buffer);
+        // Записываем файл во временный файл
+        fs.writeFileSync(tempFilePath, file.buffer);
         
         // Генерируем технический план
         const generatedBuffer = await generateTechnicalPlan(tempFilePath, mode);
@@ -353,16 +370,16 @@ app.post('/api/generate-technical-plan', async (req, res) => {
 });
 
 // Маршрут для удаления объектов (очистка комнаты)
-app.post('/api/remove-objects', async (req, res) => {
+app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
   try {
-    const { images } = req.body;
+    const files = req.files;
     
-    if (!images || !Array.isArray(images) || images.length === 0) {
+    if (!files || !Array.isArray(files) || files.length === 0) {
       return res.status(400).json({ error: 'Изображения не загружены' });
     }
 
     // Ограничиваем количество изображений для предотвращения перегрузки
-    if (images.length > 5) {
+    if (files.length > 5) {
       return res.status(400).json({ 
         error: 'Слишком много изображений. Максимум 5 изображений за раз.' 
       });
@@ -433,29 +450,25 @@ app.post('/api/remove-objects', async (req, res) => {
       console.log(`👤 Гость с IP ${clientIp} использовал удаление объектов (${usage.plans}/${MAX_GUEST_PLANS})`);
     }
 
-    console.log(`Обработка ${images.length} изображений для удаления объектов`);
+    console.log(`Обработка ${files.length} изображений для удаления объектов`);
 
     const results = [];
-    for (let i = 0; i < images.length; i++) {
-      const imageData = images[i];
-      console.log(`🧹 Обработка изображения ${i + 1}/${images.length}`);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      console.log(`🧹 Обработка изображения ${i + 1}/${files.length}: ${file.originalname}`);
       
-      // Создаем временный файл из base64
+      // Создаем временный файл из загруженного файла
       const tempFilePath = path.join(__dirname, `temp_cleanup_${Date.now()}_${i}.jpg`);
       try {
-        // Извлекаем base64 данные
-        const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
-        
-        // Записываем во временный файл
-        fs.writeFileSync(tempFilePath, buffer);
+        // Записываем файл во временный файл
+        fs.writeFileSync(tempFilePath, file.buffer);
         
         // Генерируем очищенное изображение
         const generatedBuffer = await generateCleanupImage({ imagePaths: [tempFilePath] });
         
         // Генерируем URL для результата
         const urlData = generateImageUrl('generated_cleanup', `cleanup_${i}.jpg`, {
-          originalSize: buffer.length,
+          originalSize: file.buffer.length,
           processedAt: new Date().toISOString()
         });
         

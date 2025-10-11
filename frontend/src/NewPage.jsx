@@ -794,8 +794,8 @@ function ThreeDModeModal({ isOpen, onClose, onActivate }) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
-                onClose();
                 onActivate();
+                onClose();
               }}
               className="flex-1 bg-white hover:bg-neutral-200 text-black font-bold py-3 rounded-xl transition-all shadow-lg shadow-white/10 flex items-center justify-center gap-2 text-sm"
             >
@@ -2641,14 +2641,14 @@ function AdvancedMainArea({
 
   // Обработчик активации 3D режима
   const handle3DActivation = () => {
-    // Открываем модальное окно Plan AI 3D
-    on3DInfoOpen && on3DInfoOpen();
+    // Переключаем модель на 3D план
+    setModelTo3D("3d");
   };
 
   // Обработчик открытия 3D модального окна
   const handleOpen3DModal = () => {
-    // Открываем модальное окно Plan AI 3D
-    on3DInfoOpen && on3DInfoOpen();
+    setIs3DModalOpen(true);
+    setShowPromoCard(false);
   };
 
   // Сбрасываем modelTo3D после установки
@@ -4836,7 +4836,7 @@ function MonochromeClaudeStyle() {
     const userMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       text: model === "3d" ? query : 
-            model === "techplan" ? `Создание по техплану — ${(techplanMode || "without") === "with" ? "С мебелью" : "Без мебели"}` :
+            model === "techplan" ? `Создание по техплану — ${techplanMode === "with" ? "С мебелью" : "Без мебели"}` :
             model === "cleanup" ? "Удаление объектов" :
             "Неизвестная модель",
       attachments: attachments.map((a) => ({ id: a.id, name: a.name, url: a.url })),
@@ -4868,22 +4868,10 @@ function MonochromeClaudeStyle() {
         }
 
         // Генерация технического плана
-        const images = [];
-        
-        // Конвертируем все файлы в base64
-        for (const att of attachments) {
-          const fileReader = new FileReader();
-          const base64Promise = new Promise((resolve) => {
-            fileReader.onload = () => resolve(fileReader.result);
-            fileReader.readAsDataURL(att.file);
-          });
-          images.push(await base64Promise);
-        }
-
-        const requestBody = {
-          images: images,
-          mode: (techplanMode || "without") === "with" ? "withFurniture" : "withoutFurniture"
-        };
+        const formData = new FormData();
+        // прикладываем все изображения
+        attachments.forEach((att) => formData.append('image', att.file));
+        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4893,10 +4881,9 @@ function MonochromeClaudeStyle() {
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: JSON.stringify(requestBody)
+          body: formData
         });
 
         if (!response.ok) {
@@ -4923,22 +4910,25 @@ function MonochromeClaudeStyle() {
           throw err;
         }
 
-        // Обработка успешного ответа
-        const data = await response.json();
+        // Поддержка множественных результатов
+        const contentType = response.headers.get('content-type') || '';
         let responseImages = [];
-        
-        if (data.success) {
-          if (data.result) {
-            // Один результат
-            responseImages = [data.result.imageUrl];
-          } else if (data.results && Array.isArray(data.results)) {
-            // Множественные результаты
-            responseImages = data.results.map(r => r.imageUrl);
+        if (contentType.includes('application/json')) {
+          const data = await response.json();
+          if (Array.isArray(data?.images)) {
+            responseImages = data.images;
           }
+        } else {
+          // Конвертируем blob в base64 для прямого использования
+        const imageBlob = await response.blob();
+          const reader = new FileReader();
+          responseImages = await new Promise((resolve) => {
+            reader.onload = () => resolve([reader.result]);
+            reader.readAsDataURL(imageBlob);
+          });
         }
-        
         responseImage = responseImages[0] || null;
-        responseText = data.message || `Технический план успешно создан в режиме "${(techplanMode || "without") === "with" ? "С мебелью" : "Без мебели"}".`;
+        responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
 
         if (!hasUnlimitedAccess) {
           if (user) {
@@ -5010,10 +5000,10 @@ function MonochromeClaudeStyle() {
         } else {
           // Конвертируем blob в base64 для прямого использования
           const imageBlob = await response.blob();
-          const blobReader = new FileReader();
+          const reader = new FileReader();
           responseImages2 = await new Promise((resolve) => {
-            blobReader.onload = () => resolve([blobReader.result]);
-            blobReader.readAsDataURL(imageBlob);
+            reader.onload = () => resolve([reader.result]);
+            reader.readAsDataURL(imageBlob);
           });
         }
         responseImage = responseImages2[0] || null;
@@ -5190,22 +5180,10 @@ function MonochromeClaudeStyle() {
         }
 
         // Генерация технического плана
-        const images = [];
-        
-        // Конвертируем все файлы в base64
-        for (const att of attachments) {
-          const fileReader = new FileReader();
-          const base64Promise = new Promise((resolve) => {
-            fileReader.onload = () => resolve(fileReader.result);
-            fileReader.readAsDataURL(att.file);
-          });
-          images.push(await base64Promise);
-        }
-
-        const requestBody = {
-          images: images,
-          mode: (techplanMode || "without") === "with" ? "withFurniture" : "withoutFurniture"
-        };
+        const formData = new FormData();
+        // прикладываем все изображения
+        attachments.forEach((att) => formData.append('image', att.file));
+        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -5215,10 +5193,9 @@ function MonochromeClaudeStyle() {
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: JSON.stringify(requestBody)
+          body: formData
         });
 
         if (!response.ok) {
@@ -5245,22 +5222,25 @@ function MonochromeClaudeStyle() {
           throw err;
         }
 
-        // Обработка успешного ответа
-        const data = await response.json();
+        // Поддержка множественных результатов
+        const contentType = response.headers.get('content-type') || '';
         let responseImages = [];
-        
-        if (data.success) {
-          if (data.result) {
-            // Один результат
-            responseImages = [data.result.imageUrl];
-          } else if (data.results && Array.isArray(data.results)) {
-            // Множественные результаты
-            responseImages = data.results.map(r => r.imageUrl);
+        if (contentType.includes('application/json')) {
+          const data = await response.json();
+          if (Array.isArray(data?.images)) {
+            responseImages = data.images;
           }
+        } else {
+          // Конвертируем blob в base64 для прямого использования
+          const imageBlob = await response.blob();
+          const reader = new FileReader();
+          responseImages = await new Promise((resolve) => {
+            reader.onload = () => resolve([reader.result]);
+            reader.readAsDataURL(imageBlob);
+          });
         }
-        
         responseImage = responseImages[0] || null;
-        responseText = data.message || `Технический план успешно создан в режиме "${(techplanMode || "without") === "with" ? "С мебелью" : "Без мебели"}".`;
+        responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
 
         if (!hasUnlimitedAccess) {
           if (user) {
@@ -5308,10 +5288,10 @@ function MonochromeClaudeStyle() {
         } else {
           // Конвертируем blob в base64 для прямого использования
           const imageBlob = await response.blob();
-          const blobReader = new FileReader();
+          const reader = new FileReader();
           responseImages2 = await new Promise((resolve) => {
-            blobReader.onload = () => resolve([blobReader.result]);
-            blobReader.readAsDataURL(imageBlob);
+            reader.onload = () => resolve([reader.result]);
+            reader.readAsDataURL(imageBlob);
           });
         }
         responseImage = responseImages2[0] || null;
@@ -5447,28 +5427,16 @@ function MonochromeClaudeStyle() {
 
       if (isPlan && attachments.length > 0) {
         // Генерация технического плана
-        const images = [];
-        
-        // Конвертируем файл в base64
-        const fileReader = new FileReader();
-        const base64Promise = new Promise((resolve) => {
-          fileReader.onload = () => resolve(fileReader.result);
-          fileReader.readAsDataURL(attachments[0].file);
-        });
-        images.push(await base64Promise);
-
-        const requestBody = {
-          images: images,
-          mode: planFurniture === "with" ? "withFurniture" : "withoutFurniture"
-        };
+        const formData = new FormData();
+        formData.append('image', attachments[0].file);
+        formData.append('mode', planFurniture === "with" ? "withFurniture" : "withoutFurniture");
 
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
           },
-          body: JSON.stringify(requestBody)
+          body: formData
         });
 
         if (!response.ok) {
@@ -5478,20 +5446,14 @@ function MonochromeClaudeStyle() {
           throw err;
         }
 
-        // Обработка успешного ответа
-        const data = await response.json();
-        
-        if (data.success) {
-          if (data.result) {
-            // Один результат
-            responseImage = data.result.imageUrl;
-          } else if (data.results && Array.isArray(data.results)) {
-            // Множественные результаты
-            responseImage = data.results[0].imageUrl;
-          }
-        }
-        
-        responseText = data.message || `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}".`;
+        // Получаем изображение как base64
+        const imageBlob = await response.blob();
+        const reader = new FileReader();
+        responseImage = await new Promise((resolve) => {
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(imageBlob);
+        });
+        responseText = `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}".`;
 
         if (!hasUnlimitedAccess) {
           if (user) {
@@ -5750,12 +5712,12 @@ function MonochromeClaudeStyle() {
   };
 
   // Функция для автоматического переименования чата
-  const autoRenameChat = (chatId, model, techplanModeParam = null) => {
+  const autoRenameChat = (chatId, model, techplanMode = null) => {
     let newTitle = "Новый чат";
     
     switch (model) {
       case "techplan":
-        if (techplanModeParam === "with") {
+        if (techplanMode === "with") {
           newTitle = "Создание по техплану — С мебелью";
         } else {
           newTitle = "Создание по техплану — Без мебели";
@@ -6155,3 +6117,4 @@ function MonochromeClaudeStyle() {
 }
 
 export default MonochromeClaudeStyle;
+
