@@ -164,6 +164,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
+      console.log('Saving settings:', settings);
+      console.log('Using token:', token.substring(0, 20) + '...');
+
       const response = await fetch(`${API_BASE_URL}/api/auth/settings`, {
         method: 'POST',
         headers: {
@@ -173,7 +176,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ settings }),
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (!response.ok) {
+        console.error('Save settings failed:', data);
+      }
+      
       return response.ok && data.success;
     } catch (error) {
       console.error('Save settings error:', error);

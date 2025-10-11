@@ -4853,9 +4853,6 @@ function MonochromeClaudeStyle() {
     setAdvancedCurrentMessage(userMessage);
     setAdvancedIsGenerating(true);
     setAdvancedCurrentResult(null);
-    
-    // Очищаем прикрепленные фотографии сразу после отправки
-    clearAllAttachments();
 
     try {
       let responseText = "";
@@ -5122,6 +5119,8 @@ function MonochromeClaudeStyle() {
       }, 100);
     } finally {
       setAdvancedIsGenerating(false);
+      // Очищаем прикрепленные фотографии после завершения обработки
+      clearAllAttachments();
     }
   };
 
@@ -5165,9 +5164,6 @@ function MonochromeClaudeStyle() {
 
     setAdvancedIsGenerating(true);
     setAdvancedCurrentResult(null);
-    
-    // Очищаем прикрепленные фотографии сразу после отправки
-    clearAllAttachments();
 
     try {
       let responseImage = null;
@@ -5342,6 +5338,8 @@ function MonochromeClaudeStyle() {
       });
     } finally {
       setAdvancedIsGenerating(false);
+      // Очищаем прикрепленные фотографии после завершения обработки
+      clearAllAttachments();
     }
   };
 

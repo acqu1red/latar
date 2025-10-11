@@ -155,8 +155,8 @@ No borders, titles, or dimension lines`
  * @returns {Promise<Buffer>} - Буфер с сгенерированным изображением
  */
 export async function generateCleanupImage({ imagePaths = [] } = {}) {
-  const apiKey = process.env.COMETAPI_API_KEY;
-  if (!apiKey) throw new Error('COMETAPI_API_KEY не установлен в переменных окружения');
+  const apiKey = process.env.COMET_API_KEY;
+  if (!apiKey) throw new Error('COMET_API_KEY не установлен в переменных окружения');
   if (!imagePaths || imagePaths.length === 0) throw new Error('Не переданы изображения');
 
   const prompt = `Transform the uploaded interior photo into the same room completely empty: keep only the original walls (with their real finishes/texture/pattern) and the existing floor. Remove everything else that is not a structural part of the room. Preserve geometry, perspective, lighting, and colors.
@@ -386,10 +386,10 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
  * @returns {Promise<Buffer>} - Буфер с сгенерированным изображением
  */
 export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture') {
-  const apiKey = process.env.COMETAPI_API_KEY;
+  const apiKey = process.env.COMET_API_KEY;
   
   if (!apiKey) {
-    throw new Error('COMETAPI_API_KEY не установлен в переменных окружения');
+    throw new Error('COMET_API_KEY не установлен в переменных окружения');
   }
 
   if (!fs.existsSync(imagePath)) {
@@ -551,115 +551,13 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
   }
 }
 
-/**
- * Генерирует очищенное изображение (удаление объектов) с помощью COMETAPI
- * @param {Object} options - Опции для генерации
- * @param {string[]} options.imagePaths - Массив путей к изображениям
- * @returns {Promise<Buffer[]>} - Массив буферов с очищенными изображениями
- */
-export async function generateCleanupImage({ imagePaths }) {
-  const apiKey = process.env.COMETAPI_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error('COMETAPI_API_KEY не установлен в переменных окружения');
-  }
-
-  if (!imagePaths || imagePaths.length === 0) {
-    throw new Error('Не предоставлены пути к изображениям');
-  }
-
-  const cleanupPrompt = `You are a professional image editor specializing in object removal and room cleanup. Your task is to remove all furniture, objects, and personal items from the provided room image while preserving the architectural structure, walls, doors, windows, and floor.
-
-INSTRUCTIONS:
-1. Remove ALL furniture, appliances, decorations, and personal items
-2. Keep all architectural elements: walls, doors, windows, floor
-3. Fill removed areas with appropriate floor/wall textures
-4. Maintain realistic lighting and shadows
-5. Preserve the original perspective and composition
-6. Output should look like an empty, clean room ready for renovation
-
-TECHNICAL REQUIREMENTS:
-- Output format: JPG, 1200x1200px, quality 95%
-- Background: clean white/neutral
-- No artifacts or obvious editing marks
-- Maintain original room proportions`;
-
-  const results = [];
-
-  for (let i = 0; i < imagePaths.length; i++) {
-    const imagePath = imagePaths[i];
-    
-    if (!fs.existsSync(imagePath)) {
-      throw new Error(`Файл изображения не найден: ${imagePath}`);
-    }
-
-    try {
-      console.log(`🧹 Очистка изображения ${i + 1}/${imagePaths.length}: ${imagePath}`);
-      
-      // Создаем FormData для отправки
-      const formData = new FormData();
-      
-      // Добавляем изображение
-      formData.append('image', fs.createReadStream(imagePath));
-      
-      // Добавляем параметры запроса
-      formData.append('model', 'nano-banana-hd');
-      formData.append('prompt', cleanupPrompt);
-      formData.append('max_tokens', '1000');
-      formData.append('temperature', '0.1');
-      formData.append('top_p', '0.9');
-      formData.append('stream', 'false');
-
-      console.log('📤 Отправка запроса к COMETAPI для очистки...');
-      
-      const response = await fetch('https://api.cometapi.com/v1/image/generate', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          ...formData.getHeaders()
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Ошибка COMETAPI при очистке:', response.status, errorText);
-        throw new Error(`COMETAPI ошибка ${response.status}: ${errorText}`);
-      }
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(`COMETAPI вернул ошибку: ${result.error || 'Неизвестная ошибка'}`);
-      }
-
-      if (!result.data || !result.data.image) {
-        throw new Error('COMETAPI не вернул очищенное изображение');
-      }
-
-      // Декодируем base64 изображение
-      const imageBuffer = Buffer.from(result.data.image, 'base64');
-      
-      console.log('✅ Изображение успешно очищено');
-      console.log(`📊 Размер изображения: ${imageBuffer.length} байт`);
-      
-      results.push(imageBuffer);
-
-    } catch (error) {
-      console.error(`❌ Ошибка очистки изображения ${i + 1}:`, error);
-      throw error;
-    }
-  }
-
-  return results;
-}
 
 /**
  * Проверяет доступность COMETAPI
  * @returns {Promise<boolean>}
  */
 export async function checkCometApiHealth() {
-  const apiKey = process.env.COMETAPI_API_KEY;
+  const apiKey = process.env.COMET_API_KEY;
   
   if (!apiKey) {
     return false;

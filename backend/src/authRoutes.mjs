@@ -150,13 +150,25 @@ router.get('/settings', authenticateToken, (req, res) => {
 // Сохранить настройки пользователя
 router.post('/settings', authenticateToken, (req, res) => {
   try {
+    console.log('POST /api/auth/settings - запрос получен');
+    console.log('req.user:', req.user);
+    console.log('req.body:', req.body);
+    
     const { settings } = req.body;
     
     if (!settings || typeof settings !== 'object') {
+      console.log('Ошибка: неверный формат настроек');
       return res.status(400).json({ error: 'Неверный формат настроек' });
     }
 
+    if (!req.user || !req.user.id) {
+      console.log('Ошибка: пользователь не найден в req.user');
+      return res.status(401).json({ error: 'Пользователь не авторизован' });
+    }
+
+    console.log('Сохранение настроек для пользователя ID:', req.user.id);
     settingsDB.setMany(req.user.id, settings);
+    console.log('Настройки сохранены успешно');
     
     res.json({ success: true, message: 'Настройки сохранены' });
   } catch (error) {

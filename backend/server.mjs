@@ -66,8 +66,8 @@ console.log('Существует ли package.json:', fs.existsSync('package.js
 
 // Проверяем наличие API ключа
 console.log('🔍 Проверка API ключа:');
-console.log('COMETAPI_API_KEY установлен:', !!process.env.COMETAPI_API_KEY);
-console.log('COMETAPI_API_KEY значение:', process.env.COMETAPI_API_KEY ? '***скрыто***' : 'не установлено');
+console.log('COMET_API_KEY установлен:', !!process.env.COMET_API_KEY);
+console.log('COMET_API_KEY значение:', process.env.COMET_API_KEY ? '***скрыто***' : 'не установлено');
 console.log('Все переменные окружения:', Object.keys(process.env).filter(key => key.includes('COMET') || key.includes('NODE') || key.includes('PORT')));
 
 // Проверяем системные зависимости
@@ -81,14 +81,14 @@ try {
   console.error('Это может быть связано с отсутствием системных библиотек');
 }
 
-const isCometApiKeyValid = process.env.COMETAPI_API_KEY && 
-    process.env.COMETAPI_API_KEY !== 'YOUR_COMETAPI_API_KEY_HERE' && 
-    process.env.COMETAPI_API_KEY !== 'your_cometapi_key_here';
+const isCometApiKeyValid = process.env.COMET_API_KEY && 
+    process.env.COMET_API_KEY !== 'YOUR_COMET_API_KEY_HERE' && 
+    process.env.COMET_API_KEY !== 'your_comet_api_key_here';
 
 if (!isCometApiKeyValid) {
   console.warn('⚠️  ВНИМАНИЕ: COMETAPI ключ не настроен!');
   console.warn('📝 Для работы генерации технических планов добавьте переменную окружения:');
-  console.warn('   COMETAPI_API_KEY=ваш_cometapi_ключ_здесь');
+  console.warn('   COMET_API_KEY=ваш_comet_api_ключ_здесь');
   console.warn('🔗 Получите ключ на https://cometapi.com');
   console.warn('⚠️  Приложение запустится, но генерация технических планов будет недоступна!');
 } else {
