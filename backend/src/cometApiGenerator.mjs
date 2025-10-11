@@ -1,6 +1,24 @@
+// Полифилл для Buffer (совместимость со старыми версиями Node.js)
+console.log('🔍 Проверка Buffer:', {
+  globalThisBuffer: typeof globalThis.Buffer,
+  globalBuffer: typeof global.Buffer,
+  nodeVersion: process.version
+});
+
+if (typeof globalThis.Buffer === 'undefined') {
+  try {
+    globalThis.Buffer = require('buffer').Buffer;
+    console.log('✅ Buffer загружен через require("buffer")');
+  } catch (e) {
+    // Fallback для старых версий Node.js
+    globalThis.Buffer = global.Buffer || Buffer;
+    console.log('✅ Buffer загружен через fallback');
+  }
+}
+
 import fetch from 'node-fetch';
 import FormData from 'form-data';
-// Buffer доступен глобально в Node.js
+import { Buffer } from 'node:buffer';
 // Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
 // Модель: gemini-2.5-flash-image-preview (CometAPI, формат generateContent)
 const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
@@ -156,6 +174,11 @@ No borders, titles, or dimension lines`
  * @returns {Promise<Buffer>} - Буфер с сгенерированным изображением
  */
 export async function generateCleanupImage({ imagePaths = [] } = {}) {
+  // Проверяем доступность Buffer
+  if (typeof Buffer === 'undefined') {
+    throw new Error('Buffer не доступен. Проверьте версию Node.js.');
+  }
+  
   const apiKey = process.env.COMET_API_KEY;
   if (!apiKey) throw new Error('COMET_API_KEY не установлен в переменных окружения');
   if (!imagePaths || imagePaths.length === 0) throw new Error('Не переданы изображения');
@@ -387,6 +410,11 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
  * @returns {Promise<Buffer>} - Буфер с сгенерированным изображением
  */
 export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture') {
+  // Проверяем доступность Buffer
+  if (typeof Buffer === 'undefined') {
+    throw new Error('Buffer не доступен. Проверьте версию Node.js.');
+  }
+  
   const apiKey = process.env.COMET_API_KEY;
   
   if (!apiKey) {
