@@ -392,6 +392,16 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     throw new Error('COMET_API_KEY не установлен в переменных окружения');
   }
 
+  // Дополнительная проверка API ключа
+  if (apiKey === 'YOUR_COMET_API_KEY_HERE' || apiKey === 'YOUR_ACTUAL_COMET_API_KEY' || apiKey.length < 10) {
+    console.error('❌ API ключ недействителен:', {
+      keyLength: apiKey.length,
+      keyStart: apiKey.substring(0, 10) + '...',
+      isDefault: apiKey === 'YOUR_COMET_API_KEY_HERE' || apiKey === 'YOUR_ACTUAL_COMET_API_KEY'
+    });
+    throw new Error('COMET_API_KEY недействителен. Проверьте настройки переменных окружения на хостинге.');
+  }
+
   if (!fs.existsSync(imagePath)) {
     throw new Error(`Файл изображения не найден: ${imagePath}`);
   }
@@ -428,16 +438,23 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     console.log('📤 Отправка запроса к COMETAPI (Nano-Banana)...');
     console.log(`📝 Промпт длина: ${prompt.length} символов`);
     console.log(`🖼️ Изображение: ${mime}, ${base64.length} символов base64`);
+    console.log(`🔑 API ключ: ${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 5)}`);
+    console.log(`🌐 URL: ${COMETAPI_IMAGE_URL}`);
 
     // Используем retry логику для обработки ошибок сервера
     const response = await retryWithBackoff(async () => {
+      const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      
+      console.log('📋 Заголовки запроса:', headers);
+      console.log('📦 Тело запроса (первые 500 символов):', JSON.stringify(requestBody).substring(0, 500) + '...');
+      
       const resp = await fetch(COMETAPI_IMAGE_URL, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers: headers,
         body: JSON.stringify(requestBody)
       });
       

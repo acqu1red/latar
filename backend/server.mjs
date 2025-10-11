@@ -69,6 +69,8 @@ console.log('Существует ли package.json:', fs.existsSync('package.js
 console.log('🔍 Проверка API ключа:');
 console.log('COMET_API_KEY установлен:', !!process.env.COMET_API_KEY);
 console.log('COMET_API_KEY значение:', process.env.COMET_API_KEY ? '***скрыто***' : 'не установлено');
+console.log('COMET_API_KEY длина:', process.env.COMET_API_KEY ? process.env.COMET_API_KEY.length : 0);
+console.log('COMET_API_KEY начинается с:', process.env.COMET_API_KEY ? process.env.COMET_API_KEY.substring(0, 10) + '...' : 'не установлено');
 console.log('Все переменные окружения:', Object.keys(process.env).filter(key => key.includes('COMET') || key.includes('NODE') || key.includes('PORT')));
 
 // Проверяем системные зависимости
@@ -119,6 +121,117 @@ app.use(express.static(path.join(__dirname, '..', 'frontend/dist')));
 
 // Auth routes
 app.use('/api/auth', authRoutes);
+
+// Эндпоинт для тестирования COMET API ключа
+app.get('/api/test-comet-api', async (req, res) => {
+  try {
+    console.log('🧪 Тестирование COMET API ключа...');
+    
+    const apiKey = process.env.COMET_API_KEY;
+    console.log('🔑 API ключ информация:', {
+      hasKey: !!apiKey,
+      keyLength: apiKey ? apiKey.length : 0,
+      keyStart: apiKey ? apiKey.substring(0, 15) + '...' : 'не установлено',
+      keyEnd: apiKey ? '...' + apiKey.substring(apiKey.length - 5) : 'не установлено'
+    });
+
+    if (!apiKey) {
+      return res.status(400).json({ 
+        error: 'COMET_API_KEY не установлен',
+        debug: { hasKey: false }
+      });
+    }
+
+    // Тест 1: Проверка доступности API
+    console.log('📡 Тест 1: Проверка доступности API...');
+    const modelsResponse = await fetch('https://api.cometapi.com/v1/models', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('📊 Ответ от /v1/models:', {
+      status: modelsResponse.status,
+      statusText: modelsResponse.statusText,
+      headers: Object.fromEntries(modelsResponse.headers.entries())
+    });
+
+    if (!modelsResponse.ok) {
+      const errorText = await modelsResponse.text();
+      console.error('❌ Ошибка при проверке моделей:', errorText);
+      return res.status(400).json({
+        error: 'Ошибка проверки API ключа',
+        status: modelsResponse.status,
+        statusText: modelsResponse.statusText,
+        response: errorText
+      });
+    }
+
+    const modelsData = await modelsResponse.json();
+    console.log('✅ Модели получены:', modelsData);
+
+    // Тест 2: Проверка конкретной модели
+    console.log('📡 Тест 2: Проверка модели gemini-2.5-flash-image-preview...');
+    const modelUrl = 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
+    
+    const testResponse = await fetch(modelUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          role: 'user',
+          parts: [{ text: 'Hello, test message' }]
+        }]
+      })
+    });
+
+    console.log('📊 Ответ от модели:', {
+      status: testResponse.status,
+      statusText: testResponse.statusText,
+      headers: Object.fromEntries(testResponse.headers.entries())
+    });
+
+    const testData = await testResponse.text();
+    console.log('📄 Тело ответа:', testData);
+
+    if (!testResponse.ok) {
+      return res.status(400).json({
+        error: 'Ошибка при тестировании модели',
+        status: testResponse.status,
+        statusText: testResponse.statusText,
+        response: testData
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'COMET API ключ работает корректно',
+      tests: {
+        models: '✅ Пройден',
+        modelTest: '✅ Пройден'
+      },
+      debug: {
+        apiKeyLength: apiKey.length,
+        apiKeyStart: apiKey.substring(0, 15) + '...',
+        modelsCount: modelsData?.data?.length || 'неизвестно'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Ошибка тестирования COMET API:', error);
+    res.status(500).json({
+      error: 'Ошибка тестирования API',
+      message: error.message,
+      stack: error.stack
+    });
+  }
+});
 
 // Маршрут для временных изображений (заглушка)
 app.get('/temp-images/:filename', (req, res) => {
@@ -190,9 +303,20 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
 
     // COMETAPI ключ обязателен
     if (!isCometApiKeyValid) {
+      console.error('❌ API ключ недействителен:', {
+        hasKey: !!process.env.COMET_API_KEY,
+        keyLength: process.env.COMET_API_KEY ? process.env.COMET_API_KEY.length : 0,
+        keyStart: process.env.COMET_API_KEY ? process.env.COMET_API_KEY.substring(0, 10) + '...' : 'не установлено',
+        isDefault: process.env.COMET_API_KEY === 'YOUR_COMET_API_KEY_HERE' || process.env.COMET_API_KEY === 'YOUR_ACTUAL_COMET_API_KEY'
+      });
       return res.status(503).json({ 
         error: 'Сервис генерации технических планов временно недоступен. API ключ не настроен.',
-        code: 'API_KEY_MISSING'
+        code: 'API_KEY_MISSING',
+        debug: {
+          hasKey: !!process.env.COMET_API_KEY,
+          keyLength: process.env.COMET_API_KEY ? process.env.COMET_API_KEY.length : 0,
+          isDefault: process.env.COMET_API_KEY === 'YOUR_COMET_API_KEY_HERE' || process.env.COMET_API_KEY === 'YOUR_ACTUAL_COMET_API_KEY'
+        }
       });
     }
 
