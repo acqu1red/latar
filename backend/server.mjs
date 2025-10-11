@@ -371,27 +371,17 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
         fs.writeFileSync(tempFilePath, file.buffer);
         
         // Генерируем технический план
-        const generatedResult = await generateTechnicalPlan(tempFilePath, mode);
+        const generatedBuffer = await generateTechnicalPlan(tempFilePath, mode);
         
-        let uploadResult;
-        if (generatedResult.type === 'url') {
-          // COMETAPI вернул URL изображения
-          console.log('🔗 Используем URL от COMETAPI:', generatedResult.data);
-          uploadResult = {
-            imageUrl: generatedResult.data,
-            thumbnailUrl: generatedResult.data, // Используем тот же URL для превью
-            service: 'cometapi'
-          };
-        } else {
-          // COMETAPI вернул Buffer, загружаем на внешний сервис
-          const urlData = generateImageUrl('generated_plan', `plan_${i}.jpg`, {
-            mode,
-            originalSize: file.buffer.length,
-            processedAt: new Date().toISOString()
-          });
-          
-          uploadResult = await uploadToExternalService(generatedResult.data, urlData.filename);
-        }
+        // Генерируем URL для результата
+        const urlData = generateImageUrl('generated_plan', `plan_${i}.jpg`, {
+          mode,
+          originalSize: file.buffer.length,
+          processedAt: new Date().toISOString()
+        });
+        
+        // Загружаем изображение на внешний сервис
+        const uploadResult = await uploadToExternalService(generatedBuffer, urlData.filename);
         
         // Сохраняем URL в базу данных
         const dbResult = imageUrlsDB.save(
@@ -531,27 +521,17 @@ app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
         fs.writeFileSync(tempFilePath, file.buffer);
         
         // Генерируем очищенное изображение
-        const generatedResults = await generateCleanupImage({ imagePaths: [tempFilePath] });
-        const generatedResult = generatedResults[0];
+        const generatedBuffers = await generateCleanupImage({ imagePaths: [tempFilePath] });
+        const generatedBuffer = generatedBuffers[0];
         
-        let uploadResult;
-        if (generatedResult.type === 'url') {
-          // COMETAPI вернул URL изображения
-          console.log('🔗 Используем URL от COMETAPI:', generatedResult.data);
-          uploadResult = {
-            imageUrl: generatedResult.data,
-            thumbnailUrl: generatedResult.data, // Используем тот же URL для превью
-            service: 'cometapi'
-          };
-        } else {
-          // COMETAPI вернул Buffer, загружаем на внешний сервис
-          const urlData = generateImageUrl('generated_cleanup', `cleanup_${i}.jpg`, {
-            originalSize: file.buffer.length,
-            processedAt: new Date().toISOString()
-          });
-          
-          uploadResult = await uploadToExternalService(generatedResult.data, urlData.filename);
-        }
+        // Генерируем URL для результата
+        const urlData = generateImageUrl('generated_cleanup', `cleanup_${i}.jpg`, {
+          originalSize: file.buffer.length,
+          processedAt: new Date().toISOString()
+        });
+        
+        // Загружаем изображение на внешний сервис
+        const uploadResult = await uploadToExternalService(generatedBuffer, urlData.filename);
         
         // Сохраняем URL в базу данных
         const dbResult = imageUrlsDB.save(

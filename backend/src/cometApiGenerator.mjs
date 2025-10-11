@@ -326,6 +326,11 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
       });
 
       const result = await response.json();
+      
+      // Детальное логирование ответа COMETAPI для cleanup
+      console.log('🔍 Полный ответ COMETAPI (cleanup):');
+      console.log('📊 Структура ответа:', JSON.stringify(result, null, 2));
+      console.log('🔍 Ключи верхнего уровня:', Object.keys(result));
 
       // Извлекаем base64 из разнообразных возможных форматов
       let base64Image;
@@ -356,9 +361,17 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
       if (!base64Image && typeof result?.image === 'string') base64Image = result.image;
       if (!base64Image && typeof result?.output === 'string') base64Image = result.output;
       if (!base64Image) {
+        console.log('🔍 Глубокий поиск base64 в cleanup...');
         const tryExtractBase64 = (obj, depth = 0) => {
           if (!obj || depth > 3) return null;
-          if (typeof obj === 'string') return obj.length > 200 ? obj : null;
+          if (typeof obj === 'string') {
+            // эвристика base64-строки - проверяем длину и символы
+            if (obj.length > 200 && /^[A-Za-z0-9+/=]+$/.test(obj)) {
+              console.log(`✅ Найдена base64 строка в cleanup (длина: ${obj.length})`);
+              return obj;
+            }
+            return null;
+          }
           if (Array.isArray(obj)) {
             for (const it of obj) {
               const found = tryExtractBase64(it, depth + 1);
@@ -367,7 +380,7 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
             return null;
           }
           if (typeof obj === 'object') {
-            const preferredKeys = ['image', 'data', 'inline_data'];
+            const preferredKeys = ['image', 'data', 'inline_data', 'content', 'parts'];
             for (const k of preferredKeys) {
               if (obj[k]) {
                 const found = tryExtractBase64(obj[k], depth + 1);
@@ -383,59 +396,22 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
           }
           return null;
         };
-        base64Image = tryExtractBase64(result);
+        const guess = tryExtractBase64(result);
+        if (guess) {
+          console.log(`✅ Найдена base64 через глубокий поиск в cleanup (длина: ${guess.length})`);
+          base64Image = guess;
+        }
       }
 
-      // Проверяем, есть ли URL изображения вместо base64
-      let imageUrl = null;
       if (!base64Image) {
-        // Ищем URL изображения в ответе
-        const tryExtractUrl = (obj, depth = 0) => {
-          if (!obj || depth > 3) return null;
-          if (typeof obj === 'string' && (obj.startsWith('http://') || obj.startsWith('https://'))) {
-            return obj;
-          }
-          if (Array.isArray(obj)) {
-            for (const it of obj) {
-              const found = tryExtractUrl(it, depth + 1);
-              if (found) return found;
-            }
-            return null;
-          }
-          if (typeof obj === 'object') {
-            const preferredKeys = ['url', 'imageUrl', 'image_url', 'output_url', 'result_url'];
-            for (const k of preferredKeys) {
-              if (obj[k] && typeof obj[k] === 'string' && (obj[k].startsWith('http://') || obj[k].startsWith('https://'))) {
-                return obj[k];
-              }
-            }
-            for (const k of Object.keys(obj)) {
-              if (!preferredKeys.includes(k)) {
-                const found = tryExtractUrl(obj[k], depth + 1);
-                if (found) return found;
-              }
-            }
-          }
-          return null;
-        };
-        imageUrl = tryExtractUrl(result);
-      }
-
-      if (!base64Image && !imageUrl) {
         const preview = JSON.stringify(result).slice(0, 500);
         throw new Error('COMETAPI не вернул изображение в ожидаемом формате: ' + preview);
       }
 
-      if (imageUrl) {
-        console.log('✅ Изображение очистки успешно сгенерировано (URL)');
-        console.log(`🔗 URL изображения: ${imageUrl}`);
-        outputs.push({ type: 'url', data: imageUrl });
-      } else {
-        const outBuffer = createBuffer(base64Image, 'base64');
-        console.log('✅ Изображение очистки успешно сгенерировано (Buffer)');
-        console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
-        outputs.push({ type: 'buffer', data: outBuffer });
-      }
+      const outBuffer = createBuffer(base64Image, 'base64');
+      console.log('✅ Изображение очистки успешно сгенерировано');
+      console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
+      outputs.push(outBuffer);
     }
 
     return outputs;
@@ -589,6 +565,31 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     });
 
     const result = await response.json();
+    
+    // Детальное логирование ответа COMETAPI
+    console.log('🔍 Полный ответ COMETAPI:');
+    console.log('📊 Структура ответа:', JSON.stringify(result, null, 2));
+    console.log('🔍 Ключи верхнего уровня:', Object.keys(result));
+    
+    if (result.candidates) {
+      console.log('📋 Кандидаты:', result.candidates.length);
+      if (result.candidates[0]) {
+        console.log('📋 Первый кандидат:', Object.keys(result.candidates[0]));
+        if (result.candidates[0].content) {
+          console.log('📋 Контент:', Object.keys(result.candidates[0].content));
+          if (result.candidates[0].content.parts) {
+            console.log('📋 Части:', result.candidates[0].content.parts.length);
+            result.candidates[0].content.parts.forEach((part, index) => {
+              console.log(`📋 Часть ${index}:`, Object.keys(part));
+              if (part.inline_data) {
+                console.log(`📋 Inline data ${index}:`, Object.keys(part.inline_data));
+                console.log(`📋 Data length ${index}:`, part.inline_data.data ? part.inline_data.data.length : 'нет данных');
+              }
+            });
+          }
+        }
+      }
+    }
 
     let base64Image;
 
@@ -634,11 +635,16 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
 
     // Вариант 5: глубокий поиск по объекту первых найденных 2-3 уровней
     if (!base64Image) {
+      console.log('🔍 Глубокий поиск base64...');
       const tryExtractBase64 = (obj, depth = 0) => {
         if (!obj || depth > 3) return null;
         if (typeof obj === 'string') {
-          // эвристика base64-строки
-          return obj.length > 200 ? obj : null;
+          // эвристика base64-строки - проверяем длину и символы
+          if (obj.length > 200 && /^[A-Za-z0-9+/=]+$/.test(obj)) {
+            console.log(`✅ Найдена base64 строка (длина: ${obj.length})`);
+            return obj;
+          }
+          return null;
         }
         if (Array.isArray(obj)) {
           for (const it of obj) {
@@ -649,7 +655,7 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
         }
         if (typeof obj === 'object') {
           // приоритетные ключи
-          const preferredKeys = ['image', 'data', 'inline_data'];
+          const preferredKeys = ['image', 'data', 'inline_data', 'content', 'parts'];
           for (const k of preferredKeys) {
             if (obj[k]) {
               const found = tryExtractBase64(obj[k], depth + 1);
@@ -667,60 +673,23 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
         return null;
       };
       const guess = tryExtractBase64(result);
-      if (guess) base64Image = guess;
+      if (guess) {
+        console.log(`✅ Найдена base64 через глубокий поиск (длина: ${guess.length})`);
+        base64Image = guess;
+      }
     }
 
-    // Проверяем, есть ли URL изображения вместо base64
-    let imageUrl = null;
     if (!base64Image) {
-      // Ищем URL изображения в ответе
-      const tryExtractUrl = (obj, depth = 0) => {
-        if (!obj || depth > 3) return null;
-        if (typeof obj === 'string' && (obj.startsWith('http://') || obj.startsWith('https://'))) {
-          return obj;
-        }
-        if (Array.isArray(obj)) {
-          for (const it of obj) {
-            const found = tryExtractUrl(it, depth + 1);
-            if (found) return found;
-          }
-          return null;
-        }
-        if (typeof obj === 'object') {
-          const preferredKeys = ['url', 'imageUrl', 'image_url', 'output_url', 'result_url'];
-          for (const k of preferredKeys) {
-            if (obj[k] && typeof obj[k] === 'string' && (obj[k].startsWith('http://') || obj[k].startsWith('https://'))) {
-              return obj[k];
-            }
-          }
-          for (const k of Object.keys(obj)) {
-            if (!preferredKeys.includes(k)) {
-              const found = tryExtractUrl(obj[k], depth + 1);
-              if (found) return found;
-            }
-          }
-        }
-        return null;
-      };
-      imageUrl = tryExtractUrl(result);
-    }
-
-    if (!base64Image && !imageUrl) {
       const preview = JSON.stringify(result).slice(0, 1000);
       console.error('⚠️ Ответ COMETAPI без изображения, превью:', preview);
       throw new Error('COMETAPI не вернул изображение в ожидаемом формате');
     }
 
-    if (imageUrl) {
-      console.log('✅ Технический план успешно сгенерирован (URL)');
-      console.log(`🔗 URL изображения: ${imageUrl}`);
-      return { type: 'url', data: imageUrl };
-    } else {
-      const outBuffer = createBuffer(base64Image, 'base64');
-      console.log('✅ Технический план успешно сгенерирован (Buffer)');
-      console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
-      return { type: 'buffer', data: outBuffer };
-    }
+    const outBuffer = createBuffer(base64Image, 'base64');
+    console.log('✅ Технический план успешно сгенерирован');
+    console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
+    
+    return outBuffer;
 
   } catch (error) {
     console.error('❌ Ошибка генерации технического плана:', error);
