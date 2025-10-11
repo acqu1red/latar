@@ -38,6 +38,12 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
+// Логируем переменные окружения для отладки
+console.log('🔧 Переменные окружения:');
+console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`   PORT: ${PORT}`);
+console.log(`   COMET_API_KEY: ${process.env.COMET_API_KEY ? 'установлен' : 'не установлен'}`);
+
 // Настройка multer для обработки файлов
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -515,9 +521,9 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Сервер запущен на порту ${PORT}`);
-  console.log(`🌐 Health check доступен по адресу: http://localhost:${PORT}/healthz`);
+  console.log(`🌐 Health check доступен по адресу: http://0.0.0.0:${PORT}/healthz`);
   console.log(`📊 API endpoints:`);
   console.log(`   POST /api/generate-technical-plan - генерация технического плана`);
   console.log(`   GET  /api/furniture - получение данных мебели`);
@@ -555,4 +561,14 @@ server.on('error', (error) => {
 server.on('listening', () => {
   const address = server.address();
   console.log(`🎯 Сервер слушает на ${address.address}:${address.port}`);
+  console.log(`✅ Сервер готов к работе!`);
+});
+
+// Добавляем обработчик для graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 Получен сигнал SIGTERM, завершаем работу...');
+  server.close(() => {
+    console.log('✅ Сервер закрыт');
+    process.exit(0);
+  });
 });

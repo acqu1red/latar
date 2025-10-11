@@ -5,11 +5,7 @@
   "environment": {
     "NODE_ENV": "production",
     "PORT": "3001",
-<<<<<<< HEAD
     "COMET_API_KEY": "YOUR_COMET_API_KEY_HERE"
-=======
-    "SCRIBBLE_DIFFUSION_API_KEY": "r8_HsprWTaqhhBtQaI1tww0M76W1vd0EBW3MN7Qh"
->>>>>>> 131e002 (news112301)
   },
   "server": {
     "port": 3001,
