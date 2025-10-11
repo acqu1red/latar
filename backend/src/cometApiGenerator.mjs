@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import FormData from 'form-data';
+// Buffer доступен глобально в Node.js
 // Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
 // Модель: gemini-2.5-flash-image-preview (CometAPI, формат generateContent)
 const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
