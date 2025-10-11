@@ -386,12 +386,56 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
         base64Image = tryExtractBase64(result);
       }
 
+      // Проверяем, есть ли URL изображения вместо base64
+      let imageUrl = null;
       if (!base64Image) {
+        // Ищем URL изображения в ответе
+        const tryExtractUrl = (obj, depth = 0) => {
+          if (!obj || depth > 3) return null;
+          if (typeof obj === 'string' && (obj.startsWith('http://') || obj.startsWith('https://'))) {
+            return obj;
+          }
+          if (Array.isArray(obj)) {
+            for (const it of obj) {
+              const found = tryExtractUrl(it, depth + 1);
+              if (found) return found;
+            }
+            return null;
+          }
+          if (typeof obj === 'object') {
+            const preferredKeys = ['url', 'imageUrl', 'image_url', 'output_url', 'result_url'];
+            for (const k of preferredKeys) {
+              if (obj[k] && typeof obj[k] === 'string' && (obj[k].startsWith('http://') || obj[k].startsWith('https://'))) {
+                return obj[k];
+              }
+            }
+            for (const k of Object.keys(obj)) {
+              if (!preferredKeys.includes(k)) {
+                const found = tryExtractUrl(obj[k], depth + 1);
+                if (found) return found;
+              }
+            }
+          }
+          return null;
+        };
+        imageUrl = tryExtractUrl(result);
+      }
+
+      if (!base64Image && !imageUrl) {
         const preview = JSON.stringify(result).slice(0, 500);
         throw new Error('COMETAPI не вернул изображение в ожидаемом формате: ' + preview);
       }
 
-      outputs.push(createBuffer(base64Image, 'base64'));
+      if (imageUrl) {
+        console.log('✅ Изображение очистки успешно сгенерировано (URL)');
+        console.log(`🔗 URL изображения: ${imageUrl}`);
+        outputs.push({ type: 'url', data: imageUrl });
+      } else {
+        const outBuffer = createBuffer(base64Image, 'base64');
+        console.log('✅ Изображение очистки успешно сгенерировано (Buffer)');
+        console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
+        outputs.push({ type: 'buffer', data: outBuffer });
+      }
     }
 
     return outputs;
@@ -626,18 +670,57 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
       if (guess) base64Image = guess;
     }
 
+    // Проверяем, есть ли URL изображения вместо base64
+    let imageUrl = null;
     if (!base64Image) {
+      // Ищем URL изображения в ответе
+      const tryExtractUrl = (obj, depth = 0) => {
+        if (!obj || depth > 3) return null;
+        if (typeof obj === 'string' && (obj.startsWith('http://') || obj.startsWith('https://'))) {
+          return obj;
+        }
+        if (Array.isArray(obj)) {
+          for (const it of obj) {
+            const found = tryExtractUrl(it, depth + 1);
+            if (found) return found;
+          }
+          return null;
+        }
+        if (typeof obj === 'object') {
+          const preferredKeys = ['url', 'imageUrl', 'image_url', 'output_url', 'result_url'];
+          for (const k of preferredKeys) {
+            if (obj[k] && typeof obj[k] === 'string' && (obj[k].startsWith('http://') || obj[k].startsWith('https://'))) {
+              return obj[k];
+            }
+          }
+          for (const k of Object.keys(obj)) {
+            if (!preferredKeys.includes(k)) {
+              const found = tryExtractUrl(obj[k], depth + 1);
+              if (found) return found;
+            }
+          }
+        }
+        return null;
+      };
+      imageUrl = tryExtractUrl(result);
+    }
+
+    if (!base64Image && !imageUrl) {
       const preview = JSON.stringify(result).slice(0, 1000);
       console.error('⚠️ Ответ COMETAPI без изображения, превью:', preview);
       throw new Error('COMETAPI не вернул изображение в ожидаемом формате');
     }
 
-    const outBuffer = createBuffer(base64Image, 'base64');
-
-    console.log('✅ Технический план успешно сгенерирован');
-    console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
-    
-    return outBuffer;
+    if (imageUrl) {
+      console.log('✅ Технический план успешно сгенерирован (URL)');
+      console.log(`🔗 URL изображения: ${imageUrl}`);
+      return { type: 'url', data: imageUrl };
+    } else {
+      const outBuffer = createBuffer(base64Image, 'base64');
+      console.log('✅ Технический план успешно сгенерирован (Buffer)');
+      console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
+      return { type: 'buffer', data: outBuffer };
+    }
 
   } catch (error) {
     console.error('❌ Ошибка генерации технического плана:', error);
