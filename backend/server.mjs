@@ -104,7 +104,6 @@ app.use(cors({
     'https://acqu1red.github.io',
     'https://acqu1red.github.io/latar',
     'https://acqu1red-latar-c0f7.twc1.net',
-    'https://acqu1red-latar-f363.twc1.net',
     'http://localhost:3000',
     'http://localhost:5173'
   ],
