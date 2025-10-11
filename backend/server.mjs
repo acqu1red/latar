@@ -128,11 +128,15 @@ app.get('/api/test-comet-api', async (req, res) => {
     console.log('🧪 Тестирование COMET API ключа...');
     
     const apiKey = process.env.COMET_API_KEY;
+    
+    // Убеждаемся, что ключ в правильном формате
+    const formattedApiKey = apiKey ? (apiKey.startsWith('sk-') ? apiKey : `sk-${apiKey}`) : null;
+    
     console.log('🔑 API ключ информация:', {
       hasKey: !!apiKey,
       keyLength: apiKey ? apiKey.length : 0,
-      keyStart: apiKey ? apiKey.substring(0, 15) + '...' : 'не установлено',
-      keyEnd: apiKey ? '...' + apiKey.substring(apiKey.length - 5) : 'не установлено'
+      keyStart: apiKey ? apiKey.substring(0, 10) + '...' : 'не установлено',
+      formattedKeyStart: formattedApiKey ? formattedApiKey.substring(0, 15) + '...' : 'не установлено'
     });
 
     if (!apiKey) {
@@ -147,8 +151,10 @@ app.get('/api/test-comet-api', async (req, res) => {
     const modelsResponse = await fetch('https://api.cometapi.com/v1/models', {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+        'Authorization': formattedApiKey,
+        'Content-Type': 'application/json',
+        'Accept': '*/*',
+        'User-Agent': 'Latar-App/1.0.0'
       }
     });
 
@@ -179,9 +185,12 @@ app.get('/api/test-comet-api', async (req, res) => {
     const testResponse = await fetch(modelUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': formattedApiKey,
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': '*/*',
+        'User-Agent': 'Latar-App/1.0.0',
+        'Host': 'api.cometapi.com',
+        'Connection': 'keep-alive'
       },
       body: JSON.stringify({
         contents: [{
@@ -218,7 +227,8 @@ app.get('/api/test-comet-api', async (req, res) => {
       },
       debug: {
         apiKeyLength: apiKey.length,
-        apiKeyStart: apiKey.substring(0, 15) + '...',
+        apiKeyStart: apiKey.substring(0, 10) + '...',
+        formattedKeyStart: formattedApiKey.substring(0, 15) + '...',
         modelsCount: modelsData?.data?.length || 'неизвестно'
       }
     });
