@@ -58,12 +58,12 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 
-  -- Таблица для хранения URL изображений
+  -- Таблица URL изображений
   CREATE TABLE IF NOT EXISTS image_urls (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
     image_type TEXT NOT NULL, -- 'user_upload', 'generated_plan', 'generated_cleanup'
-    original_filename TEXT,
+    original_filename TEXT NOT NULL,
     image_url TEXT NOT NULL,
     thumbnail_url TEXT,
     metadata TEXT, -- JSON с дополнительными данными
@@ -285,33 +285,28 @@ export const agencyDB = {
 // Функции для работы с URL изображений
 export const imageUrlsDB = {
   // Сохранить URL изображения
-  save: (userId, imageType, originalFilename, imageUrl, thumbnailUrl = null, metadata = null) => {
+  save: (userId, imageType, originalFilename, imageUrl, thumbnailUrl = null, metadata = {}) => {
     const stmt = db.prepare(`
       INSERT INTO image_urls (user_id, image_type, original_filename, image_url, thumbnail_url, metadata)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
-    const metadataStr = metadata ? JSON.stringify(metadata) : null;
-    return stmt.run(userId, imageType, originalFilename, imageUrl, thumbnailUrl, metadataStr);
+    return stmt.run(userId, imageType, originalFilename, imageUrl, thumbnailUrl, JSON.stringify(metadata));
   },
 
-  // Получить изображения пользователя по типу
-  getByUserAndType: (userId, imageType) => {
-    const stmt = db.prepare(`
-      SELECT * FROM image_urls 
-      WHERE user_id = ? AND image_type = ?
-      ORDER BY created_at DESC
-    `);
-    return stmt.all(userId, imageType);
-  },
-
-  // Получить все изображения пользователя
-  getByUser: (userId) => {
-    const stmt = db.prepare(`
-      SELECT * FROM image_urls 
-      WHERE user_id = ?
-      ORDER BY created_at DESC
-    `);
-    return stmt.all(userId);
+  // Получить изображения пользователя
+  getByUser: (userId, imageType = null) => {
+    let query = 'SELECT * FROM image_urls WHERE user_id = ?';
+    let params = [userId];
+    
+    if (imageType) {
+      query += ' AND image_type = ?';
+      params.push(imageType);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const stmt = db.prepare(query);
+    return stmt.all(...params);
   },
 
   // Получить изображение по ID
@@ -326,36 +321,30 @@ export const imageUrlsDB = {
     return stmt.run(id);
   },
 
-  // Удалить старые изображения (старше указанного количества дней)
-  deleteOld: (daysOld = 30) => {
+  // Получить статистику
+  getStats: () => {
     const stmt = db.prepare(`
-      DELETE FROM image_urls 
-      WHERE created_at < datetime('now', '-${daysOld} days')
-    `);
-    return stmt.run();
-  },
-
-  // Получить статистику по изображениям
-  getStats: (userId = null) => {
-    let query = `
       SELECT 
         image_type,
         COUNT(*) as count,
-        MIN(created_at) as first_created,
-        MAX(created_at) as last_created
+        COUNT(DISTINCT user_id) as unique_users
+      FROM image_urls 
+      GROUP BY image_type
+    `);
+    return stmt.all();
+  },
+
+  // Получить общую статистику
+  getTotalStats: () => {
+    const stmt = db.prepare(`
+      SELECT 
+        COUNT(*) as total_images,
+        COUNT(DISTINCT user_id) as total_users,
+        COUNT(CASE WHEN image_type = 'generated_plan' THEN 1 END) as plans_generated,
+        COUNT(CASE WHEN image_type = 'generated_cleanup' THEN 1 END) as cleanups_generated
       FROM image_urls
-    `;
-    const params = [];
-    
-    if (userId) {
-      query += ' WHERE user_id = ?';
-      params.push(userId);
-    }
-    
-    query += ' GROUP BY image_type';
-    
-    const stmt = db.prepare(query);
-    return stmt.all(...params);
+    `);
+    return stmt.get();
   }
 };
 
