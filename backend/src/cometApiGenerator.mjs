@@ -5,20 +5,53 @@ console.log('🔍 Проверка Buffer:', {
   nodeVersion: process.version
 });
 
+// Универсальный полифилл для Buffer
 if (typeof globalThis.Buffer === 'undefined') {
   try {
     globalThis.Buffer = require('buffer').Buffer;
     console.log('✅ Buffer загружен через require("buffer")');
   } catch (e) {
-    // Fallback для старых версий Node.js
-    globalThis.Buffer = global.Buffer || Buffer;
-    console.log('✅ Buffer загружен через fallback');
+    try {
+      globalThis.Buffer = global.Buffer;
+      console.log('✅ Buffer загружен через global.Buffer');
+    } catch (e2) {
+      // Последний fallback
+      globalThis.Buffer = Buffer;
+      console.log('✅ Buffer загружен через fallback');
+    }
   }
 }
 
 import fetch from 'node-fetch';
 import FormData from 'form-data';
-import { Buffer } from 'node:buffer';
+
+// Импорт Buffer с fallback
+let Buffer;
+try {
+  Buffer = require('node:buffer').Buffer;
+} catch (e) {
+  try {
+    Buffer = require('buffer').Buffer;
+  } catch (e2) {
+    Buffer = globalThis.Buffer || global.Buffer;
+  }
+}
+
+// Функция-обертка для создания Buffer
+function createBuffer(data, encoding = 'base64') {
+  if (typeof Buffer === 'undefined') {
+    throw new Error('Buffer не доступен. Проверьте версию Node.js.');
+  }
+  return Buffer.from(data, encoding);
+}
+
+// Функция-обертка для конвертации в base64
+function toBase64(buffer) {
+  if (typeof Buffer === 'undefined') {
+    throw new Error('Buffer не доступен. Проверьте версию Node.js.');
+  }
+  return buffer.toString('base64');
+}
 // Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
 // Модель: gemini-2.5-flash-image-preview (CometAPI, формат generateContent)
 const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
@@ -175,7 +208,15 @@ No borders, titles, or dimension lines`
  */
 export async function generateCleanupImage({ imagePaths = [] } = {}) {
   // Проверяем доступность Buffer
+  console.log('🔍 Проверка Buffer в generateCleanupImage:', {
+    BufferType: typeof Buffer,
+    BufferConstructor: typeof Buffer?.from,
+    globalThisBuffer: typeof globalThis.Buffer,
+    globalBuffer: typeof global.Buffer
+  });
+  
   if (typeof Buffer === 'undefined') {
+    console.error('❌ Buffer не доступен!');
     throw new Error('Buffer не доступен. Проверьте версию Node.js.');
   }
   
@@ -350,7 +391,7 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
         throw new Error('COMETAPI не вернул изображение в ожидаемом формате: ' + preview);
       }
 
-      outputs.push(Buffer.from(base64Image, 'base64'));
+      outputs.push(createBuffer(base64Image, 'base64'));
     }
 
     return outputs;
@@ -411,7 +452,15 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
  */
 export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture') {
   // Проверяем доступность Buffer
+  console.log('🔍 Проверка Buffer в generateTechnicalPlan:', {
+    BufferType: typeof Buffer,
+    BufferConstructor: typeof Buffer?.from,
+    globalThisBuffer: typeof globalThis.Buffer,
+    globalBuffer: typeof global.Buffer
+  });
+  
   if (typeof Buffer === 'undefined') {
+    console.error('❌ Buffer не доступен!');
     throw new Error('Buffer не доступен. Проверьте версию Node.js.');
   }
   
@@ -583,7 +632,7 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
       throw new Error('COMETAPI не вернул изображение в ожидаемом формате');
     }
 
-    const outBuffer = Buffer.from(base64Image, 'base64');
+    const outBuffer = createBuffer(base64Image, 'base64');
 
     console.log('✅ Технический план успешно сгенерирован');
     console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
