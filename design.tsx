@@ -631,7 +631,7 @@ function SuperBanner() {
     <div className="pointer-events-auto fixed bottom-4 right-4 z-20">
       <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 backdrop-blur-lg shadow-2xl">
         <div>
-          <div className="text-sm font-medium">SuperGrok</div>
+          <div className="text-sm font-medium">Grok 3D</div>
           <div className="text-xs text-neutral-400">Разблокируй расширенные возможности</div>
         </div>
         <button className="rounded-xl bg-white/90 text-black px-4 py-2 text-sm hover:bg-white transition">Улучшить</button>

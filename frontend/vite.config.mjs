@@ -19,6 +19,10 @@ export default defineConfig({
       }
     }
   },
+  define: {
+    // Определяем переменные окружения для сборки
+    'import.meta.env.PROD': JSON.stringify(process.env.NODE_ENV === 'production'),
+  },
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
