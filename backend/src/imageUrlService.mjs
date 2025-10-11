@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import path from 'path';
+import fs from 'fs';
 
 /**
  * Сервис для работы с URL изображений
@@ -198,17 +199,34 @@ async function uploadToCloudinary(imageBuffer, filename) {
 }
 
 /**
- * Загрузка во временное хранилище (без сохранения файлов)
+ * Загрузка во временное хранилище (с реальным сохранением файлов)
  */
 async function uploadToTemporary(imageBuffer, filename) {
-  // Не сохраняем файлы, просто возвращаем URL
-  // В реальном проекте здесь можно использовать внешние сервисы
-  
-  return {
-    imageUrl: `${EXTERNAL_SERVICES.temporary.baseUrl}${filename}`,
-    thumbnailUrl: `${EXTERNAL_SERVICES.temporary.baseUrl}thumb_${filename}`,
-    service: 'temporary'
-  };
+  try {
+    // Создаем директорию для изображений, если её нет
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    
+    // Путь к файлу
+    const filePath = path.join(uploadsDir, filename);
+    
+    // Сохраняем файл
+    fs.writeFileSync(filePath, imageBuffer);
+    
+    console.log(`✅ Файл сохранен: ${filePath}`);
+    
+    return {
+      imageUrl: `${EXTERNAL_SERVICES.temporary.baseUrl}${filename}`,
+      thumbnailUrl: `${EXTERNAL_SERVICES.temporary.baseUrl}${filename}`, // Используем тот же файл для превью
+      service: 'temporary',
+      localPath: filePath
+    };
+  } catch (error) {
+    console.error('❌ Ошибка сохранения файла:', error);
+    throw new Error('Не удалось сохранить изображение: ' + error.message);
+  }
 }
 
 /**
@@ -281,8 +299,16 @@ async function deleteFromCloudinary(publicId) {
 }
 
 async function deleteFromTemporary(localPath) {
-  // Файлы не сохраняются, поэтому нечего удалять
-  console.log('Файлы не сохраняются локально, удаление не требуется');
+  try {
+    if (localPath && fs.existsSync(localPath)) {
+      fs.unlinkSync(localPath);
+      console.log(`✅ Файл удален: ${localPath}`);
+    } else {
+      console.log(`⚠️ Файл не найден для удаления: ${localPath}`);
+    }
+  } catch (error) {
+    console.error('❌ Ошибка удаления файла:', error);
+  }
 }
 
 /**

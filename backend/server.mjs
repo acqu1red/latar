@@ -35,6 +35,15 @@ requiredFiles.forEach(file => {
   }
 });
 
+// Создаем директорию для загруженных изображений
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('✅ Создана директория uploads');
+} else {
+  console.log('✅ Директория uploads уже существует');
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -231,14 +240,47 @@ app.get('/api/test-comet-api', async (req, res) => {
   }
 });
 
-// Маршрут для временных изображений (заглушка)
+// Маршрут для временных изображений (реальное обслуживание файлов)
 app.get('/temp-images/:filename', (req, res) => {
-  // В реальном проекте здесь можно отдавать реальные изображения
-  // Пока что возвращаем заглушку
-  res.status(404).json({ 
-    error: 'Изображение не найдено',
-    message: 'Временные изображения не сохраняются локально. Используйте внешние сервисы для production.'
-  });
+  try {
+    const filename = req.params.filename;
+    const uploadsDir = path.join(__dirname, 'uploads');
+    const filePath = path.join(uploadsDir, filename);
+    
+    // Проверяем, что файл существует
+    if (!fs.existsSync(filePath)) {
+      console.log(`❌ Файл не найден: ${filePath}`);
+      return res.status(404).json({ 
+        error: 'Изображение не найдено',
+        message: `Файл ${filename} не существует на сервере`
+      });
+    }
+    
+    // Определяем MIME тип по расширению
+    const ext = path.extname(filename).toLowerCase();
+    let mimeType = 'image/jpeg'; // по умолчанию
+    if (ext === '.png') mimeType = 'image/png';
+    else if (ext === '.gif') mimeType = 'image/gif';
+    else if (ext === '.webp') mimeType = 'image/webp';
+    
+    // Устанавливаем заголовки для кэширования
+    res.set({
+      'Content-Type': mimeType,
+      'Cache-Control': 'public, max-age=3600', // кэшируем на 1 час
+      'ETag': `"${filename}"`
+    });
+    
+    // Отдаем файл
+    res.sendFile(filePath);
+    console.log(`✅ Отдано изображение: ${filename}`);
+    
+  } catch (error) {
+    console.error('❌ Ошибка обслуживания изображения:', error);
+    res.status(500).json({ 
+      error: 'Ошибка сервера',
+      message: 'Не удалось загрузить изображение'
+    });
+  }
 });
 
 // Специальный маршрут для поддомена new
