@@ -245,7 +245,7 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
         const resp = await fetch(COMETAPI_IMAGE_URL, {
           method: 'POST',
           headers: {
-            'Authorization': `${apiKey}`,
+            'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
@@ -434,8 +434,7 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
       const resp = await fetch(COMETAPI_IMAGE_URL, {
         method: 'POST',
         headers: {
-          // CometAPI ожидает ключ напрямую без Bearer
-          'Authorization': `${apiKey}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
