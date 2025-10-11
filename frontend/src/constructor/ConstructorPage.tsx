@@ -1,6 +1,6 @@
 import React, { useCallback, useReducer, useRef, useState } from 'react';
 // import { API_BASE_URL } from '../config';
-import { API_BASE_URL } from '../config';
+const API_BASE_URL = 'http://localhost:3001';
 import './ConstructorPage.css';
 import Toolbar from './components/Toolbar';
 import RoomModal from './components/RoomModal';

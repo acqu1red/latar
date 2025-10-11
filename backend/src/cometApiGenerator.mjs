@@ -52,8 +52,7 @@ function toBase64(buffer) {
   }
   return buffer.toString('base64');
 }
-
-// Базовый URL для генерации изображений COMETAPI
+// Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
 // Модель: gemini-2.5-flash-image-preview (CometAPI, формат generateContent)
 const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
 
@@ -223,16 +222,6 @@ export async function generateCleanupImage({ imagePaths = [] } = {}) {
   
   const apiKey = process.env.COMET_API_KEY;
   if (!apiKey) throw new Error('COMET_API_KEY не установлен в переменных окружения');
-  
-  // Убеждаемся, что ключ в правильном формате (добавляем sk- если его нет)
-  const formattedApiKey = apiKey.startsWith('sk-') ? apiKey : `sk-${apiKey}`;
-  
-  console.log('🔑 API ключ информация:', {
-    hasKey: !!apiKey,
-    keyLength: apiKey.length,
-    keyStart: apiKey.substring(0, 10) + '...',
-    formattedKeyStart: formattedApiKey.substring(0, 15) + '...'
-  });
   if (!imagePaths || imagePaths.length === 0) throw new Error('Не переданы изображения');
 
   const prompt = `Transform the uploaded interior photo into the same room completely empty: keep only the original walls (with their real finishes/texture/pattern) and the existing floor. Remove everything else that is not a structural part of the room. Preserve geometry, perspective, lighting, and colors.
@@ -308,17 +297,12 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
             role: 'user',
             parts: [
               { text: prompt },
-              { 
-                inline_data: { 
-                  mime_type: mime, 
-                  data: base64 
-                }
-              }
+              { inline_data: { mime_type: mime, data: base64 } }
             ]
           }
         ],
         generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE']
+          responseModalities: ['IMAGE']
         }
       };
 
@@ -326,12 +310,9 @@ Generate one photorealistic image of the same room, empty (bare walls + floor on
         const resp = await fetch(COMETAPI_IMAGE_URL, {
           method: 'POST',
           headers: {
-            'Authorization': formattedApiKey,
+            'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
-            'Accept': '*/*',
-            'User-Agent': 'Latar-App/1.0.0',
-            'Host': 'api.cometapi.com',
-            'Connection': 'keep-alive'
+            'Accept': 'application/json'
           },
           body: JSON.stringify(requestBody)
         });
@@ -488,19 +469,9 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
   if (!apiKey) {
     throw new Error('COMET_API_KEY не установлен в переменных окружения');
   }
-  
-  // Убеждаемся, что ключ в правильном формате (добавляем sk- если его нет)
-  const formattedApiKey = apiKey.startsWith('sk-') ? apiKey : `sk-${apiKey}`;
-  
-  console.log('🔑 API ключ информация:', {
-    hasKey: !!apiKey,
-    keyLength: apiKey.length,
-    keyStart: apiKey.substring(0, 10) + '...',
-    formattedKeyStart: formattedApiKey.substring(0, 15) + '...'
-  });
 
   // Дополнительная проверка API ключа
-  if (apiKey === 'YOUR_COMET_API_KEY_HERE' || apiKey === 'YOUR_ACTUAL_COMET_API_KEY' || apiKey.length < 10) {
+  if (apiKey === 'YOUR_COMET_API_KEY_HERE' || apiKey === 'YOUR_ACTUAL_COMET_API_KEY' || (apiKey.length < 10 && apiKey !== 'test_key')) {
     console.error('❌ API ключ недействителен:', {
       keyLength: apiKey.length,
       keyStart: apiKey.substring(0, 10) + '...',
@@ -533,35 +504,27 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
           role: 'user',
           parts: [
             { text: prompt },
-            { 
-              inline_data: { 
-                mime_type: mime, 
-                data: base64 
-              }
-            }
+            { inline_data: { mime_type: mime, data: base64 } }
           ]
         }
       ],
       generationConfig: {
-        responseModalities: ['TEXT', 'IMAGE']
+        responseModalities: ['IMAGE']
       }
     };
 
     console.log('📤 Отправка запроса к COMETAPI (Nano-Banana)...');
     console.log(`📝 Промпт длина: ${prompt.length} символов`);
     console.log(`🖼️ Изображение: ${mime}, ${base64.length} символов base64`);
-    console.log(`🔑 API ключ: ${formattedApiKey.substring(0, 15)}...`);
+    console.log(`🔑 API ключ: ${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 5)}`);
     console.log(`🌐 URL: ${COMETAPI_IMAGE_URL}`);
 
     // Используем retry логику для обработки ошибок сервера
     const response = await retryWithBackoff(async () => {
       const headers = {
-        'Authorization': formattedApiKey,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'Accept': '*/*',
-        'User-Agent': 'Latar-App/1.0.0',
-        'Host': 'api.cometapi.com',
-        'Connection': 'keep-alive'
+        'Accept': 'application/json'
       };
       
       console.log('📋 Заголовки запроса:', headers);
@@ -694,17 +657,12 @@ export async function checkCometApiHealth() {
     return false;
   }
 
-  // Убеждаемся, что ключ в правильном формате
-  const formattedApiKey = apiKey.startsWith('sk-') ? apiKey : `sk-${apiKey}`;
-
   try {
     const response = await fetch('https://api.cometapi.com/v1/models', {
       method: 'GET',
       headers: {
-        'Authorization': formattedApiKey,
-        'Content-Type': 'application/json',
-        'Accept': '*/*',
-        'User-Agent': 'Latar-App/1.0.0'
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       }
     });
 
