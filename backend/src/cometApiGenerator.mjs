@@ -471,7 +471,7 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
   }
 
   // Дополнительная проверка API ключа
-  if (apiKey === 'YOUR_COMET_API_KEY_HERE' || apiKey === 'YOUR_ACTUAL_COMET_API_KEY' || (apiKey.length < 10 && apiKey !== 'test_key')) {
+  if (apiKey === 'YOUR_COMET_API_KEY_HERE' || apiKey === 'YOUR_ACTUAL_COMET_API_KEY' || apiKey.length < 10) {
     console.error('❌ API ключ недействителен:', {
       keyLength: apiKey.length,
       keyStart: apiKey.substring(0, 10) + '...',

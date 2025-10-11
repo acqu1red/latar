@@ -1,6 +1,6 @@
 // Конфигурация API
 // Жестко прописываем URL для production
-export const API_BASE_URL = 'http://localhost:3001';
+export const API_BASE_URL = 'https://acqu1red-latar-084a.twc1.net';
 
 // Отладочная информация
 console.log('🌐 API_BASE_URL установлен как:', API_BASE_URL);

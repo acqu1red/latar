@@ -80,7 +80,7 @@ import {
 import { motion } from "framer-motion";
 import { useAuth } from './AuthContext';
 // import { API_BASE_URL } from './config';
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = 'https://acqu1red-latar-084a.twc1.net';
 import { useNavigate } from 'react-router-dom';
 
 // ===== Confirmation Modal Component =====

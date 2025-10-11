@@ -10,7 +10,7 @@
     "setup": "node setup-env.js",
     "build": "npm install --production",
     "heroku-postbuild": "echo 'Backend ready'",
-    "health": "curl -f http://localhost:3001/healthz || exit 1"
+    "health": "curl -f https://acqu1red-latar-084a.twc1.net/healthz || exit 1"
   },
   "engines": {
     "node": ">=22.0.0"

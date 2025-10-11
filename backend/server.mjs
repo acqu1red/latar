@@ -103,9 +103,7 @@ app.use(cors({
   origin: [
     'https://acqu1red.github.io',
     'https://acqu1red.github.io/latar',
-    'https://acqu1red-latar-f363.twc1.net',
-    'http://localhost:3000',
-    'http://localhost:5173'
+    'https://acqu1red-latar-084a.twc1.net'
   ],
   credentials: true
 }));
@@ -261,6 +259,13 @@ app.get('/new/*', (req, res) => {
     res.status(404).send('new.html not found');
   }
 });
+
+// SPA маршрут - все остальные запросы направляем на index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend/dist/index.html'));
+});
+
+
 
 // Маршрут для генерации технического плана
 app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, res) => {
@@ -602,11 +607,6 @@ app.get('/api/furniture', (req, res) => {
     console.error('Ошибка загрузки мебели:', error);
     res.status(500).json({ error: 'Ошибка загрузки данных мебели' });
   }
-});
-
-// SPA маршрут - все остальные запросы направляем на index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'frontend/dist/index.html'));
 });
 
 // Обработка ошибок
