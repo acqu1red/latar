@@ -4338,13 +4338,29 @@ export default function MonochromeClaudeStyle() {
 
       if (model === "techplan" && attachments.length > 0) {
         // Генерация технического плана
-        const formData = new FormData();
-        formData.append('image', attachments[0].file);
-        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+        const imageData = attachments.map(att => {
+          // Конвертируем файл в base64
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(att.file);
+          });
+        });
+        
+        const base64Images = await Promise.all(imageData);
+        
+        const requestBody = {
+          images: base64Images,
+          mode: techplanMode === "with" ? "withFurniture" : "withoutFurniture"
+        };
 
         const response = await fetch('/api/generate-technical-plan', {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+          },
+          body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -4354,10 +4370,21 @@ export default function MonochromeClaudeStyle() {
           throw err;
         }
 
-        // Получаем изображение как blob
-        const imageBlob = await response.blob();
-        responseImage = URL.createObjectURL(imageBlob);
-        responseText = `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}".`;
+        // Обработка ответа с новой системой URL
+        const data = await response.json();
+        if (data.success) {
+          if (data.result) {
+            // Одиночный результат
+            responseImage = data.result.imageUrl;
+            responseText = data.message || `Технический план успешно создан в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}"`;
+          } else if (data.results && Array.isArray(data.results)) {
+            // Множественные результаты
+            responseImage = data.results[0].imageUrl;
+            responseText = data.message || `Создано ${data.results.length} технических планов в режиме "${techplanMode === "with" ? "С мебелью" : "Без мебели"}"`;
+          }
+        } else {
+          throw new Error(data.error || 'Ошибка генерации технического плана');
+        }
 
         if (!hasUnlimitedAccess) {
           if (user) {
@@ -4368,12 +4395,28 @@ export default function MonochromeClaudeStyle() {
         }
       } else if (model === "cleanup" && attachments.length > 0) {
         // Удаление объектов
-        const formData = new FormData();
-        formData.append('image', attachments[0].file);
+        const imageData = attachments.map(att => {
+          // Конвертируем файл в base64
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(att.file);
+          });
+        });
+        
+        const base64Images = await Promise.all(imageData);
+        
+        const requestBody = {
+          images: base64Images
+        };
 
         const response = await fetch('/api/remove-objects', {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+          },
+          body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -4381,10 +4424,21 @@ export default function MonochromeClaudeStyle() {
           throw new Error(errorData.error || 'Ошибка удаления объектов');
         }
 
-        // Получаем изображение как blob
-        const imageBlob = await response.blob();
-        responseImage = URL.createObjectURL(imageBlob);
-        responseText = `Объекты успешно удалены с изображения.`;
+        // Обработка ответа с новой системой URL
+        const data = await response.json();
+        if (data.success) {
+          if (data.result) {
+            // Одиночный результат
+            responseImage = data.result.imageUrl;
+            responseText = data.message || 'Объекты успешно удалены с изображения.';
+          } else if (data.results && Array.isArray(data.results)) {
+            // Множественные результаты
+            responseImage = data.results[0].imageUrl;
+            responseText = data.message || `Обработано ${data.results.length} изображений.`;
+          }
+        } else {
+          throw new Error(data.error || 'Ошибка удаления объектов');
+        }
       } else {
         // Обычная обработка для других моделей
         responseText = `Вот результат обработки вашего запроса "${userMessage.text}".`;
@@ -4597,13 +4651,29 @@ export default function MonochromeClaudeStyle() {
 
       if (isPlan && attachments.length > 0) {
         // Генерация технического плана
-        const formData = new FormData();
-        formData.append('image', attachments[0].file);
-        formData.append('mode', planFurniture === "with" ? "withFurniture" : "withoutFurniture");
+        const imageData = attachments.map(att => {
+          // Конвертируем файл в base64
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(att.file);
+          });
+        });
+        
+        const base64Images = await Promise.all(imageData);
+        
+        const requestBody = {
+          images: base64Images,
+          mode: planFurniture === "with" ? "withFurniture" : "withoutFurniture"
+        };
 
         const response = await fetch('/api/generate-technical-plan', {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+          },
+          body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -4613,10 +4683,21 @@ export default function MonochromeClaudeStyle() {
           throw err;
         }
 
-        // Получаем изображение как blob
-        const imageBlob = await response.blob();
-        responseImage = URL.createObjectURL(imageBlob);
-        responseText = `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}".`;
+        // Обработка ответа с новой системой URL
+        const data = await response.json();
+        if (data.success) {
+          if (data.result) {
+            // Одиночный результат
+            responseImage = data.result.imageUrl;
+            responseText = data.message || `Технический план успешно создан в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}"`;
+          } else if (data.results && Array.isArray(data.results)) {
+            // Множественные результаты
+            responseImage = data.results[0].imageUrl;
+            responseText = data.message || `Создано ${data.results.length} технических планов в режиме "${planFurniture === "with" ? "С мебелью" : "Без мебели"}"`;
+          }
+        } else {
+          throw new Error(data.error || 'Ошибка генерации технического плана');
+        }
 
         if (!hasUnlimitedAccess) {
           if (user) {

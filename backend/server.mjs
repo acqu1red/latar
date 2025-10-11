@@ -1,14 +1,13 @@
 import express from 'express';
-import multer from 'multer';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import sharp from 'sharp';
 import jwt from 'jsonwebtoken';
-import { generateTechnicalPlan, checkCometApiHealth } from './src/cometApiGenerator.mjs';
+import { generateTechnicalPlan, checkCometApiHealth, generateCleanupImage } from './src/cometApiGenerator.mjs';
 import authRoutes from './src/authRoutes.mjs';
-import { userDB } from './src/database.mjs';
+import { userDB, imageUrlsDB } from './src/database.mjs';
+import { generateImageUrl, uploadToExternalService } from './src/imageUrlService.mjs';
 
 // Загружаем переменные окружения из .env файла
 import dotenv from 'dotenv';
@@ -17,12 +16,6 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Создаем папку uploads если её нет (в корне проекта)
-const uploadsDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('📁 Создана папка uploads');
-}
 
 // Проверяем существование необходимых файлов
 console.log('🔍 Проверка файлов:');
@@ -54,7 +47,6 @@ console.log('Текущая директория:', process.cwd());
 console.log('Содержимое директории:', fs.readdirSync(process.cwd()));
 console.log('Существует ли server.mjs:', fs.existsSync('server.mjs'));
 console.log('Существует ли package.json:', fs.existsSync('package.json'));
-console.log('Существует ли папка uploads:', fs.existsSync('uploads'));
 
 // Проверяем наличие API ключа
 console.log('🔍 Проверка API ключа:');
@@ -107,8 +99,6 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'frontend/dist')));
 
-// Статический маршрут для временных изображений
-app.use('/temp-images', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Auth routes
 app.use('/api/auth', authRoutes);
@@ -137,44 +127,32 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend/dist/index.html'));
 });
 
-// Настройка multer для загрузки файлов
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Только изображения разрешены!'), false);
-    }
-  }
-});
 
 
 // Маршрут для генерации технического плана
-app.post('/api/generate-technical-plan', upload.single('image'), async (req, res) => {
+app.post('/api/generate-technical-plan', async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Изображение не загружено' });
+    console.log('📥 Получен запрос на генерацию технического плана');
+    console.log('📋 Тело запроса:', {
+      hasImages: !!req.body.images,
+      imagesLength: req.body.images?.length,
+      mode: req.body.mode,
+      bodyKeys: Object.keys(req.body)
+    });
+    
+    const { images, mode } = req.body;
+    
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      console.log('❌ Ошибка: изображения не загружены');
+      return res.status(400).json({ error: 'Изображения не загружены' });
     }
 
-    const { mode } = req.body; // 'withFurniture' или 'withoutFurniture'
+    // Ограничиваем количество изображений для предотвращения перегрузки
+    if (images.length > 5) {
+      return res.status(400).json({ 
+        error: 'Слишком много изображений. Максимум 5 изображений за раз.' 
+      });
+    }
     
     if (!mode || !['withFurniture', 'withoutFurniture'].includes(mode)) {
       return res.status(400).json({ 
@@ -229,22 +207,247 @@ app.post('/api/generate-technical-plan', upload.single('image'), async (req, res
       guestUsage.set(clientIp, usage);
     }
 
-    const imagePath = req.file.path;
-    
-    console.log(`Обработка изображения для генерации технического плана (режим: ${mode}):`, imagePath);
+    console.log(`Обработка ${images.length} изображений для генерации технического плана (режим: ${mode})`);
 
-    // Генерируем технический план
-    const planBuffer = await generateTechnicalPlan(imagePath, mode);
-    
-    // Удаляем временный файл
-    fs.unlinkSync(imagePath);
+    const results = [];
+    for (let i = 0; i < images.length; i++) {
+      const imageData = images[i];
+      console.log(`📸 Обработка изображения ${i + 1}/${images.length}`);
+      
+      // Создаем временный файл из base64
+      const tempFilePath = path.join(__dirname, `temp_${Date.now()}_${i}.jpg`);
+      try {
+        // Извлекаем base64 данные
+        const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Записываем во временный файл
+        fs.writeFileSync(tempFilePath, buffer);
+        
+        // Генерируем технический план
+        const generatedBuffer = await generateTechnicalPlan(tempFilePath, mode);
+        
+        // Генерируем URL для результата
+        const urlData = generateImageUrl('generated_plan', `plan_${i}.jpg`, {
+          mode,
+          originalSize: buffer.length,
+          processedAt: new Date().toISOString()
+        });
+        
+        // Загружаем изображение на внешний сервис
+        const uploadResult = await uploadToExternalService(generatedBuffer, urlData.filename);
+        
+        // Сохраняем URL в базу данных
+        const dbResult = imageUrlsDB.save(
+          authUser?.id || null,
+          'generated_plan',
+          `plan_${i}.jpg`,
+          uploadResult.imageUrl,
+          uploadResult.thumbnailUrl,
+          {
+            ...urlData.metadata,
+            uploadResult: {
+              service: uploadResult.service || 'temporary',
+              deleteData: uploadResult.deleteHash || uploadResult.publicId || uploadResult.localPath
+            }
+          }
+        );
+        
+        results.push({
+          id: dbResult.lastInsertRowid,
+          imageUrl: uploadResult.imageUrl,
+          thumbnailUrl: uploadResult.thumbnailUrl,
+          originalFilename: `plan_${i}.jpg`,
+          mode,
+          createdAt: new Date().toISOString()
+        });
+        
+        // Добавляем задержку между запросами для снижения нагрузки на COMETAPI
+        if (i < images.length - 1) {
+          const delay = 2000 + Math.random() * 1000; // 2-3 секунды
+          console.log(`⏳ Задержка ${Math.round(delay)}мс перед следующим изображением...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      } finally {
+        // Удаляем временный файл
+        try { 
+          fs.unlinkSync(tempFilePath); 
+        } catch (unlinkError) {
+          console.warn('Не удалось удалить временный файл:', tempFilePath);
+        }
+      }
+    }
 
-    res.setHeader('Content-Type', 'image/jpeg');
-    res.send(planBuffer);
+    // Возвращаем результаты с URL
+    if (results.length === 1) {
+      res.status(200).json({
+        success: true,
+        result: results[0],
+        message: 'Технический план успешно создан'
+      });
+    } else {
+      res.status(200).json({
+        success: true,
+        results: results,
+        message: `Создано ${results.length} технических планов`
+      });
+    }
 
   } catch (error) {
     console.error('Ошибка генерации технического плана:', error);
     res.status(500).json({ error: 'Ошибка генерации технического плана: ' + error.message });
+  }
+});
+
+// Маршрут для удаления объектов (очистка комнаты)
+app.post('/api/remove-objects', async (req, res) => {
+  try {
+    const { images } = req.body;
+    
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ error: 'Изображения не загружены' });
+    }
+
+    // Ограничиваем количество изображений для предотвращения перегрузки
+    if (images.length > 5) {
+      return res.status(400).json({ 
+        error: 'Слишком много изображений. Максимум 5 изображений за раз.' 
+      });
+    }
+
+    // COMETAPI ключ обязателен
+    if (!isCometApiKeyValid) {
+      return res.status(503).json({ 
+        error: 'Сервис удаления объектов временно недоступен. API ключ не настроен.',
+        code: 'API_KEY_MISSING'
+      });
+    }
+
+    const authHeader = req.headers['authorization'];
+    let authUser = null;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        authUser = userDB.findById(decoded.id);
+        if (!authUser) {
+          return res.status(401).json({ error: 'Пользователь не найден' });
+        }
+      } catch (err) {
+        console.error('Ошибка проверки токена при удалении объектов:', err);
+        return res.status(401).json({ error: 'Неверный токен' });
+      }
+    }
+
+    const isDirector = authUser?.role === 'director';
+    const isOrganization = authUser?.access_prefix === 'Организация';
+
+    if (authUser && !isDirector && !isOrganization) {
+      if (authUser.plans_used >= MAX_USER_PLANS) {
+        return res.status(403).json({ error: 'Лимит генераций исчерпан', code: 'PLAN_LIMIT' });
+      }
+      userDB.incrementPlanUsage(authUser.id);
+      authUser.plans_used += 1;
+    } else if (!authUser) {
+      // Гостевой доступ
+      const forwarded = req.headers['x-forwarded-for'];
+      const clientIp = forwarded ? forwarded.split(',')[0].trim() : req.ip;
+      const usage = guestUsage.get(clientIp) || { plans: 0 };
+      if (usage.plans >= MAX_GUEST_PLANS) {
+        return res.status(403).json({ error: 'Лимит генераций для гостей исчерпан', code: 'GUEST_LIMIT' });
+      }
+      usage.plans += 1;
+      guestUsage.set(clientIp, usage);
+    }
+
+    console.log(`Обработка ${images.length} изображений для удаления объектов`);
+
+    const results = [];
+    for (let i = 0; i < images.length; i++) {
+      const imageData = images[i];
+      console.log(`🧹 Обработка изображения ${i + 1}/${images.length}`);
+      
+      // Создаем временный файл из base64
+      const tempFilePath = path.join(__dirname, `temp_cleanup_${Date.now()}_${i}.jpg`);
+      try {
+        // Извлекаем base64 данные
+        const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Записываем во временный файл
+        fs.writeFileSync(tempFilePath, buffer);
+        
+        // Генерируем очищенное изображение
+        const generatedBuffer = await generateCleanupImage({ imagePaths: [tempFilePath] });
+        
+        // Генерируем URL для результата
+        const urlData = generateImageUrl('generated_cleanup', `cleanup_${i}.jpg`, {
+          originalSize: buffer.length,
+          processedAt: new Date().toISOString()
+        });
+        
+        // Загружаем изображение на внешний сервис
+        const uploadResult = await uploadToExternalService(generatedBuffer[0], urlData.filename);
+        
+        // Сохраняем URL в базу данных
+        const dbResult = imageUrlsDB.save(
+          authUser?.id || null,
+          'generated_cleanup',
+          `cleanup_${i}.jpg`,
+          uploadResult.imageUrl,
+          uploadResult.thumbnailUrl,
+          {
+            ...urlData.metadata,
+            uploadResult: {
+              service: uploadResult.service || 'temporary',
+              deleteData: uploadResult.deleteHash || uploadResult.publicId || uploadResult.localPath
+            }
+          }
+        );
+        
+        results.push({
+          id: dbResult.lastInsertRowid,
+          imageUrl: uploadResult.imageUrl,
+          thumbnailUrl: uploadResult.thumbnailUrl,
+          originalFilename: `cleanup_${i}.jpg`,
+          createdAt: new Date().toISOString()
+        });
+        
+        // Добавляем задержку между запросами для снижения нагрузки на COMETAPI
+        if (i < images.length - 1) {
+          const delay = 2000 + Math.random() * 1000; // 2-3 секунды
+          console.log(`⏳ Задержка ${Math.round(delay)}мс перед следующим изображением...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      } finally {
+        // Удаляем временный файл
+        try { 
+          fs.unlinkSync(tempFilePath); 
+        } catch (unlinkError) {
+          console.warn('Не удалось удалить временный файл:', tempFilePath);
+        }
+      }
+    }
+
+    // Возвращаем результаты с URL
+    if (results.length === 1) {
+      res.status(200).json({
+        success: true,
+        result: results[0],
+        message: 'Объекты успешно удалены'
+      });
+    } else {
+      res.status(200).json({
+        success: true,
+        results: results,
+        message: `Обработано ${results.length} изображений`
+      });
+    }
+
+  } catch (error) {
+    console.error('Ошибка удаления объектов:', error);
+    res.status(500).json({ error: 'Ошибка удаления объектов: ' + error.message });
   }
 });
 
@@ -264,13 +467,9 @@ app.get('/api/furniture', (req, res) => {
   }
 });
 
-// Обработка ошибок multer
+// Обработка ошибок
 app.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'Файл слишком большой. Максимальный размер: 10MB' });
-    }
-  }
+  console.error('Ошибка сервера:', error);
   res.status(500).json({ error: error.message });
 });
 
