@@ -4197,18 +4197,73 @@ function AdvancedMessageDisplay({
               </div>
               
               {/* Сгенерированное изображение */}
-              {result.image && !result.image.includes('blob:') && (
+              {result.image && (
                 <div className="mb-4">
-                  <img 
-                    src={result.image} 
-                    alt="Результат генерации" 
-                    className="w-full max-w-md rounded-lg ring-1 ring-white/20 cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => onImageClick?.(result.image, "Результат генерации")}
-                    onError={(e) => {
-                      console.warn('Ошибка загрузки изображения результата:', result.image);
-                      e.target.style.display = 'none';
-                    }}
-                  />
+                  <div className="relative">
+                    <img 
+                      src={result.image} 
+                      alt="Результат генерации" 
+                      className="w-full max-w-md rounded-lg ring-1 ring-white/20 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => onImageClick?.(result.image, "Результат генерации")}
+                      onError={(e) => {
+                        console.warn('Ошибка загрузки изображения результата:', result.image);
+                        e.target.style.display = 'none';
+                        // Показываем сообщение об ошибке
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'w-full max-w-md rounded-lg ring-1 ring-red-500/20 bg-red-500/10 p-4 text-center text-red-400 text-sm';
+                        errorDiv.innerHTML = 'Ошибка загрузки изображения. <a href="' + result.image + '" target="_blank" class="underline">Открыть в новой вкладке</a>';
+                        e.target.parentNode.appendChild(errorDiv);
+                      }}
+                    />
+                    {/* Кнопка скачивания на изображении */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDownload?.(result.image);
+                      }}
+                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+                      title="Скачать изображение"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Множественные изображения */}
+              {result.images && Array.isArray(result.images) && result.images.length > 1 && (
+                <div className="mb-4">
+                  <div className="text-xs text-white/70 mb-2">Дополнительные результаты ({result.images.length}):</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {result.images.map((imageUrl, index) => (
+                      <div key={index} className="relative">
+                        <img 
+                          src={imageUrl} 
+                          alt={`Результат ${index + 1}`}
+                          className="w-full rounded-lg ring-1 ring-white/20 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => onImageClick?.(imageUrl, `Результат ${index + 1}`)}
+                          onError={(e) => {
+                            console.warn('Ошибка загрузки дополнительного изображения:', imageUrl);
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDownload?.(imageUrl);
+                          }}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+                          title="Скачать изображение"
+                        >
+                          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               
@@ -4992,8 +5047,15 @@ function MonochromeClaudeStyle() {
         let responseImages2 = [];
         if (contentType2.includes('application/json')) {
           const data = await response.json();
-          if (Array.isArray(data?.images)) {
-            responseImages2 = data.images;
+          // Обрабатываем структуру ответа от API remove-objects
+          if (data.success) {
+            if (data.result) {
+              // Один результат
+              responseImages2 = [data.result.imageUrl];
+            } else if (data.results && Array.isArray(data.results)) {
+              // Множественные результаты
+              responseImages2 = data.results.map(r => r.imageUrl);
+            }
           }
         } else {
           // Конвертируем blob в base64 для прямого использования
@@ -5279,8 +5341,15 @@ function MonochromeClaudeStyle() {
         let responseImages2 = [];
         if (contentType2.includes('application/json')) {
           const data = await response.json();
-          if (Array.isArray(data?.images)) {
-            responseImages2 = data.images;
+          // Обрабатываем структуру ответа от API remove-objects
+          if (data.success) {
+            if (data.result) {
+              // Один результат
+              responseImages2 = [data.result.imageUrl];
+            } else if (data.results && Array.isArray(data.results)) {
+              // Множественные результаты
+              responseImages2 = data.results.map(r => r.imageUrl);
+            }
           }
         } else {
           // Конвертируем blob в base64 для прямого использования
@@ -5344,13 +5413,26 @@ function MonochromeClaudeStyle() {
     }
   };
 
-  const handleAdvancedDownload = (imageUrl) => {
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `generated-image-${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleAdvancedDownload = async (imageUrl) => {
+    try {
+      // Создаем временную ссылку для скачивания
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = `generated-image-${Date.now()}.jpg`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      
+      // Добавляем в DOM, кликаем и удаляем
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('Скачивание изображения:', imageUrl);
+    } catch (error) {
+      console.error('Ошибка при скачивании изображения:', error);
+      // Fallback: открываем изображение в новой вкладке
+      window.open(imageUrl, '_blank');
+    }
   };
 
   // Image modal handlers
