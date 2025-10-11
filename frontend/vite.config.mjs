@@ -23,7 +23,7 @@ export default defineConfig({
     // Определяем переменные окружения для сборки
     'import.meta.env.PROD': JSON.stringify(process.env.NODE_ENV === 'production'),
     'import.meta.env.MODE': JSON.stringify(process.env.NODE_ENV === 'production' ? 'production' : 'development'),
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'https://acqu1red-latar-c0f7.twc1.net'),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'https://acqu1red-latar-f363.twc1.net'),
   },
   build: {
     outDir: 'dist',
