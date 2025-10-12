@@ -5502,22 +5502,38 @@ function MonochromeClaudeStyle() {
 
   const handleAdvancedDownload = async (imageUrl) => {
     try {
+      console.log('Начинаем скачивание изображения:', imageUrl);
+      
+      // Загружаем изображение как blob
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      
+      // Создаем URL для blob
+      const blobUrl = URL.createObjectURL(blob);
+      
       // Создаем временную ссылку для скачивания
       const link = document.createElement('a');
-      link.href = imageUrl;
+      link.href = blobUrl;
       link.download = `generated-image-${Date.now()}.jpg`;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
       
       // Добавляем в DOM, кликаем и удаляем
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      console.log('Скачивание изображения:', imageUrl);
+      // Освобождаем память
+      URL.revokeObjectURL(blobUrl);
+      
+      console.log('Изображение успешно скачано');
     } catch (error) {
       console.error('Ошибка при скачивании изображения:', error);
+      
       // Fallback: открываем изображение в новой вкладке
+      console.log('Fallback: открываем изображение в новой вкладке');
       window.open(imageUrl, '_blank');
     }
   };
@@ -6074,11 +6090,42 @@ function MonochromeClaudeStyle() {
     }
   };
 
-  const handleGalleryDownload = (url, id) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `image-${id}.jpg`;
-    link.click();
+  const handleGalleryDownload = async (url, id) => {
+    try {
+      console.log('Начинаем скачивание изображения из галереи:', url);
+      
+      // Загружаем изображение как blob
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      
+      // Создаем URL для blob
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Создаем временную ссылку для скачивания
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `image-${id}.jpg`;
+      
+      // Добавляем в DOM, кликаем и удаляем
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Освобождаем память
+      URL.revokeObjectURL(blobUrl);
+      
+      console.log('Изображение из галереи успешно скачано');
+    } catch (error) {
+      console.error('Ошибка при скачивании изображения из галереи:', error);
+      
+      // Fallback: открываем изображение в новой вкладке
+      console.log('Fallback: открываем изображение в новой вкладке');
+      window.open(url, '_blank');
+    }
   };
 
   const handleShowGallery = () => {
