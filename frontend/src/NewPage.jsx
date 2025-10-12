@@ -2698,9 +2698,7 @@ function AdvancedMainArea({
   onGalleryDownload,
   model,
   onModelSelect,
-  on3DInfoOpen,
-  user,
-  setIsAuthOpen
+  on3DInfoOpen
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showPromoCard, setShowPromoCard] = useState(true);
@@ -2734,52 +2732,10 @@ function AdvancedMainArea({
   }, [modelTo3D]);
 
   // Gallery component
-  const GalleryContent = ({ user, onAuthOpen }) => {
+  const GalleryContent = () => {
     const filteredImages = galleryModelFilter === 'all' 
       ? galleryImages 
       : galleryImages.filter(img => img.model === galleryModelFilter);
-
-    // Если пользователь не авторизован, показываем сообщение
-    if (!user) {
-      return (
-        <div className="flex-1 flex flex-col">
-          {/* Gallery Header */}
-          <div className="border-b border-white/5 bg-black/20 backdrop-blur-sm">
-            <div className="mx-auto max-w-7xl px-6 py-4">
-              <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-semibold text-white">Создано</h1>
-              </div>
-            </div>
-          </div>
-
-          {/* Auth Required Message */}
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center max-w-md mx-auto px-6">
-              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-                <Images className="h-8 w-8 text-blue-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-3">
-                Для просмотра сгенерированных фотографий
-              </h3>
-              <p className="text-neutral-400 mb-6 leading-relaxed">
-                необходимо <button 
-                  onClick={onAuthOpen}
-                  className="text-blue-400 hover:text-blue-300 underline transition-colors"
-                >
-                  зарегистрироваться
-                </button>
-              </p>
-              <button
-                onClick={onAuthOpen}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-blue-500/25"
-              >
-                Запустить Plan AI
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
 
     return (
       <div className="flex-1 flex flex-col">
@@ -2957,7 +2913,7 @@ function AdvancedMainArea({
     <main className="relative flex flex-col h-screen">
       {/* Gallery View */}
       {showGallery ? (
-        <GalleryContent user={user} onAuthOpen={() => setIsAuthOpen(true)} />
+        <GalleryContent />
       ) : (
         <>
           {/* Сообщения в верхней части */}
@@ -4596,7 +4552,50 @@ function MonochromeClaudeStyle() {
   
   // Gallery states
   const [showGallery, setShowGallery] = useState(false);
-  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryImages, setGalleryImages] = useState([
+    {
+      id: 1,
+      url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
+      prompt: 'Современный интерьер квартиры с панорамными окнами',
+      model: 'DALL-E 3',
+      createdAt: new Date('2024-01-15'),
+    },
+    {
+      id: 2,
+      url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800',
+      prompt: 'Минималистичная кухня в скандинавском стиле',
+      model: 'Midjourney',
+      createdAt: new Date('2024-01-14'),
+    },
+    {
+      id: 3,
+      url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
+      prompt: 'Уютная спальня с деревянными элементами',
+      model: 'DALL-E 3',
+      createdAt: new Date('2024-01-13'),
+    },
+    {
+      id: 4,
+      url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
+      prompt: 'Современная ванная комната с мраморной отделкой',
+      model: 'Stable Diffusion',
+      createdAt: new Date('2024-01-12'),
+    },
+    {
+      id: 5,
+      url: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800',
+      prompt: 'Просторная гостиная с камином',
+      model: 'DALL-E 3',
+      createdAt: new Date('2024-01-11'),
+    },
+    {
+      id: 6,
+      url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+      prompt: 'Домашний офис с большим столом',
+      model: 'Midjourney',
+      createdAt: new Date('2024-01-10'),
+    },
+  ]);
   const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
   const [galleryModelFilter, setGalleryModelFilter] = useState('all');
   const [limitNotice, setLimitNotice] = useState('');
@@ -5154,11 +5153,6 @@ function MonochromeClaudeStyle() {
 
       setAdvancedCurrentResult(aiResponse);
       
-      // Добавляем изображение в галерею, если оно есть
-      if (responseImage) {
-        addToGallery(responseImage, userMessage.text, model === 'techplan' ? 'Создание по техплану' : 'Удаление объектов');
-      }
-      
       // Добавляем сообщения в историю для текущего чата
       setAdvancedMessageHistory(prev => ({
         ...prev,
@@ -5454,11 +5448,6 @@ function MonochromeClaudeStyle() {
       
       setAdvancedCurrentResult(newResult);
       
-      // Добавляем изображение в галерею, если оно есть
-      if (responseImage) {
-        addToGallery(responseImage, query, model === 'techplan' ? 'Создание по техплану' : 'Удаление объектов');
-      }
-      
       // Обновляем сообщение в истории для текущего чата
       setAdvancedMessageHistory(prev => ({
         ...prev,
@@ -5637,11 +5626,6 @@ function MonochromeClaudeStyle() {
           canRegenerate: true
         }
       }));
-      
-      // Добавляем изображение в галерею, если оно есть
-      if (responseImage) {
-        addToGallery(responseImage, content, model === 'techplan' ? 'Создание по техплану' : 'Удаление объектов');
-      }
     } catch (error) {
       console.error('Ошибка генерации:', error);
       
@@ -6072,21 +6056,6 @@ function MonochromeClaudeStyle() {
     }
   };
 
-  // Функция для добавления сгенерированного изображения в галерею
-  const addToGallery = (imageUrl, prompt, model = 'ARCPLAN MODEL') => {
-    if (!imageUrl) return;
-    
-    const newImage = {
-      id: Date.now() + Math.random(), // Уникальный ID
-      url: imageUrl,
-      prompt: prompt || 'Сгенерированное изображение',
-      model: model,
-      createdAt: new Date()
-    };
-    
-    setGalleryImages(prev => [newImage, ...prev]);
-  };
-
   const handleGalleryDownload = (url, id) => {
     const link = document.createElement('a');
     link.href = url;
@@ -6208,8 +6177,6 @@ function MonochromeClaudeStyle() {
             model={model}
             onModelSelect={setModel}
             on3DInfoOpen={() => setIs3DInfoModalOpen(true)}
-            user={user}
-            setIsAuthOpen={setIsAuthOpen}
           />
           {limitNotice && (
             <div className="mx-auto max-w-3xl w-full px-4 mb-4">
