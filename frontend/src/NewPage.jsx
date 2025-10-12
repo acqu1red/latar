@@ -133,7 +133,7 @@ function ConfirmationModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-md mx-4 bg-[#161618] border border-white/10 rounded-2xl p-6 shadow-2xl"
+        className="relative w-full max-w-6xl mx-4 bg-[#161618] border border-white/10 rounded-2xl p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -227,7 +227,7 @@ function RenameChatModal({ isOpen, onClose, onConfirm, currentTitle, showRemembe
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-md mx-4 bg-[#161618] border border-white/10 rounded-2xl p-6 shadow-2xl"
+        className="relative w-full max-w-6xl mx-4 bg-[#161618] border border-white/10 rounded-2xl p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -1559,7 +1559,7 @@ function AuthModal({ isOpen, onClose }) {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-[360px] mx-auto overflow-hidden bg-black border border-white/20 rounded-2xl shadow-2xl"
+        className="relative w-full max-w-[560px] mx-auto overflow-hidden bg-black border border-white/20 rounded-2xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -1583,161 +1583,160 @@ function AuthModal({ isOpen, onClose }) {
         
         {/* Content */}
         <div className="px-5 py-5">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {mode === 'register' && (
-              <>
-                {/* Первый ряд - два блока горизонтально */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Левый блок */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm text-neutral-400 block mb-2">
-                        Название организации
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
-                        placeholder="Как называется Ваша организация?"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm text-neutral-400 block mb-2">
-                        Псевдоним для входа
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
-                        placeholder="username"
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Правый блок */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm text-neutral-400 block mb-2">
-                        Пароль для входа
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          required
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors duration-200 p-1 rounded-md hover:bg-white/10"
-                        >
-                          {showPassword ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm text-neutral-400 block mb-2">
-                        Подтвердите пароль
-                      </label>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Второй ряд - один блок по центру */}
-                <div className="flex justify-center">
-                  <div className="w-full max-w-md">
-                    <label className="text-sm text-neutral-400 block mb-2">
-                      Telegram для связи
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={telegram}
-                      onChange={(e) => setTelegram(e.target.value)}
-                      className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
-                      placeholder="@example"
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-            
-            {/* Поля для входа (остаются вертикально) */}
-            {mode === 'login' && (
-              <>
-                <div>
-                  <label className="text-sm text-neutral-400 block mb-2">
-                    Псевдоним
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
-                    placeholder="username"
-                  />
-                </div>
-                
-                <div>
-                  <label className="text-sm text-neutral-400 block mb-2">
-                    Пароль
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
-                      placeholder="••••••••"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors duration-200 p-1 rounded-md hover:bg-white/10"
-                    >
-                      {showPassword ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+             {mode === 'register' && (
+               <>
+                 {/* Первый ряд - Название организации и Пароль для входа */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                   <div className="flex flex-col">
+                     <label className="text-sm text-neutral-400 block mb-2">
+                       Название организации
+                     </label>
+                     <input
+                       type="text"
+                       required
+                       value={name}
+                       onChange={(e) => setName(e.target.value)}
+                       className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                       placeholder="Название организации"
+                     />
+                   </div>
+                   
+                   <div className="flex flex-col">
+                     <label className="text-sm text-neutral-400 block mb-2">
+                       Пароль для входа
+                     </label>
+                     <div className="relative h-12">
+                       <input
+                         type={showPassword ? 'text' : 'password'}
+                         required
+                         value={password}
+                         onChange={(e) => setPassword(e.target.value)}
+                         className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                         placeholder="••••••••"
+                       />
+                       <button
+                         type="button"
+                         onClick={() => setShowPassword(!showPassword)}
+                         className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors duration-200 p-1 rounded-md hover:bg-white/10"
+                       >
+                         {showPassword ? (
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                           </svg>
+                         ) : (
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                           </svg>
+                         )}
+                       </button>
+                     </div>
+                   </div>
+                 </div>
+                 
+                 {/* Второй ряд - Псевдоним для входа и Подтвердите пароль */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                   <div className="flex flex-col">
+                     <label className="text-sm text-neutral-400 block mb-2">
+                       Псевдоним для входа
+                     </label>
+                     <input
+                       type="text"
+                       required
+                       value={username}
+                       onChange={(e) => setUsername(e.target.value)}
+                       className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                       placeholder="username"
+                     />
+                   </div>
+                   
+                   <div className="flex flex-col">
+                     <label className="text-sm text-neutral-400 block mb-2">
+                       Подтвердите пароль
+                     </label>
+                     <div className="relative h-12">
+                       <input
+                         type={showPassword ? 'text' : 'password'}
+                         required
+                         value={confirmPassword}
+                         onChange={(e) => setConfirmPassword(e.target.value)}
+                         className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                         placeholder="••••••••"
+                       />
+                     </div>
+                   </div>
+                 </div>
+                 
+                 {/* Третий ряд - Telegram для связи */}
+                 <div className="flex justify-center">
+                   <div className="w-full max-w-2xl">
+                     <label className="text-sm text-neutral-400 block mb-2">
+                       Telegram для связи
+                     </label>
+                     <input
+                       type="text"
+                       required
+                       value={telegram}
+                       onChange={(e) => setTelegram(e.target.value)}
+                       className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                       placeholder="@example"
+                     />
+                   </div>
+                 </div>
+               </>
+             )}
+             
+             {/* Поля для входа (остаются вертикально) */}
+             {mode === 'login' && (
+               <>
+                 <div className="flex flex-col">
+                   <label className="text-sm text-neutral-400 block mb-2">
+                     Псевдоним
+                   </label>
+                   <input
+                     type="text"
+                     required
+                     value={username}
+                     onChange={(e) => setUsername(e.target.value)}
+                     className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                     placeholder="username"
+                   />
+                 </div>
+                 
+                 <div className="flex flex-col">
+                   <label className="text-sm text-neutral-400 block mb-2">
+                     Пароль
+                   </label>
+                   <div className="relative h-12">
+                     <input
+                       type={showPassword ? 'text' : 'password'}
+                       required
+                       value={password}
+                       onChange={(e) => setPassword(e.target.value)}
+                       className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                       placeholder="••••••••"
+                     />
+                     <button
+                       type="button"
+                       onClick={() => setShowPassword(!showPassword)}
+                       className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors duration-200 p-1 rounded-md hover:bg-white/10"
+                     >
+                       {showPassword ? (
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                         </svg>
+                       ) : (
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                         </svg>
+                       )}
+                     </button>
+                   </div>
+                 </div>
+               </>
+             )}
             
             {error && (
               <div className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3">
@@ -1750,7 +1749,7 @@ function AuthModal({ isOpen, onClose }) {
               disabled={loading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-white to-neutral-100 hover:from-neutral-100 hover:to-neutral-200 disabled:from-neutral-600 disabled:to-neutral-700 disabled:cursor-not-allowed text-black font-semibold py-3 rounded-xl transition-all shadow-lg shadow-white/10 hover:shadow-white/20"
+               className="w-full bg-gradient-to-r from-white to-neutral-100 hover:from-neutral-100 hover:to-neutral-200 disabled:from-neutral-600 disabled:to-neutral-700 disabled:cursor-not-allowed text-black font-semibold py-3 rounded-xl transition-all shadow-lg shadow-white/10 hover:shadow-white/20"
             >
               {loading 
                 ? (mode === 'register' ? 'Запуск...' : 'Вход...') 
@@ -2699,7 +2698,9 @@ function AdvancedMainArea({
   onGalleryDownload,
   model,
   onModelSelect,
-  on3DInfoOpen
+  on3DInfoOpen,
+  user,
+  setIsAuthOpen
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showPromoCard, setShowPromoCard] = useState(true);
@@ -2733,10 +2734,52 @@ function AdvancedMainArea({
   }, [modelTo3D]);
 
   // Gallery component
-  const GalleryContent = () => {
+  const GalleryContent = ({ user, onAuthOpen }) => {
     const filteredImages = galleryModelFilter === 'all' 
       ? galleryImages 
       : galleryImages.filter(img => img.model === galleryModelFilter);
+
+    // Если пользователь не авторизован, показываем сообщение
+    if (!user) {
+      return (
+        <div className="flex-1 flex flex-col">
+          {/* Gallery Header */}
+          <div className="border-b border-white/5 bg-black/20 backdrop-blur-sm">
+            <div className="mx-auto max-w-7xl px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-semibold text-white">Создано</h1>
+              </div>
+            </div>
+          </div>
+
+          {/* Auth Required Message */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center max-w-md mx-auto px-6">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+                <Images className="h-8 w-8 text-blue-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-3">
+                Для просмотра сгенерированных фотографий
+              </h3>
+              <p className="text-neutral-400 mb-6 leading-relaxed">
+                необходимо <button 
+                  onClick={onAuthOpen}
+                  className="text-blue-400 hover:text-blue-300 underline transition-colors"
+                >
+                  зарегистрироваться
+                </button>
+              </p>
+              <button
+                onClick={onAuthOpen}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-blue-500/25"
+              >
+                Запустить Plan AI
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="flex-1 flex flex-col">
@@ -2914,7 +2957,7 @@ function AdvancedMainArea({
     <main className="relative flex flex-col h-screen">
       {/* Gallery View */}
       {showGallery ? (
-        <GalleryContent />
+        <GalleryContent user={user} onAuthOpen={() => setIsAuthOpen(true)} />
       ) : (
         <>
           {/* Сообщения в верхней части */}
@@ -4553,50 +4596,7 @@ function MonochromeClaudeStyle() {
   
   // Gallery states
   const [showGallery, setShowGallery] = useState(false);
-  const [galleryImages, setGalleryImages] = useState([
-    {
-      id: 1,
-      url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
-      prompt: 'Современный интерьер квартиры с панорамными окнами',
-      model: 'DALL-E 3',
-      createdAt: new Date('2024-01-15'),
-    },
-    {
-      id: 2,
-      url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800',
-      prompt: 'Минималистичная кухня в скандинавском стиле',
-      model: 'Midjourney',
-      createdAt: new Date('2024-01-14'),
-    },
-    {
-      id: 3,
-      url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
-      prompt: 'Уютная спальня с деревянными элементами',
-      model: 'DALL-E 3',
-      createdAt: new Date('2024-01-13'),
-    },
-    {
-      id: 4,
-      url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
-      prompt: 'Современная ванная комната с мраморной отделкой',
-      model: 'Stable Diffusion',
-      createdAt: new Date('2024-01-12'),
-    },
-    {
-      id: 5,
-      url: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800',
-      prompt: 'Просторная гостиная с камином',
-      model: 'DALL-E 3',
-      createdAt: new Date('2024-01-11'),
-    },
-    {
-      id: 6,
-      url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
-      prompt: 'Домашний офис с большим столом',
-      model: 'Midjourney',
-      createdAt: new Date('2024-01-10'),
-    },
-  ]);
+  const [galleryImages, setGalleryImages] = useState([]);
   const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
   const [galleryModelFilter, setGalleryModelFilter] = useState('all');
   const [limitNotice, setLimitNotice] = useState('');
@@ -5154,6 +5154,11 @@ function MonochromeClaudeStyle() {
 
       setAdvancedCurrentResult(aiResponse);
       
+      // Добавляем изображение в галерею, если оно есть
+      if (responseImage) {
+        addToGallery(responseImage, userMessage.text, model === 'techplan' ? 'Создание по техплану' : 'Удаление объектов');
+      }
+      
       // Добавляем сообщения в историю для текущего чата
       setAdvancedMessageHistory(prev => ({
         ...prev,
@@ -5449,6 +5454,11 @@ function MonochromeClaudeStyle() {
       
       setAdvancedCurrentResult(newResult);
       
+      // Добавляем изображение в галерею, если оно есть
+      if (responseImage) {
+        addToGallery(responseImage, query, model === 'techplan' ? 'Создание по техплану' : 'Удаление объектов');
+      }
+      
       // Обновляем сообщение в истории для текущего чата
       setAdvancedMessageHistory(prev => ({
         ...prev,
@@ -5627,6 +5637,11 @@ function MonochromeClaudeStyle() {
           canRegenerate: true
         }
       }));
+      
+      // Добавляем изображение в галерею, если оно есть
+      if (responseImage) {
+        addToGallery(responseImage, content, model === 'techplan' ? 'Создание по техплану' : 'Удаление объектов');
+      }
     } catch (error) {
       console.error('Ошибка генерации:', error);
       
@@ -6057,6 +6072,21 @@ function MonochromeClaudeStyle() {
     }
   };
 
+  // Функция для добавления сгенерированного изображения в галерею
+  const addToGallery = (imageUrl, prompt, model = 'ARCPLAN MODEL') => {
+    if (!imageUrl) return;
+    
+    const newImage = {
+      id: Date.now() + Math.random(), // Уникальный ID
+      url: imageUrl,
+      prompt: prompt || 'Сгенерированное изображение',
+      model: model,
+      createdAt: new Date()
+    };
+    
+    setGalleryImages(prev => [newImage, ...prev]);
+  };
+
   const handleGalleryDownload = (url, id) => {
     const link = document.createElement('a');
     link.href = url;
@@ -6178,6 +6208,8 @@ function MonochromeClaudeStyle() {
             model={model}
             onModelSelect={setModel}
             on3DInfoOpen={() => setIs3DInfoModalOpen(true)}
+            user={user}
+            setIsAuthOpen={setIsAuthOpen}
           />
           {limitNotice && (
             <div className="mx-auto max-w-3xl w-full px-4 mb-4">
