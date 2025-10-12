@@ -247,12 +247,33 @@ app.get('/temp-images/:filename', (req, res) => {
     const uploadsDir = path.join(__dirname, 'uploads');
     const filePath = path.join(uploadsDir, filename);
     
+    console.log(`🔍 Запрос изображения: ${filename}`);
+    console.log(`📁 Директория uploads: ${uploadsDir}`);
+    console.log(`📄 Полный путь к файлу: ${filePath}`);
+    console.log(`📄 Директория существует: ${fs.existsSync(uploadsDir)}`);
+    console.log(`📄 Файл существует: ${fs.existsSync(filePath)}`);
+    
     // Проверяем, что файл существует
     if (!fs.existsSync(filePath)) {
       console.log(`❌ Файл не найден: ${filePath}`);
+      
+      // Показываем содержимое директории для диагностики
+      try {
+        const files = fs.readdirSync(uploadsDir);
+        console.log(`📂 Содержимое директории uploads:`, files);
+      } catch (dirError) {
+        console.log(`❌ Не удалось прочитать директорию uploads:`, dirError.message);
+      }
+      
       return res.status(404).json({ 
         error: 'Изображение не найдено',
-        message: `Файл ${filename} не существует на сервере`
+        message: `Файл ${filename} не существует на сервере`,
+        debug: {
+          uploadsDir,
+          filePath,
+          dirExists: fs.existsSync(uploadsDir),
+          fileExists: fs.existsSync(filePath)
+        }
       });
     }
     

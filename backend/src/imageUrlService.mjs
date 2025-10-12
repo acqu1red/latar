@@ -203,10 +203,17 @@ async function uploadToCloudinary(imageBuffer, filename) {
  */
 async function uploadToTemporary(imageBuffer, filename) {
   try {
+    // Получаем правильный путь к директории сервера
+    const { fileURLToPath } = await import('url');
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const serverDir = path.dirname(__dirname); // Поднимаемся на уровень выше от src/
+    
     // Создаем директорию для изображений, если её нет
-    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const uploadsDir = path.join(serverDir, 'uploads');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log(`✅ Создана директория uploads: ${uploadsDir}`);
     }
     
     // Путь к файлу
@@ -216,6 +223,8 @@ async function uploadToTemporary(imageBuffer, filename) {
     fs.writeFileSync(filePath, imageBuffer);
     
     console.log(`✅ Файл сохранен: ${filePath}`);
+    console.log(`📁 Директория uploads: ${uploadsDir}`);
+    console.log(`📄 Файл существует: ${fs.existsSync(filePath)}`);
     
     return {
       imageUrl: `${EXTERNAL_SERVICES.temporary.baseUrl}${filename}`,
