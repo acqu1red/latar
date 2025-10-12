@@ -1583,88 +1583,158 @@ function AuthModal({ isOpen, onClose }) {
         
         {/* Content */}
         <div className="px-5 py-5">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {mode === 'register' && (
-              <div>
-                <label className="text-sm text-neutral-400 block mb-2">
-                  Название организации
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
-                  placeholder="Как называется Ваша организация?"
-                />
-              </div>
+              <>
+                {/* Первый ряд - два блока горизонтально */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Левый блок */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-neutral-400 block mb-2">
+                        Название организации
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                        placeholder="Как называется Ваша организация?"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm text-neutral-400 block mb-2">
+                        Псевдоним для входа
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                        placeholder="username"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Правый блок */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-neutral-400 block mb-2">
+                        Пароль для входа
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors duration-200 p-1 rounded-md hover:bg-white/10"
+                        >
+                          {showPassword ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm text-neutral-400 block mb-2">
+                        Подтвердите пароль
+                      </label>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Второй ряд - один блок по центру */}
+                <div className="flex justify-center">
+                  <div className="w-full max-w-md">
+                    <label className="text-sm text-neutral-400 block mb-2">
+                      Telegram для связи
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={telegram}
+                      onChange={(e) => setTelegram(e.target.value)}
+                      className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                      placeholder="@example"
+                    />
+                  </div>
+                </div>
+              </>
             )}
             
-            <div>
-              <label className="text-sm text-neutral-400 block mb-2">
-                Псевдоним {mode === 'register' ? 'для входа' : ''}
-              </label>
-              <input
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
-                placeholder="username"
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm text-neutral-400 block mb-2">
-                Пароль {mode === 'register' ? 'для входа' : ''}
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition"
-                >
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
-                </button>
-              </div>
-            </div>
-            
-            {mode === 'register' && (
+            {/* Поля для входа (остаются вертикально) */}
+            {mode === 'login' && (
               <>
                 <div>
                   <label className="text-sm text-neutral-400 block mb-2">
-                    Подтвердите пароль
+                    Псевдоним
                   </label>
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type="text"
                     required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
-                    placeholder="••••••••"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                    placeholder="username"
                   />
                 </div>
                 
                 <div>
                   <label className="text-sm text-neutral-400 block mb-2">
-                    Telegram для связи
+                    Пароль
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={telegram}
-                    onChange={(e) => setTelegram(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
-                    placeholder="@example"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-gradient-to-r from-black/40 to-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors duration-200 p-1 rounded-md hover:bg-white/10"
+                    >
+                      {showPassword ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </>
             )}
@@ -1680,7 +1750,7 @@ function AuthModal({ isOpen, onClose }) {
               disabled={loading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full bg-white hover:bg-neutral-200 disabled:bg-neutral-600 disabled:cursor-not-allowed text-black font-semibold py-3 rounded-xl transition-all shadow-lg shadow-white/10"
+              className="w-full bg-gradient-to-r from-white to-neutral-100 hover:from-neutral-100 hover:to-neutral-200 disabled:from-neutral-600 disabled:to-neutral-700 disabled:cursor-not-allowed text-black font-semibold py-3 rounded-xl transition-all shadow-lg shadow-white/10 hover:shadow-white/20"
             >
               {loading 
                 ? (mode === 'register' ? 'Запуск...' : 'Вход...') 
@@ -2810,7 +2880,7 @@ function AdvancedMainArea({
               <div className="mt-4 rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm p-6">
                 <p className="text-white mb-3">{selectedGalleryImage.prompt}</p>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-400">Модель: {selectedGalleryImage.model}</span>
+                  <span className="text-neutral-400">ARCPLAN MODEL: {selectedGalleryImage.model}</span>
                   <span className="text-neutral-400">
                     {new Date(selectedGalleryImage.createdAt).toLocaleDateString('ru-RU')}
                   </span>
@@ -4172,7 +4242,7 @@ function AdvancedMessageDisplay({
                 >
                   ✷
                 </motion.div>
-                <span className="font-medium">Модель анализирует изображения...</span>
+                <span className="font-medium">ARCPLAN MODEL анализирует изображения...</span>
               </div>
               <div className="text-[10px] text-neutral-400 mt-1.5">
                 Обработка фотографий и генерация результата
@@ -4186,10 +4256,10 @@ function AdvancedMessageDisplay({
           <div className="flex justify-start">
             <div className="max-w-[80%] rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur px-4 py-3">
               <div className="flex items-center gap-1.5 mb-2">
-                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-white">AI</span>
+                <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-white">AP</span>
                 </div>
-                <span className="text-xs font-medium text-white">Модель</span>
+                <span className="text-xs font-medium text-white">ARCPLAN MODEL</span>
               </div>
               
               <div className="text-xs text-white whitespace-pre-wrap mb-3">
@@ -4830,7 +4900,7 @@ function MonochromeClaudeStyle() {
     // Поиск по настройкам
     const settingsOptions = [
       { id: 'style', label: 'Стиль сайта', options: STYLE_OPTIONS },
-      { id: 'model', label: 'Модель', options: MODEL_OPTIONS },
+      { id: 'model', label: 'ARCPLAN MODEL', options: MODEL_OPTIONS },
       { id: 'background', label: 'Фон страницы', options: [
         { id: 'standard', label: 'Стандартный' },
         { id: 'interactive', label: 'Интерактивный' },
