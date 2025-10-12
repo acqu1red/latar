@@ -5162,6 +5162,27 @@ function MonochromeClaudeStyle() {
 
       setAdvancedCurrentResult(aiResponse);
       
+      // Добавляем изображение в галерею, если оно есть
+      if (responseImage) {
+        const modelName = model === 'techplan' ? 'ARCPLAN MODEL' : 
+                         model === 'cleanup' ? 'ARCPLAN MODEL' : 
+                         'ARCPLAN MODEL';
+        addToGallery(responseImage, userMessage.text, modelName);
+      }
+      
+      // Добавляем множественные изображения в галерею, если они есть
+      const multipleImages = (typeof responseImages !== 'undefined' ? responseImages : undefined) || (typeof responseImages2 !== 'undefined' ? responseImages2 : undefined);
+      if (multipleImages && Array.isArray(multipleImages) && multipleImages.length > 0) {
+        const modelName = model === 'techplan' ? 'ARCPLAN MODEL' : 
+                         model === 'cleanup' ? 'ARCPLAN MODEL' : 
+                         'ARCPLAN MODEL';
+        multipleImages.forEach((imageUrl, index) => {
+          if (imageUrl && imageUrl !== responseImage) { // Не дублируем основное изображение
+            addToGallery(imageUrl, `${userMessage.text} (${index + 1})`, modelName);
+          }
+        });
+      }
+      
       // Добавляем сообщения в историю для текущего чата
       setAdvancedMessageHistory(prev => ({
         ...prev,
@@ -5466,6 +5487,14 @@ function MonochromeClaudeStyle() {
       
       setAdvancedCurrentResult(newResult);
       
+      // Добавляем изображение в галерею, если оно есть
+      if (responseImage) {
+        const modelName = model === 'techplan' ? 'ARCPLAN MODEL' : 
+                         model === 'cleanup' ? 'ARCPLAN MODEL' : 
+                         'ARCPLAN MODEL';
+        addToGallery(responseImage, query, modelName);
+      }
+      
       // Обновляем сообщение в истории для текущего чата
       setAdvancedMessageHistory(prev => ({
         ...prev,
@@ -5498,6 +5527,22 @@ function MonochromeClaudeStyle() {
       // Очищаем прикрепленные фотографии после завершения обработки
       clearAllAttachments();
     }
+  };
+
+  // Функция для добавления сгенерированного изображения в галерею
+  const addToGallery = (imageUrl, prompt, model = 'ARCPLAN MODEL') => {
+    if (!imageUrl) return;
+    
+    const newImage = {
+      id: Date.now() + Math.random(), // Уникальный ID
+      url: imageUrl,
+      prompt: prompt || 'Сгенерированное изображение',
+      model: model,
+      createdAt: new Date()
+    };
+    
+    setGalleryImages(prev => [newImage, ...prev]);
+    console.log('✅ Изображение добавлено в галерею:', newImage);
   };
 
   const handleAdvancedDownload = async (imageUrl) => {
