@@ -5037,8 +5037,17 @@ function MonochromeClaudeStyle() {
         let responseImages = [];
         if (contentType.includes('application/json')) {
           const data = await response.json();
-          if (Array.isArray(data?.images)) {
-            responseImages = data.images;
+          console.log('📊 Ответ от API techplan:', data);
+          
+          // Обрабатываем структуру ответа от API generate-technical-plan
+          if (data.success) {
+            if (data.result) {
+              // Один результат
+              responseImages = [data.result.imageUrl];
+            } else if (data.results && Array.isArray(data.results)) {
+              // Множественные результаты
+              responseImages = data.results.map(r => r.imageUrl);
+            }
           }
         } else {
           // Конвертируем blob в base64 для прямого использования
@@ -5355,8 +5364,17 @@ function MonochromeClaudeStyle() {
         let responseImages = [];
         if (contentType.includes('application/json')) {
           const data = await response.json();
-          if (Array.isArray(data?.images)) {
-            responseImages = data.images;
+          console.log('📊 Ответ от API techplan (regenerate):', data);
+          
+          // Обрабатываем структуру ответа от API generate-technical-plan
+          if (data.success) {
+            if (data.result) {
+              // Один результат
+              responseImages = [data.result.imageUrl];
+            } else if (data.results && Array.isArray(data.results)) {
+              // Множественные результаты
+              responseImages = data.results.map(r => r.imageUrl);
+            }
           }
         } else {
           // Конвертируем blob в base64 для прямого использования
