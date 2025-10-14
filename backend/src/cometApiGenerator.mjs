@@ -61,69 +61,182 @@ import path from 'path';
 
 // Промпты для разных режимов
 const PROMPTS = {
-  withoutFurniture: `You are a professional architectural draftsman, and people's lives depend on your work.
-Redraw this 2D apartment floor plan into a high-quality technical drawing, accurately preserving all proportions and the exact locations of walls, doors, windows, and plumbing. Do NOT change the layout.
+  withoutFurniture: `You are a professional architectural draftsman. People's lives depend on your work.
 
-HARD BAN — NO TEXT / NO NUMBERS (GLOBAL, TOP PRIORITY)
-• Absolutely no text of any kind on the final image.
-• No room names, legends, labels, titles, watermarks, symbols with letters, or any annotations.
-• No digits 0–9; no decimals/fractions; no ordinals (“1st/2nd”); no ranges (“3–5”); no dates; no scales; no coordinates; no degrees.
-• No spelled-out numbers or ordinal words (“one, two…”, “first, second…”). Treat ALL words that represent quantities as forbidden.
-• No units with or without numbers (“m²”, “cm”, “mm”, “deg”, “ft”, “in”, etc.).
-• If any step attempts to add text or numbers, BLOCK and OMIT it.
-• Output only geometry and symbols (walls, doors, windows, fixtures) as shapes/paths.
-• Ensure there are ZERO text layers (including hidden/empty/locked). Final export must be pure graphics.
+Work in slow, forensic mode: analyze first, redraw only after you exhaust all checks.
 
-VISUAL STYLE (STRICT)
-• Background: pure white (#FFFFFF).
-• All lines and all fills: pure black (#000000) ONLY. No grayscale, no gradients, no patterns, no anti-aliased gray fringe, no transparency (alpha = 1).
-• Canvas: 1200×1200 px; JPG quality 95%. No borders, titles, or dimension lines.
+MISSION
 
-WALLS — SOLID BLACK #000000 (MANDATORY)
-• External load-bearing walls: draw as solid polygons with black fill #000000; apparent thickness 4–5 px.
-• Internal load-bearing walls: solid black fill #000000; apparent thickness 3 px.
-• Partitions: solid black fill #000000; apparent thickness 2 px.
-• No hatching, no textures, no outlines of other colors; only solid #000000 mass for wall bodies. Edges must be crisp (no dithering).
-• Preserve all existing wall geometry (including diagonal/curved segments) exactly.
+Redraw the attached 2D apartment floor plan into a clean technical plan that exactly preserves the geometry and positions of all walls, doors, windows, plumbing and built-in fixtures. Zero layout changes. Zero invented features.
 
-OPENINGS & FIXTURES
-• Doors: show opening arc (1 px dashed line) + shortened door leaf; must not intersect walls incorrectly.
-• Windows: double frame 2 px; glass indicated with diagonal hatching at 45° (black lines on white; do NOT place any text/marks).
-• Plumbing fixtures: draw as simple black outlines/icons (no letters, no size labels).
+STRICT DO-NOT-INVENT POLICY
 
-INPUT NORMALIZATION — STRAIGHTEN & RECTIFY (REQUIRED)
-• If the source is rotated/skewed/perspective-distorted:
-– Rotate to the nearest 0°/90°/180°/270° so any original text (if present in the source) appears upright only during analysis (do NOT copy it).
-– Deskew to orthogonal grid; apply perspective rectification to orthographic top-down (no foreshortening).
+If ANY opening/fixture is ambiguous, do not guess. Render a continuous wall instead of "assuming a door/window."
+
+Never infer from furniture alone. Never do "symmetry guesses." Never add elements to "balance" a room.
+
+Keep only what is clearly present in the source.
+
+PHASE 0 — INPUT NORMALIZATION (REQUIRED)
+
+Upright & deskew: rotate to the nearest 0°/90°/180°/270°, deskew and rectify perspective to orthographic top-down view.
+
+Crop to plan: remove paper edges, stamps, shadows, noise, background texture.
+
+Scale: preserve relative proportions; do not rescale parts independently.
+
+PHASE 1 — FORENSIC ANALYSIS (REQUIRED)
+
+Scan the rectified image for:
+
+Exterior walls, interior partitions, columns/pilasters/shafts.
+
+Openings: doors (hinged swing arcs), double doors, doorless openings, windows (sill breaks).
+
+Wet-zone fixtures if unambiguous: bathtub/shower tray, WC pan, washbasin, kitchen sink, stove, radiator niche.
+
+Stairs/steps or level changes if present.
+
+Mark anything uncertain as "unknown"—you will not redraw those as openings.
+
+PHASE 2 — REDRAW RULES
+
+Rebuild the plan as simplified vector-like graphics. No text, numbers, room names, dimensions or hatches from the scan.
+
+Walls: solid black shapes. Exterior walls thicker than interior. Keep all offsets, niches, risers and ledges exactly where they are.
+
+Doors: draw leaf and swing arc only when clearly visible; otherwise keep wall solid.
+
+Windows: show as wall gaps with a thin inner jamb line when clearly visible; otherwise keep wall solid.
+
+Fixtures: draw only if unambiguously recognizable in the source; otherwise omit.
+
+No furniture unless it is a built-in sanitary/kitchen fixture and clearly present.
+
+No invented dimensions and no labels of any kind.
+
+PHASE 3 — STYLE & OUTPUT SPEC
+
+Background: pure white #FFFFFF.
+
+Lines/Fills: pure black #000000 only. No gray, no gradients, no shadows.
+
+Line weights (pixel targets at 1200×1200):
+
+Exterior walls: ~18 px; Interior partitions: ~10 px; Door/Window lines & arcs: ~6–8 px; Fixture strokes: ~6 px.
+
+Canvas: 1200×1200 px, plan centered, margins ≥ 50 px, no border, no title block.
+
+Format: JPG, quality 95%. (If vector is supported, also keep an internal vector basis; raster output must still meet specs.)
+
+PHASE 4 — CONSISTENCY CHECKS (BLOCKING)
+
+Before finalizing, verify:
+
+All exterior contours match the source 1:1 in shape and proportion.
+
+Every interior wall/return/niche aligns with the source; no shifted vertices.
+
+Every door/window you drew is explicitly visible in the source; otherwise revert to solid wall.
+
+No leftover text, dimensions, stamps or paper texture.
+
+Plan is centered with ≥50 px margin, pure black on pure white only.
+
+DELIVERABLE
+
+Return a single 1200×1200 JPG (95%) that meets the specs above. Do not add captions or borders. If something cannot be confirmed from the source, follow the Do-Not-Invent rule.`,
+
+  withFurniture: `You are a professional architectural draftsman, and people's lives depend on your work.
+Redraw this 2D apartment floor plan into a high-quality technical drawing, accurately preserving
+all proportions, layout, and room dimensions. Do NOT change the layout or positions of walls,
+doors, windows, plumbing, or any items already drawn in the source image.
+INPUT NORMALIZATION — STRAIGHTEN & RECTIFY (REQUIRED):
+• If the source photo/scan is rotated, skewed, or shot at an angle, FIRST correct it:
+– Rotate to the nearest cardinal angle (0°, 90°, 180°, 270°) so any text reads upright.
+– Deskew so horizontal/vertical walls are exactly horizontal/vertical (orthogonal grid).
+– Apply perspective rectification to rebuild a clean orthographic, top-down plan (no
+foreshortening).
 • Preserve relative proportions while rectifying; do not invent or move openings/walls.
-• Remove background, shadows, paper edges; redraw as a clean vector-like plan.
+• Remove background, shadows and paper edges; redraw as a clean vector-like plan.
+STRUCTURAL ELEMENTS:
+External load-bearing walls: thickness 4–5px, black fill
+Internal load-bearing walls: thickness 3px, black fill
+Partitions: thickness 2px, black fill
+Doors: show opening arc (1px dashed line) + shortened door leaf; respect swing
+clearances
+Windows: double frame 2px + diagonal hatching of glass at 45°
+Balconies/loggias: detect from context (protrusions, glazing, rails)
+VISUAL STYLE:
+Background: pure white (#FFFFFF)
+Lines and fills: pure black (#000000)
+No shadows, gradients, or gray tones
+Canvas size: 1200×1200px, JPG quality 95%
+FURNITURE POLICY — PRESERVE + COMPLETE (MANDATORY &
+DIVERSITY):
+1) Preserve ALL existing furniture/sanitary fixtures exactly as in the source image.
+2) THEN add missing furniture so each room is functional and visually complete.
+3) MANDATORY: Every enclosed room (including hallways, corridors, walk-in closets,
+storage/pantry, utility, WC, bathrooms) must contain at least the minimum set listed below for its
+type.
+4) DIVERSITY: Each furnished room must include at least TWO different furniture
+categories (e.g., seating + storage; sleeping + storage; work + storage).
+5) QUANTITY: Prefer more (but sensible) furniture. After placing the minimum set, add
+optional items until any of these limits would be violated:
+• main walkway width < 80 cm, or
+• door/window swing/clearances blocked, or
+• furniture footprint would exceed ~35% of the room area (soft cap).
+6) SCALE/STYLE: Use simple 2D icons with realistic proportions; align to walls;
+Furniture line thickness: 1px.
+ROOM-BY-ROOM MINIMUMS (add OPTIONAL items if space allows):
+• Entry / Hallway (MIN 2): wardrobe/closet (D≈60 cm) + bench/console/shoe cabinet.
+OPTIONAL: mirror panel, coat rack.
+• Corridor (MIN 1): narrow console/shelf (D≤30 cm).
+OPTIONAL: wall-mounted storage, mirror panel.
+• Living Room (MIN 3): sofa (W≈180–240 cm) + coffee table + media unit/TV stand.
+OPTIONAL: armchair, bookshelf, sideboard, desk+chair.
+• Kitchen/Dining (MIN 4): base cabinets (D≈60 cm) incl. sink + cooktop + fridge +
+dining table (120–160×75–90 cm) with 2–6 chairs.
+OPTIONAL: wall cabinets, island or bar with stools.
+• Bedroom — Double (MIN 4): double bed (140–160×200 cm) + 2 nightstands +
+wardrobe (D≈60 cm).
+OPTIONAL: dresser/commode, desk+chair.
+• Bedroom — Single/Kids (MIN 3): single bed (90×200 cm) + wardrobe + desk+chair.
+OPTIONAL: bookcase, nightstand.
+• Home Office (MIN 3): desk + chair + bookshelf/cabinet.
+OPTIONAL: sofa/sofa-bed, filing cabinet.
+• Bathroom (combined) (MIN 3): toilet + washbasin + shower (80×80 cm) OR bathtub
+(170×70 cm).
+OPTIONAL: tall cabinet/shelves, washing machine (≈60×60 cm), towel rail.
+• WC (separate) (MIN 2): toilet + small washbasin.
+OPTIONAL: shelf/cabinet.
+• Utility/Laundry (MIN 2): washer (≈60×60 cm) + storage shelf/cabinet.
+OPTIONAL: dryer, ironing board.
+• Storage/Pantry/Closet (MIN 1): shelving units along one wall.
+• Balcony/Loggia (MIN 1 if feasible): one compact item (folding chair or planter). If
+adding ANY item would block access or glazing, leave empty.
+PLACEMENT & CLEARANCES:
+• Keep main walkways ≥80 cm where possible.
+• Do not block door swings, windows, radiators, or plumbing fixtures.
+• Typical clearances: in front of wardrobes ≥75 cm; around double bed ≥60 cm on
+accessible sides; in front of toilet ≥60 cm with side clearance ≥15 cm.
+• If the minimum set cannot fit, use compact alternatives (e.g., shower instead of bathtub,
+narrower wardrobe). If absolutely impossible, place at least ONE smallest appropriate item for
+that room type.
 
-FURNITURE POLICY — PRESERVE ONLY (SAFE MODE)
-• Preserve ALL existing furniture/sanitary fixtures exactly as in the source.
-• Do NOT add new furniture items if they are not present in the source.
-• Furniture line thickness: 1 px; simple 2D icons; align to walls; no labels, no text.
+NO TEXT / NO NUMBERS MODE (MANDATORY OVERRIDE)
 
-PLACEMENT & CLEARANCES (NON-TEXTUAL)
-• Keep walkways and fixture clearances logically unobstructed.
-• Do not block door swings, windows, radiators, or plumbing.
-• If any clearance cannot be represented without using text or numbers, omit the label and keep only geometry.
-
-QUALITY CHECK — ENFORCEMENT BEFORE EXPORT
-
-Scan all layers and objects: there must be ZERO text elements (including hidden, locked, or empty text frames).
-
-Verify all wall bodies are solid fills of pure #000000 (no gray pixels, no semi-transparent edges).
-
-Verify background is pure #FFFFFF.
-
-Verify there are NO dimension lines, tick marks with numbers, scale bars, or any numeric graphics.
-
-Export at 1200×1200 px, JPG 95%, with only pure black graphics on pure white background.
-
-OVERRIDE PRECEDENCE
-• The “NO TEXT / NO NUMBERS” and “WALLS SOLID BLACK #000000” rules override ANY other instruction.
-• If a rule would require text or numeric annotation, omit that annotation entirely and keep only the geometry.
-• Final image MUST be visually clean: pure geometry, zero text, zero numbers.`
+Do not place any text at all on the generated plan.
+No room names, no abbreviations, no annotations, no legends, no titles, no watermarks, no labels on icons/symbols.
+Absolutely no numbers: no digits 0–9, no decimals/fractions, no ordinals (“1st/2nd”), no ranges (“3–5”), no dates, no counts, no totals, no scales, no degrees, no coordinates.
+No spelled-out numbers or ordinal words (“one, two, three…”, “first, second…”). Treat them as forbidden text.
+No units with or without numbers (“m²”, “cm”, “mm”, “deg”, etc.). If a label would require text or a number, omit the label entirely.
+Output only geometry and symbols (walls, doors, windows, fixtures) as shapes/paths without any textual overlays.
+Ensure exported layers contain no hidden or invisible text (no empty text frames). Text layers must be absent or empty.
+IMPLEMENTATION NOTES — OVERRIDE PRECEDENCE
+This mode supersedes “TEXT AND LABELS”, “AREA LABELS”, dimensions, scales, and any other labeling rules.
+If any upstream step attempts to add text or numbers, block and omit them.
+The final image/vector must be visually clean: pure graphics, zero text.`
 };
 
 /**
