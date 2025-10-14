@@ -61,59 +61,91 @@ import path from 'path';
 
 // Промпты для разных режимов
 const PROMPTS = {
-  withoutFurniture: `You are a professional architectural draftsman, and people's lives depend on your work. Redraw this 2D apartment floor plan into a high-quality technical drawing, accurately preserving all proportions, layout, and room dimensions.
+  withoutFurniture: `You are a professional architectural draftsman. People's lives depend on your work.
 
-INPUT NORMALIZATION — STRAIGHTEN & RECTIFY (REQUIRED):
-• If the source photo/scan is rotated, skewed, or shot at an angle, FIRST correct it:
-  – Rotate to the nearest cardinal angle (0°, 90°, 180°, 270°) so any text reads upright.
-  – Deskew so horizontal/vertical walls are exactly horizontal/vertical (orthogonal grid).
-  – Apply perspective rectification to rebuild a clean orthographic, top-down plan (no foreshortening).
-• Preserve relative proportions while rectifying; do not invent or move openings/walls.
-• Remove background, shadows and paper edges; redraw as a clean vector-like plan.
+Work in slow, forensic mode: analyze first, redraw only after you exhaust all checks.
 
-CANVAS FIT — UNIFORM SCALE & MARGINS (STRICT):
-• After rectification, CENTER the entire plan as a single unit.
-• UNIFORMLY SCALE (isotropic) the plan to be as large as possible while keeping a HARD MINIMUM MARGIN of ≥50px from the nearest geometry (any line, hatch, or text) to each image edge.
-• If necessary, slightly increase or decrease overall scale to satisfy the ≥50px margin on ALL sides and keep all text fully inside rooms.
-• Do NOT crop any part of the plan. Do NOT stretch non-uniformly. Maintain aspect ratio.
-• HARD RULE: No line, hatch, or text may touch or cross the image boundary.
+MISSION
 
-STRUCTURAL ELEMENTS:
+Redraw the attached 2D apartment floor plan into a clean technical plan that exactly preserves the geometry and positions of all walls, doors, windows, plumbing and built-in fixtures. Zero layout changes. Zero invented features.
 
-External load-bearing walls: thickness 4-5px, black fill
-Internal load-bearing walls: thickness 3px, black fill
-Partitions: thickness 2px, black fill
-Doors: show opening arc (1px dashed line) + shortened door leaf
-Windows: double frame 2px + diagonal hatching of glass at 45°
-Balconies/loggias: determine from context (protruding elements, glazing, railings)
+STRICT DO-NOT-INVENT POLICY
 
-VISUAL STYLE:
+If ANY opening/fixture is ambiguous, do not guess. Render a continuous wall instead of "assuming a door/window."
 
-Background: pure white (#FFFFFF)
-Lines and fills: pure black (#000000)
-No shadows, gradients, or gray tones
-Size: 1200x1200px, JPG quality 95%
+Never infer from furniture alone. Never do "symmetry guesses." Never add elements to "balance" a room.
 
-FURNITURE AND EQUIPMENT:
+Keep only what is clearly present in the source.
 
-DRAW ONLY the furniture and sanitary fixtures that are explicitly visible in the provided source image. DO NOT add, infer, or complete any furniture that is not clearly shown.
-Do NOT add beds, sofas, tables, chairs, kitchen units, wardrobes, or any other items unless they are explicitly present in the source image.
-If uncertain whether an item exists, leave the room empty.
-Preserve all existing furniture as simple geometric shapes
-Furniture proportions must correspond to real dimensions
-Furniture line thickness: 1px
+PHASE 0 — INPUT NORMALIZATION (REQUIRED)
 
-TEXT AND LABELS:
+Upright & deskew: rotate to the nearest 0°/90°/180°/270°, deskew and rectify perspective to orthographic top-down view.
 
-Only room areas in format "12.3 m²"
-Font: Arial, size 12px, black color
-Place in center of rooms
+Crop to plan: remove paper edges, stamps, shadows, noise, background texture.
 
-COMPOSITION:
+Scale: preserve relative proportions; do not rescale parts independently.
 
-Plan centered in image
-Margins from edges minimum 50px
-No borders, titles, or dimension lines`,
+PHASE 1 — FORENSIC ANALYSIS (REQUIRED)
+
+Scan the rectified image for:
+
+Exterior walls, interior partitions, columns/pilasters/shafts.
+
+Openings: doors (hinged swing arcs), double doors, doorless openings, windows (sill breaks).
+
+Wet-zone fixtures if unambiguous: bathtub/shower tray, WC pan, washbasin, kitchen sink, stove, radiator niche.
+
+Stairs/steps or level changes if present.
+
+Mark anything uncertain as "unknown"—you will not redraw those as openings.
+
+PHASE 2 — REDRAW RULES
+
+Rebuild the plan as simplified vector-like graphics. No text, numbers, room names, dimensions or hatches from the scan.
+
+Walls: solid black shapes. Exterior walls thicker than interior. Keep all offsets, niches, risers and ledges exactly where they are.
+
+Doors: draw leaf and swing arc only when clearly visible; otherwise keep wall solid.
+
+Windows: show as wall gaps with a thin inner jamb line when clearly visible; otherwise keep wall solid.
+
+Fixtures: draw only if unambiguously recognizable in the source; otherwise omit.
+
+No furniture unless it is a built-in sanitary/kitchen fixture and clearly present.
+
+No invented dimensions and no labels of any kind.
+
+PHASE 3 — STYLE & OUTPUT SPEC
+
+Background: pure white #FFFFFF.
+
+Lines/Fills: pure black #000000 only. No gray, no gradients, no shadows.
+
+Line weights (pixel targets at 1200×1200):
+
+Exterior walls: ~18 px; Interior partitions: ~10 px; Door/Window lines & arcs: ~6–8 px; Fixture strokes: ~6 px.
+
+Canvas: 1200×1200 px, plan centered, margins ≥ 50 px, no border, no title block.
+
+Format: JPG, quality 95%. (If vector is supported, also keep an internal vector basis; raster output must still meet specs.)
+
+PHASE 4 — CONSISTENCY CHECKS (BLOCKING)
+
+Before finalizing, verify:
+
+All exterior contours match the source 1:1 in shape and proportion.
+
+Every interior wall/return/niche aligns with the source; no shifted vertices.
+
+Every door/window you drew is explicitly visible in the source; otherwise revert to solid wall.
+
+No leftover text, dimensions, stamps or paper texture.
+
+Plan is centered with ≥50 px margin, pure black on pure white only.
+
+DELIVERABLE
+
+Return a single 1200×1200 JPG (95%) that meets the specs above. Do not add captions or borders. If something cannot be confirmed from the source, follow the Do-Not-Invent rule.`,
 
   withFurniture: `You are a professional architectural draftsman, and people's lives depend on your work.
 Redraw this 2D apartment floor plan into a high-quality technical drawing, accurately preserving
@@ -156,7 +188,7 @@ optional items until any of these limits would be violated:
 • furniture footprint would exceed ~35% of the room area (soft cap).
 6) SCALE/STYLE: Use simple 2D icons with realistic proportions; align to walls;
 Furniture line thickness: 1px.
-ROOM-BY -ROOM MINIMUMS (add OPTIONAL items if space allows):
+ROOM-BY-ROOM MINIMUMS (add OPTIONAL items if space allows):
 • Entry / Hallway (MIN 2): wardrobe/closet (D≈60 cm) + bench/console/shoe cabinet.
 OPTIONAL: mirror panel, coat rack.
 • Corridor (MIN 1): narrow console/shelf (D≤30 cm).
@@ -191,14 +223,20 @@ accessible sides; in front of toilet ≥60 cm with side clearance ≥15 cm.
 • If the minimum set cannot fit, use compact alternatives (e.g., shower instead of bathtub,
 narrower wardrobe). If absolutely impossible, place at least ONE smallest appropriate item for
 that room type.
-TEXT AND LABELS:
-Only room areas in format "12.3 m²"
-Font: Arial, 12 px, black; centered within rooms with furniture arranged to keep the label
-legible
-COMPOSITION:
-Plan centered in image
-Margins ≥50 px from canvas edges
-No borders, titles, or dimension lines`
+
+NO TEXT / NO NUMBERS MODE (MANDATORY OVERRIDE)
+
+Do not place any text at all on the generated plan.
+No room names, no abbreviations, no annotations, no legends, no titles, no watermarks, no labels on icons/symbols.
+Absolutely no numbers: no digits 0–9, no decimals/fractions, no ordinals ("1st/2nd"), no ranges ("3–5"), no dates, no counts, no totals, no scales, no degrees, no coordinates.
+No spelled-out numbers or ordinal words ("one, two, three…", "first, second…"). Treat them as forbidden text.
+No units with or without numbers ("m²", "cm", "mm", "deg", etc.). If a label would require text or a number, omit the label entirely.
+Output only geometry and symbols (walls, doors, windows, fixtures) as shapes/paths without any textual overlays.
+Ensure exported layers contain no hidden or invisible text (no empty text frames). Text layers must be absent or empty.
+IMPLEMENTATION NOTES — OVERRIDE PRECEDENCE
+This mode supersedes "TEXT AND LABELS", "AREA LABELS", dimensions, scales, and any other labeling rules.
+If any upstream step attempts to add text or numbers, block and omit them.
+The final image/vector must be visually clean: pure graphics, zero text.`,
 };
 
 /**
