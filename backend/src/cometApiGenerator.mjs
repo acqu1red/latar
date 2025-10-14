@@ -52,9 +52,15 @@ function toBase64(buffer) {
   }
   return buffer.toString('base64');
 }
-// Базовый URL для генерации изображений COMETAPI (можно переопределить через env)
-// Модель: gemini-2.5-flash-image-preview (CometAPI, формат generateContent)
-const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
+// Базовые URL для генерации изображений COMETAPI (можно переопределить через env)
+// Модель для режима "Без мебели": gemini-2.5-flash-image-preview
+const COMETAPI_IMAGE_URL_WITHOUT_FURNITURE = process.env.COMETAPI_IMAGE_URL_WITHOUT_FURNITURE || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
+
+// Модель для режима "С мебелью": gemini-2.5-flash-lite-preview-09-2025
+const COMETAPI_IMAGE_URL_WITH_FURNITURE = process.env.COMETAPI_IMAGE_URL_WITH_FURNITURE || 'https://api.cometapi.com/v1beta/models/gemini-2.5-flash-lite-preview-09-2025:generateContent';
+
+// Обратная совместимость - используем старый URL по умолчанию
+const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || COMETAPI_IMAGE_URL_WITHOUT_FURNITURE;
 
 import fs from 'fs';
 import path from 'path';
@@ -579,9 +585,13 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     throw new Error(`Неизвестный режим: ${mode}`);
   }
 
+  // Выбираем URL в зависимости от режима
+  const apiUrl = mode === 'withFurniture' ? COMETAPI_IMAGE_URL_WITH_FURNITURE : COMETAPI_IMAGE_URL_WITHOUT_FURNITURE;
+
   try {
     console.log(`🎨 Генерация технического плана (режим: ${mode})`);
     console.log(`📁 Изображение: ${imagePath}`);
+    console.log(`🤖 Модель: ${mode === 'withFurniture' ? 'gemini-2.5-flash-lite-preview-09-2025' : 'gemini-2.5-flash-image-preview'}`);
     
     const imageBuffer = fs.readFileSync(imagePath);
     const base64 = imageBuffer.toString('base64');
@@ -603,11 +613,11 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
       }
     };
 
-    console.log('📤 Отправка запроса к COMETAPI (Nano-Banana)...');
+    console.log('📤 Отправка запроса к COMETAPI...');
     console.log(`📝 Промпт длина: ${prompt.length} символов`);
     console.log(`🖼️ Изображение: ${mime}, ${base64.length} символов base64`);
     console.log(`🔑 API ключ: ${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 5)}`);
-    console.log(`🌐 URL: ${COMETAPI_IMAGE_URL}`);
+    console.log(`🌐 URL: ${apiUrl}`);
 
     // Используем retry логику для обработки ошибок сервера
     const response = await retryWithBackoff(async () => {
@@ -620,7 +630,7 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
       console.log('📋 Заголовки запроса:', headers);
       console.log('📦 Тело запроса (первые 500 символов):', JSON.stringify(requestBody).substring(0, 500) + '...');
       
-      const resp = await fetch(COMETAPI_IMAGE_URL, {
+      const resp = await fetch(apiUrl, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(requestBody)
@@ -628,7 +638,7 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
       
       if (!resp.ok) {
         const errorText = await resp.text();
-        throw new Error(`COMETAPI ошибка ${resp.status} [${COMETAPI_IMAGE_URL}]: ${errorText?.slice(0, 500)}`);
+        throw new Error(`COMETAPI ошибка ${resp.status} [${apiUrl}]: ${errorText?.slice(0, 500)}`);
       }
       
       return resp;
