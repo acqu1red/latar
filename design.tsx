@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 /**
- * Plan AI landing (React + Tailwind)
+ * ARCPLAN landing (React + Tailwind)
  * 1) Tailwind required
  * 2) npm i framer-motion lucide-react
  * 3) Put this file in app/page.tsx (or pages/index.tsx)
@@ -342,7 +342,7 @@ function LogoMark() {
           <circle cx="50" cy="46" r="1.5" fill="#d8e6ff" />
         </g>
       </svg>
-      <span className="text-5xl font-semibold tracking-tight">Plan AI</span>
+      <span className="text-5xl font-semibold tracking-tight">ARCPLAN</span>
     </div>
   );
 }
@@ -556,7 +556,7 @@ function PromoCard() {
           <div className="min-w-0">
             <div className="rounded-md inline-block bg-black/60 px-2.5 py-1 text-xs ring-1 ring-white/10 mb-2">Реклама функции</div>
             <div className="text-base md:text-xl font-semibold leading-tight">Вообрази что угодно</div>
-            <div className="text-xs md:text-sm text-neutral-300">Фотореалистичные 2D/3D планы квартир в стиле Plan AI</div>
+            <div className="text-xs md:text-sm text-neutral-300">Фотореалистичные 2D/3D планы квартир в стиле ARCPLAN</div>
           </div>
           <button className="shrink-0 rounded-lg bg-white/90 text-black px-4 py-2 text-xs md:text-sm hover:bg-white transition">Перейти</button>
         </div>

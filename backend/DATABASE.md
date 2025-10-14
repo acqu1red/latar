@@ -1,4 +1,4 @@
-# База данных Plan AI
+# База данных ARCPLAN
 
 ## SQLite Database Structure
 

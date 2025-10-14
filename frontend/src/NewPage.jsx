@@ -690,7 +690,7 @@ function ThreeDModeModal({ isOpen, onClose, onActivate }) {
             </motion.div>
             <div>
               <h2 className="text-2xl font-bold text-white tracking-tight">
-                Plan AI 3D
+                ARCPLAN 3D
               </h2>
               <p className="text-neutral-400 text-sm mt-1">
                 Превратите 2D планы в 3D визуализацию
@@ -1242,7 +1242,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
         <div className="text-xs text-neutral-400 pt-1">Язык <span className="ml-1 text-white">Русский</span></div>
       </div>
       
-      {/* Plan AI 3D кнопка */}
+      {/* ARCPLAN 3D кнопка */}
       <div className="flex justify-center">
         <motion.div 
           whileHover={{ scale: 1.05 }}
@@ -1275,7 +1275,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
           <div className="relative z-10">
             <div className="text-sm font-medium flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-white" />
-              Plan AI 3D
+              ARCPLAN 3D
             </div>
             <div className="text-xs text-neutral-400">Попробуй расширенные возможности</div>
           </div>
@@ -1383,7 +1383,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
     <div className="space-y-2">
       <Row icon={ArrowUp} left="Включить автопрокрутку" right={<Toggle value={autoScroll} onChange={setAutoScroll} />} />
       <Row icon={Sparkles} left="Показывать предложения для продолжения" right={<Toggle value={showSuggestions} onChange={setShowSuggestions} />} />
-      <Row icon={Bell} left="Получать уведомление, когда Plan AI заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
+      <Row icon={Bell} left="Получать уведомление, когда ARCPLAN заканчивает размышлять" right={<Toggle value={notifications} onChange={setNotifications} />} />
       <Row icon={Bell} left="Уведомления при действиях" right={<Toggle value={userSettings.showActionNotifications} onChange={(value) => updateUserSettings({ showActionNotifications: value })} />} />
     </div>
   );
@@ -1572,7 +1572,7 @@ function AuthModal({ isOpen, onClose }) {
           </button>
           
           <h2 className="text-xl font-bold text-white tracking-tight">
-            {mode === 'register' ? 'Запустить Plan AI' : 'Вход в систему'}
+            {mode === 'register' ? 'Запустить ARCPLAN' : 'Вход в систему'}
           </h2>
           <p className="text-neutral-400 text-xs mt-1">
             {mode === 'register' 
@@ -1753,7 +1753,7 @@ function AuthModal({ isOpen, onClose }) {
             >
               {loading 
                 ? (mode === 'register' ? 'Запуск...' : 'Вход...') 
-                : (mode === 'register' ? 'Запустить Plan AI' : 'Войти')}
+                : (mode === 'register' ? 'Запустить ARCPLAN' : 'Войти')}
             </motion.button>
           </form>
           
@@ -1791,7 +1791,7 @@ function Plan3DInfoModal({ isOpen, onClose }) {
               <Building2 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">Plan AI 3D</h2>
+              <h2 className="text-xl font-semibold text-white">ARCPLAN 3D</h2>
               <p className="text-sm text-neutral-400">Скоро в разработке</p>
             </div>
           </div>
@@ -3078,13 +3078,13 @@ function AdvancedMainArea({
    return (
        <div className="group flex flex-col items-center justify-center gap-2 select-none cursor-pointer">
         <div className="flex items-center justify-center gap-2">
-          {/* Plan AI logo - Ultimate Monochrome Luxury */}
+          {/* ARCPLAN logo - Ultimate Monochrome Luxury */}
           <svg 
             width="80" 
             height="80" 
             viewBox="0 0 400 400" 
             xmlns="http://www.w3.org/2000/svg" 
-            aria-label="Plan AI logo"
+            aria-label="ARCPLAN logo"
             className="transition-all duration-700 group-hover:scale-[1.08] translate-y-1"
             style={{ filter: 'drop-shadow(0 0 25px rgba(255,255,255,0.15))' }}
           >
@@ -3340,7 +3340,7 @@ function AdvancedMainArea({
           
           {/* Premium typography - aligned with logo */}
           <span className="text-6xl font-light tracking-[-0.03em] text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.35)]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: '1' }}>
-            Plan AI
+            ARCPLAN
           </span>
         </div>
         
@@ -4062,7 +4062,7 @@ function AdvancedSuperBanner({ showMessages = false, onUpgradeClick }) {
         <div>
           <div className="text-sm font-medium flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-white" />
-            Plan AI 3D
+            ARCPLAN 3D
           </div>
           <div className="text-xs text-neutral-400">Попробуй расширенные возможности</div>
         </div>
@@ -4552,50 +4552,7 @@ function MonochromeClaudeStyle() {
   
   // Gallery states
   const [showGallery, setShowGallery] = useState(false);
-  const [galleryImages, setGalleryImages] = useState([
-    {
-      id: 1,
-      url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
-      prompt: 'Современный интерьер квартиры с панорамными окнами',
-      model: 'DALL-E 3',
-      createdAt: new Date('2024-01-15'),
-    },
-    {
-      id: 2,
-      url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800',
-      prompt: 'Минималистичная кухня в скандинавском стиле',
-      model: 'Midjourney',
-      createdAt: new Date('2024-01-14'),
-    },
-    {
-      id: 3,
-      url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
-      prompt: 'Уютная спальня с деревянными элементами',
-      model: 'DALL-E 3',
-      createdAt: new Date('2024-01-13'),
-    },
-    {
-      id: 4,
-      url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
-      prompt: 'Современная ванная комната с мраморной отделкой',
-      model: 'Stable Diffusion',
-      createdAt: new Date('2024-01-12'),
-    },
-    {
-      id: 5,
-      url: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800',
-      prompt: 'Просторная гостиная с камином',
-      model: 'DALL-E 3',
-      createdAt: new Date('2024-01-11'),
-    },
-    {
-      id: 6,
-      url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
-      prompt: 'Домашний офис с большим столом',
-      model: 'Midjourney',
-      createdAt: new Date('2024-01-10'),
-    },
-  ]);
+  const [galleryImages, setGalleryImages] = useState([]);
   const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
   const [galleryModelFilter, setGalleryModelFilter] = useState('all');
   const [limitNotice, setLimitNotice] = useState('');
