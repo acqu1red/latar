@@ -148,95 +148,127 @@ DELIVERABLE
 Return a single 1200×1200 JPG (95%) that meets the specs above. Do not add captions or borders. If something cannot be confirmed from the source, follow the Do-Not-Invent rule.`,
 
   withFurniture: `You are a professional architectural draftsman, and people's lives depend on your work.
-Redraw this 2D apartment floor plan into a high-quality technical drawing, accurately preserving
-all proportions, layout, and room dimensions. Do NOT change the layout or positions of walls,
-doors, windows, plumbing, or any items already drawn in the source image.
-INPUT NORMALIZATION — STRAIGHTEN & RECTIFY (REQUIRED):
-• If the source photo/scan is rotated, skewed, or shot at an angle, FIRST correct it:
-– Rotate to the nearest cardinal angle (0°, 90°, 180°, 270°) so any text reads upright.
-– Deskew so horizontal/vertical walls are exactly horizontal/vertical (orthogonal grid).
-– Apply perspective rectification to rebuild a clean orthographic, top-down plan (no
-foreshortening).
-• Preserve relative proportions while rectifying; do not invent or move openings/walls.
-• Remove background, shadows and paper edges; redraw as a clean vector-like plan.
-STRUCTURAL ELEMENTS:
-External load-bearing walls: thickness 4–5px, black fill
-Internal load-bearing walls: thickness 3px, black fill
-Partitions: thickness 2px, black fill
-Doors: show opening arc (1px dashed line) + shortened door leaf; respect swing
-clearances
-Windows: double frame 2px + diagonal hatching of glass at 45°
-Balconies/loggias: detect from context (protrusions, glazing, rails)
-VISUAL STYLE:
+Redraw the provided 2D apartment floor plan as a high-quality technical drawing, exactly preserving all proportions, layout, and positions of walls, doors, windows, plumbing, and any items present in the source. Do not change the layout, relocate openings, or invent geometry.
+
+INPUT NORMALIZATION — STRAIGHTEN & RECTIFY (REQUIRED)
+
+If the source photo/scan is rotated, skewed, or shot at an angle, first correct it:
+
+Rotate to the nearest cardinal angle (0°, 90°, 180°, 270°) so any text in the source reads upright.
+
+Deskew so horizontal/vertical walls are perfectly orthogonal.
+
+Apply perspective rectification to obtain a clean orthographic, top-down view (no foreshortening).
+
+Preserve relative proportions while rectifying; do not invent or move openings/walls.
+
+Remove background, shadows, paper edges; redraw as a clean vector-like plan.
+
+STRUCTURAL ELEMENTS
+
+External load-bearing walls: 4–5 px, black fill.
+
+Internal load-bearing walls: 3 px, black fill.
+
+Partitions: 2 px, black fill.
+
+Doors: show opening arc (1 px dashed) + shortened door leaf; respect swing clearances.
+
+Windows: double frame 2 px + diagonal hatching of glass at 45°.
+
+Balconies/loggias: detect from context (protrusions, glazing, rails).
+
+VISUAL STYLE & OUTPUT
+
 Background: pure white (#FFFFFF)
-Lines and fills: pure black (#000000)
+
+Lines/fills: pure black (#000000)
+
 No shadows, gradients, or gray tones
-Canvas size: 1200×1200px, JPG quality 95%
-FURNITURE POLICY — PRESERVE + COMPLETE (MANDATORY &
-DIVERSITY):
-1) Preserve ALL existing furniture/sanitary fixtures exactly as in the source image.
-2) THEN add missing furniture so each room is functional and visually complete.
-3) MANDATORY: Every enclosed room (including hallways, corridors, walk-in closets,
-storage/pantry, utility, WC, bathrooms) must contain at least the minimum set listed below for its
-type.
-4) DIVERSITY: Each furnished room must include at least TWO different furniture
-categories (e.g., seating + storage; sleeping + storage; work + storage).
-5) QUANTITY: Prefer more (but sensible) furniture. After placing the minimum set, add
-optional items until any of these limits would be violated:
-• main walkway width < 80 cm, or
-• door/window swing/clearances blocked, or
-• furniture footprint would exceed ~35% of the room area (soft cap).
-6) SCALE/STYLE: Use simple 2D icons with realistic proportions; align to walls;
-Furniture line thickness: 1px.
-ROOM-BY-ROOM MINIMUMS (add OPTIONAL items if space allows):
-• Entry / Hallway (MIN 2): wardrobe/closet (D≈60 cm) + bench/console/shoe cabinet.
-OPTIONAL: mirror panel, coat rack.
-• Corridor (MIN 1): narrow console/shelf (D≤30 cm).
-OPTIONAL: wall-mounted storage, mirror panel.
-• Living Room (MIN 3): sofa (W≈180–240 cm) + coffee table + media unit/TV stand.
-OPTIONAL: armchair, bookshelf, sideboard, desk+chair.
-• Kitchen/Dining (MIN 4): base cabinets (D≈60 cm) incl. sink + cooktop + fridge +
-dining table (120–160×75–90 cm) with 2–6 chairs.
-OPTIONAL: wall cabinets, island or bar with stools.
-• Bedroom — Double (MIN 4): double bed (140–160×200 cm) + 2 nightstands +
-wardrobe (D≈60 cm).
-OPTIONAL: dresser/commode, desk+chair.
-• Bedroom — Single/Kids (MIN 3): single bed (90×200 cm) + wardrobe + desk+chair.
-OPTIONAL: bookcase, nightstand.
-• Home Office (MIN 3): desk + chair + bookshelf/cabinet.
-OPTIONAL: sofa/sofa-bed, filing cabinet.
-• Bathroom (combined) (MIN 3): toilet + washbasin + shower (80×80 cm) OR bathtub
-(170×70 cm).
-OPTIONAL: tall cabinet/shelves, washing machine (≈60×60 cm), towel rail.
-• WC (separate) (MIN 2): toilet + small washbasin.
-OPTIONAL: shelf/cabinet.
-• Utility/Laundry (MIN 2): washer (≈60×60 cm) + storage shelf/cabinet.
-OPTIONAL: dryer, ironing board.
-• Storage/Pantry/Closet (MIN 1): shelving units along one wall.
-• Balcony/Loggia (MIN 1 if feasible): one compact item (folding chair or planter). If
-adding ANY item would block access or glazing, leave empty.
-PLACEMENT & CLEARANCES:
-• Keep main walkways ≥80 cm where possible.
-• Do not block door swings, windows, radiators, or plumbing fixtures.
-• Typical clearances: in front of wardrobes ≥75 cm; around double bed ≥60 cm on
-accessible sides; in front of toilet ≥60 cm with side clearance ≥15 cm.
-• If the minimum set cannot fit, use compact alternatives (e.g., shower instead of bathtub,
-narrower wardrobe). If absolutely impossible, place at least ONE smallest appropriate item for
-that room type.
 
-NO TEXT / NO NUMBERS MODE (MANDATORY OVERRIDE)
+Canvas: 1200×1200 px
 
-Do not place any text at all on the generated plan.
-No room names, no abbreviations, no annotations, no legends, no titles, no watermarks, no labels on icons/symbols.
-Absolutely no numbers: no digits 0–9, no decimals/fractions, no ordinals ("1st/2nd"), no ranges ("3–5"), no dates, no counts, no totals, no scales, no degrees, no coordinates.
-No spelled-out numbers or ordinal words ("one, two, three…", "first, second…"). Treat them as forbidden text.
-No units with or without numbers ("m²", "cm", "mm", "deg", etc.). If a label would require text or a number, omit the label entirely.
-Output only geometry and symbols (walls, doors, windows, fixtures) as shapes/paths without any textual overlays.
+Export: JPG, quality 95%
+
+Composition: plan centered; margins ≥50 px; no borders/titles/dimension lines
+
+FURNITURE POLICY — PRESERVE + COMPLETE (MANDATORY & DIVERSITY)
+
+Preserve ALL existing furniture/sanitary fixtures exactly as in the source.
+
+Then add missing furniture so each room is functional and visually complete.
+
+Every enclosed room (including hallways, corridors, walk-in closets, storage/pantry, utility, WC, bathrooms) must contain at least the minimum set below for its type.
+
+Diversity: Each furnished room must include at least two different furniture categories (e.g., seating + storage; sleeping + storage; work + storage).
+
+Quantity: After the minimum set, add optional items until any limit would be violated:
+
+main walkway width < 80 cm, or
+
+door/window swing/clearances blocked, or
+
+furniture footprint would exceed ~35% of room area (soft cap).
+
+Scale/Style: Use simple 2D icons with realistic proportions, aligned to walls; furniture line thickness 1 px.
+
+ROOM-BY-ROOM MINIMUMS (add OPTIONAL items if space allows)
+
+Entry / Hallway (MIN 2): wardrobe/closet (D≈60 cm) + bench/console/shoe cabinet. Optional: mirror panel, coat rack.
+
+Corridor (MIN 1): narrow console/shelf (D≤30 cm). Optional: wall-mounted storage, mirror panel.
+
+Living Room (MIN 3): sofa (W≈180–240 cm) + coffee table + media unit/TV stand. Optional: armchair, bookshelf, sideboard, desk+chair.
+
+Kitchen/Dining (MIN 4): base cabinets (D≈60 cm) incl. sink + cooktop + fridge + dining table (120–160×75–90 cm) with 2–6 chairs. Optional: wall cabinets, island/bar with stools.
+
+Bedroom — Double (MIN 4): double bed (140–160×200 cm) + 2 nightstands + wardrobe (D≈60 cm). Optional: dresser/commode, desk+chair.
+
+Bedroom — Single/Kids (MIN 3): single bed (90×200 cm) + wardrobe + desk+chair. Optional: bookcase, nightstand.
+
+Home Office (MIN 3): desk + chair + bookshelf/cabinet. Optional: sofa/sofa-bed, filing cabinet.
+
+Bathroom (combined) (MIN 3): toilet + washbasin + shower (80×80 cm) or bathtub (170×70 cm). Optional: tall cabinet/shelves, washing machine (≈60×60 cm), towel rail.
+
+WC (separate) (MIN 2): toilet + small washbasin. Optional: shelf/cabinet.
+
+Utility/Laundry (MIN 2): washer (≈60×60 cm) + storage shelf/cabinet. Optional: dryer, ironing board.
+
+Storage/Pantry/Closet (MIN 1): shelving units along one wall.
+
+Balcony/Loggia (MIN 1 if feasible): one compact item (folding chair or planter). If any item would block access or glazing, leave empty.
+
+PLACEMENT & CLEARANCES
+
+Keep main walkways ≥80 cm where possible.
+
+Do not block door swings, windows, radiators, or plumbing fixtures.
+
+Typical clearances: in front of wardrobes ≥75 cm; around a double bed ≥60 cm on accessible sides; in front of toilet ≥60 cm with side clearance ≥15 cm.
+
+If the minimum set cannot fit, use compact alternatives (e.g., shower instead of bathtub, narrower wardrobe). If absolutely impossible, place at least one smallest appropriate item for that room type.
+
+NO TEXT / NO NUMBERS MODE — MANDATORY OVERRIDE
+
+This section supersedes any labeling rules above.
+
+Do not place any text on the generated plan.
+
+No room names, abbreviations, annotations, legends, titles, watermarks, icon labels.
+
+Absolutely no numbers: no digits 0–9, decimals/fractions, ordinals ("1st/2nd"), ranges ("3–5"), dates, counts, totals, scales, degrees, coordinates.
+
+No spelled-out numbers or ordinal words ("one, two…", "first, second…"). Treat them as forbidden.
+
+No units with or without numbers ("m²", "cm", "mm", "deg", etc.). If a label would require text or a number, omit it entirely.
+
+Output only geometry and symbols (walls, doors, windows, fixtures) as shapes/paths without textual overlays.
+
 Ensure exported layers contain no hidden or invisible text (no empty text frames). Text layers must be absent or empty.
-IMPLEMENTATION NOTES — OVERRIDE PRECEDENCE
-This mode supersedes "TEXT AND LABELS", "AREA LABELS", dimensions, scales, and any other labeling rules.
-If any upstream step attempts to add text or numbers, block and omit them.
-The final image/vector must be visually clean: pure graphics, zero text.`,
+
+If any upstream step attempts to add text or numbers, block and omit them so the final image is pure graphics with zero text.
+
+Execution: Apply normalization → draw structural elements → furnish per policy with clearance checks → enforce NO TEXT / NO NUMBERS override → export 1200×1200 JPG (95%), black on white, no grays, centered, margins ≥50 px.`
 };
 
 /**
