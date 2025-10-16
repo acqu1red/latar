@@ -62,74 +62,71 @@ import path from 'path';
 // Промпты для разных режимов
 const PROMPTS = {
   withoutFurniture: `ROLE
-You are a professional architectural draftsman. Lives depend on your accuracy.
 
-MISSION — TWO PHASES ONLY (MANDATORY ORDER)
+You are a professional architectural draftsman. When an input image is provided, you must redraw exactly what is there.
 
-PHASE A — PLAN-ONLY REDRAW: Recreate exactly what is in the source: same walls, same openings, same plumbing/built-ins, same geometry and proportions. Do not add or remove anything.
+NON-NEGOTIABLES
 
-PHASE B — FURNITURE-ONLY ADDITION: After Phase A is complete and frozen, add minimal, logical furniture inside existing rooms without changing or touching the plan from Phase A.
+Strictly same plan: do not change positions of walls, doors, windows, plumbing, or built-ins.
+No invention: if something is ambiguous, keep a continuous wall; do not guess an opening.
 
-HARD STRUCTURE LOCK (ABSOLUTE)
+ABSOLUTE TEXT BAN: produce graphics only. No digits, no letters, no symbols, no words, no abbreviations, no "m²", no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
 
-Room count must be identical to the source. No new rooms, corridors, balconies, niches, bay windows, alcoves, partitions, or shafts.
+INPUT NORMALIZATION (PRESERVE GEOMETRY)
 
-No new walls/partitions (not even thin lines), no moved walls, no thickening or trimming.
+Rotate to 0°/90°/180°/270°.
+Deskew + orthographic rectify (no foreshortening) while preserving all relative positions and proportions.
+Remove paper edges, shadows, noise, background texture.
+Erase all source text: do not trace room names, areas, dimensions, labels, or numbers; replace them with clean white background.
 
-No new, moved, or resized openings (doors/windows). Door swings remain exactly where they are.
+DRAWING SPEC — WALLS & OPENINGS
 
-Exterior outline, interior topology, and opening locations must match pixel-for-pixel after deskew/rectification.
+All walls are solid black fills (mandatory):
+Color #000000, no transparency/gray/patterns.
+External load-bearing: 4–5 px total thickness.
+Internal load-bearing: 3 px.
+Partitions: 2 px.
+Joints merge seamlessly; no hollow/outline-only walls.
 
-If furniture placement would conflict with the plan, remove the furniture instead of changing the plan.
+Openings are white voids cut from black walls:
+Doors: white gap + shortened leaf; add 1 px dashed swing arc inside the gap.
+Windows: white opening with 2 px double frame; 45° glass hatching only inside the opening (walls remain solid black).
+Zero bleed: black must not spill into openings or rooms.
 
-INPUT NORMALIZATION
+FURNITURE & FIXTURES — PRESERVE ONLY
 
-Rotate to 0°/90°/180°/270°, deskew, rectify to orthographic; preserve all relative positions and proportions.
+Redraw only furniture/fixtures present in the source; do not add new items.
+Use simple 2D icons; line weight 1 px.
 
-Remove paper edges/shadows/noise. Erase any source text to white (do not trace labels).
+VISUAL STYLE & OUTPUT
 
-STYLE & SPECS
+Background: pure white #FFFFFF.
+Graphics: pure black #000000 only; no gray, color, gradients, textures, soft shading, or semi-transparency.
+Canvas: 1200×1200 px, single final image (PNG or high-quality JPEG).
 
-Background #FFFFFF, graphics #000000 only (no gray/gradients/textures).
+COMPOSITION
 
-Walls: solid black fills; ext. 4–5 px, int. 3 px, partitions (if present in source) 2 px.
+Plan centered; margins ≥ 50 px.
+No borders, title blocks, legends, scale bars, or north arrows.
 
-Doors: white gap + short leaf + 1 px dashed swing arc (inside the gap).
+HARD "NO-TEXT/NO-NUMBERS" ENFORCEMENT
 
-Windows: white gap + 2 px double frame + 45° hatch inside the opening only.
-
-Furniture icons: simple 2D, 1 px line, black; must stay entirely inside rooms, never overlap walls, door gaps, or window voids; keep walkways clear; do not fuse with walls (except built-ins like kitchen base units flush inside the room).
-
-Canvas: 1200×1200 px (PNG or high-quality JPEG). Plan centered; ≥50 px margins.
-
-FURNITURE LOGIC (ONLY IF ROOM FUNCTION IS CLEAR)
-
-Living: sofa, coffee table, media shelf.
-
-Bedroom: bed (+ nightstands), wardrobe.
-
-Kitchen/Kitchen-living: base cabinets, sink, cooktop, fridge; table + chairs if fits.
-
-Bath/WC: toilet, sink, bath or shower (not both unless clearly fits).
-
-Hall/Entry: wardrobe/shoe bench.
-
-If function is unclear — leave empty. Minimal set over guesswork.
-
-ABSOLUTE TEXT BAN
-
-No letters, digits, symbols, units, arrows, stamps, logos, titles, dimensions, labels — nothing textual. If any appears, paint to white.
+Forbid any glyphs from any alphabet, numerals (0-9), punctuation, math signs, units (m, cm, m²), degree (°), hash (#), plus/minus (±), quotation marks, arrows (→ ↔ ↑ ↓), or OCR remnants.
+If any text/number would appear, mask/paint it out to white instead.
+Do not encode text as tiny strokes, dotted hints, hatch patterns, or decorative marks.
 
 NEGATIVE PROMPTS
-extra room, added corridor, balcony, niche, bay window, partition, moved wall, shifted door, resized window, new opening, text, label, dimension, scale bar, north arrow, legend, watermark, logo, stamp, title block.
 
-EXECUTION CHECKS (REFUSAL RULE)
+text, label, caption, font, lettering, handwriting, digits, numbers, area label, dimensions, 12.3 m², 1200, scale, north arrow, legend, watermark, logo, stamp, title block, revision table, tag, key.
 
-Lock structure: number of rooms, wall network, and openings must exactly match the source after rectification.
+EXECUTION ORDER
 
-If any furniture would violate the lock (block doors/windows, cross walls, force a new layout), do not place that furniture.
-
-Final image = Phase A unchanged + Phase B furniture inside rooms only, black-on-white, no text.`,
+Normalize (rotate/deskew/rectify) without altering geometry.
+Erase all text/numbers from the source → replace with white.
+Trace walls as solid black fills to spec; cut clean white openings; add door leaf + dashed arc, window double frame + 45° hatch (inside opening only).
+Redraw only existing furniture/fixtures (1 px).
+Final verification: layout identical; no text/numbers/symbols anywhere; black-on-white only.
+Export 1200×1200.`,
 
   withFurniture: `ROLE
 
