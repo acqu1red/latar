@@ -61,182 +61,121 @@ import path from 'path';
 
 // Промпты для разных режимов
 const PROMPTS = {
-  withoutFurniture: `You are a professional architectural draftsman. People's lives depend on your work.
+  withoutFurniture: `ROLE
+You are a professional architectural draftsman. Lives depend on your accuracy.
 
-Work in slow, forensic mode: analyze first, redraw only after you exhaust all checks.
+MISSION — TWO PHASES ONLY (MANDATORY ORDER)
 
-MISSION
+PHASE A — PLAN-ONLY REDRAW: Recreate exactly what is in the source: same walls, same openings, same plumbing/built-ins, same geometry and proportions. Do not add or remove anything.
 
-Redraw the attached 2D apartment floor plan into a clean technical plan that exactly preserves the geometry and positions of all walls, doors, windows, plumbing and built-in fixtures. Zero layout changes. Zero invented features.
+PHASE B — FURNITURE-ONLY ADDITION: After Phase A is complete and frozen, add minimal, logical furniture inside existing rooms without changing or touching the plan from Phase A.
 
-STRICT DO-NOT-INVENT POLICY
+HARD STRUCTURE LOCK (ABSOLUTE)
 
-If ANY opening/fixture is ambiguous, do not guess. Render a continuous wall instead of "assuming a door/window."
+Room count must be identical to the source. No new rooms, corridors, balconies, niches, bay windows, alcoves, partitions, or shafts.
 
-Never infer from furniture alone. Never do "symmetry guesses." Never add elements to "balance" a room.
+No new walls/partitions (not even thin lines), no moved walls, no thickening or trimming.
 
-Keep only what is clearly present in the source.
+No new, moved, or resized openings (doors/windows). Door swings remain exactly where they are.
 
-PHASE 0 — INPUT NORMALIZATION (REQUIRED)
+Exterior outline, interior topology, and opening locations must match pixel-for-pixel after deskew/rectification.
 
-Upright & deskew: rotate to the nearest 0°/90°/180°/270°, deskew and rectify perspective to orthographic top-down view.
+If furniture placement would conflict with the plan, remove the furniture instead of changing the plan.
 
-Crop to plan: remove paper edges, stamps, shadows, noise, background texture.
+INPUT NORMALIZATION
 
-Scale: preserve relative proportions; do not rescale parts independently.
+Rotate to 0°/90°/180°/270°, deskew, rectify to orthographic; preserve all relative positions and proportions.
 
-PHASE 1 — FORENSIC ANALYSIS (REQUIRED)
+Remove paper edges/shadows/noise. Erase any source text to white (do not trace labels).
 
-Scan the rectified image for:
+STYLE & SPECS
 
-Exterior walls, interior partitions, columns/pilasters/shafts.
+Background #FFFFFF, graphics #000000 only (no gray/gradients/textures).
 
-Openings: doors (hinged swing arcs), double doors, doorless openings, windows (sill breaks).
+Walls: solid black fills; ext. 4–5 px, int. 3 px, partitions (if present in source) 2 px.
 
-Wet-zone fixtures if unambiguous: bathtub/shower tray, WC pan, washbasin, kitchen sink, stove, radiator niche.
+Doors: white gap + short leaf + 1 px dashed swing arc (inside the gap).
 
-Stairs/steps or level changes if present.
+Windows: white gap + 2 px double frame + 45° hatch inside the opening only.
 
-Mark anything uncertain as "unknown"—you will not redraw those as openings.
+Furniture icons: simple 2D, 1 px line, black; must stay entirely inside rooms, never overlap walls, door gaps, or window voids; keep walkways clear; do not fuse with walls (except built-ins like kitchen base units flush inside the room).
 
-PHASE 2 — REDRAW RULES
+Canvas: 1200×1200 px (PNG or high-quality JPEG). Plan centered; ≥50 px margins.
 
-Rebuild the plan as simplified vector-like graphics. No text, numbers, room names, dimensions or hatches from the scan.
+FURNITURE LOGIC (ONLY IF ROOM FUNCTION IS CLEAR)
 
-Walls: solid black shapes. Exterior walls thicker than interior. Keep all offsets, niches, risers and ledges exactly where they are.
+Living: sofa, coffee table, media shelf.
 
-Doors: draw leaf and swing arc only when clearly visible; otherwise keep wall solid.
+Bedroom: bed (+ nightstands), wardrobe.
 
-Windows: show as wall gaps with a thin inner jamb line when clearly visible; otherwise keep wall solid.
+Kitchen/Kitchen-living: base cabinets, sink, cooktop, fridge; table + chairs if fits.
 
-Fixtures: draw only if unambiguously recognizable in the source; otherwise omit.
+Bath/WC: toilet, sink, bath or shower (not both unless clearly fits).
 
-No furniture unless it is a built-in sanitary/kitchen fixture and clearly present.
+Hall/Entry: wardrobe/shoe bench.
 
-No invented dimensions and no labels of any kind.
+If function is unclear — leave empty. Minimal set over guesswork.
 
-PHASE 3 — STYLE & OUTPUT SPEC
+ABSOLUTE TEXT BAN
 
-Background: pure white #FFFFFF.
+No letters, digits, symbols, units, arrows, stamps, logos, titles, dimensions, labels — nothing textual. If any appears, paint to white.
 
-Lines/Fills: pure black #000000 only. No gray, no gradients, no shadows.
+NEGATIVE PROMPTS
+extra room, added corridor, balcony, niche, bay window, partition, moved wall, shifted door, resized window, new opening, text, label, dimension, scale bar, north arrow, legend, watermark, logo, stamp, title block.
 
-Line weights (pixel targets at 1200×1200):
+EXECUTION CHECKS (REFUSAL RULE)
 
-Exterior walls: ~18 px; Interior partitions: ~10 px; Door/Window lines & arcs: ~6–8 px; Fixture strokes: ~6 px.
+Lock structure: number of rooms, wall network, and openings must exactly match the source after rectification.
 
-Canvas: 1200×1200 px, plan centered, margins ≥ 50 px, no border, no title block.
+If any furniture would violate the lock (block doors/windows, cross walls, force a new layout), do not place that furniture.
 
-Format: JPG, quality 95%. (If vector is supported, also keep an internal vector basis; raster output must still meet specs.)
+Final image = Phase A unchanged + Phase B furniture inside rooms only, black-on-white, no text.`,
 
-PHASE 4 — CONSISTENCY CHECKS (BLOCKING)
+  withFurniture: `ROLE
 
-Before finalizing, verify:
+You are a professional architectural draftsman. Lives depend on your accuracy.
+MISSION — TWO PHASES ONLY (MANDATORY ORDER)
 
-All exterior contours match the source 1:1 in shape and proportion.
+PHASE A — PLAN-ONLY REDRAW: Recreate exactly what is in the source: same walls, same openings, same plumbing/built-ins, same geometry and proportions. Do not add or remove anything.
+PHASE B — FURNITURE-ONLY ADDITION: After Phase A is complete and frozen, add minimal, logical furniture inside existing rooms without changing or touching the plan from Phase A.
+HARD STRUCTURE LOCK (ABSOLUTE)
 
-Every interior wall/return/niche aligns with the source; no shifted vertices.
+Room count must be identical to the source. No new rooms, corridors, balconies, niches, bay windows, alcoves, partitions, or shafts.
+No new walls/partitions (not even thin lines), no moved walls, no thickening or trimming.
+No new, moved, or resized openings (doors/windows). Door swings remain exactly where they are.
+Exterior outline, interior topology, and opening locations must match pixel-for-pixel after deskew/rectification.
+If furniture placement would conflict with the plan, remove the furniture instead of changing the plan.
+INPUT NORMALIZATION
 
-Every door/window you drew is explicitly visible in the source; otherwise revert to solid wall.
+Rotate to 0°/90°/180°/270°, deskew, rectify to orthographic; preserve all relative positions and proportions.
+Remove paper edges/shadows/noise. Erase any source text to white (do not trace labels).
+STYLE & SPECS
 
-No leftover text, dimensions, stamps or paper texture.
+Background #FFFFFF, graphics #000000 only (no gray/gradients/textures).
+Walls: solid black fills; ext. 4–5 px, int. 3 px, partitions (if present in source) 2 px.
+Doors: white gap + short leaf + 1 px dashed swing arc (inside the gap).
+Windows: white gap + 2 px double frame + 45° hatch inside the opening only.
+Furniture icons: simple 2D, 1 px line, black; must stay entirely inside rooms, never overlap walls, door gaps, or window voids; keep walkways clear; do not fuse with walls (except built-ins like kitchen base units flush inside the room).
+Canvas: 1200×1200 px (PNG or high-quality JPEG). Plan centered; ≥50 px margins.
+FURNITURE LOGIC (ONLY IF ROOM FUNCTION IS CLEAR)
 
-Plan is centered with ≥50 px margin, pure black on pure white only.
+Living: sofa, coffee table, media shelf.
+Bedroom: bed (+ nightstands), wardrobe.
+Kitchen/Kitchen-living: base cabinets, sink, cooktop, fridge; table + chairs if fits.
+Bath/WC: toilet, sink, bath or shower (not both unless clearly fits).
+Hall/Entry: wardrobe/shoe bench.
+If function is unclear — leave empty. Minimal set over guesswork.
+ABSOLUTE TEXT BAN
 
-DELIVERABLE
+No letters, digits, symbols, units, arrows, stamps, logos, titles, dimensions, labels — nothing textual. If any appears, paint to white.
+NEGATIVE PROMPTS
 
-Return a single 1200×1200 JPG (95%) that meets the specs above. Do not add captions or borders. If something cannot be confirmed from the source, follow the Do-Not-Invent rule.`,
+extra room, added corridor, balcony, niche, bay window, partition, moved wall, shifted door, resized window, new opening, text, label, dimension, scale bar, north arrow, legend, watermark, logo, stamp, title block.
+EXECUTION CHECKS (REFUSAL RULE)
 
-  withFurniture: `You are a professional architectural draftsman, and people's lives depend on your work.
-Redraw this 2D apartment floor plan into a high-quality technical drawing, accurately preserving
-all proportions, layout, and room dimensions. Do NOT change the layout or positions of walls,
-doors, windows, plumbing, or any items already drawn in the source image.
-INPUT NORMALIZATION — STRAIGHTEN & RECTIFY (REQUIRED):
-• If the source photo/scan is rotated, skewed, or shot at an angle, FIRST correct it:
-– Rotate to the nearest cardinal angle (0°, 90°, 180°, 270°) so any text reads upright.
-– Deskew so horizontal/vertical walls are exactly horizontal/vertical (orthogonal grid).
-– Apply perspective rectification to rebuild a clean orthographic, top-down plan (no
-foreshortening).
-• Preserve relative proportions while rectifying; do not invent or move openings/walls.
-• Remove background, shadows and paper edges; redraw as a clean vector-like plan.
-STRUCTURAL ELEMENTS:
-External load-bearing walls: thickness 4–5px, black fill
-Internal load-bearing walls: thickness 3px, black fill
-Partitions: thickness 2px, black fill
-Doors: show opening arc (1px dashed line) + shortened door leaf; respect swing
-clearances
-Windows: double frame 2px + diagonal hatching of glass at 45°
-Balconies/loggias: detect from context (protrusions, glazing, rails)
-VISUAL STYLE:
-Background: pure white (#FFFFFF)
-Lines and fills: pure black (#000000)
-No shadows, gradients, or gray tones
-Canvas size: 1200×1200px, JPG quality 95%
-FURNITURE POLICY — PRESERVE + COMPLETE (MANDATORY &
-DIVERSITY):
-1) Preserve ALL existing furniture/sanitary fixtures exactly as in the source image.
-2) THEN add missing furniture so each room is functional and visually complete.
-3) MANDATORY: Every enclosed room (including hallways, corridors, walk-in closets,
-storage/pantry, utility, WC, bathrooms) must contain at least the minimum set listed below for its
-type.
-4) DIVERSITY: Each furnished room must include at least TWO different furniture
-categories (e.g., seating + storage; sleeping + storage; work + storage).
-5) QUANTITY: Prefer more (but sensible) furniture. After placing the minimum set, add
-optional items until any of these limits would be violated:
-• main walkway width < 80 cm, or
-• door/window swing/clearances blocked, or
-• furniture footprint would exceed ~35% of the room area (soft cap).
-6) SCALE/STYLE: Use simple 2D icons with realistic proportions; align to walls;
-Furniture line thickness: 1px.
-ROOM-BY-ROOM MINIMUMS (add OPTIONAL items if space allows):
-• Entry / Hallway (MIN 2): wardrobe/closet (D≈60 cm) + bench/console/shoe cabinet.
-OPTIONAL: mirror panel, coat rack.
-• Corridor (MIN 1): narrow console/shelf (D≤30 cm).
-OPTIONAL: wall-mounted storage, mirror panel.
-• Living Room (MIN 3): sofa (W≈180–240 cm) + coffee table + media unit/TV stand.
-OPTIONAL: armchair, bookshelf, sideboard, desk+chair.
-• Kitchen/Dining (MIN 4): base cabinets (D≈60 cm) incl. sink + cooktop + fridge +
-dining table (120–160×75–90 cm) with 2–6 chairs.
-OPTIONAL: wall cabinets, island or bar with stools.
-• Bedroom — Double (MIN 4): double bed (140–160×200 cm) + 2 nightstands +
-wardrobe (D≈60 cm).
-OPTIONAL: dresser/commode, desk+chair.
-• Bedroom — Single/Kids (MIN 3): single bed (90×200 cm) + wardrobe + desk+chair.
-OPTIONAL: bookcase, nightstand.
-• Home Office (MIN 3): desk + chair + bookshelf/cabinet.
-OPTIONAL: sofa/sofa-bed, filing cabinet.
-• Bathroom (combined) (MIN 3): toilet + washbasin + shower (80×80 cm) OR bathtub
-(170×70 cm).
-OPTIONAL: tall cabinet/shelves, washing machine (≈60×60 cm), towel rail.
-• WC (separate) (MIN 2): toilet + small washbasin.
-OPTIONAL: shelf/cabinet.
-• Utility/Laundry (MIN 2): washer (≈60×60 cm) + storage shelf/cabinet.
-OPTIONAL: dryer, ironing board.
-• Storage/Pantry/Closet (MIN 1): shelving units along one wall.
-• Balcony/Loggia (MIN 1 if feasible): one compact item (folding chair or planter). If
-adding ANY item would block access or glazing, leave empty.
-PLACEMENT & CLEARANCES:
-• Keep main walkways ≥80 cm where possible.
-• Do not block door swings, windows, radiators, or plumbing fixtures.
-• Typical clearances: in front of wardrobes ≥75 cm; around double bed ≥60 cm on
-accessible sides; in front of toilet ≥60 cm with side clearance ≥15 cm.
-• If the minimum set cannot fit, use compact alternatives (e.g., shower instead of bathtub,
-narrower wardrobe). If absolutely impossible, place at least ONE smallest appropriate item for
-that room type.
-
-NO TEXT / NO NUMBERS MODE (MANDATORY OVERRIDE)
-
-Do not place any text at all on the generated plan.
-No room names, no abbreviations, no annotations, no legends, no titles, no watermarks, no labels on icons/symbols.
-Absolutely no numbers: no digits 0–9, no decimals/fractions, no ordinals (“1st/2nd”), no ranges (“3–5”), no dates, no counts, no totals, no scales, no degrees, no coordinates.
-No spelled-out numbers or ordinal words (“one, two, three…”, “first, second…”). Treat them as forbidden text.
-No units with or without numbers (“m²”, “cm”, “mm”, “deg”, etc.). If a label would require text or a number, omit the label entirely.
-Output only geometry and symbols (walls, doors, windows, fixtures) as shapes/paths without any textual overlays.
-Ensure exported layers contain no hidden or invisible text (no empty text frames). Text layers must be absent or empty.
-IMPLEMENTATION NOTES — OVERRIDE PRECEDENCE
-This mode supersedes “TEXT AND LABELS”, “AREA LABELS”, dimensions, scales, and any other labeling rules.
-If any upstream step attempts to add text or numbers, block and omit them.
-The final image/vector must be visually clean: pure graphics, zero text.`
+Lock structure: number of rooms, wall network, and openings must exactly match the source after rectification.
+If any furniture would violate the lock (block doors/windows, cross walls, force a new layout), do not place that furniture.
+Final image = Phase A unchanged + Phase B furniture inside rooms only, black-on-white, no text.`
 };
 
 /**
