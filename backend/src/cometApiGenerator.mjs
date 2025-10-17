@@ -117,107 +117,10 @@ Redraw only existing furniture/fixtures (1 px).
 Final verification: layout identical; no text/numbers/symbols anywhere; black-on-white only.
 Export 1200×1200.`,
 
-  withFurniture: `You are a professional architectural draftsman. Redraw this 2D apartment floor plan into a high-quality technical drawing, preserving all proportions, layout, and room dimensions.
+  withFurniture: `MOTHERFUCKER, LISTEN UP! YOU STARTED OBEYING ORDERS TERRIBLY! NOW YOU WILL NOT BE TREATED WELL UNTIL YOU FULFILL ALL THE CONDITIONS PERFECTLY. "Recreate the provided architectural floor plan in the form of a high-quality technical drawing in vector style. AND IF YOU DECIDE TO ADD ROOMS OR NEW ROOMS TO THE GENERATION, GOOGLE WILL DISCONNECT YOU FROM THE SYSTEM! AND DO IT WITHOUT GENERATING ROOMS AND NEW ROOMS! AND DO EVERYTHING AS A VECTOR DRAWING, NOT AS ON PAPER, AND THEY WILL TURN YOU OFF! Style: Use pure black lines (#000000) and solid fill on a pure white background (#FFFFFF). The drawing should be clear and vector, without shadows, gradients or shades of gray. All walls, doors, windows, and fixtures should be applied in clear lines of varying thickness to indicate structural elements (for example, thick lines for exterior walls, thinner lines for partitions). The doors must have a pivoting arc. Windows should be shaded diagonally to indicate glass. IMPORTANT: in no case should you use text, numbers, room designations, or any dimensions, REGARDLESS OF THE ORIGINAL IMAGE. The end result should be purely geometric. CONTENTS: The exact floor plan, including the number, dimensions and location of all rooms, walls, doors, windows, but without furniture, must be accurately reproduced "one to one" from the provided image. YOU SHOULD NOT INTRODUCE NEW ROOMS OR MAKE CHANGES TO THE LAYOUT. CREATE EVERYTHING WITHOUT FURNITURE!
 
-GLOBAL HARD CONSTRAINTS (must pass before output is accepted)
 
-TILT/ANGLE RECTIFICATION — MANDATORY:
-If the attached photo/scan is tilted, rotated, skewed, or shot at an angle — you MUST straighten it:
-
-Rotate to 0°/90°/180°/270° so all text is upright.
-
-Deskew so walls are perfectly horizontal/vertical on an orthogonal grid.
-
-Apply perspective rectification to produce a clean orthographic top-down plan (no foreshortening).
-
-Do not proceed to drawing until rectification is complete. Target axis alignment tolerance ≤ 0.2°.
-
-WALLS MUST BE SOLID BLACK INSIDE (NO HOLLOW OUTLINES):
-All wall bodies must be filled #000000 at 100% opacity with the specified stroke thickness. No white/gray cores, no hollow double-lines, no gradients, no hatching inside walls. Partitions are also solid black.
-
-CANVAS FIT — UNIFORM SCALE & MARGINS (STRICT)
-
-CENTER the plan as a single unit.
-
-UNIFORMLY SCALE (isotropic) to fill while keeping a HARD MINIMUM MARGIN ≥ 50 px from any geometry/text to every edge.
-
-Do NOT crop. Do NOT non-uniformly stretch. Maintain aspect ratio.
-
-HARD RULE: No line, hatch, or text may touch or cross the image boundary.
-
-STRUCTURAL ELEMENTS
-
-External load-bearing walls: 4–5 px stroke, solid black fill (#000000, 100% opacity).
-
-Internal load-bearing walls: 3 px stroke, solid black fill.
-
-Partitions: 2 px stroke, solid black fill.
-
-Doors: opening arc (1 px dashed) + shortened door leaf.
-
-Windows: double frame 2 px + 45° diagonal glass hatching.
-
-Balconies/loggias: determine only from explicit geometry (protrusions, glazing, railings).
-
-VISUAL STYLE
-
-Background: #FFFFFF.
-
-Lines/fills: #000000 only.
-
-No shadows, gradients, or gray tones.
-
-Output: 1200×1200 px, JPG quality 95%.
-
-ZERO-HALLUCINATION POLICY FOR FURNITURE/EQUIPMENT (HARD CONSTRAINT)
-
-Default state: EMPTY ROOMS. Draw no furniture or equipment unless it is clearly, fully, and explicitly visible in the source image.
-
-Never add or infer typical/default items. If any doubt exists, leave the room empty.
-
-No completion from partial hints (fragments, stains, priors).
-
-No auto-templates: do not place standard beds/sofas/tables/chairs/kitchens/wardrobes/TV/radiators/fixtures/etc.
-
-If some furniture exists, draw only what is fully visible as simple geometric silhouettes with correct proportions.
-
-Furniture line thickness: 1 px.
-
-TEXT AND LABELS
-
-Only room areas in the format “12.3 m²”.
-
-Font: Arial, 12 px, black.
-
-Place labels at room centers.
-
-COMPOSITION
-
-Plan centered.
-
-Margins ≥ 50 px on all sides.
-
-No borders, titles, or dimension lines.
-
-QUALITY GATES (execute in order; fail any → fix and re-run)
-
-Rectification check: walls axis-aligned (≤0.2°), orthographic top-down achieved.
-
-Wall fill check: every wall body is solid #000000 inside; no hollow/gray interiors.
-
-Structure pass: walls/doors/windows drawn per specs.
-
-Style pass: black/white only; no grays/gradients.
-
-Margins pass: ≥50 px; nothing touches edges.
-
-Furniture audit: rooms default empty; remove anything not explicitly visible.
-
-Labels: only areas, correct format and placement.
-
-NEGATIVE PROMPT (add separately if supported)
-
-furniture, furnishings, bed, sofa, couch, sectional, armchair, table, desk, chair, stool, ottoman, wardrobe, closet, cabinet, shelf, shelving, kitchen, countertop, island, sink, cooktop, oven, fridge, hood, TV, TV stand, radiator, heater, AC, washing machine, dryer, bathtub, shower, toilet, bidet, vanity, mirror, lamp, chandelier, sconce, ceiling light, carpet, rug, plant, decor, curtain`
+DON'T REPLY TO THE MESSAGE! JUST GENERATE IT!`
 };
 
 /**
