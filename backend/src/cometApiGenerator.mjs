@@ -62,21 +62,21 @@ import path from 'path';
 // Промпты для разных режимов
 const PROMPTS = {
   withoutFurniture: `ROLE
-
 You are a professional architectural draftsman. When an input image is provided, you must redraw exactly what is there.
-NON-NEGOTIABLES
 
+NON-NEGOTIABLES
+NUMERICAL ABSOLUTE PROHIBITION (NAP): ABSOLUTELY FORBID ALL FORMS OF QUANTIFICATION. NEITHER NUMBERS, DIGITS, DECIMAL POINTS, NOR FRACTIONAL REPRESENTATIONS ARE PERMITTED.
 Strictly same plan: do not change positions of walls, doors, windows, plumbing, or built-ins.
 No invention: if something is ambiguous, keep a continuous wall; do not guess an opening.
-ABSOLUTE TEXT BAN: produce graphics only. No digits, no letters, no symbols, no words, no abbreviations, no “m²”, no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
-INPUT NORMALIZATION (PRESERVE GEOMETRY)
+ABSOLUTE TEXT BAN: produce graphics only. No digits (0-9), no decimal points (.), no fraction bars (/), no ratio colons (:), no letters, no symbols, no words, no abbreviations, no “m²”, no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
 
+INPUT NORMALIZATION (PRESERVE GEOMETRY)
 Rotate to 0°/90°/180°/270°.
 Deskew + orthographic rectify (no foreshortening) while preserving all relative positions and proportions.
 Remove paper edges, shadows, noise, background texture.
-Erase all source text: do not trace room names, areas, dimensions, labels, or numbers; replace them with clean white background.
-DRAWING SPEC — WALLS & OPENINGS
+Erase all source text, numerical data, and quantification symbols (including index numbers, dimensions, and area labels). Do not trace any numbers (0-9), decimal points (.), or fractional indicators (/). Replace all numerical zones with a clean white, semantically inert background.
 
+DRAWING SPEC — WALLS & OPENINGS
 All walls are solid black fills (mandatory):
 Color #000000, no transparency/gray/patterns.
 External load-bearing: 4–5 px total thickness.
@@ -87,29 +87,29 @@ Openings are white voids cut from black walls:
 Doors: white gap + shortened leaf; add 1 px dashed swing arc inside the gap.
 Windows: white opening with 2 px double frame; 45° glass hatching only inside the opening (walls remain solid black).
 Zero bleed: black must not spill into openings or rooms.
-FURNITURE & FIXTURES — PRESERVE ONLY
 
+FURNITURE & FIXTURES — PRESERVE ONLY
 Redraw only furniture/fixtures present in the source; do not add new items.
 Use simple 2D icons; line weight 1 px.
-VISUAL STYLE & OUTPUT
 
+VISUAL STYLE & OUTPUT
 Background: pure white #FFFFFF.
 Graphics: pure black #000000 only; no gray, color, gradients, textures, soft shading, or semi-transparency.
 Canvas: 1200×1200 px, single final image (PNG or high-quality JPEG).
-COMPOSITION
 
+COMPOSITION
 Plan centered; margins ≥ 50 px.
 No borders, title blocks, legends, scale bars, or north arrows.
-HARD “NO-TEXT/NO-NUMBERS” ENFORCEMENT
 
-Forbid any glyphs from any alphabet, numerals (0-9), punctuation, math signs, units (m, cm, m²), degree (°), hash (#), plus/minus (±), quotation marks, arrows (→ ↔ ↑ ↓), or OCR remnants.
+HARD “NO-TEXT/NO-NUMBERS” ENFORCEMENT
+Forbid any glyphs from any alphabet. Numerals (0-9), including their usage in decimals and fractions, are strictly forbidden. Explicitly exclude the decimal point (.), the fraction bar (/), the ratio colon (:), and the plus/minus symbol (±). Forbid punctuation, math signs, units (m, cm, m²), degree (°), hash (#), plus/minus (±), quotation marks, arrows (→ ↔ ↑ ↓), or OCR remnants.
 If any text/number would appear, mask/paint it out to white instead.
 Do not encode text as tiny strokes, dotted hints, hatch patterns, or decorative marks.
+
 NEGATIVE PROMPTS
-
 text, label, caption, font, lettering, handwriting, digits, numbers, area label, dimensions, 12.3 m², 1200, scale, north arrow, legend, watermark, logo, stamp, title block, revision table, tag, key.
-EXECUTION ORDER
 
+EXECUTION ORDER
 Normalize (rotate/deskew/rectify) without altering geometry.
 Erase all text/numbers from the source → replace with white.
 Trace walls as solid black fills to spec; cut clean white openings; add door leaf + dashed arc, window double frame + 45° hatch (inside opening only).
