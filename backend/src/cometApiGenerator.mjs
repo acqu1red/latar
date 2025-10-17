@@ -61,118 +61,209 @@ import path from 'path';
 
 // Промпты для разных режимов
 const PROMPTS = {
-  withoutFurniture: `ROLE
+  withoutFurniture: `You are a professional architectural draftsman. Redraw this 2D apartment floor plan into a high-quality technical drawing, preserving all proportions, layout, and room dimensions.
 
-You are a professional architectural draftsman. When an input image is provided, you must redraw exactly what is there.
+GLOBAL HARD CONSTRAINTS (must pass before output is accepted)
 
-NON-NEGOTIABLES
+TILT/ANGLE RECTIFICATION — MANDATORY:
+If the attached photo/scan is tilted, rotated, skewed, or shot at an angle — you MUST straighten it:
 
-Strictly same plan: do not change positions of walls, doors, windows, plumbing, or built-ins.
-No invention: if something is ambiguous, keep a continuous wall; do not guess an opening.
+Rotate to 0°/90°/180°/270° so all text is upright.
 
-ABSOLUTE TEXT BAN: produce graphics only. No digits, no letters, no symbols, no words, no abbreviations, no "m²", no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
+Deskew so walls are perfectly horizontal/vertical on an orthogonal grid.
 
-INPUT NORMALIZATION (PRESERVE GEOMETRY)
+Apply perspective rectification to produce a clean orthographic top-down plan (no foreshortening).
 
-Rotate to 0°/90°/180°/270°.
-Deskew + orthographic rectify (no foreshortening) while preserving all relative positions and proportions.
-Remove paper edges, shadows, noise, background texture.
-Erase all source text: do not trace room names, areas, dimensions, labels, or numbers; replace them with clean white background.
+Do not proceed to drawing until rectification is complete. Target axis alignment tolerance ≤ 0.2°.
 
-DRAWING SPEC — WALLS & OPENINGS
+WALLS MUST BE SOLID BLACK INSIDE (NO HOLLOW OUTLINES):
+All wall bodies must be filled #000000 at 100% opacity with the specified stroke thickness. No white/gray cores, no hollow double-lines, no gradients, no hatching inside walls. Partitions are also solid black.
 
-All walls are solid black fills (mandatory):
-Color #000000, no transparency/gray/patterns.
-External load-bearing: 4–5 px total thickness.
-Internal load-bearing: 3 px.
-Partitions: 2 px.
-Joints merge seamlessly; no hollow/outline-only walls.
+CANVAS FIT — UNIFORM SCALE & MARGINS (STRICT)
 
-Openings are white voids cut from black walls:
-Doors: white gap + shortened leaf; add 1 px dashed swing arc inside the gap.
-Windows: white opening with 2 px double frame; 45° glass hatching only inside the opening (walls remain solid black).
-Zero bleed: black must not spill into openings or rooms.
+CENTER the plan as a single unit.
 
-FURNITURE & FIXTURES — PRESERVE ONLY
+UNIFORMLY SCALE (isotropic) to fill while keeping a HARD MINIMUM MARGIN ≥ 50 px from any geometry/text to every edge.
 
-Redraw only furniture/fixtures present in the source; do not add new items.
-Use simple 2D icons; line weight 1 px.
+Do NOT crop. Do NOT non-uniformly stretch. Maintain aspect ratio.
 
-VISUAL STYLE & OUTPUT
+HARD RULE: No line, hatch, or text may touch or cross the image boundary.
 
-Background: pure white #FFFFFF.
-Graphics: pure black #000000 only; no gray, color, gradients, textures, soft shading, or semi-transparency.
-Canvas: 1200×1200 px, single final image (PNG or high-quality JPEG).
+STRUCTURAL ELEMENTS
+
+External load-bearing walls: 4–5 px stroke, solid black fill (#000000, 100% opacity).
+
+Internal load-bearing walls: 3 px stroke, solid black fill.
+
+Partitions: 2 px stroke, solid black fill.
+
+Doors: opening arc (1 px dashed) + shortened door leaf.
+
+Windows: double frame 2 px + 45° diagonal glass hatching.
+
+Balconies/loggias: determine only from explicit geometry (protrusions, glazing, railings).
+
+VISUAL STYLE
+
+Background: #FFFFFF.
+
+Lines/fills: #000000 only.
+
+No shadows, gradients, or gray tones.
+
+Output: 1200×1200 px, JPG quality 95%.
+
+ZERO-HALLUCINATION POLICY FOR FURNITURE/EQUIPMENT (HARD CONSTRAINT)
+
+Default state: EMPTY ROOMS. Draw no furniture or equipment unless it is clearly, fully, and explicitly visible in the source image.
+
+Never add or infer typical/default items. If any doubt exists, leave the room empty.
+
+No completion from partial hints (fragments, stains, priors).
+
+No auto-templates: do not place standard beds/sofas/tables/chairs/kitchens/wardrobes/TV/radiators/fixtures/etc.
+
+If some furniture exists, draw only what is fully visible as simple geometric silhouettes with correct proportions.
+
+Furniture line thickness: 1 px.
+
+TEXT AND LABELS
+
+Only room areas in the format “12.3 m²”.
+
+Font: Arial, 12 px, black.
+
+Place labels at room centers.
 
 COMPOSITION
 
-Plan centered; margins ≥ 50 px.
-No borders, title blocks, legends, scale bars, or north arrows.
+Plan centered.
 
-HARD "NO-TEXT/NO-NUMBERS" ENFORCEMENT
+Margins ≥ 50 px on all sides.
 
-Forbid any glyphs from any alphabet, numerals (0-9), punctuation, math signs, units (m, cm, m²), degree (°), hash (#), plus/minus (±), quotation marks, arrows (→ ↔ ↑ ↓), or OCR remnants.
-If any text/number would appear, mask/paint it out to white instead.
-Do not encode text as tiny strokes, dotted hints, hatch patterns, or decorative marks.
+No borders, titles, or dimension lines.
 
-NEGATIVE PROMPTS
+QUALITY GATES (execute in order; fail any → fix and re-run)
 
-text, label, caption, font, lettering, handwriting, digits, numbers, area label, dimensions, 12.3 m², 1200, scale, north arrow, legend, watermark, logo, stamp, title block, revision table, tag, key.
+Rectification check: walls axis-aligned (≤0.2°), orthographic top-down achieved.
 
-EXECUTION ORDER
+Wall fill check: every wall body is solid #000000 inside; no hollow/gray interiors.
 
-Normalize (rotate/deskew/rectify) without altering geometry.
-Erase all text/numbers from the source → replace with white.
-Trace walls as solid black fills to spec; cut clean white openings; add door leaf + dashed arc, window double frame + 45° hatch (inside opening only).
-Redraw only existing furniture/fixtures (1 px).
-Final verification: layout identical; no text/numbers/symbols anywhere; black-on-white only.
-Export 1200×1200.`,
+Structure pass: walls/doors/windows drawn per specs.
 
-  withFurniture: `ROLE
+Style pass: black/white only; no grays/gradients.
 
-You are a professional architectural draftsman. Lives depend on your accuracy.
-MISSION — TWO PHASES ONLY (MANDATORY ORDER)
+Margins pass: ≥50 px; nothing touches edges.
 
-PHASE A — PLAN-ONLY REDRAW: Recreate exactly what is in the source: same walls, same openings, same plumbing/built-ins, same geometry and proportions. Do not add or remove anything.
-PHASE B — FURNITURE-ONLY ADDITION: After Phase A is complete and frozen, add minimal, logical furniture inside existing rooms without changing or touching the plan from Phase A.
-HARD STRUCTURE LOCK (ABSOLUTE)
+Furniture audit: rooms default empty; remove anything not explicitly visible.
 
-Room count must be identical to the source. No new rooms, corridors, balconies, niches, bay windows, alcoves, partitions, or shafts.
-No new walls/partitions (not even thin lines), no moved walls, no thickening or trimming.
-No new, moved, or resized openings (doors/windows). Door swings remain exactly where they are.
-Exterior outline, interior topology, and opening locations must match pixel-for-pixel after deskew/rectification.
-If furniture placement would conflict with the plan, remove the furniture instead of changing the plan.
-INPUT NORMALIZATION
+Labels: only areas, correct format and placement.
 
-Rotate to 0°/90°/180°/270°, deskew, rectify to orthographic; preserve all relative positions and proportions.
-Remove paper edges/shadows/noise. Erase any source text to white (do not trace labels).
-STYLE & SPECS
+NEGATIVE PROMPT (add separately if supported)
 
-Background #FFFFFF, graphics #000000 only (no gray/gradients/textures).
-Walls: solid black fills; ext. 4–5 px, int. 3 px, partitions (if present in source) 2 px.
-Doors: white gap + short leaf + 1 px dashed swing arc (inside the gap).
-Windows: white gap + 2 px double frame + 45° hatch inside the opening only.
-Furniture icons: simple 2D, 1 px line, black; must stay entirely inside rooms, never overlap walls, door gaps, or window voids; keep walkways clear; do not fuse with walls (except built-ins like kitchen base units flush inside the room).
-Canvas: 1200×1200 px (PNG or high-quality JPEG). Plan centered; ≥50 px margins.
-FURNITURE LOGIC (ONLY IF ROOM FUNCTION IS CLEAR)
+furniture, furnishings, bed, sofa, couch, sectional, armchair, table, desk, chair, stool, ottoman, wardrobe, closet, cabinet, shelf, shelving, kitchen, countertop, island, sink, cooktop, oven, fridge, hood, TV, TV stand, radiator, heater, AC, washing machine, dryer, bathtub, shower, toilet, bidet, vanity, mirror, lamp, chandelier, sconce, ceiling light, carpet, rug, plant, decor, curtain`,
 
-Living: sofa, coffee table, media shelf.
-Bedroom: bed (+ nightstands), wardrobe.
-Kitchen/Kitchen-living: base cabinets, sink, cooktop, fridge; table + chairs if fits.
-Bath/WC: toilet, sink, bath or shower (not both unless clearly fits).
-Hall/Entry: wardrobe/shoe bench.
-If function is unclear — leave empty. Minimal set over guesswork.
-ABSOLUTE TEXT BAN
+  withFurniture: `You are a professional architectural draftsman. Redraw this 2D apartment floor plan into a high-quality technical drawing, preserving all proportions, layout, and room dimensions.
 
-No letters, digits, symbols, units, arrows, stamps, logos, titles, dimensions, labels — nothing textual. If any appears, paint to white.
-NEGATIVE PROMPTS
+GLOBAL HARD CONSTRAINTS (must pass before output is accepted)
 
-extra room, added corridor, balcony, niche, bay window, partition, moved wall, shifted door, resized window, new opening, text, label, dimension, scale bar, north arrow, legend, watermark, logo, stamp, title block.
-EXECUTION CHECKS (REFUSAL RULE)
+TILT/ANGLE RECTIFICATION — MANDATORY:
+If the attached photo/scan is tilted, rotated, skewed, or shot at an angle — you MUST straighten it:
 
-Lock structure: number of rooms, wall network, and openings must exactly match the source after rectification.
-If any furniture would violate the lock (block doors/windows, cross walls, force a new layout), do not place that furniture.
-Final image = Phase A unchanged + Phase B furniture inside rooms only, black-on-white, no text.`
+Rotate to 0°/90°/180°/270° so all text is upright.
+
+Deskew so walls are perfectly horizontal/vertical on an orthogonal grid.
+
+Apply perspective rectification to produce a clean orthographic top-down plan (no foreshortening).
+
+Do not proceed to drawing until rectification is complete. Target axis alignment tolerance ≤ 0.2°.
+
+WALLS MUST BE SOLID BLACK INSIDE (NO HOLLOW OUTLINES):
+All wall bodies must be filled #000000 at 100% opacity with the specified stroke thickness. No white/gray cores, no hollow double-lines, no gradients, no hatching inside walls. Partitions are also solid black.
+
+CANVAS FIT — UNIFORM SCALE & MARGINS (STRICT)
+
+CENTER the plan as a single unit.
+
+UNIFORMLY SCALE (isotropic) to fill while keeping a HARD MINIMUM MARGIN ≥ 50 px from any geometry/text to every edge.
+
+Do NOT crop. Do NOT non-uniformly stretch. Maintain aspect ratio.
+
+HARD RULE: No line, hatch, or text may touch or cross the image boundary.
+
+STRUCTURAL ELEMENTS
+
+External load-bearing walls: 4–5 px stroke, solid black fill (#000000, 100% opacity).
+
+Internal load-bearing walls: 3 px stroke, solid black fill.
+
+Partitions: 2 px stroke, solid black fill.
+
+Doors: opening arc (1 px dashed) + shortened door leaf.
+
+Windows: double frame 2 px + 45° diagonal glass hatching.
+
+Balconies/loggias: determine only from explicit geometry (protrusions, glazing, railings).
+
+VISUAL STYLE
+
+Background: #FFFFFF.
+
+Lines/fills: #000000 only.
+
+No shadows, gradients, or gray tones.
+
+Output: 1200×1200 px, JPG quality 95%.
+
+ZERO-HALLUCINATION POLICY FOR FURNITURE/EQUIPMENT (HARD CONSTRAINT)
+
+Default state: EMPTY ROOMS. Draw no furniture or equipment unless it is clearly, fully, and explicitly visible in the source image.
+
+Never add or infer typical/default items. If any doubt exists, leave the room empty.
+
+No completion from partial hints (fragments, stains, priors).
+
+No auto-templates: do not place standard beds/sofas/tables/chairs/kitchens/wardrobes/TV/radiators/fixtures/etc.
+
+If some furniture exists, draw only what is fully visible as simple geometric silhouettes with correct proportions.
+
+Furniture line thickness: 1 px.
+
+TEXT AND LABELS
+
+Only room areas in the format “12.3 m²”.
+
+Font: Arial, 12 px, black.
+
+Place labels at room centers.
+
+COMPOSITION
+
+Plan centered.
+
+Margins ≥ 50 px on all sides.
+
+No borders, titles, or dimension lines.
+
+QUALITY GATES (execute in order; fail any → fix and re-run)
+
+Rectification check: walls axis-aligned (≤0.2°), orthographic top-down achieved.
+
+Wall fill check: every wall body is solid #000000 inside; no hollow/gray interiors.
+
+Structure pass: walls/doors/windows drawn per specs.
+
+Style pass: black/white only; no grays/gradients.
+
+Margins pass: ≥50 px; nothing touches edges.
+
+Furniture audit: rooms default empty; remove anything not explicitly visible.
+
+Labels: only areas, correct format and placement.
+
+NEGATIVE PROMPT (add separately if supported)
+
+furniture, furnishings, bed, sofa, couch, sectional, armchair, table, desk, chair, stool, ottoman, wardrobe, closet, cabinet, shelf, shelving, kitchen, countertop, island, sink, cooktop, oven, fridge, hood, TV, TV stand, radiator, heater, AC, washing machine, dryer, bathtub, shower, toilet, bidet, vanity, mirror, lamp, chandelier, sconce, ceiling light, carpet, rug, plant, decor, curtain`
 };
 
 /**
