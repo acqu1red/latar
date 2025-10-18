@@ -2275,6 +2275,7 @@ function AdvancedMainArea({
   onRate,
   onRegenerate,
   onDownload,
+  onAddFurniture,
   onImageClick,
   onModelChange,
   model,
@@ -2322,6 +2323,7 @@ function AdvancedMainArea({
                       onRegenerate={onRegenerate}
                       onDownload={onDownload}
                       onImageClick={onImageClick}
+                      onAddFurniture={onAddFurniture}
                       service={service}
                       selectedModel={selectedModel}
                       onModelChange={onSelectedModelChange}
@@ -2337,6 +2339,7 @@ function AdvancedMainArea({
                       onRegenerate={onRegenerate}
                       onDownload={onDownload}
                       onImageClick={onImageClick}
+                      onAddFurniture={onAddFurniture}
                       service={service}
                       selectedModel={selectedModel}
                       onModelChange={onSelectedModelChange}
@@ -2359,6 +2362,7 @@ function AdvancedMainArea({
                 onRate={onRate}
                 onRegenerate={onRegenerate}
                 onDownload={onDownload}
+                onAddFurniture={onAddFurniture}
                 onImageClick={onImageClick}
                 service={service}
                 selectedModel={selectedModel}
@@ -2489,6 +2493,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
   const canSend = attachments.length > 0 && (
     model === "3d" ? query.trim().length > 0 : 
     model === "cleanup" ? true : 
+    selectedModel === 'melbourne' ? true : // Melbourne можно отправлять сразу
     techplanMode !== null
   );
 
@@ -2599,24 +2604,32 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
 
         {model === "techplan" && (
            <div className="flex-1 h-10 flex items-center gap-3 px-6">
-            <AdvancedToggleChip
-              label="С мебелью"
-              active={techplanMode === "with"}
-              onClick={() => {
-                setTechplanMode("with");
-                onAdvanced?.();
-              }}
-            />
-            <div className="h-4 w-px bg-white/20"></div>
-            <AdvancedToggleChip
-              label="Без мебели"
-              active={techplanMode === "without"}
-              onClick={() => {
-                setTechplanMode("without");
-                onAdvanced?.();
-              }}
-            />
-          </div>
+            {selectedModel === 'melbourne' ? (
+              <div className="text-sm text-white/80 font-medium">
+                Melbourne 4.5 - создавай постепенно
+              </div>
+            ) : (
+              <>
+                <AdvancedToggleChip
+                  label="С мебелью"
+                  active={techplanMode === "with"}
+                  onClick={() => {
+                    setTechplanMode("with");
+                    onAdvanced?.();
+                  }}
+                />
+                <div className="h-4 w-px bg-white/20"></div>
+                <AdvancedToggleChip
+                  label="Без мебели"
+                  active={techplanMode === "without"}
+                  onClick={() => {
+                    setTechplanMode("without");
+                    onAdvanced?.();
+                  }}
+                />
+              </>
+            )}
+           </div>
         )}
 
         {model === "cleanup" && (
@@ -3058,6 +3071,7 @@ function AdvancedMessageDisplay({
   onRegenerate, 
   onDownload,
   onImageClick,
+  onAddFurniture,
   service = 'techplan',
   selectedModel = 'boston',
   onModelChange,
@@ -3191,6 +3205,22 @@ function AdvancedMessageDisplay({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </button>
+                    
+                    {/* Кнопка "Добавить мебель" для Melbourne */}
+                    {selectedModel === 'melbourne' && !result.hasFurniture && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddFurniture?.(result.image);
+                        }}
+                        className="absolute top-2 right-12 w-8 h-8 rounded-md bg-blue-600/80 hover:bg-blue-600 text-white flex items-center justify-center transition-colors"
+                        title="Добавить мебель"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -3890,7 +3920,12 @@ function MonochromeClaudeStyle() {
         const formData = new FormData();
         // прикладываем все изображения
         attachments.forEach((att) => formData.append('image', att.file));
-        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+        // Для Melbourne всегда начинаем с withoutFurniture (пустая комната)
+        if (selectedModel === 'melbourne') {
+          formData.append('mode', 'withoutFurniture');
+        } else {
+          formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+        }
         formData.append('model', selectedModel);
 
         // Показываем прогресс для множественных изображений
@@ -4243,7 +4278,12 @@ function MonochromeClaudeStyle() {
         const formData = new FormData();
         // прикладываем все изображения
         attachments.forEach((att) => formData.append('image', att.file));
-        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+        // Для Melbourne всегда начинаем с withoutFurniture (пустая комната)
+        if (selectedModel === 'melbourne') {
+          formData.append('mode', 'withoutFurniture');
+        } else {
+          formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+        }
         formData.append('model', selectedModel);
 
         // Показываем прогресс для множественных изображений
@@ -4463,6 +4503,97 @@ function MonochromeClaudeStyle() {
       // Fallback: открываем изображение в новой вкладке
       console.log('Fallback: открываем изображение в новой вкладке');
       window.open(imageUrl, '_blank');
+    }
+  };
+
+  // Функция для добавления мебели к результату Melbourne
+  const handleAddFurniture = async (imageUrl) => {
+    try {
+      console.log('Добавляем мебель к изображению:', imageUrl);
+      
+      // Показываем статус генерации
+      setAdvancedIsGenerating(true);
+      setAdvancedCurrentMessage({
+        type: 'ai',
+        text: 'Добавляю мебель к плану...',
+        timestamp: new Date().toISOString(),
+        chatTitle: 'Melbourne 4.5 - добавление мебели'
+      });
+      setAdvancedCurrentResult(null);
+
+      // Загружаем изображение как файл
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const file = new File([blob], 'plan.jpg', { type: 'image/jpeg' });
+
+      // Создаем FormData для запроса
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('mode', 'withFurniture');
+      formData.append('model', 'boston'); // Используем boston для добавления мебели
+
+      // Отправляем запрос
+      const addFurnitureResponse = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
+        method: 'POST',
+        headers: {
+          'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+        },
+        body: formData
+      });
+
+      if (!addFurnitureResponse.ok) {
+        const errorData = await addFurnitureResponse.json();
+        throw new Error(errorData.error || 'Ошибка добавления мебели');
+      }
+
+      const result = await addFurnitureResponse.json();
+      
+      if (result.success) {
+        const newImageUrl = result.result?.imageUrl || result.results?.[0]?.imageUrl;
+        
+        if (newImageUrl) {
+          // Обновляем результат с новым изображением
+          setAdvancedCurrentResult({
+            type: 'ai',
+            text: 'Мебель успешно добавлена к плану!',
+            image: newImageUrl,
+            hasFurniture: true,
+            timestamp: new Date().toISOString(),
+            chatTitle: 'Melbourne 4.5 - с мебелью'
+          });
+          
+          // Добавляем в историю сообщений
+          const newMessage = {
+            id: `melbourne-furniture-${Date.now()}`,
+            type: 'ai',
+            text: 'Мебель успешно добавлена к плану!',
+            image: newImageUrl,
+            hasFurniture: true,
+            timestamp: new Date().toISOString(),
+            chatTitle: 'Melbourne 4.5 - с мебелью'
+          };
+          
+          setAdvancedMessageHistory(prev => ({
+            ...prev,
+            [activeChatId]: [...(prev[activeChatId] || []), newMessage]
+          }));
+        }
+      }
+      
+    } catch (error) {
+      console.error('Ошибка при добавлении мебели:', error);
+      setAdvancedCurrentResult({
+        type: 'ai',
+        text: `Ошибка добавления мебели: ${error.message}`,
+        timestamp: new Date().toISOString(),
+        chatTitle: 'Melbourne 4.5 - ошибка'
+      });
+    } finally {
+      setAdvancedIsGenerating(false);
     }
   };
 
@@ -5081,6 +5212,7 @@ function MonochromeClaudeStyle() {
             onRate={handleAdvancedRate}
             onRegenerate={handleAdvancedRegenerate}
             onDownload={handleAdvancedDownload}
+            onAddFurniture={handleAddFurniture}
             onImageClick={handleImageClick}
             onModelChange={setModel}
             model={model}
