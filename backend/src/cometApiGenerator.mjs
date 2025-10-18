@@ -122,6 +122,10 @@ Export 1200×1200.`,
 
 DON'T REPLY TO THE MESSAGE! JUST GENERATE IT!`,
 
+  // Промпты для Melbourne 4.5
+  melbourne_step1: `1`,
+  melbourne_step2: `2`,
+
   // Обратная совместимость со старыми ключами
   withoutFurniture: `ROLE
 You are a professional architectural draftsman. When an input image is provided, you must redraw exactly what is there.
@@ -493,8 +497,8 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
   if (model === 'boston') {
     promptKey = `boston_${mode}`;
   } else if (model === 'melbourne') {
-    // Для Melbourne пока используем старые промпты (обратная совместимость)
-    promptKey = mode;
+    // Для Melbourne используем специальные промпты
+    promptKey = 'melbourne_step1';
   } else {
     // Обратная совместимость со старыми ключами
     promptKey = mode;
@@ -693,6 +697,235 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
   }
 }
 
+
+/**
+ * Добавляет мебель к Melbourne плану (шаг 2)
+ * @param {string} imagePath - Путь к изображению плана
+ * @returns {Promise<Buffer>} - Буфер с сгенерированным изображением
+ */
+export async function addFurnitureToMelbourne(imagePath) {
+  // Проверяем доступность Buffer
+  console.log('🔍 Проверка Buffer в addFurnitureToMelbourne:', {
+    BufferType: typeof Buffer,
+    BufferConstructor: typeof Buffer?.from,
+    globalThisBuffer: typeof globalThis.Buffer,
+    globalBuffer: typeof global.Buffer
+  });
+  
+  if (typeof Buffer === 'undefined') {
+    console.error('❌ Buffer не доступен!');
+    throw new Error('Buffer не доступен. Проверьте версию Node.js.');
+  }
+  
+  const apiKey = process.env.COMET_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('COMET_API_KEY не установлен в переменных окружения');
+  }
+
+  // Дополнительная проверка API ключа
+  if (apiKey === 'YOUR_COMET_API_KEY_HERE' || apiKey === 'YOUR_ACTUAL_COMET_API_KEY' || apiKey.length < 10) {
+    console.error('❌ API ключ недействителен:', {
+      keyLength: apiKey.length,
+      keyStart: apiKey.substring(0, 10) + '...',
+      isDefault: apiKey === 'YOUR_COMET_API_KEY_HERE' || apiKey === 'YOUR_ACTUAL_COMET_API_KEY'
+    });
+    throw new Error('COMET_API_KEY недействителен. Проверьте настройки переменных окружения на хостинге.');
+  }
+
+  if (!fs.existsSync(imagePath)) {
+    throw new Error(`Файл изображения не найден: ${imagePath}`);
+  }
+
+  const prompt = PROMPTS['melbourne_step2'];
+
+  try {
+    console.log(`🎨 Добавление мебели к Melbourne плану`);
+    console.log(`📁 Изображение: ${imagePath}`);
+    
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64 = imageBuffer.toString('base64');
+    const ext = path.extname(imagePath).toLowerCase();
+    const mime = ext === '.png' ? 'image/png' : 'image/jpeg';
+
+    const requestBody = {
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: mime, data: base64 } }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseModalities: ['IMAGE']
+      }
+    };
+
+    console.log('📤 Отправка запроса к COMETAPI (Melbourne Step 2)...');
+    console.log(`📝 Промпт: ${prompt}`);
+    console.log(`🖼️ Изображение: ${mime}, ${base64.length} символов base64`);
+    console.log(`🔑 API ключ: ${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 5)}`);
+    console.log(`🌐 URL: ${COMETAPI_IMAGE_URL}`);
+
+    // Используем retry логику для обработки ошибок сервера
+    const response = await retryWithBackoff(async () => {
+      const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      
+      console.log('📋 Заголовки запроса:', headers);
+      console.log('📦 Тело запроса (первые 500 символов):', JSON.stringify(requestBody).substring(0, 500) + '...');
+      
+      const resp = await fetch(COMETAPI_IMAGE_URL, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!resp.ok) {
+        const errorText = await resp.text();
+        throw new Error(`COMETAPI ошибка ${resp.status} [${COMETAPI_IMAGE_URL}]: ${errorText?.slice(0, 500)}`);
+      }
+      
+      return resp;
+    });
+
+    const result = await response.json();
+    
+    // Детальное логирование ответа COMETAPI
+    console.log('🔍 Полный ответ COMETAPI:');
+    console.log('📊 Структура ответа:', JSON.stringify(result, null, 2));
+    console.log('🔍 Ключи верхнего уровня:', Object.keys(result));
+    
+    if (result.candidates) {
+      console.log('📋 Кандидаты:', result.candidates.length);
+      if (result.candidates[0]) {
+        console.log('📋 Первый кандидат:', Object.keys(result.candidates[0]));
+        if (result.candidates[0].content) {
+          console.log('📋 Контент:', Object.keys(result.candidates[0].content));
+          if (result.candidates[0].content.parts) {
+            console.log('📋 Части:', result.candidates[0].content.parts.length);
+            result.candidates[0].content.parts.forEach((part, index) => {
+              console.log(`📋 Часть ${index}:`, Object.keys(part));
+              if (part.inline_data) {
+                console.log(`📋 Inline data ${index}:`, Object.keys(part.inline_data));
+                console.log(`📋 Data length ${index}:`, part.inline_data.data ? part.inline_data.data.length : 'нет данных');
+              }
+            });
+          }
+        }
+      }
+    }
+
+    let base64Image;
+
+    // Вариант 1: старый формат { data: { image: base64 } }
+    if (result?.data?.image && typeof result.data.image === 'string') {
+      base64Image = result.data.image;
+    }
+
+    // Вариант 2: Gemini-подобный формат candidates -> content(parts[]) -> inline_data
+    if (!base64Image) {
+      const candidates = result?.candidates || result?.contents || result?.responses;
+      if (Array.isArray(candidates) && candidates.length > 0) {
+        const first = candidates[0].content || candidates[0];
+        const parts = first?.parts || first;
+        if (Array.isArray(parts)) {
+          // ищем часть с изображением (поддерживаем оба формата: inline_data и inlineData)
+          const inlinePart = parts.find(p => 
+            p?.inline_data?.data || p?.inline_data?.image || 
+            p?.inlineData?.data || p?.inlineData?.image
+          );
+          if (inlinePart?.inline_data?.data) {
+            base64Image = inlinePart.inline_data.data;
+          } else if (inlinePart?.inline_data?.image) {
+            base64Image = inlinePart.inline_data.image;
+          } else if (inlinePart?.inlineData?.data) {
+            base64Image = inlinePart.inlineData.data;
+          } else if (inlinePart?.inlineData?.image) {
+            base64Image = inlinePart.inlineData.image;
+          }
+        }
+      }
+    }
+
+    // Вариант 3: media массив с { mime_type, data }
+    if (!base64Image && Array.isArray(result?.media)) {
+      const mediaItem = result.media.find(m => typeof m?.data === 'string');
+      if (mediaItem?.data) base64Image = mediaItem.data;
+    }
+
+    // Вариант 4: плоский поиск по известным путям
+    if (!base64Image && typeof result?.image === 'string') base64Image = result.image;
+    if (!base64Image && typeof result?.output === 'string') base64Image = result.output;
+
+    // Вариант 5: глубокий поиск по объекту первых найденных 2-3 уровней
+    if (!base64Image) {
+      console.log('🔍 Глубокий поиск base64...');
+      const tryExtractBase64 = (obj, depth = 0) => {
+        if (!obj || depth > 3) return null;
+        if (typeof obj === 'string') {
+          // эвристика base64-строки - проверяем длину и символы
+          if (obj.length > 200 && /^[A-Za-z0-9+/=]+$/.test(obj)) {
+            console.log(`✅ Найдена base64 строка (длина: ${obj.length})`);
+            return obj;
+          }
+          return null;
+        }
+        if (Array.isArray(obj)) {
+          for (const it of obj) {
+            const found = tryExtractBase64(it, depth + 1);
+            if (found) return found;
+          }
+          return null;
+        }
+        if (typeof obj === 'object') {
+          // приоритетные ключи
+          const preferredKeys = ['image', 'data', 'inline_data', 'content', 'parts'];
+          for (const k of preferredKeys) {
+            if (obj[k]) {
+              const found = tryExtractBase64(obj[k], depth + 1);
+              if (found) return found;
+            }
+          }
+          // иначе любой ключ
+          for (const k of Object.keys(obj)) {
+            if (!preferredKeys.includes(k)) {
+              const found = tryExtractBase64(obj[k], depth + 1);
+              if (found) return found;
+            }
+          }
+        }
+        return null;
+      };
+      const guess = tryExtractBase64(result);
+      if (guess) {
+        console.log(`✅ Найдена base64 через глубокий поиск (длина: ${guess.length})`);
+        base64Image = guess;
+      }
+    }
+
+    if (!base64Image) {
+      const preview = JSON.stringify(result).slice(0, 1000);
+      console.error('⚠️ Ответ COMETAPI без изображения, превью:', preview);
+      throw new Error('COMETAPI не вернул изображение в ожидаемом формате');
+    }
+
+    const outBuffer = createBuffer(base64Image, 'base64');
+    console.log('✅ Мебель успешно добавлена к Melbourne плану');
+    console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
+    
+    return outBuffer;
+
+  } catch (error) {
+    console.error('❌ Ошибка добавления мебели к Melbourne плану:', error);
+    throw error;
+  }
+}
 
 /**
  * Проверяет доступность COMETAPI

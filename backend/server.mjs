@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
-import { generateTechnicalPlan, checkCometApiHealth, generateCleanupImage } from './src/cometApiGenerator.mjs';
+import { generateTechnicalPlan, checkCometApiHealth, generateCleanupImage, addFurnitureToMelbourne } from './src/cometApiGenerator.mjs';
 import authRoutes from './src/authRoutes.mjs';
 import { userDB, imageUrlsDB } from './src/database.mjs';
 import { generateImageUrl, uploadToExternalService } from './src/imageUrlService.mjs';
@@ -660,6 +660,130 @@ app.post('/api/remove-objects', upload.array('image', 5), async (req, res) => {
   } catch (error) {
     console.error('Ошибка удаления объектов:', error);
     res.status(500).json({ error: 'Ошибка удаления объектов: ' + error.message });
+  }
+});
+
+// Маршрут для добавления мебели к Melbourne плану
+app.post('/api/add-furniture-melbourne', upload.single('image'), async (req, res) => {
+  try {
+    console.log('📥 Получен запрос на добавление мебели к Melbourne плану');
+    
+    const file = req.file;
+    
+    if (!file) {
+      console.log('❌ Ошибка: изображение не загружено');
+      return res.status(400).json({ error: 'Изображение не загружено' });
+    }
+
+    // COMETAPI ключ обязателен
+    if (!isCometApiKeyValid) {
+      return res.status(503).json({ 
+        error: 'Сервис добавления мебели временно недоступен. API ключ не настроен.',
+        code: 'API_KEY_MISSING'
+      });
+    }
+
+    const authHeader = req.headers['authorization'];
+    let authUser = null;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        authUser = userDB.findById(decoded.id);
+        if (!authUser) {
+          return res.status(401).json({ error: 'Пользователь не найден' });
+        }
+      } catch (err) {
+        console.error('Ошибка проверки токена при добавлении мебели:', err);
+        return res.status(401).json({ error: 'Неверный токен' });
+      }
+    }
+
+    const isDirector = authUser?.role === 'director';
+    const isOrganization = authUser?.access_prefix === 'Организация';
+
+    if (authUser && !isDirector && !isOrganization) {
+      if (authUser.plans_used >= MAX_USER_PLANS) {
+        return res.status(403).json({ error: 'Лимит генераций исчерпан', code: 'PLAN_LIMIT' });
+      }
+      userDB.incrementPlanUsage(authUser.id);
+      authUser.plans_used += 1;
+    } else if (!authUser) {
+      // Гостевой доступ
+      const forwarded = req.headers['x-forwarded-for'];
+      const clientIp = forwarded ? forwarded.split(',')[0].trim() : req.ip;
+      const usage = guestUsage.get(clientIp) || { plans: 0 };
+      if (usage.plans >= MAX_GUEST_PLANS) {
+        return res.status(403).json({ error: 'Лимит генераций для гостей исчерпан', code: 'GUEST_LIMIT' });
+      }
+      usage.plans += 1;
+      guestUsage.set(clientIp, usage);
+    }
+
+    console.log(`🎨 Добавление мебели к Melbourne плану: ${file.originalname}`);
+
+    // Создаем временный файл из загруженного файла
+    const tempFilePath = path.join(__dirname, `temp_melbourne_furniture_${Date.now()}.jpg`);
+    try {
+      // Записываем файл во временный файл
+      fs.writeFileSync(tempFilePath, file.buffer);
+      
+      // Добавляем мебель к Melbourne плану
+      const generatedBuffer = await addFurnitureToMelbourne(tempFilePath);
+      
+      // Генерируем URL для результата
+      const urlData = generateImageUrl('melbourne_furniture', `melbourne_furniture.jpg`, {
+        originalSize: file.buffer.length,
+        processedAt: new Date().toISOString()
+      });
+      
+      // Загружаем изображение на внешний сервис
+      const uploadResult = await uploadToExternalService(generatedBuffer, urlData.filename);
+      
+      // Сохраняем URL в базу данных
+      const dbResult = imageUrlsDB.save(
+        authUser?.id || null,
+        'melbourne_furniture',
+        'melbourne_furniture.jpg',
+        uploadResult.imageUrl,
+        uploadResult.thumbnailUrl,
+        {
+          ...urlData.metadata,
+          uploadResult: {
+            service: uploadResult.service || 'temporary',
+            deleteData: uploadResult.deleteHash || uploadResult.publicId || uploadResult.localPath
+          }
+        }
+      );
+      
+      const result = {
+        id: dbResult.lastInsertRowid,
+        imageUrl: uploadResult.imageUrl,
+        thumbnailUrl: uploadResult.thumbnailUrl,
+        originalFilename: 'melbourne_furniture.jpg',
+        createdAt: new Date().toISOString()
+      };
+
+      // Возвращаем результат
+      res.status(200).json({
+        success: true,
+        result: result,
+        message: 'Мебель успешно добавлена к Melbourne плану'
+      });
+
+    } finally {
+      // Удаляем временный файл
+      try { 
+        fs.unlinkSync(tempFilePath); 
+      } catch (unlinkError) {
+        console.warn('Не удалось удалить временный файл:', tempFilePath);
+      }
+    }
+
+  } catch (error) {
+    console.error('Ошибка добавления мебели к Melbourne плану:', error);
+    res.status(500).json({ error: 'Ошибка добавления мебели: ' + error.message });
   }
 });
 

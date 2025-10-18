@@ -2275,8 +2275,8 @@ function AdvancedMainArea({
   onRate,
   onRegenerate,
   onDownload,
-  onAddFurniture,
   onImageClick,
+  onAddFurniture,
   onModelChange,
   model,
   onModelSelect,
@@ -2362,7 +2362,6 @@ function AdvancedMainArea({
                 onRate={onRate}
                 onRegenerate={onRegenerate}
                 onDownload={onDownload}
-                onAddFurniture={onAddFurniture}
                 onImageClick={onImageClick}
                 service={service}
                 selectedModel={selectedModel}
@@ -4506,16 +4505,16 @@ function MonochromeClaudeStyle() {
     }
   };
 
-  // Функция для добавления мебели к результату Melbourne
+  // Функция для добавления мебели к Melbourne плану
   const handleAddFurniture = async (imageUrl) => {
     try {
-      console.log('Добавляем мебель к изображению:', imageUrl);
+      console.log('Добавляем мебель к Melbourne плану:', imageUrl);
       
       // Показываем статус генерации
       setAdvancedIsGenerating(true);
       setAdvancedCurrentMessage({
         type: 'ai',
-        text: 'Добавляю мебель к плану...',
+        text: 'Добавляю мебель к Melbourne плану...',
         timestamp: new Date().toISOString(),
         chatTitle: 'Melbourne 4.5 - добавление мебели'
       });
@@ -4528,16 +4527,14 @@ function MonochromeClaudeStyle() {
       }
       
       const blob = await response.blob();
-      const file = new File([blob], 'plan.jpg', { type: 'image/jpeg' });
+      const file = new File([blob], 'melbourne_plan.jpg', { type: 'image/jpeg' });
 
       // Создаем FormData для запроса
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('mode', 'withFurniture');
-      formData.append('model', 'boston'); // Используем boston для добавления мебели
 
       // Отправляем запрос
-      const addFurnitureResponse = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
+      const addFurnitureResponse = await fetch(`${API_BASE_URL}/api/add-furniture-melbourne`, {
         method: 'POST',
         headers: {
           'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
@@ -4553,13 +4550,13 @@ function MonochromeClaudeStyle() {
       const result = await addFurnitureResponse.json();
       
       if (result.success) {
-        const newImageUrl = result.result?.imageUrl || result.results?.[0]?.imageUrl;
+        const newImageUrl = result.result?.imageUrl;
         
         if (newImageUrl) {
           // Обновляем результат с новым изображением
           setAdvancedCurrentResult({
             type: 'ai',
-            text: 'Мебель успешно добавлена к плану!',
+            text: 'Мебель успешно добавлена к Melbourne плану!',
             image: newImageUrl,
             hasFurniture: true,
             timestamp: new Date().toISOString(),
@@ -4570,7 +4567,7 @@ function MonochromeClaudeStyle() {
           const newMessage = {
             id: `melbourne-furniture-${Date.now()}`,
             type: 'ai',
-            text: 'Мебель успешно добавлена к плану!',
+            text: 'Мебель успешно добавлена к Melbourne плану!',
             image: newImageUrl,
             hasFurniture: true,
             timestamp: new Date().toISOString(),
@@ -4672,7 +4669,12 @@ function MonochromeClaudeStyle() {
         // Генерация технического плана
         const formData = new FormData();
         formData.append('image', attachments[0].file);
-        formData.append('mode', planFurniture === "with" ? "withFurniture" : "withoutFurniture");
+        // Для Melbourne всегда начинаем с withoutFurniture (пустая комната)
+        if (selectedModel === 'melbourne') {
+          formData.append('mode', 'withoutFurniture');
+        } else {
+          formData.append('mode', planFurniture === "with" ? "withFurniture" : "withoutFurniture");
+        }
         formData.append('model', selectedModel);
 
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
@@ -5212,8 +5214,8 @@ function MonochromeClaudeStyle() {
             onRate={handleAdvancedRate}
             onRegenerate={handleAdvancedRegenerate}
             onDownload={handleAdvancedDownload}
-            onAddFurniture={handleAddFurniture}
             onImageClick={handleImageClick}
+            onAddFurniture={handleAddFurniture}
             onModelChange={setModel}
             model={model}
             onModelSelect={setModel}
