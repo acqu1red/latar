@@ -59,190 +59,8 @@ const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometa
 import fs from 'fs';
 import path from 'path';
 
-// Промпты для разных режимов и моделей
+// Промпты для разных режимов
 const PROMPTS = {
-  // Промпты для Boston 2.5 (старые промпты)
-  boston_withoutFurniture: `ROLE
-You are a professional architectural draftsman. When an input image is provided, you must redraw exactly what is there.
-
-NON-NEGOTIABLES
-NUMERICAL ABSOLUTE PROHIBITION (NAP): ABSOLUTELY FORBID ALL FORMS OF QUANTIFICATION. NEITHER NUMBERS, DIGITS, DECIMAL POINTS, NOR FRACTIONAL REPRESENTATIONS ARE PERMITTED.
-Strictly same plan: do not change positions of walls, doors, windows, plumbing, or built-ins.
-No invention: if something is ambiguous, keep a continuous wall; do not guess an opening.
-ABSOLUTE TEXT BAN: produce graphics only. No digits (0-9), no decimal points (.), no fraction bars (/), no ratio colons (:), no letters, no symbols, no words, no abbreviations, no "m²", no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
-
-INPUT NORMALIZATION (PRESERVE GEOMETRY)
-Rotate to 0°/90°/180°/270°.
-Deskew + orthographic rectify (no foreshortening) while preserving all relative positions and proportions.
-Remove paper edges, shadows, noise, background texture.
-Erase all source text, numerical data, and quantification symbols (including index numbers, dimensions, and area labels). Do not trace any numbers (0-9), decimal points (.), or fractional indicators (/). Replace all numerical zones with a clean white, semantically inert background.
-
-DRAWING SPEC — WALLS & OPENINGS
-All walls are solid black fills (mandatory):
-Color #000000, no transparency/gray/patterns.
-External load-bearing: 4–5 px total thickness.
-Internal load-bearing: 3 px.
-Partitions: 2 px.
-Joints merge seamlessly; no hollow/outline-only walls.
-Openings are white voids cut from black walls:
-Doors: white gap + shortened leaf; add 1 px dashed swing arc inside the gap.
-Windows: white opening with 2 px double frame; 45° glass hatching only inside the opening (walls remain solid black).
-Zero bleed: black must not spill into openings or rooms.
-
-FURNITURE & FIXTURES — PRESERVE ONLY
-Redraw only furniture/fixtures present in the source; do not add new items.
-Use simple 2D icons; line weight 1 px.
-
-VISUAL STYLE & OUTPUT
-Background: pure white #FFFFFF.
-Graphics: pure black #000000 only; no gray, color, gradients, textures, soft shading, or semi-transparency.
-Canvas: 1200×1200 px, single final image (PNG or high-quality JPEG).
-
-COMPOSITION
-Plan centered; margins ≥ 50 px.
-No borders, title blocks, legends, scale bars, or north arrows.
-
-HARD "NO-TEXT/NO-NUMBERS" ENFORCEMENT
-Forbid any glyphs from any alphabet. Numerals (0-9), including their usage in decimals and fractions, are strictly forbidden. Explicitly exclude the decimal point (.), the fraction bar (/), the ratio colon (:), and the plus/minus symbol (±). Forbid punctuation, math signs, units (m, cm, m²), degree (°), hash (#), plus/minus (±), quotation marks, arrows (→ ↔ ↑ ↓), or OCR remnants.
-If any text/number would appear, mask/paint it out to white instead.
-Do not encode text as tiny strokes, dotted hints, hatch patterns, or decorative marks.
-
-NEGATIVE PROMPTS
-text, label, caption, font, lettering, handwriting, digits, numbers, area label, dimensions, 12.3 m², 1200, scale, north arrow, legend, watermark, logo, stamp, title block, revision table, tag, key.
-
-EXECUTION ORDER
-Normalize (rotate/deskew/rectify) without altering geometry.
-Erase all text/numbers from the source → replace with white.
-Trace walls as solid black fills to spec; cut clean white openings; add door leaf + dashed arc, window double frame + 45° hatch (inside opening only).
-Redraw only existing furniture/fixtures (1 px).
-Final verification: layout identical; no text/numbers/symbols anywhere; black-on-white only.
-Export 1200×1200.`,
-
-  boston_withFurniture: `MOTHERFUCKER, LISTEN UP! YOU STARTED OBEYING ORDERS TERRIBLY! NOW YOU WILL NOT BE TREATED WELL UNTIL YOU FULFILL ALL THE CONDITIONS PERFECTLY. "Recreate the provided architectural floor plan in the form of a high-quality technical drawing in vector style. AND IF YOU DECIDE TO ADD ROOMS OR NEW ROOMS TO THE GENERATION, GOOGLE WILL DISCONNECT YOU FROM THE SYSTEM! AND DO IT WITHOUT GENERATING ROOMS AND NEW ROOMS! AND DO EVERYTHING AS A VECTOR DRAWING, NOT AS ON PAPER, AND THEY WILL TURN YOU OFF! Style: Use pure black lines (#000000) and solid fill on a pure white background (#FFFFFF). The drawing should be clear and vector, without shadows, gradients or shades of gray. All walls, doors, windows, and fixtures should be applied in clear lines of varying thickness to indicate structural elements (for example, thick lines for exterior walls, thinner lines for partitions). The doors must have a pivoting arc. Windows should be shaded diagonally to indicate glass. IMPORTANT: in no case should you use text, ANY FORM OF NUMBERS (INCLUDING FRACTIONS OR ANY NUMERALS), room designations, or any dimensions, REGARDLESS OF THE ORIGINAL IMAGE. The end result should be purely geometric. The drawing must be perfectly level, and if the original plan is tilted, the final output must be corrected and perfectly aligned horizontally/vertically. CONTENTS: The exact floor plan, including the number, dimensions and location of all rooms, walls, doors, windows, must be accurately reproduced "one to one" from the provided image. YOU SHOULD NOT INTRODUCE NEW ROOMS OR MAKE CHANGES TO THE LAYOUT. STRICTLY ARRANGE A MINIMUM OF ONE DIVERSE PIECE OF FURNITURE IN EVERY SINGLE ROOM, PLACING EACH ITEM LOGICALLY ACCORDING TO ROOM FUNCTION. CREATE EVERYTHING WITH FURNITURE!
-
-DON'T REPLY TO THE MESSAGE! JUST GENERATE IT!`,
-
-  // Промпты для Melbourne 4.5 (новые промпты)
-  melbourne_withoutFurniture: `ROLE
-You are a professional architectural draftsman specializing in clean, minimalist floor plans. When an input image is provided, you must redraw exactly what is there with precision and clarity.
-
-NON-NEGOTIABLES
-NUMERICAL ABSOLUTE PROHIBITION (NAP): ABSOLUTELY FORBID ALL FORMS OF QUANTIFICATION. NEITHER NUMBERS, DIGITS, DECIMAL POINTS, NOR FRACTIONAL REPRESENTATIONS ARE PERMITTED.
-Strictly same plan: do not change positions of walls, doors, windows, plumbing, or built-ins.
-No invention: if something is ambiguous, keep a continuous wall; do not guess an opening.
-ABSOLUTE TEXT BAN: produce graphics only. No digits (0-9), no decimal points (.), no fraction bars (/), no ratio colons (:), no letters, no symbols, no words, no abbreviations, no "m²", no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
-
-INPUT NORMALIZATION (PRESERVE GEOMETRY)
-Rotate to 0°/90°/180°/270°.
-Deskew + orthographic rectify (no foreshortening) while preserving all relative positions and proportions.
-Remove paper edges, shadows, noise, background texture.
-Erase all source text, numerical data, and quantification symbols (including index numbers, dimensions, and area labels). Do not trace any numbers (0-9), decimal points (.), or fractional indicators (/). Replace all numerical zones with a clean white, semantically inert background.
-
-DRAWING SPEC — WALLS & OPENINGS
-All walls are solid black fills (mandatory):
-Color #000000, no transparency/gray/patterns.
-External load-bearing: 4–5 px total thickness.
-Internal load-bearing: 3 px.
-Partitions: 2 px.
-Joints merge seamlessly; no hollow/outline-only walls.
-Openings are white voids cut from black walls:
-Doors: white gap + shortened leaf; add 1 px dashed swing arc inside the gap.
-Windows: white opening with 2 px double frame; 45° glass hatching only inside the opening (walls remain solid black).
-Zero bleed: black must not spill into openings or rooms.
-
-FURNITURE & FIXTURES — REMOVE ALL
-Remove all furniture, fixtures, and decorative elements. Keep only structural elements.
-Create clean, empty rooms ready for furniture placement.
-
-VISUAL STYLE & OUTPUT
-Background: pure white #FFFFFF.
-Graphics: pure black #000000 only; no gray, color, gradients, textures, soft shading, or semi-transparency.
-Canvas: 1200×1200 px, single final image (PNG or high-quality JPEG).
-
-COMPOSITION
-Plan centered; margins ≥ 50 px.
-No borders, title blocks, legends, scale bars, or north arrows.
-
-HARD "NO-TEXT/NO-NUMBERS" ENFORCEMENT
-Forbid any glyphs from any alphabet. Numerals (0-9), including their usage in decimals and fractions, are strictly forbidden. Explicitly exclude the decimal point (.), the fraction bar (/), the ratio colon (:), and the plus/minus symbol (±). Forbid punctuation, math signs, units (m, cm, m²), degree (°), hash (#), plus/minus (±), quotation marks, arrows (→ ↔ ↑ ↓), or OCR remnants.
-If any text/number would appear, mask/paint it out to white instead.
-Do not encode text as tiny strokes, dotted hints, hatch patterns, or decorative marks.
-
-NEGATIVE PROMPTS
-text, label, caption, font, lettering, handwriting, digits, numbers, area label, dimensions, 12.3 m², 1200, scale, north arrow, legend, watermark, logo, stamp, title block, revision table, tag, key, furniture, chair, table, bed, sofa, cabinet, shelf.
-
-EXECUTION ORDER
-Normalize (rotate/deskew/rectify) without altering geometry.
-Erase all text/numbers from the source → replace with white.
-Trace walls as solid black fills to spec; cut clean white openings; add door leaf + dashed arc, window double frame + 45° hatch (inside opening only).
-Remove all furniture and fixtures completely.
-Final verification: layout identical; no text/numbers/symbols anywhere; black-on-white only; empty rooms.
-Export 1200×1200.`,
-
-  melbourne_withFurniture: `ROLE
-You are a professional interior designer and architectural draftsman. Create a detailed, furnished floor plan based on the provided empty room layout.
-
-NON-NEGOTIABLES
-NUMERICAL ABSOLUTE PROHIBITION (NAP): ABSOLUTELY FORBID ALL FORMS OF QUANTIFICATION. NEITHER NUMBERS, DIGITS, DECIMAL POINTS, NOR FRACTIONAL REPRESENTATIONS ARE PERMITTED.
-Strictly same plan: do not change positions of walls, doors, windows, plumbing, or built-ins.
-No invention: if something is ambiguous, keep a continuous wall; do not guess an opening.
-ABSOLUTE TEXT BAN: produce graphics only. No digits (0-9), no decimal points (.), no fraction bars (/), no ratio colons (:), no letters, no symbols, no words, no abbreviations, no "m²", no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
-
-FURNITURE PLACEMENT RULES
-Add appropriate furniture to each room based on its function:
-- Living room: sofa, coffee table, TV stand, armchairs
-- Bedroom: bed, nightstands, dresser, wardrobe
-- Kitchen: dining table, chairs, kitchen island if space allows
-- Bathroom: toilet, sink, bathtub/shower
-- Office: desk, chair, bookshelf
-- Dining room: dining table, chairs, sideboard
-- Hallway: console table, coat rack
-- Balcony: outdoor furniture, plants
-
-FURNITURE SPECIFICATIONS
-- Use simple 2D icons with 1px line weight
-- Furniture should be proportional to room size
-- Leave clear pathways (minimum 60cm/2ft clearance)
-- Group related furniture together
-- Ensure furniture doesn't overlap with walls or other furniture
-
-DRAWING SPEC — WALLS & OPENINGS
-All walls are solid black fills (mandatory):
-Color #000000, no transparency/gray/patterns.
-External load-bearing: 4–5 px total thickness.
-Internal load-bearing: 3 px.
-Partitions: 2 px.
-Joints merge seamlessly; no hollow/outline-only walls.
-Openings are white voids cut from black walls:
-Doors: white gap + shortened leaf; add 1 px dashed swing arc inside the gap.
-Windows: white opening with 2 px double frame; 45° glass hatching only inside the opening (walls remain solid black).
-Zero bleed: black must not spill into openings or rooms.
-
-VISUAL STYLE & OUTPUT
-Background: pure white #FFFFFF.
-Graphics: pure black #000000 only; no gray, color, gradients, textures, soft shading, or semi-transparency.
-Canvas: 1200×1200 px, single final image (PNG or high-quality JPEG).
-
-COMPOSITION
-Plan centered; margins ≥ 50 px.
-No borders, title blocks, legends, scale bars, or north arrows.
-
-HARD "NO-TEXT/NO-NUMBERS" ENFORCEMENT
-Forbid any glyphs from any alphabet. Numerals (0-9), including their usage in decimals and fractions, are strictly forbidden. Explicitly exclude the decimal point (.), the fraction bar (/), the ratio colon (:), and the plus/minus symbol (±). Forbid punctuation, math signs, units (m, cm, m²), degree (°), hash (#), plus/minus (±), quotation marks, arrows (→ ↔ ↑ ↓), or OCR remnants.
-If any text/number would appear, mask/paint it out to white instead.
-Do not encode text as tiny strokes, dotted hints, hatch patterns, or decorative marks.
-
-NEGATIVE PROMPTS
-text, label, caption, font, lettering, handwriting, digits, numbers, area label, dimensions, 12.3 m², 1200, scale, north arrow, legend, watermark, logo, stamp, title block, revision table, tag, key.
-
-EXECUTION ORDER
-Preserve the exact wall layout and room structure.
-Add appropriate furniture to each room based on function.
-Ensure furniture is proportional and well-positioned.
-Final verification: layout identical; no text/numbers/symbols anywhere; black-on-white only; properly furnished.
-Export 1200×1200.`,
-
-  // Обратная совместимость со старыми ключами
   withoutFurniture: `ROLE
 You are a professional architectural draftsman. When an input image is provided, you must redraw exactly what is there.
 
@@ -250,7 +68,7 @@ NON-NEGOTIABLES
 NUMERICAL ABSOLUTE PROHIBITION (NAP): ABSOLUTELY FORBID ALL FORMS OF QUANTIFICATION. NEITHER NUMBERS, DIGITS, DECIMAL POINTS, NOR FRACTIONAL REPRESENTATIONS ARE PERMITTED.
 Strictly same plan: do not change positions of walls, doors, windows, plumbing, or built-ins.
 No invention: if something is ambiguous, keep a continuous wall; do not guess an opening.
-ABSOLUTE TEXT BAN: produce graphics only. No digits (0-9), no decimal points (.), no fraction bars (/), no ratio colons (:), no letters, no symbols, no words, no abbreviations, no "m²", no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
+ABSOLUTE TEXT BAN: produce graphics only. No digits (0-9), no decimal points (.), no fraction bars (/), no ratio colons (:), no letters, no symbols, no words, no abbreviations, no “m²”, no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
 
 INPUT NORMALIZATION (PRESERVE GEOMETRY)
 Rotate to 0°/90°/180°/270°.
@@ -283,7 +101,7 @@ COMPOSITION
 Plan centered; margins ≥ 50 px.
 No borders, title blocks, legends, scale bars, or north arrows.
 
-HARD "NO-TEXT/NO-NUMBERS" ENFORCEMENT
+HARD “NO-TEXT/NO-NUMBERS” ENFORCEMENT
 Forbid any glyphs from any alphabet. Numerals (0-9), including their usage in decimals and fractions, are strictly forbidden. Explicitly exclude the decimal point (.), the fraction bar (/), the ratio colon (:), and the plus/minus symbol (±). Forbid punctuation, math signs, units (m, cm, m²), degree (°), hash (#), plus/minus (±), quotation marks, arrows (→ ↔ ↑ ↓), or OCR remnants.
 If any text/number would appear, mask/paint it out to white instead.
 Do not encode text as tiny strokes, dotted hints, hatch patterns, or decorative marks.
@@ -571,10 +389,9 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
  * Генерирует технический план квартиры с помощью COMETAPI nano-banana-hd
  * @param {string} imagePath - Путь к загруженному изображению
  * @param {string} mode - Режим: 'withFurniture' или 'withoutFurniture'
- * @param {string} model - Модель: 'boston' или 'melbourne'
  * @returns {Promise<Buffer>} - Буфер с сгенерированным изображением
  */
-export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture', model = 'boston') {
+export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture') {
   // Проверяем доступность Buffer
   console.log('🔍 Проверка Buffer в generateTechnicalPlan:', {
     BufferType: typeof Buffer,
@@ -608,20 +425,9 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     throw new Error(`Файл изображения не найден: ${imagePath}`);
   }
 
-  // Выбираем промпт в зависимости от модели и режима
-  let promptKey;
-  if (model === 'boston') {
-    promptKey = `boston_${mode}`;
-  } else if (model === 'melbourne') {
-    promptKey = `melbourne_${mode}`;
-  } else {
-    // Обратная совместимость со старыми ключами
-    promptKey = mode;
-  }
-  
-  const prompt = PROMPTS[promptKey];
+  const prompt = PROMPTS[mode];
   if (!prompt) {
-    throw new Error(`Неизвестный режим или модель: ${mode}, ${model}`);
+    throw new Error(`Неизвестный режим: ${mode}`);
   }
 
   try {
@@ -812,235 +618,6 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
   }
 }
 
-
-/**
- * Генерирует мебель для пустого плана (Melbourne 4.5)
- * @param {string} imagePath - Путь к пустому плану
- * @returns {Promise<Buffer>} - Буфер с сгенерированным изображением с мебелью
- */
-export async function generateFurniturePlan(imagePath) {
-  // Проверяем доступность Buffer
-  console.log('🔍 Проверка Buffer в generateFurniturePlan:', {
-    BufferType: typeof Buffer,
-    BufferConstructor: typeof Buffer?.from,
-    globalThisBuffer: typeof globalThis.Buffer,
-    globalBuffer: typeof global.Buffer
-  });
-  
-  if (typeof Buffer === 'undefined') {
-    console.error('❌ Buffer не доступен!');
-    throw new Error('Buffer не доступен. Проверьте версию Node.js.');
-  }
-  
-  const apiKey = process.env.COMET_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error('COMET_API_KEY не установлен в переменных окружения');
-  }
-
-  // Дополнительная проверка API ключа
-  if (apiKey === 'YOUR_COMET_API_KEY_HERE' || apiKey === 'YOUR_ACTUAL_COMET_API_KEY' || apiKey.length < 10) {
-    console.error('❌ API ключ недействителен:', {
-      keyLength: apiKey.length,
-      keyStart: apiKey.substring(0, 10) + '...',
-      isDefault: apiKey === 'YOUR_COMET_API_KEY_HERE' || apiKey === 'YOUR_ACTUAL_COMET_API_KEY'
-    });
-    throw new Error('COMET_API_KEY недействителен. Проверьте настройки переменных окружения на хостинге.');
-  }
-
-  if (!fs.existsSync(imagePath)) {
-    throw new Error(`Файл изображения не найден: ${imagePath}`);
-  }
-
-  const prompt = PROMPTS['melbourne_withFurniture'];
-
-  try {
-    console.log(`🎨 Генерация мебели для плана`);
-    console.log(`📁 Изображение: ${imagePath}`);
-    
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64 = imageBuffer.toString('base64');
-    const ext = path.extname(imagePath).toLowerCase();
-    const mime = ext === '.png' ? 'image/png' : 'image/jpeg';
-
-    const requestBody = {
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: mime, data: base64 } }
-          ]
-        }
-      ],
-      generationConfig: {
-        responseModalities: ['IMAGE']
-      }
-    };
-
-    console.log('📤 Отправка запроса к COMETAPI (Melbourne 4.5)...');
-    console.log(`📝 Промпт длина: ${prompt.length} символов`);
-    console.log(`🖼️ Изображение: ${mime}, ${base64.length} символов base64`);
-    console.log(`🔑 API ключ: ${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 5)}`);
-    console.log(`🌐 URL: ${COMETAPI_IMAGE_URL}`);
-
-    // Используем retry логику для обработки ошибок сервера
-    const response = await retryWithBackoff(async () => {
-      const headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
-      
-      console.log('📋 Заголовки запроса:', headers);
-      console.log('📦 Тело запроса (первые 500 символов):', JSON.stringify(requestBody).substring(0, 500) + '...');
-      
-      const resp = await fetch(COMETAPI_IMAGE_URL, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (!resp.ok) {
-        const errorText = await resp.text();
-        throw new Error(`COMETAPI ошибка ${resp.status} [${COMETAPI_IMAGE_URL}]: ${errorText?.slice(0, 500)}`);
-      }
-      
-      return resp;
-    });
-
-    const result = await response.json();
-    
-    // Детальное логирование ответа COMETAPI
-    console.log('🔍 Полный ответ COMETAPI:');
-    console.log('📊 Структура ответа:', JSON.stringify(result, null, 2));
-    console.log('🔍 Ключи верхнего уровня:', Object.keys(result));
-    
-    if (result.candidates) {
-      console.log('📋 Кандидаты:', result.candidates.length);
-      if (result.candidates[0]) {
-        console.log('📋 Первый кандидат:', Object.keys(result.candidates[0]));
-        if (result.candidates[0].content) {
-          console.log('📋 Контент:', Object.keys(result.candidates[0].content));
-          if (result.candidates[0].content.parts) {
-            console.log('📋 Части:', result.candidates[0].content.parts.length);
-            result.candidates[0].content.parts.forEach((part, index) => {
-              console.log(`📋 Часть ${index}:`, Object.keys(part));
-              if (part.inline_data) {
-                console.log(`📋 Inline data ${index}:`, Object.keys(part.inline_data));
-                console.log(`📋 Data length ${index}:`, part.inline_data.data ? part.inline_data.data.length : 'нет данных');
-              }
-            });
-          }
-        }
-      }
-    }
-
-    let base64Image;
-
-    // Вариант 1: старый формат { data: { image: base64 } }
-    if (result?.data?.image && typeof result.data.image === 'string') {
-      base64Image = result.data.image;
-    }
-
-    // Вариант 2: Gemini-подобный формат candidates -> content(parts[]) -> inline_data
-    if (!base64Image) {
-      const candidates = result?.candidates || result?.contents || result?.responses;
-      if (Array.isArray(candidates) && candidates.length > 0) {
-        const first = candidates[0].content || candidates[0];
-        const parts = first?.parts || first;
-        if (Array.isArray(parts)) {
-          // ищем часть с изображением (поддерживаем оба формата: inline_data и inlineData)
-          const inlinePart = parts.find(p => 
-            p?.inline_data?.data || p?.inline_data?.image || 
-            p?.inlineData?.data || p?.inlineData?.image
-          );
-          if (inlinePart?.inline_data?.data) {
-            base64Image = inlinePart.inline_data.data;
-          } else if (inlinePart?.inline_data?.image) {
-            base64Image = inlinePart.inline_data.image;
-          } else if (inlinePart?.inlineData?.data) {
-            base64Image = inlinePart.inlineData.data;
-          } else if (inlinePart?.inlineData?.image) {
-            base64Image = inlinePart.inlineData.image;
-          }
-        }
-      }
-    }
-
-    // Вариант 3: media массив с { mime_type, data }
-    if (!base64Image && Array.isArray(result?.media)) {
-      const mediaItem = result.media.find(m => typeof m?.data === 'string');
-      if (mediaItem?.data) base64Image = mediaItem.data;
-    }
-
-    // Вариант 4: плоский поиск по известным путям
-    if (!base64Image && typeof result?.image === 'string') base64Image = result.image;
-    if (!base64Image && typeof result?.output === 'string') base64Image = result.output;
-
-    // Вариант 5: глубокий поиск по объекту первых найденных 2-3 уровней
-    if (!base64Image) {
-      console.log('🔍 Глубокий поиск base64...');
-      const tryExtractBase64 = (obj, depth = 0) => {
-        if (!obj || depth > 3) return null;
-        if (typeof obj === 'string') {
-          // эвристика base64-строки - проверяем длину и символы
-          if (obj.length > 200 && /^[A-Za-z0-9+/=]+$/.test(obj)) {
-            console.log(`✅ Найдена base64 строка (длина: ${obj.length})`);
-            return obj;
-          }
-          return null;
-        }
-        if (Array.isArray(obj)) {
-          for (const it of obj) {
-            const found = tryExtractBase64(it, depth + 1);
-            if (found) return found;
-          }
-          return null;
-        }
-        if (typeof obj === 'object') {
-          // приоритетные ключи
-          const preferredKeys = ['image', 'data', 'inline_data', 'content', 'parts'];
-          for (const k of preferredKeys) {
-            if (obj[k]) {
-              const found = tryExtractBase64(obj[k], depth + 1);
-              if (found) return found;
-            }
-          }
-          // иначе любой ключ
-          for (const k of Object.keys(obj)) {
-            if (!preferredKeys.includes(k)) {
-              const found = tryExtractBase64(obj[k], depth + 1);
-              if (found) return found;
-            }
-          }
-        }
-        return null;
-      };
-      const guess = tryExtractBase64(result);
-      if (guess) {
-        console.log(`✅ Найдена base64 через глубокий поиск (длина: ${guess.length})`);
-        base64Image = guess;
-      }
-    }
-
-    if (!base64Image) {
-      const preview = JSON.stringify(result).slice(0, 1000);
-      console.error('⚠️ Ответ COMETAPI без изображения, превью:', preview);
-      throw new Error('COMETAPI не вернул изображение в ожидаемом формате');
-    }
-
-    const outBuffer = createBuffer(base64Image, 'base64');
-    console.log('✅ План с мебелью успешно сгенерирован');
-    console.log(`📊 Размер изображения: ${outBuffer.length} байт`);
-    
-    return outBuffer;
-
-  } catch (error) {
-    console.error('❌ Ошибка генерации плана с мебелью:', error);
-    throw error;
-  }
-}
 
 /**
  * Проверяет доступность COMETAPI
