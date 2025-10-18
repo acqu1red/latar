@@ -342,7 +342,7 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
     });
     
     const files = req.files;
-    const { mode } = req.body;
+    const { mode, model = 'boston' } = req.body;
     
     if (!files || !Array.isArray(files) || files.length === 0) {
       console.log('❌ Ошибка: изображения не загружены');
@@ -359,6 +359,12 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
     if (!mode || !['withFurniture', 'withoutFurniture'].includes(mode)) {
       return res.status(400).json({ 
         error: 'Неверный режим. Допустимые значения: withFurniture, withoutFurniture' 
+      });
+    }
+
+    if (!model || !['boston', 'melbourne'].includes(model)) {
+      return res.status(400).json({ 
+        error: 'Неверная модель. Допустимые значения: boston, melbourne' 
       });
     }
 
@@ -420,7 +426,7 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
       guestUsage.set(clientIp, usage);
     }
 
-    console.log(`Обработка ${files.length} изображений для генерации технического плана (режим: ${mode})`);
+    console.log(`Обработка ${files.length} изображений для генерации технического плана (модель: ${model}, режим: ${mode})`);
 
     const results = [];
     for (let i = 0; i < files.length; i++) {
@@ -434,7 +440,7 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
         fs.writeFileSync(tempFilePath, file.buffer);
         
         // Генерируем технический план
-        const generatedBuffer = await generateTechnicalPlan(tempFilePath, mode);
+        const generatedBuffer = await generateTechnicalPlan(tempFilePath, mode, model);
         
         // Генерируем URL для результата
         const urlData = generateImageUrl('generated_plan', `plan_${i}.jpg`, {

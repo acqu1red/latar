@@ -3891,6 +3891,7 @@ function MonochromeClaudeStyle() {
         // прикладываем все изображения
         attachments.forEach((att) => formData.append('image', att.file));
         formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+        formData.append('model', selectedModel);
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4243,6 +4244,7 @@ function MonochromeClaudeStyle() {
         // прикладываем все изображения
         attachments.forEach((att) => formData.append('image', att.file));
         formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
+        formData.append('model', selectedModel);
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4540,6 +4542,7 @@ function MonochromeClaudeStyle() {
         const formData = new FormData();
         formData.append('image', attachments[0].file);
         formData.append('mode', planFurniture === "with" ? "withFurniture" : "withoutFurniture");
+        formData.append('model', selectedModel);
 
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',

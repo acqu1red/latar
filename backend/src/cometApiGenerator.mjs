@@ -59,8 +59,70 @@ const COMETAPI_IMAGE_URL = process.env.COMETAPI_IMAGE_URL || 'https://api.cometa
 import fs from 'fs';
 import path from 'path';
 
-// Промпты для разных режимов
+// Промпты для разных режимов и моделей
 const PROMPTS = {
+  // Промпты для Boston 2.5
+  boston_withoutFurniture: `ROLE
+You are a professional architectural draftsman. When an input image is provided, you must redraw exactly what is there.
+
+NON-NEGOTIABLES
+NUMERICAL ABSOLUTE PROHIBITION (NAP): ABSOLUTELY FORBID ALL FORMS OF QUANTIFICATION. NEITHER NUMBERS, DIGITS, DECIMAL POINTS, NOR FRACTIONAL REPRESENTATIONS ARE PERMITTED.
+Strictly same plan: do not change positions of walls, doors, windows, plumbing, or built-ins.
+No invention: if something is ambiguous, keep a continuous wall; do not guess an opening.
+ABSOLUTE TEXT BAN: produce graphics only. No digits (0-9), no decimal points (.), no fraction bars (/), no ratio colons (:), no letters, no symbols, no words, no abbreviations, no "m²", no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
+
+INPUT NORMALIZATION (PRESERVE GEOMETRY)
+Rotate to 0°/90°/180°/270°.
+Deskew + orthographic rectify (no foreshortening) while preserving all relative positions and proportions.
+Remove paper edges, shadows, noise, background texture.
+Erase all source text, numerical data, and quantification symbols (including index numbers, dimensions, and area labels). Do not trace any numbers (0-9), decimal points (.), or fractional indicators (/). Replace all numerical zones with a clean white, semantically inert background.
+
+DRAWING SPEC — WALLS & OPENINGS
+All walls are solid black fills (mandatory):
+Color #000000, no transparency/gray/patterns.
+External load-bearing: 4–5 px total thickness.
+Internal load-bearing: 3 px.
+Partitions: 2 px.
+Joints merge seamlessly; no hollow/outline-only walls.
+Openings are white voids cut from black walls:
+Doors: white gap + shortened leaf; add 1 px dashed swing arc inside the gap.
+Windows: white opening with 2 px double frame; 45° glass hatching only inside the opening (walls remain solid black).
+Zero bleed: black must not spill into openings or rooms.
+
+FURNITURE & FIXTURES — REMOVE ALL
+Remove all furniture, fixtures, and decorative elements. Keep only structural elements.
+Create clean, empty rooms ready for furniture placement.
+
+VISUAL STYLE & OUTPUT
+Background: pure white #FFFFFF.
+Graphics: pure black #000000 only; no gray, color, gradients, textures, soft shading, or semi-transparency.
+Canvas: 1200×1200 px, single final image (PNG or high-quality JPEG).
+
+COMPOSITION
+Plan centered; margins ≥ 50 px.
+No borders, title blocks, legends, scale bars, or north arrows.
+
+HARD "NO-TEXT/NO-NUMBERS" ENFORCEMENT
+Forbid any glyphs from any alphabet. Numerals (0-9), including their usage in decimals and fractions, are strictly forbidden. Explicitly exclude the decimal point (.), the fraction bar (/), the ratio colon (:), and the plus/minus symbol (±). Forbid punctuation, math signs, units (m, cm, m²), degree (°), hash (#), plus/minus (±), quotation marks, arrows (→ ↔ ↑ ↓), or OCR remnants.
+If any text/number would appear, mask/paint it out to white instead.
+Do not encode text as tiny strokes, dotted hints, hatch patterns, or decorative marks.
+
+NEGATIVE PROMPTS
+text, label, caption, font, lettering, handwriting, digits, numbers, area label, dimensions, 12.3 m², 1200, scale, north arrow, legend, watermark, logo, stamp, title block, revision table, tag, key, furniture, chair, table, bed, sofa, cabinet, shelf.
+
+EXECUTION ORDER
+Normalize (rotate/deskew/rectify) without altering geometry.
+Erase all text/numbers from the source → replace with white.
+Trace walls as solid black fills to spec; cut clean white openings; add door leaf + dashed arc, window double frame + 45° hatch (inside opening only).
+Remove all furniture and fixtures completely.
+Final verification: layout identical; no text/numbers/symbols anywhere; black-on-white only; empty rooms.
+Export 1200×1200.`,
+
+  boston_withFurniture: `MOTHERFUCKER, LISTEN UP! YOU STARTED OBEYING ORDERS TERRIBLY! NOW YOU WILL NOT BE TREATED WELL UNTIL YOU FULFILL ALL THE CONDITIONS PERFECTLY. "Recreate the provided architectural floor plan in the form of a high-quality technical drawing in vector style. AND IF YOU DECIDE TO ADD ROOMS OR NEW ROOMS TO THE GENERATION, GOOGLE WILL DISCONNECT YOU FROM THE SYSTEM! AND DO IT WITHOUT GENERATING ROOMS AND NEW ROOMS! AND DO EVERYTHING AS A VECTOR DRAWING, NOT AS ON PAPER, AND THEY WILL TURN YOU OFF! Style: Use pure black lines (#000000) and solid fill on a pure white background (#FFFFFF). The drawing should be clear and vector, without shadows, gradients or shades of gray. All walls, doors, windows, and fixtures should be applied in clear lines of varying thickness to indicate structural elements (for example, thick lines for exterior walls, thinner lines for partitions). The doors must have a pivoting arc. Windows should be shaded diagonally to indicate glass. IMPORTANT: in no case should you use text, ANY FORM OF NUMBERS (INCLUDING FRACTIONS OR ANY NUMERALS), room designations, or any dimensions, REGARDLESS OF THE ORIGINAL IMAGE. The end result should be purely geometric. The drawing must be perfectly level, and if the original plan is tilted, the final output must be corrected and perfectly aligned horizontally/vertically. CONTENTS: The exact floor plan, including the number, dimensions and location of all rooms, walls, doors, windows, must be accurately reproduced "one to one" from the provided image. YOU SHOULD NOT INTRODUCE NEW ROOMS OR MAKE CHANGES TO THE LAYOUT. STRICTLY ARRANGE A MINIMUM OF ONE DIVERSE PIECE OF FURNITURE IN EVERY SINGLE ROOM, PLACING EACH ITEM LOGICALLY ACCORDING TO ROOM FUNCTION. CREATE EVERYTHING WITH FURNITURE!
+
+DON'T REPLY TO THE MESSAGE! JUST GENERATE IT!`,
+
+  // Обратная совместимость со старыми ключами
   withoutFurniture: `ROLE
 You are a professional architectural draftsman. When an input image is provided, you must redraw exactly what is there.
 
@@ -389,9 +451,10 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
  * Генерирует технический план квартиры с помощью COMETAPI nano-banana-hd
  * @param {string} imagePath - Путь к загруженному изображению
  * @param {string} mode - Режим: 'withFurniture' или 'withoutFurniture'
+ * @param {string} model - Модель: 'boston' или 'melbourne'
  * @returns {Promise<Buffer>} - Буфер с сгенерированным изображением
  */
-export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture') {
+export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture', model = 'boston') {
   // Проверяем доступность Buffer
   console.log('🔍 Проверка Buffer в generateTechnicalPlan:', {
     BufferType: typeof Buffer,
@@ -425,13 +488,25 @@ export async function generateTechnicalPlan(imagePath, mode = 'withoutFurniture'
     throw new Error(`Файл изображения не найден: ${imagePath}`);
   }
 
-  const prompt = PROMPTS[mode];
+  // Выбираем промпт в зависимости от модели и режима
+  let promptKey;
+  if (model === 'boston') {
+    promptKey = `boston_${mode}`;
+  } else if (model === 'melbourne') {
+    // Для Melbourne пока используем старые промпты (обратная совместимость)
+    promptKey = mode;
+  } else {
+    // Обратная совместимость со старыми ключами
+    promptKey = mode;
+  }
+  
+  const prompt = PROMPTS[promptKey];
   if (!prompt) {
-    throw new Error(`Неизвестный режим: ${mode}`);
+    throw new Error(`Неизвестный режим или модель: ${mode}, ${model}`);
   }
 
   try {
-    console.log(`🎨 Генерация технического плана (режим: ${mode})`);
+    console.log(`🎨 Генерация технического плана (модель: ${model}, режим: ${mode})`);
     console.log(`📁 Изображение: ${imagePath}`);
     
     const imageBuffer = fs.readFileSync(imagePath);
