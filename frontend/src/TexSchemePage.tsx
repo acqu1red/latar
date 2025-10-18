@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TexSchemePage.css';
-// import { API_BASE_URL } from './config';
-const API_BASE_URL = 'https://acqu1red-latar-084a.twc1.net';
+import { API_BASE_URL } from './config';
 
 const PROMPT_WITH_FURNITURE = `You are a professional architectural draftsman, and people's lives depend on your work.
 Redraw this 2D apartment floor plan into a high-quality technical drawing, accurately preserving

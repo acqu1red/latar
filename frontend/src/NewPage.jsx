@@ -1,12 +1,25 @@
 import React, { useState, useRef, useEffect } from "react";
 
-// Кастомные стили для скроллбара
+// Кастомные стили для скроллбара и анимаций
 const scrollbarStyles = `
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
+  }
+  
+  @keyframes fadeInScale {
+    from {
+      opacity: 0;
+      transform: scaleY(0.3) scaleX(0.95) translateY(-8px);
+      transform-origin: top;
+    }
+    to {
+      opacity: 1;
+      transform: scaleY(1) scaleX(1) translateY(0);
+      transform-origin: top;
+    }
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
@@ -17,6 +30,10 @@ const scrollbarStyles = `
   }
   .custom-scrollbar::-webkit-scrollbar-corner {
     background: transparent;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 `;
 
@@ -39,8 +56,7 @@ import {
   Paperclip,
   Filter,
   X,
-  ThumbsUp,
-  ThumbsDown,
+  
   Search,
   MessageSquare,
   Mic,
@@ -133,7 +149,7 @@ function ConfirmationModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-6xl mx-4 bg-[#161618] border border-white/10 rounded-2xl p-6 shadow-2xl"
+        className="relative w-full max-w-6xl mx-4 bg-[#161618] border border-white/10 rounded-md p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -165,13 +181,13 @@ function ConfirmationModal({
         <div className="flex gap-3 justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-neutral-300 hover:text-white transition-colors border border-white/10 rounded-lg hover:bg-white/5"
+            className="px-4 py-2 text-sm font-medium text-neutral-300 hover:text-white transition-colors border border-white/10 rounded-md hover:bg-white/5"
           >
             {cancelText}
           </button>
           <button
             onClick={handleConfirm}
-            className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${getButtonStyle()}`}
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-md ${getButtonStyle()}`}
           >
             {confirmText}
           </button>
@@ -227,7 +243,7 @@ function RenameChatModal({ isOpen, onClose, onConfirm, currentTitle, showRemembe
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-6xl mx-4 bg-[#161618] border border-white/10 rounded-2xl p-6 shadow-2xl"
+        className="relative w-full max-w-6xl mx-4 bg-[#161618] border border-white/10 rounded-md p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -249,7 +265,7 @@ function RenameChatModal({ isOpen, onClose, onConfirm, currentTitle, showRemembe
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
+              className="w-full bg-black/40 border border-white/10 rounded-md px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600"
               placeholder="Введите название чата"
               autoFocus
               maxLength={50}
@@ -275,14 +291,14 @@ function RenameChatModal({ isOpen, onClose, onConfirm, currentTitle, showRemembe
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-neutral-300 hover:text-white transition-colors border border-white/10 rounded-lg hover:bg-white/5"
+              className="px-4 py-2 text-sm font-medium text-neutral-300 hover:text-white transition-colors border border-white/10 rounded-md hover:bg-white/5"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={!newTitle.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-600 disabled:cursor-not-allowed transition-colors rounded-lg"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-600 disabled:cursor-not-allowed transition-colors rounded-md"
             >
               Переименовать
             </button>
@@ -631,11 +647,20 @@ function BackgroundParticles() {
 }
 
 // === Models (RU) ===
-const MODEL_OPTIONS = [
+const SERVICE_OPTIONS = [
   { id: "cleanup", label: "Удаление объектов", description: "Удаляет ненужные объекты с плана", Icon: Trash2 },
   { id: "techplan", label: "Создание по техплану", description: "Создает технический план помещения", Icon: FileText },
-  { id: "3d", label: "3D план", description: "Создает 3D визуализацию плана", Icon: Box },
 ];
+
+const MODEL_OPTIONS = {
+  techplan: [
+    { id: "boston", label: "Boston 2.5", description: "Быстрая модель" },
+    { id: "melbourne", label: "Melbourne 4.5", description: "Продвинутая модель" },
+  ],
+  cleanup: [
+    { id: "charleston", label: "Charleston 3", description: "Удаление объектов" },
+  ],
+};
 
 // === Site styles ===
 const STYLE_OPTIONS = [
@@ -644,332 +669,6 @@ const STYLE_OPTIONS = [
 
 // === Advanced Style Components ===
 
-// Модальное окно "3D режим" - Премиум дизайн
-function ThreeDModeModal({ isOpen, onClose, onActivate }) {
-  if (!isOpen) return null;
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]" 
-      onClick={onClose}
-    >
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-lg overflow-hidden bg-black border border-white/20 rounded-2xl shadow-2xl" 
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Animated background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/3 rounded-full blur-3xl"></div>
-        </div>
-
-        {/* Header */}
-        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent p-6">
-          <button 
-            onClick={onClose} 
-            className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          
-          <div className="flex items-center gap-3 mb-2">
-            <motion.div 
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="p-2 bg-white/10 rounded-xl border border-white/20"
-            >
-              <Layers className="h-6 w-6 text-white" />
-            </motion.div>
-            <div>
-              <h2 className="text-2xl font-bold text-white tracking-tight">
-                ARCPLAN 3D
-              </h2>
-              <p className="text-neutral-400 text-sm mt-1">
-                Превратите 2D планы в 3D визуализацию
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Content */}
-        <div className="relative p-6">
-          {/* Visual showcase */}
-          <div className="mb-6 bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-6 border border-white/10">
-            <svg className="w-full h-32" viewBox="0 0 400 200" fill="none">
-              {/* 2D to 3D transformation visualization */}
-              <g opacity="0.3">
-                <rect x="20" y="60" width="150" height="100" rx="8" stroke="white" strokeWidth="2" fill="white" fillOpacity="0.05"/>
-                <line x1="40" y1="80" x2="150" y2="80" stroke="white" strokeWidth="1"/>
-                <line x1="40" y1="100" x2="150" y2="100" stroke="white" strokeWidth="1"/>
-                <line x1="40" y1="120" x2="150" y2="120" stroke="white" strokeWidth="1"/>
-              </g>
-              
-              <motion.g
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
-                <path d="M 190 100 L 210 100" stroke="white" strokeWidth="2" strokeDasharray="4 4">
-                  <animate attributeName="stroke-dashoffset" from="0" to="8" dur="0.5s" repeatCount="indefinite"/>
-                </path>
-                <path d="M 205 95 L 210 100 L 205 105" stroke="white" strokeWidth="2" fill="none"/>
-              </motion.g>
-              
-              <motion.g
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.6, duration: 0.5 }}
-              >
-                <path d="M 230 100 L 300 60 L 370 100 L 370 160 L 300 200 L 230 160 Z" stroke="white" strokeWidth="2" fill="white" fillOpacity="0.1"/>
-                <path d="M 230 100 L 230 160" stroke="white" strokeWidth="2"/>
-                <path d="M 300 60 L 300 120" stroke="white" strokeWidth="2"/>
-                <path d="M 370 100 L 370 160" stroke="white" strokeWidth="2"/>
-                <path d="M 230 160 L 300 200" stroke="white" strokeWidth="2"/>
-                <path d="M 300 200 L 370 160" stroke="white" strokeWidth="2"/>
-                <circle cx="300" cy="120" r="4" fill="white">
-                  <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
-                </circle>
-              </motion.g>
-            </svg>
-          </div>
-
-          {/* Features */}
-          <div className="space-y-3 mb-6">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
-            >
-              <div className="p-1.5 bg-white/10 rounded-md">
-                <Check className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <h4 className="text-white font-semibold mb-1 text-sm">Автоматическая 3D генерация</h4>
-                <p className="text-neutral-400 text-xs">Превращайте 2D планы в объемные 3D модели одним кликом</p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
-            >
-              <div className="p-1.5 bg-white/10 rounded-md">
-                <Check className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <h4 className="text-white font-semibold mb-1 text-sm">Интерьерная визуализация</h4>
-                <p className="text-neutral-400 text-xs">Добавляйте мебель, текстуры и освещение для реалистичности</p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
-            >
-              <div className="p-1.5 bg-white/10 rounded-md">
-                <Check className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <h4 className="text-white font-semibold mb-1 text-sm">Экспорт и презентация</h4>
-                <p className="text-neutral-400 text-xs">Сохраняйте в различных форматах для презентаций клиентам</p>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex gap-3">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                onActivate();
-                onClose();
-              }}
-              className="flex-1 bg-white hover:bg-neutral-200 text-black font-bold py-3 rounded-xl transition-all shadow-lg shadow-white/10 flex items-center justify-center gap-2 text-sm"
-            >
-              <Sparkles className="h-4 w-4" />
-              <span>Активировать 3D режим</span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={onClose}
-              className="px-4 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all border border-white/20 text-sm"
-            >
-              Позже
-            </motion.button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// Модальное окно "Как это работает" - Премиум дизайн
-function HowItWorksModal({ isOpen, onClose }) {
-  if (!isOpen) return null;
-
-  const features = [
-    {
-      icon: MessageSquare,
-      title: "Умные чаты",
-      description: "Создавайте неограниченное количество чатов для различных задач. Каждый чат сохраняет контекст разговора и может быть переименован, закреплен или удален.",
-      visual: (
-        <svg className="w-full h-32" viewBox="0 0 200 100" fill="none">
-          <rect x="10" y="20" width="60" height="8" rx="4" fill="white" opacity="0.2"/>
-          <rect x="10" y="35" width="80" height="8" rx="4" fill="white" opacity="0.3"/>
-          <rect x="10" y="50" width="50" height="8" rx="4" fill="white" opacity="0.2"/>
-          <rect x="130" y="25" width="60" height="8" rx="4" fill="white" opacity="0.9"/>
-          <rect x="110" y="40" width="80" height="8" rx="4" fill="white" opacity="0.8"/>
-          <circle cx="25" cy="24" r="6" fill="white" opacity="0.6"/>
-          <circle cx="175" cy="29" r="6" fill="white"/>
-        </svg>
-      )
-    },
-    {
-      icon: Layers,
-      title: "Модели обработки",
-      description: "Выбирайте подходящую модель для вашей задачи: удаление объектов с изображений, создание по техническому плану или использование AI конструктора.",
-      visual: (
-        <svg className="w-full h-32" viewBox="0 0 200 100" fill="none">
-          <rect x="30" y="20" width="50" height="60" rx="4" fill="white" fillOpacity="0.1" stroke="white" strokeWidth="1" strokeOpacity="0.3"/>
-          <rect x="60" y="30" width="50" height="60" rx="4" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1" strokeOpacity="0.5"/>
-          <rect x="90" y="40" width="50" height="60" rx="4" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1" strokeOpacity="0.8"/>
-        </svg>
-      )
-    },
-    {
-      icon: Paperclip,
-      title: "Загрузка файлов",
-      description: "Прикрепляйте изображения, документы и другие файлы к вашим сообщениям. Система автоматически анализирует содержимое.",
-      visual: (
-        <svg className="w-full h-32" viewBox="0 0 200 100" fill="none">
-          <rect x="40" y="25" width="40" height="50" rx="4" fill="white" fillOpacity="0.1" stroke="white" strokeWidth="1.5" strokeOpacity="0.4"/>
-          <rect x="90" y="25" width="40" height="50" rx="4" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.5" strokeOpacity="0.6"/>
-          <rect x="140" y="25" width="40" height="50" rx="4" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1.5" strokeOpacity="0.9"/>
-          <path d="M 100 20 L 110 10 L 120 20" stroke="white" strokeWidth="2" opacity="0.7" fill="none"/>
-        </svg>
-      )
-    },
-    {
-      icon: Palette,
-      title: "Фоновые эффекты",
-      description: "Переключайтесь между интерактивным и альтернативным фоном для создания комфортной рабочей среды.",
-      visual: (
-        <svg className="w-full h-32" viewBox="0 0 200 100" fill="none">
-          <circle cx="50" cy="50" r="4" fill="white" opacity="0.6">
-            <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx="100" cy="30" r="3" fill="white" opacity="0.4">
-            <animate attributeName="opacity" values="0.2;0.7;0.2" dur="2.5s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx="150" cy="60" r="5" fill="white" opacity="0.7">
-            <animate attributeName="opacity" values="0.4;1;0.4" dur="1.8s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx="75" cy="70" r="3" fill="white" opacity="0.5">
-            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2.2s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx="130" cy="40" r="4" fill="white" opacity="0.6">
-            <animate attributeName="opacity" values="0.3;0.9;0.3" dur="1.5s" repeatCount="indefinite"/>
-          </circle>
-        </svg>
-      )
-    }
-  ];
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]" 
-      onClick={onClose}
-    >
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-5xl max-h-[90vh] overflow-hidden bg-black border border-white/20 rounded-3xl shadow-2xl" 
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent p-8">
-          <button 
-            onClick={onClose} 
-            className="absolute top-6 right-6 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
-          >
-            <X className="h-6 w-6" />
-          </button>
-          
-          <div className="flex items-center gap-4 mb-3">
-            <div className="p-3 bg-white/10 rounded-2xl border border-white/20">
-              <HelpCircle className="h-8 w-8 text-white" />
-            </div>
-            <h2 className="text-4xl font-bold text-white tracking-tight">
-              Как это работает
-            </h2>
-          </div>
-          <p className="text-neutral-400 text-lg ml-16">
-            Откройте для себя возможности платформы
-          </p>
-        </div>
-        
-        {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-160px)] p-8 custom-scrollbar">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                className="group relative bg-gradient-to-br from-white/5 to-white/0 rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 hover:shadow-2xl hover:shadow-white/5"
-              >
-                {/* Visual */}
-                <div className="mb-6 bg-black/40 rounded-xl border border-white/10 overflow-hidden">
-                  {feature.visual}
-                </div>
-                
-                {/* Icon & Title */}
-                <div className="flex items-start gap-4 mb-3">
-                  <div className="p-2 bg-white/10 rounded-xl border border-white/20 group-hover:bg-white/20 transition-colors">
-                    <feature.icon className="h-5 w-5 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white flex-1">
-                    {feature.title}
-                  </h3>
-                </div>
-                
-                {/* Description */}
-                <p className="text-neutral-400 leading-relaxed">
-                  {feature.description}
-                </p>
-                
-                {/* Hover effect */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
 
 // Компонент предпросмотра фона
 function BackgroundPreview({ type }) {
@@ -1058,7 +757,7 @@ function BackgroundPreview({ type }) {
 
 // Модальное окно "Регистрация/Вход" - Премиум дизайн
 // Новый компонент личного кабинета — точный референсный размер и стиль
-function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChange, on3DInfoOpen, onGrantAccess, onOpenOrganizationList }) {
+function ProfileModal({ isOpen, onClose, user, onGrantAccess, onOpenOrganizationList }) {
   const [activeTab, setActiveTab] = useState('account');
 
   // Appearance
@@ -1197,7 +896,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
 
 
         {user?.role === 'director' && (
-          <div className="rounded-lg border border-white/5 bg-white/3 px-3 py-3 space-y-2.5">
+          <div className="rounded-md border border-white/5 bg-white/3 px-3 py-3 space-y-2.5">
             <div>
               <div className="text-sm font-semibold text-white">Доступ для организаций</div>
               <div className="text-xs text-neutral-400 mt-0.5">Назначьте префикс «Организация», чтобы снять лимиты</div>
@@ -1241,138 +940,11 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
 
         <div className="text-xs text-neutral-400 pt-1">Язык <span className="ml-1 text-white">Русский</span></div>
       </div>
-      
-      {/* ARCPLAN 3D кнопка */}
-      <div className="flex justify-center">
-        <motion.div 
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative flex items-center gap-3 rounded-2xl border border-white/10 bg-black px-4 py-3 backdrop-blur-lg shadow-2xl overflow-hidden"
-        >
-          {/* Звездные частицы на фоне */}
-          <div className="absolute inset-0 pointer-events-none">
-            {[...Array(8)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-1 h-1 bg-white/30 rounded-full"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  opacity: [0.3, 0.8, 0.3],
-                  scale: [0.5, 1, 0.5],
-                }}
-                transition={{
-                  duration: 2 + Math.random() * 2,
-                  repeat: Infinity,
-                  delay: Math.random() * 2,
-                }}
-              />
-            ))}
-          </div>
-          
-          <div className="relative z-10">
-            <div className="text-sm font-medium flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-white" />
-              ARCPLAN 3D
-            </div>
-            <div className="text-xs text-neutral-400">Попробуй расширенные возможности</div>
-          </div>
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={on3DInfoOpen}
-            className="relative z-10 rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-          >
-            Скоро
-          </motion.button>
-        </motion.div>
-      </div>
     </div>
   );
 
   const AppearanceTab = () => (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { id: 'interactive', label: 'Интерактивный', icon: '✨' },
-          { id: 'alternative', label: 'Альтернативный', icon: '🎨' }
-        ].map((backgroundType) => (
-          <button
-            key={backgroundType.id}
-            onClick={() => onBackgroundChange(backgroundType.id)}
-            className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 px-3 py-4 text-xs transition ${
-              backgroundType === backgroundType.id
-                ? 'border-white/40 text-white'
-                : 'border-white/10 text-neutral-300 hover:border-white/20'
-            }`}
-          >
-            <div className="relative flex h-10 w-14 items-center justify-center rounded-lg overflow-hidden">
-              {backgroundType.id === 'standard' && (
-                <div className="absolute inset-0 bg-[#161618]">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-[8px] text-neutral-500">Фон</div>
-                  </div>
-                </div>
-              )}
-              {backgroundType.id === 'interactive' && (
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-pink-900 to-red-900">
-                  <div className="absolute inset-0 bg-black/20"></div>
-                  {/* Интерактивные частицы */}
-                  {[...Array(3)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="absolute w-1 h-1 bg-white/40 rounded-full"
-                      style={{
-                        left: `${20 + i * 30}%`,
-                        top: `${30 + i * 20}%`,
-                      }}
-                      animate={{
-                        opacity: [0.3, 0.8, 0.3],
-                        scale: [0.5, 1, 0.5],
-                      }}
-                      transition={{
-                        duration: 2 + i * 0.5,
-                        repeat: Infinity,
-                        delay: i * 0.3,
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-              {backgroundType.id === 'alternative' && (
-                <div className="absolute inset-0 bg-gradient-to-br from-green-900 via-teal-900 to-cyan-900">
-                  <div className="absolute inset-0 bg-black/20"></div>
-                  {/* Альтернативные частицы */}
-                  {[...Array(4)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="absolute w-1 h-1 bg-cyan-300/50 rounded-full"
-                      style={{
-                        left: `${15 + i * 25}%`,
-                        top: `${25 + i * 15}%`,
-                      }}
-                      animate={{
-                        opacity: [0.2, 0.7, 0.2],
-                        scale: [0.3, 1.2, 0.3],
-                      }}
-                      transition={{
-                        duration: 3 + i * 0.3,
-                        repeat: Infinity,
-                        delay: i * 0.4,
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-              <span className="relative z-10 text-white text-lg">{backgroundType.icon}</span>
-            </div>
-            {backgroundType.label}
-          </button>
-        ))}
-      </div>
-
       <div className="space-y-2">
         <Row icon={Eye} left="Показывать предпросмотр разговоров в истории" right={<Toggle value={showPreview} onChange={setShowPreview} />} />
       </div>
@@ -1392,7 +964,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
     <div className="space-y-4">
       <Row icon={Sparkles} left="Улучшить модель" right={<Toggle value={allowHistory} onChange={setAllowHistory} />} />
       {user && (
-        <div className="rounded-lg border border-white/10 px-4 py-3 space-y-2 bg-black/20">
+        <div className="rounded-md border border-white/10 px-4 py-3 space-y-2 bg-black/20">
           <div className="text-xs uppercase tracking-[0.1em] text-white/50">Доступ</div>
           <div className="text-sm text-white">
             {user.role === 'director' || user.accessPrefix === 'Организация'
@@ -1406,7 +978,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
           </div>
         </div>
       )}
-      <div className="rounded-lg border border-white/10 px-4 py-3">
+      <div className="rounded-md border border-white/10 px-4 py-3">
         <div className="text-xs text-neutral-400">Использовано {memoryUsage.used} МБ из {(memoryUsage.total / 1000).toFixed(1)} ГБ</div>
         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
           <div
@@ -1443,7 +1015,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
         exit={{ scale: 0.98, opacity: 0 }}
         transition={{ duration: 0.18 }}
         // Компактный размер окна
-        className="relative flex overflow-hidden rounded-lg border border-white/5 bg-[#161618] shadow-2xl"
+        className="relative flex overflow-hidden rounded-md border border-white/5 bg-[#161618] shadow-2xl"
         style={{
           width: 'min(720px, 50vw)',   // уменьшенная ширина
           height: 'min(520px, 65vh)',  // уменьшенная высота
@@ -1491,7 +1063,7 @@ function ProfileModal({ isOpen, onClose, user, backgroundType, onBackgroundChang
 
 
 function AuthModal({ isOpen, onClose }) {
-  const [mode, setMode] = useState('register'); // 'register' или 'login'
+  const [mode, setMode] = useState('login'); // 'register' или 'login'
   const [name, setName] = useState('');
   const [username, setUsername] = useState(''); // Псевдоним вместо email
   const [telegram, setTelegram] = useState('');
@@ -1535,7 +1107,7 @@ function AuthModal({ isOpen, onClose }) {
           onClose();
           window.location.reload(); // Перезагружаем страницу для обновления состояния
         } else {
-          setError('Неверный псевдоним или пароль');
+          setError('Неверный логин или пароль');
         }
       }
     } catch (err) {
@@ -1551,30 +1123,30 @@ function AuthModal({ isOpen, onClose }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]" 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" 
       onClick={onClose}
     >
       <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-[560px] mx-auto overflow-hidden bg-black border border-white/20 rounded-2xl shadow-2xl"
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="relative w-full max-w-md mx-4 overflow-hidden bg-neutral-900 border border-neutral-700 rounded-md shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent px-5 py-4">
+        <div className="relative px-8 pt-8 pb-6 border-b border-neutral-800">
           <button 
             onClick={onClose} 
-            className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-all hover:rotate-90 duration-300"
+            className="absolute top-6 right-6 text-neutral-500 hover:text-neutral-300 transition"
           >
             <X className="h-5 w-5" />
           </button>
           
-          <h2 className="text-xl font-bold text-white tracking-tight">
+          <h2 className="text-2xl font-semibold text-neutral-100">
             {mode === 'register' ? 'Запустить ARCPLAN' : 'Вход в систему'}
           </h2>
-          <p className="text-neutral-400 text-xs mt-1">
+          <p className="text-neutral-500 text-sm mt-2">
             {mode === 'register' 
               ? 'Начнем работу с Вашей организацией по созданию планировок с AI' 
               : 'Войдите в свой аккаунт для доступа к функциям'}
@@ -1582,8 +1154,8 @@ function AuthModal({ isOpen, onClose }) {
         </div>
         
         {/* Content */}
-        <div className="px-5 py-5">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="px-8 py-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
              {mode === 'register' && (
                <>
                  {/* Первый ряд - Название организации и Пароль для входа */}
@@ -1597,7 +1169,7 @@ function AuthModal({ isOpen, onClose }) {
                        required
                        value={name}
                        onChange={(e) => setName(e.target.value)}
-                       className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                       className="w-full h-12 bg-black/40 border border-white/10 rounded-md px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
                        placeholder="Название организации"
                      />
                    </div>
@@ -1612,7 +1184,7 @@ function AuthModal({ isOpen, onClose }) {
                          required
                          value={password}
                          onChange={(e) => setPassword(e.target.value)}
-                         className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                         className="w-full h-12 bg-black/40 border border-white/10 rounded-md px-4 py-3 pr-12 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
                          placeholder="••••••••"
                        />
                        <button
@@ -1646,7 +1218,7 @@ function AuthModal({ isOpen, onClose }) {
                        required
                        value={username}
                        onChange={(e) => setUsername(e.target.value)}
-                       className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                       className="w-full h-12 bg-black/40 border border-white/10 rounded-md px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
                        placeholder="username"
                      />
                    </div>
@@ -1661,7 +1233,7 @@ function AuthModal({ isOpen, onClose }) {
                          required
                          value={confirmPassword}
                          onChange={(e) => setConfirmPassword(e.target.value)}
-                         className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                         className="w-full h-12 bg-black/40 border border-white/10 rounded-md px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
                          placeholder="••••••••"
                        />
                      </div>
@@ -1679,7 +1251,7 @@ function AuthModal({ isOpen, onClose }) {
                        required
                        value={telegram}
                        onChange={(e) => setTelegram(e.target.value)}
-                       className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
+                       className="w-full h-12 bg-black/40 border border-white/10 rounded-md px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
                        placeholder="@example"
                      />
                    </div>
@@ -1687,202 +1259,60 @@ function AuthModal({ isOpen, onClose }) {
                </>
              )}
              
-             {/* Поля для входа (остаются вертикально) */}
+             {/* Поля для входа */}
              {mode === 'login' && (
                <>
-                 <div className="flex flex-col">
-                   <label className="text-sm text-neutral-400 block mb-2">
-                     Псевдоним
+                 <div>
+                   <label htmlFor="username" className="block text-sm font-medium text-neutral-400 mb-2">
+                     Логин
                    </label>
                    <input
+                     id="username"
                      type="text"
                      required
                      value={username}
                      onChange={(e) => setUsername(e.target.value)}
-                     className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
-                     placeholder="username"
+                     className="w-full rounded border border-neutral-700 bg-neutral-800 px-4 py-3 text-sm outline-none focus:border-neutral-600 text-neutral-200 placeholder-neutral-500 transition"
+                     placeholder="Введите логин"
                    />
                  </div>
                  
-                 <div className="flex flex-col">
-                   <label className="text-sm text-neutral-400 block mb-2">
+                 <div>
+                   <label htmlFor="password" className="block text-sm font-medium text-neutral-400 mb-2">
                      Пароль
                    </label>
-                   <div className="relative h-12">
-                     <input
-                       type={showPassword ? 'text' : 'password'}
-                       required
-                       value={password}
-                       onChange={(e) => setPassword(e.target.value)}
-                       className="w-full h-12 bg-black/40 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:border-white/30 transition-all placeholder:text-neutral-600 hover:border-white/20"
-                       placeholder="••••••••"
-                     />
-                     <button
-                       type="button"
-                       onClick={() => setShowPassword(!showPassword)}
-                       className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors duration-200 p-1 rounded-md hover:bg-white/10"
-                     >
-                       {showPassword ? (
-                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                         </svg>
-                       ) : (
-                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                         </svg>
-                       )}
-                     </button>
-                   </div>
+                   <input
+                     id="password"
+                     type="password"
+                     required
+                     value={password}
+                     onChange={(e) => setPassword(e.target.value)}
+                     className="w-full rounded border border-neutral-700 bg-neutral-800 px-4 py-3 text-sm outline-none focus:border-neutral-600 text-neutral-200 placeholder-neutral-500 transition"
+                     placeholder="••••••••"
+                   />
                  </div>
                </>
              )}
             
             {error && (
-              <div className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3">
+              <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded px-4 py-3">
                 {error}
               </div>
             )}
             
-            <motion.button
+            <button
               type="submit"
               disabled={loading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-               className="w-full bg-gradient-to-r from-white to-neutral-100 hover:from-neutral-100 hover:to-neutral-200 disabled:from-neutral-600 disabled:to-neutral-700 disabled:cursor-not-allowed text-black font-semibold py-3 rounded-xl transition-all shadow-lg shadow-white/10 hover:shadow-white/20"
+              className="w-full inline-flex items-center justify-center gap-2 rounded border border-neutral-600 bg-neutral-700 text-neutral-100 px-4 py-3 text-sm font-medium hover:bg-neutral-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading 
                 ? (mode === 'register' ? 'Запуск...' : 'Вход...') 
                 : (mode === 'register' ? 'Запустить ARCPLAN' : 'Войти')}
-            </motion.button>
+            </button>
           </form>
-          
-          <div className="mt-6 text-center">
-            <p className="text-sm text-neutral-400">
-              {mode === 'register' ? 'Уже работаете с нами?' : 'Нет аккаунта?'}{' '}
-              <button 
-                onClick={() => {
-                  setMode(mode === 'register' ? 'login' : 'register');
-                  setError('');
-                }}
-                className="text-white hover:underline transition"
-              >
-                {mode === 'register' ? 'Войти в систему' : 'Зарегистрироваться'}
-              </button>
-            </p>
-          </div>
         </div>
       </motion.div>
     </motion.div>
-  );
-}
-
-// Модальное окно "Список изменений" - Премиум дизайн
-function Plan3DInfoModal({ isOpen, onClose }) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-2xl mx-4 rounded-2xl border border-white/10 bg-[#0b0b0e] p-8 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-white">ARCPLAN 3D</h2>
-              <p className="text-sm text-neutral-400">Скоро в разработке</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
-          >
-            <X className="h-4 w-4 text-neutral-400" />
-          </button>
-        </div>
-
-        <div className="space-y-6">
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-white mb-2">Как это будет работать</h3>
-            <p className="text-neutral-400 text-sm">
-              Мы создаем революционную систему преобразования 2D планов в 3D пространство
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <FileText className="h-4 w-4 text-blue-400" />
-                </div>
-                <h4 className="font-medium text-white">1. Загрузка техплана</h4>
-              </div>
-              <p className="text-sm text-neutral-400">
-                Загружаете фотографию техплана или план помещения
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                  <Settings className="h-4 w-4 text-green-400" />
-                </div>
-                <h4 className="font-medium text-white">2. Векторизация</h4>
-              </div>
-              <p className="text-sm text-neutral-400">
-                ИИ автоматически распознает стены, двери, окна и создает векторную модель
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                  <Building2 className="h-4 w-4 text-purple-400" />
-                </div>
-                <h4 className="font-medium text-white">3. 3D преобразование</h4>
-              </div>
-              <p className="text-sm text-neutral-400">
-                Преобразуем 2D план в полноценное 3D пространство с правильными пропорциями
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-orange-400" />
-                </div>
-                <h4 className="font-medium text-white">4. Расстановка объектов</h4>
-              </div>
-              <p className="text-sm text-neutral-400">
-                Автоматически расставляем мебель и объекты в 3D пространстве
-              </p>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
-            <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="h-5 w-5 text-blue-400" />
-              <h4 className="font-medium text-white">Результат</h4>
-            </div>
-            <p className="text-sm text-neutral-300">
-              Полноценная 3D модель вашего помещения с возможностью виртуального тура, 
-              изменения планировки и подбора мебели в реальном времени
-            </p>
-          </div>
-
-          <div className="flex justify-center">
-            <button
-              onClick={onClose}
-              className="px-6 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors"
-            >
-              Понятно
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -1892,7 +1322,7 @@ function OrganizationUsersModal({ isOpen, onClose, users = [], isLoading = false
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg mx-4 rounded-2xl border border-white/10 bg-[#111113] p-6 shadow-2xl">
+      <div className="relative z-10 w-full max-w-lg mx-4 rounded-md border border-white/10 bg-[#111113] p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="text-lg font-semibold text-white">Пользователи с префиксом «Организация»</h3>
@@ -1900,7 +1330,7 @@ function OrganizationUsersModal({ isOpen, onClose, users = [], isLoading = false
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition"
+            className="w-8 h-8 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center transition"
             aria-label="Закрыть"
           >
             <X className="h-4 w-4 text-neutral-300" />
@@ -1912,7 +1342,7 @@ function OrganizationUsersModal({ isOpen, onClose, users = [], isLoading = false
         ) : (
           <div className="space-y-3">
             {error && (
-              <div className="rounded-lg border border-red-400/40 bg-red-400/10 px-3 py-2 text-xs text-red-300">
+              <div className="rounded-md border border-red-400/40 bg-red-400/10 px-3 py-2 text-xs text-red-300">
                 {error}
               </div>
             )}
@@ -1923,7 +1353,7 @@ function OrganizationUsersModal({ isOpen, onClose, users = [], isLoading = false
             ) : (
               <div className="max-h-64 overflow-y-auto space-y-2 custom-scrollbar">
                 {users.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/40 px-3 py-2">
+                  <div key={item.id} className="flex items-center justify-between rounded-md border border-white/10 bg-black/40 px-3 py-2">
                     <div className="space-y-0.5">
                       <div className="text-sm font-medium text-white">{item.name}</div>
                       <div className="text-xs text-neutral-400">@{item.username}</div>
@@ -2031,7 +1461,7 @@ function ChangelogModal({ isOpen, onClose }) {
           </button>
           
           <div className="flex items-center gap-4 mb-3">
-            <div className="p-3 bg-white/10 rounded-2xl border border-white/20">
+            <div className="p-3 bg-white/10 rounded-md border border-white/20">
               <FileText className="h-8 w-8 text-white" />
             </div>
             <div>
@@ -2061,7 +1491,7 @@ function ChangelogModal({ isOpen, onClose }) {
                   className="relative pl-16"
                 >
                   {/* Timeline dot */}
-                  <div className={`absolute left-0 top-0 size-14 rounded-2xl border-2 border-white/20 grid place-items-center font-bold ${
+                  <div className={`absolute left-0 top-0 size-14 rounded-md border-2 border-white/20 grid place-items-center font-bold ${
                     release.type === 'major' 
                       ? 'bg-gradient-to-br from-white to-neutral-300 text-black' 
                       : 'bg-black text-white border-white/40'
@@ -2070,14 +1500,14 @@ function ChangelogModal({ isOpen, onClose }) {
                   </div>
                   
                   {/* Content */}
-                  <div className="group bg-gradient-to-br from-white/5 to-transparent rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all">
+                  <div className="group bg-gradient-to-br from-white/5 to-transparent rounded-md p-6 border border-white/10 hover:border-white/20 transition-all">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="text-2xl font-bold text-white">
                             {release.title}
                           </h3>
-                          <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                          <span className={`px-3 py-1 rounded-md text-xs font-medium ${
                             release.type === 'major' 
                               ? 'bg-white text-black' 
                               : 'bg-white/10 text-white border border-white/20'
@@ -2100,7 +1530,7 @@ function ChangelogModal({ isOpen, onClose }) {
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.1 + i * 0.05 }}
-                          className="flex items-start gap-3 p-3 bg-black/20 rounded-xl border border-white/5 hover:border-white/10 transition-all"
+                          className="flex items-start gap-3 p-3 bg-black/20 rounded-md border border-white/5 hover:border-white/10 transition-all"
                         >
                           <div className="mt-0.5 p-1 bg-white/10 rounded-md">
                             <Check className="h-3.5 w-3.5 text-white" />
@@ -2113,7 +1543,7 @@ function ChangelogModal({ isOpen, onClose }) {
                     </div>
                     
                     {/* Hover effect */}
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                    <div className="absolute inset-0 rounded-md bg-gradient-to-br from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                   </div>
                 </motion.div>
               ))}
@@ -2136,9 +1566,7 @@ function AdvancedSidebar({
   searchResults = { chats: [], settings: [] },
   onSettingSelect,
   onCreateChat,
-  onShowGallery,
   onHomeClick,
-  onHowItWorks,
   user,
   onRenameChat,
   onDeleteChat,
@@ -2146,10 +1574,31 @@ function AdvancedSidebar({
   onChangelog,
   onProfile,
   onLogout,
-  onAuthOpen
+  onAuthOpen,
+  backgroundType,
+  onBackgroundChange,
+  advancedMessageHistory = {}
 }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [activeChatMenu, setActiveChatMenu] = useState(null);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const settingsMenuRef = useRef(null);
+  const userMenuRef = useRef(null);
+  
+  // Закрытие меню при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
+        setSettingsMenuOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   // Группировка чатов по датам
   const groupChatsByDate = (chats) => {
@@ -2188,49 +1637,45 @@ function AdvancedSidebar({
     return groups;
   };
 
-  const chatGroups = groupChatsByDate(chats);
+  // Фильтруем чаты - показываем только те, у которых есть сообщения
+  const chatsWithMessages = chats.filter(chat => {
+    const chatHistory = advancedMessageHistory?.[chat.id] || [];
+    return chatHistory.length > 0;
+  });
+  
+  const chatGroups = groupChatsByDate(chatsWithMessages);
   const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
                      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
   if (isCollapsed) {
   return (
-      <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-12">
-        <div className="p-2">
-          <div className="w-full h-8 rounded-lg bg-white/5 flex items-center justify-center">
-            <Search className="h-4 w-4 text-neutral-400" />
-          </div>
+      <aside className="hidden md:flex flex-col h-full max-h-screen border-r border-white/5 bg-black/20 backdrop-blur-sm w-14 relative z-20">
+        <div className="flex-shrink-0 p-1.5 space-y-1.5">
+          {/* Toggle button для свернутого сайдбара */}
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Toggle button clicked - collapsed sidebar');
+              onCollapse();
+            }}
+            className="w-full aspect-square flex items-center justify-center text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition rounded-md relative z-10 cursor-pointer" 
+            title="Развернуть панель"
+          >
+            <ChevronRight className="h-4 w-4 pointer-events-none" />
+          </button>
         </div>
-        <nav className="px-1.5 text-xs flex-1 space-y-1.5">
+        <nav className="px-1.5 text-xs flex-1 space-y-1.5 overflow-y-auto custom-scrollbar min-h-0">
           <button 
             onClick={onCreateChat}
-            className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
+            className="w-full aspect-square rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
             title="Новый чат"
           >
             <Plus className="h-3 w-3 text-neutral-400" />
           </button>
-          <button 
-            onClick={onShowGallery}
-            className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
-            title="Создано"
-          >
-            <Images className="h-3 w-3 text-neutral-400" />
-          </button>
-          <button 
-            onClick={onHomeClick}
-            className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
-            title="На главную"
-          >
-            <Home className="h-3 w-3 text-neutral-400" />
-          </button>
-          <button 
-            onClick={onHowItWorks}
-            className="w-full h-8 rounded-md bg-white/5 hover:bg-white/10 transition flex items-center justify-center"
-            title="Как это работает"
-          >
-            <HelpCircle className="h-4 w-4 text-neutral-400" />
-          </button>
         </nav>
-        <div className="p-3 flex flex-col items-center gap-2">
+        <div className="flex-shrink-0 p-3 flex flex-col items-center gap-2">
+          <div ref={userMenuRef} className="relative">
           <button 
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             className="size-9 rounded-full grid place-items-center text-xs font-semibold hover:scale-105 transition bg-black border border-white/30 text-white"
@@ -2238,40 +1683,146 @@ function AdvancedSidebar({
           >
             {user?.name?.charAt(0).toUpperCase() || '?'}
           </button>
+            
+            {/* User menu для свернутого состояния */}
+            {userMenuOpen && (
+              <div className="absolute bottom-full left-full ml-2 mb-2 bg-neutral-900 border border-white/10 rounded-md shadow-2xl overflow-hidden w-48 z-50">
+                {user ? (
+                  <>
           <button 
-            onClick={onCollapse}
+                      onClick={() => { onProfile(); setUserMenuOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+                    >
+                      <User className="h-4 w-4 text-neutral-400" />
+                      <span className="text-sm text-white">Личный кабинет</span>
+                    </button>
+                    <button 
+                      onClick={() => { onChangelog(); setUserMenuOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+                    >
+                      <FileText className="h-4 w-4 text-neutral-400" />
+                      <span className="text-sm text-white">Список изменений</span>
+                    </button>
+                    <div className="border-t border-white/5"></div>
+                    <button 
+                      onClick={() => { onLogout(); setUserMenuOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 transition text-left"
+                    >
+                      <LogOut className="h-4 w-4 text-red-400" />
+                      <span className="text-sm text-red-400">Выйти</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => { onAuthOpen(); setUserMenuOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
+                    >
+                      <User className="h-4 w-4 text-neutral-400" />
+                      <span className="text-sm text-white">Войти</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <button 
+            onClick={onHomeClick}
             className="text-neutral-500 hover:text-neutral-300 transition" 
-            title="Развернуть панель"
+            title="Вернуться на главную"
           >
-            <ChevronRight className="h-4 w-4" />
+            <Home className="h-4 w-4" />
           </button>
+          
+          <div ref={settingsMenuRef} className="relative">
+            <button 
+              onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
+            className="text-neutral-500 hover:text-neutral-300 transition" 
+              title="Настройки"
+          >
+              <Settings className="h-4 w-4" />
+          </button>
+          
+            
+            {/* Settings menu для свернутого состояния */}
+            {settingsMenuOpen && (
+              <div className="absolute bottom-full left-full ml-2 mb-2 bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg overflow-hidden w-48 z-50">
+              <div className="px-3 py-1.5 border-b border-[#2c2c2e]">
+                <div className="text-[10px] uppercase tracking-wide text-neutral-600">Тема</div>
+              </div>
+              <button 
+                onClick={() => { onBackgroundChange?.('standard'); setSettingsMenuOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-left ${
+                  backgroundType === 'standard' ? 'bg-[#2c2c2e]' : 'hover:bg-[#252527]'
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5 text-neutral-500" />
+                <span className="text-xs text-neutral-300 flex-1">Стандартный</span>
+                {backgroundType === 'standard' && <Check className="h-3.5 w-3.5 text-neutral-500" />}
+              </button>
+              <button 
+                onClick={() => { onBackgroundChange?.('interactive'); setSettingsMenuOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-left ${
+                  backgroundType === 'interactive' ? 'bg-[#2c2c2e]' : 'hover:bg-[#252527]'
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5 text-neutral-500" />
+                <span className="text-xs text-neutral-300 flex-1">Интерактивный</span>
+                {backgroundType === 'interactive' && <Check className="h-3.5 w-3.5 text-neutral-500" />}
+              </button>
+              <button 
+                onClick={() => { onBackgroundChange?.('alternative'); setSettingsMenuOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-left ${
+                  backgroundType === 'alternative' ? 'bg-[#2c2c2e]' : 'hover:bg-[#252527]'
+                }`}
+              >
+                <Eye className="h-3.5 w-3.5 text-neutral-500" />
+                <span className="text-xs text-neutral-300 flex-1">Альтернативный</span>
+                {backgroundType === 'alternative' && <Check className="h-3.5 w-3.5 text-neutral-500" />}
+              </button>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
     );
   }
 
   return (
-    <aside className="hidden md:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm w-72 relative">
-      {/* Top: search */}
-      <div className="p-2">
-        <div className="flex items-center gap-1.5 rounded-lg bg-white/5 px-4 py-2 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <Search className="h-3 w-3 text-neutral-400" />
-          <input
-            placeholder="Поиск"
-            className="bg-transparent placeholder:text-neutral-500 text-sm outline-none w-full"
-            value={searchQuery}
-            onChange={(e) => onSearch(e.target.value)}
-          />
+    <aside className="hidden md:flex flex-col h-full max-h-screen border-r border-white/5 bg-black/20 backdrop-blur-sm w-64 relative z-20">
+      {/* Top: search and toggle */}
+      <div className="flex-shrink-0 p-2">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-1.5 rounded-md bg-white/5 px-4 py-2 ring-1 ring-white/10 hover:ring-white/20 transition">
+            <Search className="h-3 w-3 text-neutral-400" />
+            <input
+              placeholder="Поиск"
+              className="bg-transparent placeholder:text-neutral-500 text-sm outline-none w-full"
+              value={searchQuery}
+              onChange={(e) => onSearch(e.target.value)}
+            />
+          </div>
+          {/* Toggle button для развернутого сайдбара */}
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Toggle button clicked - expanded sidebar');
+              onCollapse();
+            }}
+            className="w-8 h-8 flex items-center justify-center text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition rounded-md shrink-0 relative z-10 cursor-pointer" 
+            title="Свернуть панель"
+          >
+            <ChevronLeft className="h-4 w-4 pointer-events-none" />
+          </button>
         </div>
       </div>
 
       {/* Nav */}
-       <nav className="px-1.5 text-sm flex-1 overflow-y-auto custom-scrollbar">
+       <nav className="px-1.5 text-sm flex-1 overflow-y-auto custom-scrollbar min-h-0">
         <AdvancedSectionTitle>Главное</AdvancedSectionTitle>
         <AdvancedNavItem onClick={onCreateChat} Icon={Plus} label="Новый чат" />
-        <AdvancedNavItem onClick={onShowGallery} Icon={Images} label="Создано" />
-        <AdvancedNavItem onClick={onHomeClick} Icon={Home} label="Вернуться на главную" />
-        <AdvancedNavItem onClick={onHowItWorks} Icon={HelpCircle} label="Как это работает" />
         
         <AdvancedSectionTitle className="mt-2">История</AdvancedSectionTitle>
         
@@ -2427,32 +1978,25 @@ function AdvancedSidebar({
         )}
       </nav>
 
-      <div className="mt-auto px-3 py-3 border-t border-white/5 relative">
-        <div className="flex items-center justify-between">
+      <div className="flex-shrink-0 px-3 py-3 border-t border-white/5 relative">
+        <div className="flex items-center justify-between gap-1">
+          <div ref={userMenuRef} className="flex-1 min-w-0 relative">
           <button 
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex items-center gap-2 hover:bg-white/5 p-1.5 rounded-lg transition flex-1"
+              className="flex items-center gap-2 hover:bg-white/5 p-1.5 rounded-md transition w-full"
           >
-            <div className="size-8 rounded-full grid place-items-center text-sm font-semibold bg-black border border-white/30 text-white">
+              <div className="size-8 rounded-full grid place-items-center text-sm font-semibold bg-black border border-white/30 text-white shrink-0">
               {user?.name?.charAt(0).toUpperCase() || '?'}
             </div>
-            <div className="flex-1 text-left">
+              <div className="flex-1 text-left min-w-0">
               <div className="text-sm text-white truncate">{user?.name || 'Аноним'}</div>
               <div className="text-xs text-neutral-500 truncate">{user?.username || ''}</div>
             </div>
           </button>
-          <button 
-            onClick={onCollapse}
-            className="text-neutral-500 hover:text-neutral-300 transition p-2" 
-            title="Свернуть панель"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        </div>
         
         {/* User menu */}
         {userMenuOpen && (
-          <div className="absolute bottom-full left-3 right-3 mb-2 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-neutral-900 border border-white/10 rounded-md shadow-2xl overflow-hidden z-50">
             {user ? (
               <>
                 <button 
@@ -2481,24 +2025,73 @@ function AdvancedSidebar({
             ) : (
               <>
                 <button 
-                  onClick={() => { onChangelog(); setUserMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
-                >
-                  <FileText className="h-4 w-4 text-neutral-400" />
-                  <span className="text-sm text-white">Список изменений</span>
-                </button>
-                <div className="border-t border-white/5"></div>
-                <button 
                   onClick={() => { onAuthOpen(); setUserMenuOpen(false); }}
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition text-left"
                 >
                   <User className="h-4 w-4 text-neutral-400" />
-                  <span className="text-sm text-white">Войти / Регистрация</span>
+                  <span className="text-sm text-white">Войти</span>
                 </button>
               </>
             )}
           </div>
         )}
+          </div>
+          <button 
+            onClick={onHomeClick}
+            className="text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition p-2 rounded-md shrink-0" 
+            title="Вернуться на главную"
+          >
+            <Home className="h-4 w-4" />
+          </button>
+          <div ref={settingsMenuRef} className="relative">
+            <button 
+              onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
+              className="text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition p-2 rounded-md shrink-0" 
+              title="Настройки"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+            
+            {/* Settings menu */}
+            {settingsMenuOpen && (
+              <div className="absolute bottom-full right-0 mb-2 bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg overflow-hidden w-48 z-50">
+                <div className="px-3 py-1.5 border-b border-[#2c2c2e]">
+                  <div className="text-[10px] uppercase tracking-wide text-neutral-600">Тема</div>
+                </div>
+                <button 
+                  onClick={() => { onBackgroundChange?.('standard'); setSettingsMenuOpen(false); }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-left ${
+                    backgroundType === 'standard' ? 'bg-[#2c2c2e]' : 'hover:bg-[#252527]'
+                  }`}
+                >
+                  <Layers className="h-3.5 w-3.5 text-neutral-500" />
+                  <span className="text-xs text-neutral-300 flex-1">Стандартный</span>
+                  {backgroundType === 'standard' && <Check className="h-3.5 w-3.5 text-neutral-500" />}
+                </button>
+                <button 
+                  onClick={() => { onBackgroundChange?.('interactive'); setSettingsMenuOpen(false); }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-left ${
+                    backgroundType === 'interactive' ? 'bg-[#2c2c2e]' : 'hover:bg-[#252527]'
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-neutral-500" />
+                  <span className="text-xs text-neutral-300 flex-1">Интерактивный</span>
+                  {backgroundType === 'interactive' && <Check className="h-3.5 w-3.5 text-neutral-500" />}
+                </button>
+                <button 
+                  onClick={() => { onBackgroundChange?.('alternative'); setSettingsMenuOpen(false); }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-left ${
+                    backgroundType === 'alternative' ? 'bg-[#2c2c2e]' : 'hover:bg-[#252527]'
+                  }`}
+                >
+                  <Eye className="h-3.5 w-3.5 text-neutral-500" />
+                  <span className="text-xs text-neutral-300 flex-1">Альтернативный</span>
+                  {backgroundType === 'alternative' && <Check className="h-3.5 w-3.5 text-neutral-500" />}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </aside>
   );
@@ -2613,7 +2206,7 @@ function AdvancedHistoryLinkWithMenu({ chat, active = false, onClick, onRename, 
       
       {isMenuOpen && (
         <div 
-          className="absolute bg-neutral-900 border border-white/10 rounded-lg shadow-2xl overflow-hidden z-50 min-w-[160px]"
+          className="absolute bg-neutral-900 border border-white/10 rounded-md shadow-2xl overflow-hidden z-50 min-w-[160px]"
           style={{
             left: `${menuPosition.x}px`,
             top: `${menuPosition.y}px`
@@ -2669,15 +2262,12 @@ function AdvancedHistoryDate({ label }) {
 }
 
 function AdvancedMainArea({ 
-  backgroundType, 
-  onBackgroundChange, 
   onAttach, 
   attachments = [], 
   modelMenuOpen, 
   onModelMenuToggle, 
   onFilesSelected,
   onSendMessage,
-  onSendFromGallery,
   isGenerating = false,
   currentMessage = null,
   currentResult = null,
@@ -2687,243 +2277,42 @@ function AdvancedMainArea({
   onDownload,
   onImageClick,
   onModelChange,
-  showGallery = false,
-  setShowGallery,
-  galleryImages = [],
-  selectedGalleryImage,
-  setSelectedGalleryImage,
-  galleryModelFilter,
-  setGalleryModelFilter,
-  onGalleryDelete,
-  onGalleryDownload,
   model,
   onModelSelect,
-  on3DInfoOpen
+  service,
+  onServiceChange,
+  showServiceMenu,
+  onServiceMenuToggle,
+  selectedModel,
+  onSelectedModelChange
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showPromoCard, setShowPromoCard] = useState(true);
-  const [hasMessage, setHasMessage] = useState(false);
-  const [is3DModalOpen, setIs3DModalOpen] = useState(false);
-  const [modelTo3D, setModelTo3D] = useState(null);
+  const [techplanModeLocal, setTechplanModeLocal] = useState('with');
 
   // Показываем сообщения, если есть активное сообщение, результат, история или идет генерация
   const showMessages = currentMessage || currentResult || messageHistory.length > 0 || isGenerating;
 
-  // Обработчик активации 3D режима
-  const handle3DActivation = () => {
-    // Переключаем модель на 3D план
-    setModelTo3D("3d");
-  };
-
-  // Обработчик открытия 3D модального окна
-  const handleOpen3DModal = () => {
-    setIs3DModalOpen(true);
-    setShowPromoCard(false);
-  };
-
-  // Сбрасываем modelTo3D после установки
-  useEffect(() => {
-    if (modelTo3D) {
-      const timer = setTimeout(() => {
-        setModelTo3D(null);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [modelTo3D]);
-
-  // Gallery component
-  const GalleryContent = () => {
-    const filteredImages = galleryModelFilter === 'all' 
-      ? galleryImages 
-      : galleryImages.filter(img => img.model === galleryModelFilter);
-
-    return (
-      <div className="flex-1 flex flex-col">
-        {/* Gallery Header */}
-        <div className="border-b border-white/5 bg-black/20 backdrop-blur-sm">
-          <div className="mx-auto max-w-7xl px-6 py-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold text-white">Создано</h1>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-neutral-400">
-                  {filteredImages.length} изображений
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Gallery Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="mx-auto max-w-7xl px-6 py-8">
-            {/* Filter Bar */}
-            <div className="mb-8 flex items-center justify-between">
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    const filters = ['all', 'techplan', 'cleanup'];
-                    const currentIndex = filters.indexOf(galleryModelFilter);
-                    const nextIndex = (currentIndex + 1) % filters.length;
-                    setGalleryModelFilter(filters[nextIndex]);
-                  }}
-                  className="flex items-center gap-2 rounded-full px-4 py-2 ring-1 ring-white/10 bg-white/5 hover:bg-white/10 transition"
-                >
-                  <span className="text-sm">
-                    {galleryModelFilter === 'all' ? 'Все модели' : 
-                     galleryModelFilter === 'techplan' ? 'Создание по техплану' :
-                     galleryModelFilter === 'cleanup' ? 'Удаление объектов' : 'Все модели'}
-                  </span>
-                  <ChevronDown className="h-3 w-3 opacity-70" />
-                </button>
-              </div>
-            </div>
-
-            {/* Gallery Grid */}
-            {filteredImages.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredImages.map((image) => (
-                  <motion.div
-                    key={image.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="group relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/20 cursor-pointer"
-                    onClick={() => setSelectedGalleryImage(image)}
-                  >
-                    <img
-                      src={image.url}
-                      alt={image.prompt}
-                      className="h-full w-full object-cover transition group-hover:scale-105"
-                    />
-                    
-                    {/* Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition">
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <p className="text-sm text-white line-clamp-2 mb-2">{image.prompt}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-neutral-400">{image.model}</span>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onGalleryDownload(image.url, image.id);
-                              }}
-                              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition"
-                              title="Скачать"
-                            >
-                              <Download className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onGalleryDelete(image.id);
-                              }}
-                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition"
-                              title="Удалить"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-400" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <p className="text-neutral-400 mb-2">Нет изображений для выбранной модели</p>
-                <button
-                  onClick={() => setGalleryModelFilter('all')}
-                  className="text-sm text-white/70 hover:text-white underline"
-                >
-                  Показать все
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Image Modal */}
-        {selectedGalleryImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-            onClick={() => setSelectedGalleryImage(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="relative max-w-5xl w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close button */}
-              <button
-                onClick={() => setSelectedGalleryImage(null)}
-                className="absolute -top-12 right-0 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              {/* Image */}
-              <div className="rounded-xl overflow-hidden border border-white/20">
-                <img
-                  src={selectedGalleryImage.url}
-                  alt={selectedGalleryImage.prompt}
-                  className="w-full h-auto"
-                />
-              </div>
-
-              {/* Info */}
-              <div className="mt-4 rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm p-6">
-                <p className="text-white mb-3">{selectedGalleryImage.prompt}</p>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-400">ARCPLAN MODEL: {selectedGalleryImage.model}</span>
-                  <span className="text-neutral-400">
-                    {new Date(selectedGalleryImage.createdAt).toLocaleDateString('ru-RU')}
-                  </span>
-                </div>
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={() => onGalleryDownload(selectedGalleryImage.url, selectedGalleryImage.id)}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-4 py-2 transition"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Скачать</span>
-                  </button>
-                  <button
-                    onClick={() => onGalleryDelete(selectedGalleryImage.id)}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 px-4 py-2 transition"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-400" />
-                    <span className="text-red-400">Удалить</span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-        
-      </div>
-    );
-  };
-
   return (
     <main className="relative flex flex-col h-screen">
-      {/* Gallery View */}
-      {showGallery ? (
-        <GalleryContent />
-      ) : (
-        <>
+          {/* Service Selector в правом верхнем углу - показываем только когда нет сообщений */}
+          {!showMessages && (
+            <div className="absolute top-6 right-8 z-30">
+              <AdvancedServiceSelector
+                value={service}
+                onChange={onServiceChange}
+                isOpen={showServiceMenu}
+                onToggle={onServiceMenuToggle}
+              />
+            </div>
+          )}
           {/* Сообщения в верхней части */}
           {showMessages && (
         <div className="flex-1 pt-16 overflow-y-auto custom-scrollbar">
           {/* История сообщений */}
           {messageHistory.length > 0 && (
-            <div className="space-y-4 px-6 py-4">
+            <div className="space-y-6 px-6 py-4">
               {messageHistory.map((msg, index) => (
-                <div key={`${msg.id || msg.messageId}-${index}`} className="max-w-3xl mx-auto">
+                <div key={`${msg.id || msg.messageId}-${index}`} className="w-full">
                   {msg.type === 'user' ? (
                     <AdvancedMessageDisplay
                       isGenerating={false}
@@ -2933,6 +2322,11 @@ function AdvancedMainArea({
                       onRegenerate={onRegenerate}
                       onDownload={onDownload}
                       onImageClick={onImageClick}
+                      service={service}
+                      selectedModel={selectedModel}
+                      onModelChange={onSelectedModelChange}
+                      techplanMode={msg.techplanMode || techplanModeLocal}
+                      onTechplanModeChange={setTechplanModeLocal}
                     />
                   ) : (
                     <AdvancedMessageDisplay
@@ -2943,6 +2337,11 @@ function AdvancedMainArea({
                       onRegenerate={onRegenerate}
                       onDownload={onDownload}
                       onImageClick={onImageClick}
+                      service={service}
+                      selectedModel={selectedModel}
+                      onModelChange={onSelectedModelChange}
+                      techplanMode={msg.techplanMode || techplanModeLocal}
+                      onTechplanModeChange={setTechplanModeLocal}
                     />
                   )}
                 </div>
@@ -2952,25 +2351,31 @@ function AdvancedMainArea({
           
           {/* Текущее сообщение */}
           {(currentMessage || currentResult || isGenerating) && (
-            <AdvancedMessageDisplay
-              isGenerating={isGenerating}
-              message={currentMessage}
-              result={currentResult}
-              onRate={onRate}
-              onRegenerate={onRegenerate}
-              onDownload={onDownload}
-              onImageClick={onImageClick}
-            />
+            <div className="px-6 py-4">
+              <AdvancedMessageDisplay
+                isGenerating={isGenerating}
+                message={currentMessage}
+                result={currentResult}
+                onRate={onRate}
+                onRegenerate={onRegenerate}
+                onDownload={onDownload}
+                onImageClick={onImageClick}
+                service={service}
+                selectedModel={selectedModel}
+                onModelChange={onSelectedModelChange}
+                techplanMode={currentMessage?.techplanMode || techplanModeLocal}
+                onTechplanModeChange={setTechplanModeLocal}
+              />
+            </div>
           )}
         </div>
       )}
 
       {/* Логотип и панель - в центре до первого сообщения */}
       {!showMessages && (
-        <div className="flex-1 flex flex-col items-center justify-center">
-        <AdvancedLogoMark />
-          
-          <div className="mx-auto max-w-3xl px-6 w-full mt-8">
+        <div className="flex-1 flex flex-col items-center justify-center -mt-16">
+          <h1 className="text-5xl font-light tracking-[-0.03em] text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.35)] mb-6" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: '1' }}>ARCPLAN</h1>
+          <div className="mx-auto max-w-3xl px-6 w-full">
             <motion.div 
               initial={{ opacity: 0, y: 8 }} 
               animate={{ opacity: 1, y: 0 }} 
@@ -2988,382 +2393,37 @@ function AdvancedMainArea({
                 isGenerating={isGenerating}
                 isAtBottom={showMessages}
                 onImageClick={onImageClick}
-                setModelFromOutside={modelTo3D}
                 additionalButtons={null}
                 model={model}
                 onModelSelect={onModelSelect}
-                on3DInfoOpen={on3DInfoOpen}
+                service={service}
+                selectedModel={selectedModel}
+                onSelectedModelChange={onSelectedModelChange}
           />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05, duration: 0.35 }}
-              className="mt-6 w-full flex justify-center"
-        >
-              {showAdvanced && !showMessages ? (
-            <AdvancedAdvancedRow 
-              backgroundType={backgroundType}
-              onBackgroundChange={onBackgroundChange}
-              modelMenuOpen={modelMenuOpen}
-              onModelMenuToggle={onModelMenuToggle}
-                  openUpward={showMessages}
-            />
-              ) : showPromoCard && !showMessages ? (
-            <AdvancedPromoCard 
-              onClose={() => {
-                setShowPromoCard(false);
-                setShowAdvanced(true);
-              }}
-              on3DClick={handleOpen3DModal}
-            />
-          ) : null}
         </motion.div>
       </div>
         </div>
       )}
 
-      {/* Панель с выбором модели - внизу после первого сообщения */}
-      {showMessages && (
-        <div className="mx-auto max-w-3xl px-6 w-full mt-auto pb-3">
-          <motion.div 
-            initial={{ opacity: 0, y: 8 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ duration: 0.35 }}
-            className="w-full flex justify-center"
-          >
-            <AdvancedSearchBar 
-              onAdvanced={() => setShowAdvanced(true)} 
-              onAttach={onAttach}
-              attachments={attachments}
-              modelMenuOpen={modelMenuOpen}
-              onModelMenuToggle={onModelMenuToggle}
-              onFilesSelected={onFilesSelected}
-              onSendMessage={onSendMessage}
-              isGenerating={isGenerating}
-              isAtBottom={showMessages}
-              onImageClick={onImageClick}
-              setModelFromOutside={modelTo3D}
-              additionalButtons={null}
-              backgroundType={backgroundType}
-              onBackgroundChange={onBackgroundChange}
-              model={model}
-              onModelSelect={onModelSelect}
-              on3DInfoOpen={on3DInfoOpen}
-            />
-          </motion.div>
-        </div>
-      )}
+      {/* Панель внизу отключена по требованию: скрываем поиск/модель в чате */}
 
       <AdvancedSuperBanner 
         showMessages={showMessages}
-        onUpgradeClick={handleOpen3DModal}
       />
-
-      {/* 3D Mode Modal */}
-      <ThreeDModeModal
-        isOpen={is3DModalOpen}
-        onClose={() => setIs3DModalOpen(false)}
-        onActivate={handle3DActivation}
-      />
-        </>
-      )}
     </main>
   );
 }
 
-
- function AdvancedLogoMark() {
-   return (
-       <div className="group flex flex-col items-center justify-center gap-2 select-none cursor-pointer">
-        <div className="flex items-center justify-center gap-2">
-          {/* ARCPLAN logo - Ultimate Monochrome Luxury */}
-          <svg 
-            width="80" 
-            height="80" 
-            viewBox="0 0 400 400" 
-            xmlns="http://www.w3.org/2000/svg" 
-            aria-label="ARCPLAN logo"
-            className="transition-all duration-700 group-hover:scale-[1.08] translate-y-1"
-            style={{ filter: 'drop-shadow(0 0 25px rgba(255,255,255,0.15))' }}
-          >
-        <defs>
-            {/* Ultra-premium gradients */}
-            <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="1">
-                <animate attributeName="stop-opacity" values="1;0.88;1" dur="4.5s" repeatCount="indefinite"/>
-              </stop>
-              <stop offset="100%" stopColor="#e8e8e8" stopOpacity="0.75">
-                <animate attributeName="stop-opacity" values="0.75;0.55;0.75" dur="4.5s" repeatCount="indefinite"/>
-              </stop>
-            </linearGradient>
-            
-            <linearGradient id="secondaryGrad" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.92">
-                <animate attributeName="stop-opacity" values="0.92;0.78;0.92" dur="4.5s" repeatCount="indefinite"/>
-              </stop>
-              <stop offset="100%" stopColor="#d0d0d0" stopOpacity="0.58">
-                <animate attributeName="stop-opacity" values="0.58;0.42;0.58" dur="4.5s" repeatCount="indefinite"/>
-              </stop>
-            </linearGradient>
-            
-            <linearGradient id="accentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.96">
-                <animate attributeName="stop-opacity" values="0.96;0.82;0.96" dur="4.5s" repeatCount="indefinite"/>
-              </stop>
-              <stop offset="100%" stopColor="#f0f0f0" stopOpacity="0.65">
-                <animate attributeName="stop-opacity" values="0.65;0.48;0.65" dur="4.5s" repeatCount="indefinite"/>
-              </stop>
-            </linearGradient>
-            
-            <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95">
-                <animate attributeName="stop-opacity" values="0.95;0.7;0.95" dur="3s" repeatCount="indefinite"/>
-              </stop>
-              <stop offset="100%" stopColor="#e0e0e0" stopOpacity="0.4">
-                <animate attributeName="stop-opacity" values="0.4;0.2;0.4" dur="3s" repeatCount="indefinite"/>
-              </stop>
-          </radialGradient>
-            
-            {/* Elite glow filters */}
-            <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3.5" result="blur"/>
-              <feFlood floodColor="#ffffff" floodOpacity="0.35"/>
-              <feComposite in2="blur" operator="in"/>
-              <feMerge>
-                <feMergeNode/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-            
-            <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="7" result="blur"/>
-              <feFlood floodColor="#ffffff" floodOpacity="0.55"/>
-              <feComposite in2="blur" operator="in"/>
-              <feMerge>
-                <feMergeNode/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-        </defs>
-          
-          {/* Outer orbital ring - elegant rotation */}
-          <g className="transition-all duration-1000 ease-out origin-center group-hover:scale-[1.18]">
-            <circle 
-              cx="200" 
-              cy="200" 
-              r="165" 
-              fill="none" 
-              stroke="url(#primaryGrad)" 
-              strokeWidth="1.8"
-              opacity="0.35"
-              className="transition-all duration-1000 group-hover:opacity-60"
-            >
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                values="0 200 200;360 200 200"
-                dur="45s"
-                repeatCount="indefinite"
-              />
-            </circle>
-          </g>
-          
-          {/* Middle precision ring */}
-          <g className="transition-all duration-1000 ease-out origin-center group-hover:scale-[1.14]">
-            <circle 
-              cx="200" 
-              cy="200" 
-              r="135" 
-              fill="none" 
-              stroke="url(#secondaryGrad)" 
-              strokeWidth="1.2"
-              opacity="0.45"
-              strokeDasharray="10 6"
-              className="transition-all duration-1000 group-hover:opacity-75"
-            >
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                values="360 200 200;0 200 200"
-                dur="38s"
-                repeatCount="indefinite"
-              />
-            </circle>
-          </g>
-          
-          {/* Core structure - 8 segments explode outward */}
-          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-18px] group-hover:translate-y-[-18px]">
-            <path 
-              d="M 200 200 L 200 95 A 105 105 0 0 1 274.25 125.75 Z" 
-              fill="url(#primaryGrad)"
-              opacity="0.88"
-              filter="url(#softGlow)"
-            />
-          </g>
-          
-          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[18px] group-hover:translate-y-[-18px]">
-            <path 
-              d="M 200 200 L 274.25 125.75 A 105 105 0 0 1 305 200 Z" 
-              fill="url(#secondaryGrad)"
-              opacity="0.88"
-              filter="url(#softGlow)"
-            />
-          </g>
-          
-          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[18px] group-hover:translate-y-[18px]">
-            <path 
-              d="M 200 200 L 305 200 A 105 105 0 0 1 274.25 274.25 Z" 
-              fill="url(#accentGrad)"
-              opacity="0.88"
-              filter="url(#softGlow)"
-            />
-          </g>
-          
-          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[18px] group-hover:translate-y-[18px]">
-            <path 
-              d="M 200 200 L 274.25 274.25 A 105 105 0 0 1 200 305 Z" 
-              fill="url(#primaryGrad)"
-              opacity="0.88"
-              filter="url(#softGlow)"
-            />
-          </g>
-          
-          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-18px] group-hover:translate-y-[18px]">
-            <path 
-              d="M 200 200 L 200 305 A 105 105 0 0 1 125.75 274.25 Z" 
-              fill="url(#secondaryGrad)"
-              opacity="0.88"
-              filter="url(#softGlow)"
-            />
-          </g>
-          
-          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-18px] group-hover:translate-y-[18px]">
-            <path 
-              d="M 200 200 L 125.75 274.25 A 105 105 0 0 1 95 200 Z" 
-              fill="url(#accentGrad)"
-              opacity="0.88"
-              filter="url(#softGlow)"
-            />
-          </g>
-          
-          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-18px] group-hover:translate-y-[-18px]">
-            <path 
-              d="M 200 200 L 95 200 A 105 105 0 0 1 125.75 125.75 Z" 
-              fill="url(#primaryGrad)"
-              opacity="0.88"
-              filter="url(#softGlow)"
-            />
-          </g>
-          
-          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-18px] group-hover:translate-y-[-18px]">
-            <path 
-              d="M 200 200 L 125.75 125.75 A 105 105 0 0 1 200 95 Z" 
-              fill="url(#secondaryGrad)"
-              opacity="0.88"
-              filter="url(#softGlow)"
-            />
-          </g>
-          
-          {/* Animated central core - pulsating energy */}
-          <g className="transition-all duration-1000 ease-out origin-center group-hover:scale-[1.25]">
-            <circle 
-              cx="200" 
-              cy="200" 
-              r="42" 
-              fill="url(#coreGrad)"
-              filter="url(#strongGlow)"
-              className="transition-all duration-1000"
-              opacity="0.92"
-            >
-              <animate attributeName="r" values="42;46;42" dur="3s" repeatCount="indefinite"/>
-            </circle>
-            
-            {/* Inner core ring */}
-            <circle 
-              cx="200" 
-              cy="200" 
-              r="30" 
-              fill="none"
-              stroke="url(#accentGrad)"
-              strokeWidth="1.5"
-              opacity="0.6"
-              className="transition-all duration-1000 group-hover:opacity-90"
-            >
-              <animate attributeName="r" values="30;34;30" dur="3s" repeatCount="indefinite"/>
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                values="0 200 200;-360 200 200"
-                dur="20s"
-                repeatCount="indefinite"
-              />
-            </circle>
-            
-            {/* Core accent dots */}
-            <circle cx="200" cy="170" r="2.5" fill="#ffffff" opacity="0.85">
-              <animate attributeName="opacity" values="0.85;0.4;0.85" dur="3s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="230" cy="200" r="2.5" fill="#ffffff" opacity="0.85">
-              <animate attributeName="opacity" values="0.85;0.4;0.85" dur="3s" begin="1s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="200" cy="230" r="2.5" fill="#ffffff" opacity="0.85">
-              <animate attributeName="opacity" values="0.85;0.4;0.85" dur="3s" begin="2s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="170" cy="200" r="2.5" fill="#ffffff" opacity="0.85">
-              <animate attributeName="opacity" values="0.85;0.4;0.85" dur="3s" begin="1.5s" repeatCount="indefinite"/>
-            </circle>
-          </g>
-          
-          {/* Precision markers - sophisticated expansion */}
-          <g className="transition-all duration-1000 ease-out group-hover:translate-y-[-35px] group-hover:opacity-100" opacity="0.65">
-            <line x1="200" y1="45" x2="200" y2="68" stroke="url(#accentGrad)" strokeWidth="1.8" strokeLinecap="round"/>
-            <circle cx="200" cy="45" r="2.5" fill="#ffffff" opacity="0.85"/>
-          </g>
-          
-          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[35px] group-hover:opacity-100" opacity="0.65">
-            <line x1="332" y1="200" x2="355" y2="200" stroke="url(#accentGrad)" strokeWidth="1.8" strokeLinecap="round"/>
-            <circle cx="355" cy="200" r="2.5" fill="#ffffff" opacity="0.85"/>
-          </g>
-          
-          <g className="transition-all duration-1000 ease-out group-hover:translate-y-[35px] group-hover:opacity-100" opacity="0.65">
-            <line x1="200" y1="332" x2="200" y2="355" stroke="url(#accentGrad)" strokeWidth="1.8" strokeLinecap="round"/>
-            <circle cx="200" cy="355" r="2.5" fill="#ffffff" opacity="0.85"/>
-          </g>
-          
-          <g className="transition-all duration-1000 ease-out group-hover:translate-x-[-35px] group-hover:opacity-100" opacity="0.65">
-            <line x1="45" y1="200" x2="68" y2="200" stroke="url(#accentGrad)" strokeWidth="1.8" strokeLinecap="round"/>
-            <circle cx="45" cy="200" r="2.5" fill="#ffffff" opacity="0.85"/>
-        </g>
-          </svg>
-          
-          {/* Premium typography - aligned with logo */}
-          <span className="text-6xl font-light tracking-[-0.03em] text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.35)]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', lineHeight: '1' }}>
-            ARCPLAN
-          </span>
-        </div>
-        
-        {/* Subtitle - centered with animation */}
-        <div className="flex items-center justify-center gap-2.5 transition-all duration-700 group-hover:gap-3.5 opacity-70 group-hover:opacity-100">
-          <div className="h-[0.5px] w-8 bg-gradient-to-r from-transparent via-white/50 to-white/30 transition-all duration-700 group-hover:w-12"></div>
-          <span className="text-[8px] font-medium tracking-[0.3em] text-gray-400/70 uppercase transition-all duration-700 group-hover:text-gray-300/90 group-hover:tracking-[0.35em]">
-            ARCHITECTURE INTELLIGENCE
-          </span>
-          <div className="h-[0.5px] w-8 bg-gradient-to-l from-transparent via-white/50 to-white/30 transition-all duration-700 group-hover:w-12"></div>
-        </div>
-      </div>
-   );
- }
-
-function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOpen, onModelMenuToggle, onFilesSelected, onSendMessage, isGenerating = false, isAtBottom = false, additionalButtons = null, onImageClick, onModelChange, setModelFromOutside, model, onModelSelect, on3DInfoOpen, backgroundType, onBackgroundChange }) {
+function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOpen, onModelMenuToggle, onFilesSelected, onSendMessage, isGenerating = false, isAtBottom = false, additionalButtons = null, onImageClick, onModelChange, model, onModelSelect, service, selectedModel, onSelectedModelChange }) {
   const [query, setQuery] = useState("");
   const [techplanMode, setTechplanMode] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showSendTooltip, setShowSendTooltip] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const filtersButtonRef = useRef(null);
-  const filtersMenuRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   // Отслеживаем изменения модели извне
   useEffect(() => {
@@ -3372,32 +2432,59 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
     }
   }, [model, onModelChange]);
 
-  // Устанавливаем модель извне
-  useEffect(() => {
-    if (setModelFromOutside) {
-      onModelSelect?.(setModelFromOutside);
-      // Сбрасываем значение после установки
-      if (onModelChange) {
-        onModelChange(setModelFromOutside);
-      }
-    }
-  }, [setModelFromOutside, onModelChange, onModelSelect]);
   const fileInputRef = useRef(null);
-  // Закрытие всплывающих окон по клику вне области
+  
+  // Горизонтальный скролл колесиком мышки
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      const target = event.target;
-      const clickedInsideFilters = !!(filtersMenuRef.current && filtersMenuRef.current.contains(target));
-      const clickedOnFiltersButton = !!(filtersButtonRef.current && filtersButtonRef.current.contains(target));
-      const clickedInsideModelMenu = !!target.closest('[data-model-menu]');
-      if (!clickedInsideFilters && !clickedOnFiltersButton && !clickedInsideModelMenu) {
-        if (showFilters) setShowFilters(false);
-        if (modelMenuOpen) onModelMenuToggle?.(false);
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const handleWheel = (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        container.scrollLeft += e.deltaY;
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showFilters, modelMenuOpen, onModelMenuToggle]);
+    
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
+  
+  // Drag to scroll
+  const handleMouseDown = (e) => {
+    if (!scrollContainerRef.current) return;
+    // Не начинаем драг если кликнули на кнопку или интерактивный элемент
+    if (e.target.closest('button')) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
+    scrollContainerRef.current.style.cursor = 'grabbing';
+    e.preventDefault();
+  };
+  
+  const handleMouseMove = (e) => {
+    if (!isDragging || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 2;
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
+  
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.style.cursor = 'grab';
+    }
+  };
+  
+  const handleMouseLeave = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.style.cursor = 'grab';
+      }
+    }
+  };
 
   const canSend = attachments.length > 0 && (
     model === "3d" ? query.trim().length > 0 : 
@@ -3406,12 +2493,60 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
   );
 
   return (
-    <div className={`relative z-20 w-full max-w-4xl mx-auto ${isAtBottom ? 'rounded-2xl' : (attachments.length > 0 ? 'rounded-2xl' : 'rounded-full')} bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5`}>
-      <div className="flex items-center gap-3 pl-8 md:pl-10 pr-2 py-0.5 min-h-[48px]">
-        <div className="relative">
+    <div className="relative z-20 w-full max-w-3xl mx-auto">
+      {/* Attached Files Preview - Above the search bar */}
+      {attachments.length > 0 && (
+        <div 
+          ref={scrollContainerRef}
+          className="flex gap-2 mb-2 overflow-x-auto pb-1 scrollbar-hide cursor-grab select-none"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+        >
+          {attachments.map((attachment) => (
+            <div
+              key={attachment.id}
+              className="inline-flex items-center gap-2 px-2 h-[64px] rounded-md bg-white/10 border border-white/20 backdrop-blur-sm hover:bg-white/[0.15] transition-all duration-300 group relative flex-shrink-0"
+            >
+              {/* Превью изображения - кликабельно для предпросмотра */}
+              <div 
+                className="w-12 h-12 rounded-md overflow-hidden bg-gradient-to-br from-white/30 to-white/10 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => onImageClick?.(attachment.url, attachment.name)}
+              >
+                <img 
+                  src={attachment.url} 
+                  alt={attachment.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs text-white/90 font-medium truncate max-w-[150px]">{attachment.name}</span>
+                <span className="text-[10px] text-white/50">{(attachment.size / (1024 * 1024)).toFixed(1)} MB</span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAttach?.(attachment.id, 'remove');
+                }}
+                className="ml-1.5 text-white/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                title="Удалить"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Search Bar */}
+      <div className={`bg-white/5 ring-1 ring-white/10 backdrop-blur supports-[backdrop-filter]:bg-white/5 rounded-md`}>
+      <div className="flex items-center gap-3 pr-2 py-0.5 min-h-[48px]">
+        <div className="relative pl-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 rounded-full hover:bg-white/10 transition-all duration-200 group hover:scale-110"
+            className="p-1.5 rounded-md hover:bg-white/10 transition-all duration-200 group hover:scale-110"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
           >
@@ -3426,7 +2561,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
                 setShowFilters((v) => !v);
                 onModelMenuToggle?.(false);
               }}
-              className="ml-1 p-1.5 rounded-full hover:bg-white/10 transition-all duration-200 group hover:scale-110"
+              className="ml-1 p-1.5 rounded-md hover:bg-white/10 transition-all duration-200 group hover:scale-110"
               title="Фильтры"
             >
               <Filter className="h-5 w-5 text-white" />
@@ -3445,7 +2580,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
           
           {/* Подсказка при наведении */}
           {showTooltip && (
-             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/80 text-white text-sm rounded-md whitespace-nowrap z-50 text-center">
+             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/80 text-white text-sm rounded-sm whitespace-nowrap z-50 text-center">
               Прикрепить
               <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/80"></div>
             </div>
@@ -3491,20 +2626,16 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
         )}
 
         {/* Right controls: model selector + Send button */}
-         <div className="hidden md:flex items-center gap-3 text-sm pr-0 ml-4">
+         <div className="hidden md:flex items-center gap-3 text-sm ml-4">
           <AdvancedModelMenu
-            value={model}
-            onChange={(m) => {
-              if (m === "3d") {
-                on3DInfoOpen && on3DInfoOpen();
-              } else {
-                onModelSelect?.(m);
+            service={service}
+            value={selectedModel}
+            onChange={(modelId) => {
+                onSelectedModelChange?.(modelId);
                 onAdvanced?.();
-              }
             }}
             isOpen={modelMenuOpen}
             onToggle={onModelMenuToggle}
-            openUpward={isAtBottom}
           />
 
           <div 
@@ -3515,7 +2646,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
             <button
               type="button"
               disabled={!canSend || isGenerating}
-              className="ml-1 rounded-full p-2 ring-1 ring-white/10 bg-white hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group hover:scale-110"
+              className="mr-1 mt-2 mb-2 rounded-md p-1.5 ring-1 ring-white/10 bg-white hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group hover:scale-110"
               onClick={() => {
                 if (!canSend || isGenerating) return;
                 const payload = { model, query, techplanMode, attachments };
@@ -3526,13 +2657,13 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                   className="h-5 w-5 text-black"
+                   className="h-4 w-4 text-black"
                 >
                   ✷
                 </motion.div>
               ) : (
               <svg 
-                 className="h-5 w-5 transition-transform duration-200 group-hover:scale-110 text-black"
+                 className="h-4 w-4 transition-transform duration-200 group-hover:scale-110 text-black"
                 viewBox="0 0 24 24" 
                 fill="none" 
                 stroke="currentColor" 
@@ -3548,7 +2679,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
             {/* Подсказка для недоступной кнопки отправки */}
             {showSendTooltip && !canSend && (
               <div 
-                 className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/80 text-white text-sm rounded-md whitespace-nowrap z-50 text-center"
+                 className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/80 text-white text-sm rounded-sm whitespace-nowrap z-50 text-center"
                 onMouseEnter={() => setShowSendTooltip(true)}
                 onMouseLeave={() => setShowSendTooltip(false)}
               >
@@ -3559,51 +2690,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
           </div>
         </div>
       </div>
-      
-      {/* Выпадающее меню фильтров */}
-      {showFilters && (
-        <FiltersMenu
-          refEl={filtersMenuRef}
-          backgroundType={backgroundType}
-          onBackgroundChange={(val) => {
-            onBackgroundChange?.(val);
-            setShowFilters(false);
-          }}
-          onClose={() => setShowFilters(false)}
-        />
-      )}
-
-      {/* Attachments preview */}
-      {attachments.length > 0 && (
-        <div className="px-4 md:px-6 pb-4">
-          <div className="text-xs text-neutral-500 mb-2">Прикрепленные файлы: {attachments.length}</div>
-          <div className="flex flex-wrap gap-2">
-            {attachments.map((attachment) => {
-              return (
-              <div key={attachment.id} className="relative group">
-                <div 
-                  className="w-16 h-16 rounded-lg bg-white/5 border border-white/10 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => onImageClick?.(attachment.url, attachment.name)}
-                >
-                  <img 
-                    src={attachment.url} 
-                    alt={attachment.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <button
-                  onClick={() => onAttach?.(attachment.id, 'remove')}
-                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500/80 hover:bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Удалить"
-                >
-                  ×
-                </button>
-              </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      </div>
       
       {/* Дополнительные кнопки когда панель внизу */}
       {isAtBottom && additionalButtons && (
@@ -3622,7 +2709,7 @@ function AdvancedToggleChip({ label, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-4 py-2 text-sm transition ${
+      className={`rounded-md px-4 py-2 text-sm transition ${
         active
           ? "text-white border border-white/40"
           : "text-neutral-300 hover:bg-white/10"
@@ -3633,53 +2720,75 @@ function AdvancedToggleChip({ label, active, onClick }) {
   );
 }
 
-// Выпадающее меню фильтров с вложенным пунктом "Фон страницы"
-function FiltersMenu({ backgroundType, onBackgroundChange, onClose, refEl }) {
-  const [openBackground, setOpenBackground] = useState(false);
+// Компактный компонент для выбора модели в сообщении
+function AdvancedModelMenuCompact({ service, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+  
+  // Закрытие меню при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+  
+  const models = MODEL_OPTIONS[service] || [];
+  const current = models.find((m) => m.id === value) || models[0];
 
   return (
-    <div ref={refEl} className="absolute left-2 bottom-full mb-2 z-50 w-64 rounded-2xl border border-white/10 bg-[#3e3f42] p-2 shadow-2xl">
-      <div className="text-xs text-neutral-300 mb-1 px-2">Фильтры</div>
-      <div className="space-y-1" data-background-menu>
-        <button
-          onClick={() => setOpenBackground((v) => !v)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/10 transition"
-        >
-          <Layers className="h-4 w-4 text-white" />
-          <span className="text-sm text-white">Фон страницы</span>
-          <ChevronDown className={`ml-auto h-3 w-3 text-white opacity-70 transition-transform ${openBackground ? 'rotate-180' : ''}`} />
-        </button>
-
-        {openBackground && (
-          <div className="mt-1 space-y-1">
-            {[
-              { id: 'standard', label: 'Стандартный' },
-              { id: 'interactive', label: 'Интерактивный' },
-              { id: 'alternative', label: 'Альтернативный' },
-            ].map((opt) => (
-              <button
-                key={opt.id}
-                onClick={() => {
-                  onBackgroundChange?.(opt.id);
-                  onClose?.();
-                }}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/10 transition`}
-              >
-                <span className="text-xs text-white">{opt.label}</span>
-                {backgroundType === opt.id && <Check className="ml-auto h-4 w-4 text-white" />}
-              </button>
-            ))}
-          </div>
-        )}
+    <div ref={menuRef} className="relative" data-model-menu>
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(!open);
+        }}
+        className="flex items-center gap-2 cursor-pointer text-sm text-white hover:text-neutral-300 transition"
+      >
+        <span>{current?.label}</span>
+        <ChevronDown className={`h-3 w-3 text-white opacity-70 transition-transform duration-200 ease-out ${open ? 'rotate-180' : 'rotate-0'}`} />
       </div>
+      {open && (
+        <div className="absolute right-0 w-52 rounded border border-white/10 bg-[#2d2e31] p-1.5 shadow-2xl z-[100] bottom-full mb-2">
+          {models.map((model) => (
+            <div
+              key={model.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(model.id);
+                setOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-2 py-1.5 hover:bg-white/10 transition cursor-pointer ${
+                value === model.id ? 'bg-white/5' : ''
+              }`}
+            >
+              <div className="flex-1 text-left">
+                <div className="text-sm font-medium text-white">{model.label}</div>
+                <div className="text-xs text-neutral-400">{model.description}</div>
+              </div>
+              {value === model.id && <div className="h-2 w-2 bg-white rounded-full ml-2" />}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function AdvancedModelMenu({ value, onChange, isOpen, onToggle, openUpward = false }) {
+// Компонент для выбора моделей в поисковой строке
+function AdvancedModelMenu({ service, value, onChange, isOpen, onToggle }) {
   const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
   
-  // Используем внешнее состояние, если оно передано
   const isMenuOpen = isOpen !== undefined ? isOpen : open;
   const toggleMenu = (next) => {
     if (onToggle) {
@@ -3688,54 +2797,136 @@ function AdvancedModelMenu({ value, onChange, isOpen, onToggle, openUpward = fal
       if (typeof next === 'boolean') setOpen(next); else setOpen(!isMenuOpen);
     }
   };
+  
+  // Закрытие меню при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        toggleMenu(false);
+      }
+    };
+    
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+  
+  const models = MODEL_OPTIONS[service] || [];
+  const current = models.find((m) => m.id === value) || models[0];
+
+  return (
+    <div ref={menuRef} className="relative" data-model-menu>
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleMenu();
+        }}
+        className="flex items-center gap-2 cursor-pointer text-sm text-white hover:text-neutral-300 transition"
+      >
+        <span>{current?.label}</span>
+        <ChevronDown className={`h-3 w-3 text-white opacity-70 transition-transform duration-200 ease-out ${isMenuOpen ? 'rotate-180' : 'rotate-0'}`} />
+      </div>
+      {isMenuOpen && (
+        <div className="absolute right-0 w-52 rounded border border-white/10 bg-[#2d2e31] p-1.5 shadow-2xl z-[100] top-full mt-2">
+          {models.map((model) => (
+            <div
+              key={model.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(model.id);
+                toggleMenu(false);
+              }}
+              className={`w-full flex items-center justify-between px-2 py-1.5 hover:bg-white/10 transition cursor-pointer ${
+                value === model.id ? 'bg-white/5' : ''
+              }`}
+            >
+              <div className="flex-1 text-left">
+                <div className="text-sm font-medium text-white">{model.label}</div>
+                <div className="text-xs text-neutral-400">{model.description}</div>
+              </div>
+              {value === model.id && <div className="h-2 w-2 bg-white rounded-full ml-2" />}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Компонент для выбора услуги (размещается в правом верхнем углу)
+function AdvancedServiceSelector({ value, onChange, isOpen, onToggle }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+  
+  const isMenuOpen = isOpen !== undefined ? isOpen : open;
+  const toggleMenu = (next) => {
+    if (onToggle) {
+      if (typeof next === 'boolean') onToggle(next); else onToggle(!isMenuOpen);
+    } else {
+      if (typeof next === 'boolean') setOpen(next); else setOpen(!isMenuOpen);
+    }
+  };
+  
+  // Закрытие меню при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        toggleMenu(false);
+      }
+    };
+    
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+  
   const items = [
-    { key: "techplan", label: "Создание по техплану", sub: "Перерисовать 2D план из фото техплана", Icon: AdvancedIconTechplan },
-    { key: "cleanup", label: "Удаление объектов", sub: "Очистить фото комнаты от мебели и мусора", Icon: AdvancedIconCleanup },
-    { key: "3d", label: "3D план", sub: "Сгенерировать 3D-просмотр из данных плана", Icon: AdvancedIcon3D },
+    { key: "techplan", label: "Создание по техплану", sub: "Перерисовать 2D план из фото техплана" },
+    { key: "cleanup", label: "Удаление объектов", sub: "Очистить фото комнаты от мебели и мусора" },
   ];
 
   const current = items.find((i) => i.key === value);
 
   return (
-    <div className="relative" data-model-menu>
-      <button
-        type="button"
+    <div ref={menuRef} className="relative" data-service-selector>
+      <div
         onClick={(e) => {
           e.stopPropagation();
           toggleMenu();
         }}
-        className="flex items-center gap-2 rounded-full px-4 py-2 text-sm text-white hover:bg-white/10"
+        className="cursor-pointer text-lg text-white hover:text-neutral-300 transition relative flex items-center gap-2"
+        style={{ textShadow: '0 0 8px rgba(255, 255, 255, 0.3)' }}
       >
-        <current.Icon className="h-4 w-4 text-white" />
         <span>{current.label}</span>
-        <ChevronDown className="h-4 w-4 text-white opacity-70" />
-      </button>
+        <ChevronDown className={`h-5 w-5 text-neutral-400 self-end transition-transform duration-200 ease-out ${isMenuOpen ? 'rotate-180' : 'rotate-0'}`} />
+      </div>
       {isMenuOpen && (
-         <div className={`absolute right-0 w-96 min-h-[160px] rounded-2xl border border-white/10 bg-[#3e3f42] p-3 shadow-2xl z-[100] ${
-          openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
-        }`}>
-          {items.map((it, idx) => (
-            <button
+         <div 
+           className="absolute right-0 w-56 rounded border border-white/10 bg-[#2d2e31] p-1.5 shadow-2xl z-[100] top-full mt-2"
+         >
+          {items.map((it) => (
+            <div
               key={it.key}
               onClick={(e) => {
                 e.stopPropagation();
                 onChange(it.key);
                 toggleMenu(false);
               }}
-               className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-white/10 transition`}
+               className={`w-full flex items-center justify-between px-2 py-1.5 hover:bg-white/10 transition cursor-pointer ${
+                value === it.key ? 'bg-white/5' : ''
+              }`}
             >
-              <it.Icon className="h-5 w-5 text-white" />
-              <div className="flex-1 text-left">
-                <div className="text-xs font-medium text-white">{it.label}</div>
-                <div className="text-[10px] text-neutral-400 mt-1">{it.sub}</div>
+              <div className="text-sm text-white">{it.label}</div>
+              {value === it.key && <div className="h-2 w-2 bg-white rounded-full" />}
               </div>
-              {value === it.key && it.key !== "3d" && <Check className="h-5 w-5 text-white" />}
-              {it.key === "3d" && (
-                <div className="px-2 py-1 bg-white/10 rounded-lg border border-white/20">
-                  <span className="text-xs font-medium text-white">Скоро</span>
-                </div>
-              )}
-            </button>
           ))}
         </div>
       )}
@@ -3761,322 +2952,9 @@ function AdvancedIconCleanup({ className = "" }) {
   );
 }
 
-function AdvancedIcon3D({ className = "" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3l7 4v10l-7 4-7-4V7l7-4z" />
-      <path d="M12 7l7 4M12 7L5 11M12 21V7" />
-    </svg>
-  );
-}
-
-function AdvancedPromoCard({ onClose, on3DClick }) {
-  const [imageError, setImageError] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  
-  return (
-    <div className="relative z-10 mx-auto w-[60%] max-w-xl">
-      {/* Крестик в круглом фоне, выходящем за границы окна */}
-      <motion.button
-        className="absolute z-20 w-6 h-6 rounded-full flex items-center justify-center transition-colors shadow-lg"
-        style={{ 
-          backgroundColor: '#252628',
-          top: '-12px',
-          right: '-12px'
-        }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onClose}
-        title="Закрыть"
-      >
-        <motion.div
-          animate={isHovered ? { rotate: 90 } : { rotate: 0 }}
-          transition={{ duration: 0.2, ease: "easeInOut" }}
-        >
-          <X className="h-3 w-3" style={{ color: '#d3d3e8' }} />
-        </motion.div>
-      </motion.button>
-
-      {/* Основное окно с округленными углами */}
-      <div className="relative bg-gradient-to-br from-[#171b24] via-[#141827] to-[#0c0e14] overflow-hidden" 
-           style={{ 
-             borderRadius: '40px 0px 40px 40px', // Максимально округленные углы кроме правого верхнего (0px)
-             border: '1px solid #252628'
-           }}>
-
-        <div className="relative w-full h-24 md:h-32" style={{ aspectRatio: '2048/512' }}>
-        {!imageError ? (
-        <img
-          alt="promo"
-          className="absolute inset-0 h-full w-full object-cover"
-            src={`${import.meta.env.BASE_URL}promo_floor.jpg?v=${Date.now()}`}
-            onError={() => {
-              console.log('Ошибка загрузки изображения promo_floor.jpg');
-              setImageError(true);
-            }}
-            onLoad={() => console.log('Изображение promo_floor.jpg загружено успешно')}
-          />
-        ) : (
-          <div className="absolute inset-0 h-full w-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-            <img
-              alt="fallback promo"
-              className="h-full w-full object-cover opacity-50"
-              src={`${import.meta.env.BASE_URL}hero.jpg`}
-              onError={() => {
-                console.log('Fallback изображение также не загрузилось');
-              }}
-            />
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-              <div className="text-center text-white">
-                <div className="text-sm font-medium">Промо изображение</div>
-                <div className="text-xs mt-1 opacity-75">promo_floor.jpg</div>
-              </div>
-            </div>
-          </div>
-        )}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-30"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 24px),repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 24px)",
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
-      </div>
-
-        <div className="absolute inset-x-0 bottom-0 p-3 md:p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="text-sm md:text-lg font-semibold leading-tight flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-white" />
-                Преобразуй 2D в 3D
-              </div>
-              <div className="text-xs text-neutral-300">Генерируй 2D план с добавлением 3D интерьера</div>
-            </div>
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={on3DClick}
-              className="shrink-0 rounded-lg bg-white/90 text-black px-3 py-1.5 text-xs hover:bg-white transition font-medium"
-            >
-              Перейти
-            </motion.button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Компонент для кнопок, которые отображаются внутри панели поиска
-function AdvancedInlineButtons({ backgroundType, onBackgroundChange, modelMenuOpen, onModelMenuToggle, openUpward = false }) {
-  const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
-  const [themesMenuOpen, setThemesMenuOpen] = useState(false);
-  const [bg, setBg] = useState(null);
-
-  const bgOptions = [
-    "Тёмный премиум",
-    "Светлый",
-    "VENOM",
-    "DNA-liquid",
-    "Графит",
-    "Шахматный",
-    "Чистый",
-  ];
-
-  const backgroundOptions = [
-    { id: "standard", label: "Стандартный", description: "Чистый фон без частиц", Icon: Layers },
-    { id: "interactive", label: "Интерактивный", description: "Фон с частицами и взаимодействием", Icon: Sparkles },
-    { id: "alternative", label: "Альтернативный", description: "Космический фон с летающими точками", Icon: Eye }
-  ];
-
-  // Закрытие меню при клике вне области
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (backgroundMenuOpen || themesMenuOpen || modelMenuOpen) {
-        const target = event.target;
-        const isBackgroundMenu = target.closest('[data-background-menu]');
-        const isThemesMenu = target.closest('[data-themes-menu]');
-        const isModelMenu = target.closest('[data-model-menu]');
-        
-        if (!isBackgroundMenu && !isThemesMenu && !isModelMenu) {
-          setBackgroundMenuOpen(false);
-          setThemesMenuOpen(false);
-          onModelMenuToggle?.(false);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [backgroundMenuOpen, themesMenuOpen, modelMenuOpen, onModelMenuToggle]);
-
-  return (
-    <>
-      <div className="relative" data-background-menu>
-        <button 
-          onClick={() => {
-            setBackgroundMenuOpen((v) => !v);
-            setThemesMenuOpen(false);
-            onModelMenuToggle?.(false);
-          }}
-          className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm ring-1 ring-white/20"
-        >
-          <Layers className="h-3 w-3 text-white" />
-          <span className="text-sm text-white">Фон страницы</span>
-          <ChevronDown className="h-3 w-3 text-white opacity-70" />
-        </button>
-        {backgroundMenuOpen && (
-          <div className={`absolute left-0 w-96 min-h-[160px] rounded-2xl border border-white/10 bg-[#3e3f42] p-3 shadow-2xl z-[100] ${
-            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
-          }`}>
-            {backgroundOptions.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => {
-                  onBackgroundChange?.(option.id);
-                  setBackgroundMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-white/10 transition`}
-              >
-                <option.Icon className="h-5 w-5 text-white" />
-                <div className="flex-1 text-left">
-                  <div className="text-xs font-medium text-white">{option.label}</div>
-                  <div className="text-[10px] text-neutral-400 mt-1">{option.description}</div>
-                </div>
-                {backgroundType === option.id && <Check className="h-5 w-5 text-white" />}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-    </>
-  );
-}
-
-function AdvancedAdvancedRow({ backgroundType, onBackgroundChange, modelMenuOpen, onModelMenuToggle, openUpward = false }) {
-  const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
-  const [themesMenuOpen, setThemesMenuOpen] = useState(false);
-  const [bg, setBg] = useState(null);
-
-  const bgOptions = [
-    "Тёмный премиум",
-    "Светлый",
-    "VENOM",
-    "DNA-liquid",
-    "Графит",
-    "Шахматный",
-    "Чистый",
-  ];
-
-  const backgroundOptions = [
-    { id: "standard", label: "Стандартный", description: "Чистый фон без частиц", Icon: Layers },
-    { id: "interactive", label: "Интерактивный", description: "Фон с частицами и взаимодействием", Icon: Sparkles },
-    { id: "alternative", label: "Альтернативный", description: "Космический фон с летающими точками", Icon: Eye }
-  ];
-
-  // Закрытие меню при клике вне области
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (backgroundMenuOpen || themesMenuOpen || modelMenuOpen) {
-        const target = event.target;
-        const isBackgroundMenu = target.closest('[data-background-menu]');
-        const isThemesMenu = target.closest('[data-themes-menu]');
-        const isModelMenu = target.closest('[data-model-menu]');
-        
-        if (!isBackgroundMenu && !isThemesMenu && !isModelMenu) {
-          setBackgroundMenuOpen(false);
-          setThemesMenuOpen(false);
-          onModelMenuToggle?.(false);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [backgroundMenuOpen, themesMenuOpen, modelMenuOpen, onModelMenuToggle]);
-
-  return (
-    <div className="w-full max-w-2xl mx-auto flex flex-wrap items-center justify-center gap-3">
-      <div className="relative" data-background-menu>
-        <button 
-          onClick={() => {
-            setBackgroundMenuOpen((v) => !v);
-            setThemesMenuOpen(false); // Закрываем другое меню
-            onModelMenuToggle?.(false); // Закрываем меню модели
-          }}
-          className="flex items-center gap-2 rounded-full px-4 py-2 text-sm ring-1 ring-white/20"
-        >
-        <Layers className="h-4 w-4 text-white" />
-          <span className="text-sm text-white">Фон страницы</span>
-          <ChevronDown className="h-3 w-3 text-white opacity-70" />
-      </button>
-        {backgroundMenuOpen && (
-          <div className={`absolute left-0 w-96 min-h-[160px] rounded-2xl border border-white/10 bg-[#3e3f42] p-3 shadow-2xl z-[100] ${
-            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
-          }`}>
-            {backgroundOptions.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => {
-                  onBackgroundChange?.(option.id);
-                  setBackgroundMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-white/10 transition`}
-              >
-                <option.Icon className="h-5 w-5 text-white" />
-                <div className="flex-1 text-left">
-                  <div className="text-xs font-medium text-white">{option.label}</div>
-                  <div className="text-[10px] text-neutral-400 mt-1">{option.description}</div>
-                </div>
-                {backgroundType === option.id && <Check className="h-5 w-5 text-white" />}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-    </div>
-  );
-}
-
-function AdvancedSuperBanner({ showMessages = false, onUpgradeClick }) {
-  // Не показываем баннер, если панель находится внизу (showMessages = true)
-  if (showMessages) return null;
-  
-  return (
-    <div className="pointer-events-auto fixed bottom-4 right-4 z-20">
-      <motion.div 
-        initial={{ opacity: 0, y: 20, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 backdrop-blur-lg shadow-2xl"
-      >
-        <div>
-          <div className="text-sm font-medium flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-white" />
-            ARCPLAN 3D
-          </div>
-          <div className="text-xs text-neutral-400">Попробуй расширенные возможности</div>
-        </div>
-        <motion.button 
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onUpgradeClick}
-          className="rounded-xl bg-white/90 text-black px-4 py-2 text-sm hover:bg-white transition font-medium"
-        >
-          Скоро
-        </motion.button>
-      </motion.div>
-    </div>
-  );
+function AdvancedSuperBanner({ showMessages = false }) {
+  // Баннер отключен
+  return null;
 }
 
 // === Custom Hook for Safe Blob URL Management ===
@@ -4148,14 +3026,14 @@ function ImageModal({ isOpen, imageUrl, imageAlt, onClose }) {
           <img
             src={imageUrl}
             alt={imageAlt}
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            className="max-w-full max-h-full object-contain rounded-md shadow-2xl"
             onError={() => {
               console.warn('Ошибка загрузки изображения в модальном окне:', imageUrl);
               setImageError(true);
             }}
           />
         ) : (
-          <div className="max-w-md max-h-md bg-gray-800 rounded-lg p-8 text-center text-white">
+          <div className="max-w-md max-h-md bg-gray-800 rounded-md p-8 text-center text-white">
             <div className="text-lg font-medium mb-2">Изображение недоступно</div>
             <div className="text-sm text-gray-400">Файл был удален или поврежден</div>
           </div>
@@ -4179,60 +3057,87 @@ function AdvancedMessageDisplay({
   onRate, 
   onRegenerate, 
   onDownload,
-  onImageClick
+  onImageClick,
+  service = 'techplan',
+  selectedModel = 'boston',
+  onModelChange,
+  techplanMode = 'with',
+  onTechplanModeChange
 }) {
-  if (!isGenerating && !message && !result) return null;
+  // Используем isGenerating из result, если оно есть, иначе используем проп
+  const actualIsGenerating = result?.isGenerating ?? isGenerating;
+  
+  if (!actualIsGenerating && !message && !result) return null;
 
   return (
-    <div className="relative z-20 mx-auto max-w-3xl px-4 w-full">
+    <div className="relative z-20 w-full px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="space-y-4"
+        className="space-y-6"
       >
         {/* Сообщение пользователя */}
         {message && (
           <div className="flex justify-end">
-            <div className="max-w-[80%] rounded-xl bg-white/10 ring-1 ring-white/20 backdrop-blur px-4 py-3">
-              <div className="text-xs text-white whitespace-pre-wrap">{message.text}</div>
-              {message.attachments && message.attachments.length > 0 && (
-                 <div className="mt-2 flex flex-wrap gap-1.5">
-                   {message.attachments.map((att) => (
-                     <div key={att.id} className="relative group">
-                       <div className="w-12 h-12 rounded-md bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                         {att.url && !att.url.includes('blob:') ? (
-                           <img 
-                             src={att.url} 
-                             alt={att.name}
-                             className="w-full h-full object-cover"
-                             onError={(e) => {
-                               console.warn('Ошибка загрузки прикрепленного изображения:', att.url);
-                               e.target.style.display = 'none';
-                             }}
-                           />
-                         ) : (
-                           <div className="text-xs text-white/60 text-center px-1">
-                             <div className="truncate">{att.name}</div>
-                             <div className="text-[10px]">{(att.size / 1024).toFixed(0)}KB</div>
-                           </div>
-                         )}
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-              )}
-              <div className="mt-1.5 text-[10px] text-neutral-400">
-                {new Date().toLocaleTimeString()}
+            <div className="w-fit max-w-[33vw] min-w-[280px] rounded-md bg-white/10 ring-1 ring-white/20 backdrop-blur px-3 py-2">
+              {/* Название чата */}
+              <div className="text-[11px] font-medium text-white/80 mb-1.5 pb-1.5 border-b border-white/10">
+                {message.chatTitle}
               </div>
+              
+              {/* Текст сообщения (показываем только если есть текст) */}
+              {message.text && (
+                <div className="text-sm text-white whitespace-pre-wrap mb-2">{message.text}</div>
+              )}
+              
+              {/* Прикрепленные файлы с горизонтальным скроллом */}
+              {message.attachments && message.attachments.length > 0 && (
+                <div className={`overflow-x-auto scrollbar-hide pb-1 ${message.text ? 'mt-2' : 'mt-1.5'}`}>
+                  <div className="flex gap-2" style={{ minWidth: 'min-content' }}>
+                    {message.attachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="inline-flex items-center gap-2 px-2 h-[64px] rounded-md bg-white/10 border border-white/20 backdrop-blur-sm hover:bg-white/[0.15] transition-all duration-300 group relative flex-shrink-0 cursor-pointer"
+                        onClick={() => att.url && onImageClick?.(att.url, att.name)}
+                      >
+                        {/* Превью изображения */}
+                        {att.url ? (
+                          <div className="w-12 h-12 rounded-md overflow-hidden bg-gradient-to-br from-white/30 to-white/10 flex-shrink-0">
+                            <img 
+                              src={att.url} 
+                              alt={att.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 rounded-md bg-gradient-to-br from-white/30 to-white/10 flex items-center justify-center flex-shrink-0">
+                            <ImageIcon className="h-4 w-4 text-white/70" />
+                          </div>
+                        )}
+                        
+                        {/* Информация о файле */}
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs text-white/90 font-medium truncate max-w-[150px]" title={att.name}>
+                            {att.name}
+                          </span>
+                          <span className="text-[10px] text-white/50">
+                            {att.size ? `${(att.size / (1024 * 1024)).toFixed(1)} MB` : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Анимация генерации */}
-        {isGenerating && (
+        {actualIsGenerating && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur px-4 py-3">
+            <div className="max-w-[80%] rounded-md bg-white/5 ring-1 ring-white/10 backdrop-blur px-4 py-3">
               <div className="flex items-center gap-2 text-xs text-white">
                 <motion.div
                   animate={{ rotate: 360 }}
@@ -4241,7 +3146,7 @@ function AdvancedMessageDisplay({
                 >
                   ✷
                 </motion.div>
-                <span className="font-medium">ARCPLAN MODEL анализирует изображения...</span>
+                <span className="font-medium">ARCPLAN генерирует изображение...</span>
               </div>
               <div className="text-[10px] text-neutral-400 mt-1.5">
                 Обработка фотографий и генерация результата
@@ -4251,46 +3156,35 @@ function AdvancedMessageDisplay({
         )}
 
         {/* Результат от модели */}
-        {result && !isGenerating && (
+        {result && !actualIsGenerating && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-white">AP</span>
-                </div>
-                <span className="text-xs font-medium text-white">ARCPLAN MODEL</span>
-              </div>
+            <div className="w-fit max-w-[55%] rounded-md bg-white/5 ring-1 ring-white/10 backdrop-blur px-4 py-3">
               
-              <div className="text-xs text-white whitespace-pre-wrap mb-3">
-                {result.text}
-              </div>
-              
-              {/* Сгенерированное изображение */}
-              {result.image && (
+              {/* Сгенерированное изображение или заглушка */}
+              {result.image ? (
                 <div className="mb-4">
                   <div className="relative">
                     <img 
                       src={result.image} 
                       alt="Результат генерации" 
-                      className="w-full max-w-md rounded-lg ring-1 ring-white/20 cursor-pointer hover:opacity-80 transition-opacity"
+                      className="rounded-md ring-1 ring-white/20 cursor-pointer hover:opacity-80 transition-opacity"
+                      style={{ width: 'min(560px, 36vw)', height: 'min(560px, 36vw)', objectFit: 'contain' }}
                       onClick={() => onImageClick?.(result.image, "Результат генерации")}
                       onError={(e) => {
                         console.warn('Ошибка загрузки изображения результата:', result.image);
                         e.target.style.display = 'none';
-                        // Показываем сообщение об ошибке
                         const errorDiv = document.createElement('div');
-                        errorDiv.className = 'w-full max-w-md rounded-lg ring-1 ring-red-500/20 bg-red-500/10 p-4 text-center text-red-400 text-sm';
+                        errorDiv.className = 'rounded-md ring-1 ring-red-500/20 bg-red-500/10 p-4 text-center text-red-400 text-sm';
                         errorDiv.innerHTML = 'Ошибка загрузки изображения. <a href="' + result.image + '" target="_blank" class="underline">Открыть в новой вкладке</a>';
                         e.target.parentNode.appendChild(errorDiv);
                       }}
                     />
-                    {/* Кнопка скачивания на изображении */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onDownload?.(result.image);
                       }}
-                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+                      className="absolute top-2 right-2 w-8 h-8 rounded-md bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
                       title="Скачать изображение"
                     >
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4299,19 +3193,36 @@ function AdvancedMessageDisplay({
                     </button>
                   </div>
                 </div>
+              ) : (
+                <div className="mb-4">
+                  <div 
+                    className="rounded-md bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
+                    style={{ width: 'min(560px, 36vw)', height: 'min(560px, 36vw)' }}
+                    onClick={() => onImageClick?.('placeholder', 'Результат генерации')}
+                  >
+                    <div className="text-center">
+                      <ImageIcon className="h-24 w-24 text-white/30 mx-auto mb-3" />
+                      <div className="text-lg text-white/50">1200 × 1200</div>
+                      <div className="text-sm text-white/30 mt-2">Изображение результата</div>
+                    </div>
+                  </div>
+                </div>
               )}
               
-              {/* Множественные изображения */}
+              <div className="text-xs text-white whitespace-pre-wrap mb-3">
+                {result.text}
+              </div>
+              
               {result.images && Array.isArray(result.images) && result.images.length > 1 && (
                 <div className="mb-4">
                   <div className="text-xs text-white/70 mb-2">Дополнительные результаты ({result.images.length}):</div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3 max-w-[560px]">
                     {result.images.map((imageUrl, index) => (
                       <div key={index} className="relative">
                         <img 
                           src={imageUrl} 
                           alt={`Результат ${index + 1}`}
-                          className="w-full rounded-lg ring-1 ring-white/20 cursor-pointer hover:opacity-80 transition-opacity"
+                          className="w-full rounded-md ring-1 ring-white/20 cursor-pointer hover:opacity-80 transition-opacity"
                           onClick={() => onImageClick?.(imageUrl, `Результат ${index + 1}`)}
                           onError={(e) => {
                             console.warn('Ошибка загрузки дополнительного изображения:', imageUrl);
@@ -4336,51 +3247,70 @@ function AdvancedMessageDisplay({
                 </div>
               )}
               
-              {/* Кнопки действий */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {result.image && (
+              {/* Нижняя часть: кнопки слева, модель справа */}
+              <div className="flex items-end justify-between gap-4">
+                {/* Левая часть: кнопки действий */}
+                <div className="flex items-center gap-2 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
+                  {result.image && (
+                    <button
+                      onClick={() => onDownload?.(result.image)}
+                      className="h-8 w-8 rounded-md bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
+                      title="Скачать"
+                    >
+                      <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </button>
+                  )}
+
                   <button
-                    onClick={() => onDownload?.(result.image)}
-                    className="h-8 w-8 rounded-lg bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
-                    title="Скачать"
+                    onClick={() => onRegenerate?.(result.messageId)}
+                    className="h-8 px-3 rounded-md bg-white/10 hover:bg-white/20 transition-colors text-xs text-white"
+                    title="Повторить"
                   >
-                    <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    Повторить
                   </button>
-                )}
+                  
+                  {/* Режим для techplan */}
+                  {service === 'techplan' && (
+                    <>
+                      <div className="h-6 w-px bg-white/10"></div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onTechplanModeChange && onTechplanModeChange('with'); }}
+                        className={`h-8 px-3 rounded-md transition-colors text-xs ${
+                          techplanMode === 'with'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-white/5 text-white/60 hover:bg-white/10'
+                        }`}
+                        title="С мебелью"
+                      >
+                        С мебелью
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onTechplanModeChange && onTechplanModeChange('without'); }}
+                        className={`h-8 px-3 rounded-md transition-colors text-xs ${
+                          techplanMode === 'without'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-white/5 text-white/60 hover:bg-white/10'
+                        }`}
+                        title="Без мебели"
+                      >
+                        Без мебели
+                      </button>
+                    </>
+                  )}
+                </div>
                 
-                <button
-                  onClick={() => onRate?.(result.messageId, result.rating === 'like' ? null : 'like')}
-                  className={`h-8 w-8 rounded-lg transition-colors flex items-center justify-center ${
-                    result.rating === 'like' 
-                      ? "bg-green-500/20 text-green-400" 
-                      : "bg-white/10 hover:bg-white/20 text-white"
-                  }`}
-                  title="Лайк"
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                </button>
-                
-                <button
-                  onClick={() => onRate?.(result.messageId, result.rating === 'dislike' ? null : 'dislike')}
-                  className={`h-8 w-8 rounded-lg transition-colors flex items-center justify-center ${
-                    result.rating === 'dislike' 
-                      ? "bg-red-500/20 text-red-400" 
-                      : "bg-white/10 hover:bg-white/20 text-white"
-                  }`}
-                  title="Дизлайк"
-                >
-                  <ThumbsDown className="h-4 w-4" />
-                </button>
-                
-                <button
-                  onClick={() => onRegenerate?.(result.messageId)}
-                  className="h-8 px-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-xs text-white"
-                  title="Повторить"
-                >
-                  Повторить
-                </button>
+                {/* Правая часть: выбор модели */}
+                <div className="flex items-center gap-2 text-sm">
+                  <AdvancedModelMenuCompact
+                    service={service}
+                    value={selectedModel}
+                    onChange={onModelChange}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -4392,8 +3322,12 @@ function AdvancedMessageDisplay({
 
 function MonochromeClaudeStyle() {
   const { user, logout, saveSettings, loadSettings, refreshUser, grantOrganizationAccess, fetchOrganizationUsers } = useAuth();
-  const [model, setModel] = useState("techplan");
+  const navigate = useNavigate();
+  const [service, setService] = useState("techplan"); // Выбор услуги: techplan или cleanup
+  const [selectedModel, setSelectedModel] = useState("boston"); // Выбор модели: boston, melbourne, charleston
+  const [model, setModel] = useState("techplan"); // Оставляем для совместимости
   const [showModelMenu, setShowModelMenu] = useState(false);
+  const [showServiceMenu, setShowServiceMenu] = useState(false);
   const [value, setValue] = useState("");
   const [removeDepth, setRemoveDepth] = useState(null); // null | 'surface' | 'partial' | 'full' // surface | partial | full
   const [planFurniture, setPlanFurniture] = useState(null); // 'with' | 'without' | null
@@ -4547,14 +3481,8 @@ function MonochromeClaudeStyle() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [filteredChats, setFilteredChats] = useState(chats);
-  const [backgroundType, setBackgroundType] = useState("alternative");
+  const [backgroundType, setBackgroundType] = useState("standard");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  
-  // Gallery states
-  const [showGallery, setShowGallery] = useState(false);
-  const [galleryImages, setGalleryImages] = useState([]);
-  const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
-  const [galleryModelFilter, setGalleryModelFilter] = useState('all');
   const [limitNotice, setLimitNotice] = useState('');
   const [regenerationUsage, setRegenerationUsage] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -4683,11 +3611,9 @@ function MonochromeClaudeStyle() {
   const [imageModal, setImageModal] = useState({ isOpen: false, url: '', alt: '' });
   
   // Modal states
-  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [is3DInfoModalOpen, setIs3DInfoModalOpen] = useState(false);
   
   // Confirmation modal state
   const [confirmationModal, setConfirmationModal] = useState({
@@ -4854,9 +3780,12 @@ function MonochromeClaudeStyle() {
     );
     
     // Поиск по настройкам
+    // Преобразуем MODEL_OPTIONS в плоский массив
+    const allModels = Object.values(MODEL_OPTIONS).flat();
+    
     const settingsOptions = [
       { id: 'style', label: 'Стиль сайта', options: STYLE_OPTIONS },
-      { id: 'model', label: 'ARCPLAN MODEL', options: MODEL_OPTIONS },
+      { id: 'model', label: 'ARCPLAN MODEL', options: allModels },
       { id: 'background', label: 'Фон страницы', options: [
         { id: 'standard', label: 'Стандартный' },
         { id: 'interactive', label: 'Интерактивный' },
@@ -4914,21 +3843,35 @@ function MonochromeClaudeStyle() {
       }
     }
     
+    // Генерируем название чата на основе модели и даты
+    const now = new Date();
+    const day = now.getDate();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const dateStr = `${day}.${month}.${year} ${hours}:${minutes}`;
+    
+    let chatTitle = "Новый чат";
+    if (model === "techplan") {
+      chatTitle = `Создание плана ${dateStr}`;
+    } else if (model === "cleanup") {
+      chatTitle = `Удаление объектов ${dateStr}`;
+    }
+    
     // Создаем сообщение пользователя
     const userMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      text: model === "3d" ? query : 
-            model === "techplan" ? `Создание по техплану — ${techplanMode === "with" ? "С мебелью" : "Без мебели"}` :
-            model === "cleanup" ? "Удаление объектов" :
-            "Неизвестная модель",
-      attachments: attachments.map((a) => ({ id: a.id, name: a.name, url: a.url })),
+      text: model === "3d" ? query : "",
+      attachments: attachments.map((a) => ({ id: a.id, name: a.name, url: a.url, size: a.size })),
+      chatTitle: chatTitle,
       time: new Date().toISOString(),
       // Сохраняем параметры для повторного запроса
       requestParams: {
         model,
         query,
         techplanMode,
-        attachments: attachments.map((a) => ({ id: a.id, name: a.name, file: a.file }))
+        attachments: attachments.map((a) => ({ id: a.id, name: a.name, file: a.file, size: a.size }))
       }
     };
 
@@ -4941,10 +3884,7 @@ function MonochromeClaudeStyle() {
       let responseImage = null;
 
       if (model === "techplan" && attachments.length > 0) {
-        // Проверяем лимит изображений
-        if (attachments.length > 5) {
-          throw new Error('Слишком много изображений. Максимум 5 изображений за раз.');
-        }
+        // Ранее здесь был лимит на количество изображений; лимит снят
 
         // Генерация технического плана
         const formData = new FormData();
@@ -5026,83 +3966,101 @@ function MonochromeClaudeStyle() {
           }
         }
       } else if (model === "cleanup" && attachments.length > 0) {
-        // Проверяем лимит изображений
-        if (attachments.length > 5) {
-          throw new Error('Слишком много изображений. Максимум 5 изображений за раз.');
-        }
+        // Ранее здесь был лимит на количество изображений; лимит снят
 
-        // Удаление объектов
-        const formData = new FormData();
-        attachments.forEach((att) => formData.append('image', att.file));
+        // Переносим текущее user‑сообщение в историю один раз до начала цикла
+        setAdvancedMessageHistory(prev => ({
+          ...prev,
+          [activeChatId]: [
+            ...(prev[activeChatId] || []),
+            {
+              ...userMessage,
+              type: 'user',
+              chatTitle: userMessage.chatTitle,
+              attachments: userMessage.attachments?.map(att => ({ id: att.id, name: att.name, size: att.size, url: att.url }))
+            }
+          ]
+        }));
+        // Убираем дублирование в зоне текущего сообщения
+        setAdvancedCurrentMessage(null);
 
-        // Показываем прогресс для множественных изображений
-        if (attachments.length > 1) {
-          responseText = `Обрабатываю ${attachments.length} изображений по очереди для снижения нагрузки на сервер...`;
-        }
+        // Последовательно отправляем каждый файл и добавляем отдельное AI‑сообщение
+        for (let i = 0; i < attachments.length; i++) {
+          const attachment = attachments[i];
+          const formData = new FormData();
+          formData.append('image', attachment.file);
 
-        const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
-          method: 'POST',
-          headers: {
-            'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
-          },
-          body: formData
-        });
-
-        if (!response.ok) {
-          const contentType = response.headers.get('content-type') || '';
-          let errorMessage = 'Ошибка удаления объектов';
-          let errorCode;
-          
           try {
-            if (contentType.includes('application/json')) {
-              const errorData = await response.json();
-              errorMessage = errorData?.error || errorMessage;
-              errorCode = errorData?.code;
-              
-              // Специальная обработка ошибок COMETAPI
-              if (errorMessage.includes('Сервис генерации временно недоступен') || 
-                  errorMessage.includes('No available channels') ||
-                  errorMessage.includes('comet_api_error')) {
-                errorMessage = 'Сервис генерации временно недоступен. Попробуйте позже.';
-              } else if (errorMessage.includes('API_KEY_MISSING')) {
-                errorMessage = 'Сервис временно недоступен. Обратитесь к администратору.';
-              } else if (errorMessage.includes('PLAN_LIMIT') || errorMessage.includes('GUEST_LIMIT')) {
-                errorMessage = 'Лимит генераций исчерпан. Войдите в аккаунт или попробуйте позже.';
+            const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
+              method: 'POST',
+              headers: {
+                'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+              },
+              body: formData
+            });
+
+            let resultImage = null;
+            if (response.ok) {
+              const contentType = response.headers.get('content-type') || '';
+              if (contentType.includes('application/json')) {
+                const data = await response.json();
+                if (data.success && data.result) {
+                  resultImage = data.result.imageUrl;
+                }
+              } else {
+                const imageBlob = await response.blob();
+                const reader = new FileReader();
+                resultImage = await new Promise((resolve) => {
+                  reader.onload = () => resolve(reader.result);
+                  reader.readAsDataURL(imageBlob);
+                });
               }
             }
-          } catch (parseError) {
-            console.error('Ошибка парсинга ответа об ошибке:', parseError);
+
+            const aiResponse = {
+              messageId: `${userMessage.id}-${i}`,
+              text: '',
+              image: resultImage,
+              rating: null,
+              canRegenerate: true,
+              time: new Date().toISOString()
+            };
+
+            setAdvancedMessageHistory(prev => ({
+              ...prev,
+              [activeChatId]: [
+                ...(prev[activeChatId] || []),
+                { ...aiResponse, type: 'ai' }
+              ]
+            }));
+          } catch (e) {
+            // Даже при ошибке добавляем пустое AI‑сообщение, чтобы сохранить количество
+            const aiResponse = {
+              messageId: `${userMessage.id}-${i}`,
+              text: '',
+              image: null,
+              rating: null,
+              canRegenerate: true,
+              time: new Date().toISOString()
+            };
+            setAdvancedMessageHistory(prev => ({
+              ...prev,
+              [activeChatId]: [
+                ...(prev[activeChatId] || []),
+                { ...aiResponse, type: 'ai' }
+              ]
+            }));
           }
-          
-          throw new Error(errorMessage);
         }
 
-        // Поддержка множественных результатов
-        const contentType2 = response.headers.get('content-type') || '';
-        let responseImages2 = [];
-        if (contentType2.includes('application/json')) {
-          const data = await response.json();
-          // Обрабатываем структуру ответа от API remove-objects
-          if (data.success) {
-            if (data.result) {
-              // Один результат
-              responseImages2 = [data.result.imageUrl];
-            } else if (data.results && Array.isArray(data.results)) {
-              // Множественные результаты
-              responseImages2 = data.results.map(r => r.imageUrl);
-            }
-          }
-        } else {
-          // Конвертируем blob в base64 для прямого использования
-          const imageBlob = await response.blob();
-          const reader = new FileReader();
-          responseImages2 = await new Promise((resolve) => {
-            reader.onload = () => resolve([reader.result]);
-            reader.readAsDataURL(imageBlob);
-          });
-        }
-        responseImage = responseImages2[0] || null;
-        responseText = `Объекты успешно удалены с изображения.`;
+        // Очистка состояния после завершения всех изображений
+        setAdvancedCurrentMessage(null);
+        setAdvancedCurrentResult(null);
+        setAdvancedIsGenerating(false);
+        clearAllAttachments();
+        // Переименовываем чат
+        autoRenameChat(activeChatId, model, techplanMode);
+        return;
       } else {
         // Обычная обработка для других моделей
         responseText = `Вот результат обработки вашего запроса "${userMessage.text}".`;
@@ -5119,27 +4077,6 @@ function MonochromeClaudeStyle() {
 
       setAdvancedCurrentResult(aiResponse);
       
-      // Добавляем изображение в галерею, если оно есть
-      if (responseImage) {
-        const modelName = model === 'techplan' ? 'ARCPLAN MODEL' : 
-                         model === 'cleanup' ? 'ARCPLAN MODEL' : 
-                         'ARCPLAN MODEL';
-        addToGallery(responseImage, userMessage.text, modelName);
-      }
-      
-      // Добавляем множественные изображения в галерею, если они есть
-      const multipleImages = (typeof responseImages !== 'undefined' ? responseImages : undefined) || (typeof responseImages2 !== 'undefined' ? responseImages2 : undefined);
-      if (multipleImages && Array.isArray(multipleImages) && multipleImages.length > 0) {
-        const modelName = model === 'techplan' ? 'ARCPLAN MODEL' : 
-                         model === 'cleanup' ? 'ARCPLAN MODEL' : 
-                         'ARCPLAN MODEL';
-        multipleImages.forEach((imageUrl, index) => {
-          if (imageUrl && imageUrl !== responseImage) { // Не дублируем основное изображение
-            addToGallery(imageUrl, `${userMessage.text} (${index + 1})`, modelName);
-          }
-        });
-      }
-      
       // Добавляем сообщения в историю для текущего чата
       setAdvancedMessageHistory(prev => ({
         ...prev,
@@ -5148,13 +4085,13 @@ function MonochromeClaudeStyle() {
           { 
             ...userMessage, 
             type: 'user',
-            // Убираем attachments с blob URL из истории
+            chatTitle: userMessage.chatTitle,
+            // Сохраняем attachments с ключевыми данными (без blob URL)
             attachments: userMessage.attachments?.map(att => ({
               id: att.id,
               name: att.name,
               size: att.size,
-              // Не сохраняем blob URL в истории
-              url: null
+              url: att.url
             }))
           },
           { ...aiResponse, type: 'ai', time: new Date().toISOString() }
@@ -5165,10 +4102,8 @@ function MonochromeClaudeStyle() {
       autoRenameChat(activeChatId, model, techplanMode);
       
       // Очищаем текущие сообщения после добавления в историю
-      setTimeout(() => {
-        setAdvancedCurrentMessage(null);
-        setAdvancedCurrentResult(null);
-      }, 100);
+      setAdvancedCurrentMessage(null);
+      setAdvancedCurrentResult(null);
     } catch (error) {
       console.error('Ошибка генерации:', error);
       
@@ -5200,7 +4135,7 @@ function MonochromeClaudeStyle() {
       
       const errorResponse = {
         messageId: userMessage.id,
-        text: `Ошибка: ${errorMessage}`,
+        text: '',
         rating: null,
         canRegenerate: !isCometApiError // Не позволяем повторную генерацию при ошибках COMETAPI
       };
@@ -5215,13 +4150,13 @@ function MonochromeClaudeStyle() {
           { 
             ...userMessage, 
             type: 'user',
-            // Убираем attachments с blob URL из истории
+            chatTitle: userMessage.chatTitle,
+            // Сохраняем attachments с ключевыми данными (без blob URL)
             attachments: userMessage.attachments?.map(att => ({
               id: att.id,
               name: att.name,
               size: att.size,
-              // Не сохраняем blob URL в истории
-              url: null
+              url: att.url
             }))
           },
           { ...errorResponse, type: 'ai', time: new Date().toISOString() }
@@ -5232,10 +4167,8 @@ function MonochromeClaudeStyle() {
       autoRenameChat(activeChatId, model, techplanMode);
       
       // Очищаем текущие сообщения после добавления в историю
-      setTimeout(() => {
-        setAdvancedCurrentMessage(null);
-        setAdvancedCurrentResult(null);
-      }, 100);
+      setAdvancedCurrentMessage(null);
+      setAdvancedCurrentResult(null);
     } finally {
       setAdvancedIsGenerating(false);
       // Очищаем прикрепленные фотографии после завершения обработки
@@ -5268,11 +4201,18 @@ function MonochromeClaudeStyle() {
       return;
     }
 
-    // Находим сообщение пользователя с параметрами запроса
+    // Находим сообщение: если клик был по AI — берём предыдущее user; если по user — берём его
     const messageHistory = advancedMessageHistory[activeChatId] || [];
-    const userMessage = messageHistory.find(msg => 
-      msg.type === 'user' && msg.id === messageId
-    );
+    let userMessage = messageHistory.find(msg => msg.type === 'user' && msg.id === messageId);
+    let aiIndex = -1;
+    if (!userMessage) {
+      aiIndex = messageHistory.findIndex(msg => msg.type === 'ai' && msg.messageId === messageId);
+      if (aiIndex !== -1) {
+        for (let i = aiIndex - 1; i >= 0; i--) {
+          if (messageHistory[i].type === 'user') { userMessage = messageHistory[i]; break; }
+        }
+      }
+    }
 
     if (!userMessage || !userMessage.requestParams) {
       console.error('Не найдены параметры запроса для повторной генерации');
@@ -5281,18 +4221,22 @@ function MonochromeClaudeStyle() {
 
     const { model, query, techplanMode, attachments } = userMessage.requestParams;
 
-    setAdvancedIsGenerating(true);
-    setAdvancedCurrentResult(null);
+    // Устанавливаем статус генерации для конкретного AI сообщения в истории
+    setAdvancedMessageHistory(prev => ({
+      ...prev,
+      [activeChatId]: (prev[activeChatId] || []).map(msg => 
+        msg.type === 'ai' && msg.messageId === messageId 
+          ? { ...msg, isGenerating: true }
+          : msg
+      )
+    }));
 
     try {
       let responseImage = null;
       let responseText = '';
 
       if (model === "techplan" && attachments.length > 0) {
-        // Проверяем лимит изображений
-        if (attachments.length > 5) {
-          throw new Error('Слишком много изображений. Максимум 5 изображений за раз.');
-        }
+        // Ранее здесь был лимит на количество изображений; лимит снят
 
         // Генерация технического плана
         const formData = new FormData();
@@ -5374,19 +4318,16 @@ function MonochromeClaudeStyle() {
           }
         }
       } else if (model === "cleanup" && attachments.length > 0) {
-        // Проверяем лимит изображений
-        if (attachments.length > 5) {
-          throw new Error('Слишком много изображений. Максимум 5 изображений за раз.');
+        // Определяем индекс изображения для этого AI‑сообщения
+        let indexStr = messageId.split('-').pop() || '0';
+        let attachmentIndex = parseInt(indexStr, 10);
+        if (Number.isNaN(attachmentIndex) || attachmentIndex < 0 || attachmentIndex >= attachments.length) {
+          attachmentIndex = 0;
         }
 
-        // Удаление объектов
+        const attachment = attachments[attachmentIndex];
         const formData = new FormData();
-        attachments.forEach((att) => formData.append('image', att.file));
-
-        // Показываем прогресс для множественных изображений
-        if (attachments.length > 1) {
-          responseText = `Обрабатываю ${attachments.length} изображений по очереди для снижения нагрузки на сервер...`;
-        }
+        formData.append('image', attachment.file);
 
         const response = await fetch(`${API_BASE_URL}/api/remove-objects`, {
           method: 'POST',
@@ -5396,37 +4337,35 @@ function MonochromeClaudeStyle() {
           body: formData
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
+        let resultImage = null;
+        if (response.ok) {
+          const contentType = response.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const data = await response.json();
+            if (data.success && data.result) { resultImage = data.result.imageUrl; }
+          } else {
+            const imageBlob = await response.blob();
+            const reader = new FileReader();
+            resultImage = await new Promise((resolve) => {
+              reader.onload = () => resolve(reader.result);
+              reader.readAsDataURL(imageBlob);
+            });
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || 'Ошибка удаления объектов');
         }
 
-        // Поддержка множественных результатов
-        const contentType2 = response.headers.get('content-type') || '';
-        let responseImages2 = [];
-        if (contentType2.includes('application/json')) {
-          const data = await response.json();
-          // Обрабатываем структуру ответа от API remove-objects
-          if (data.success) {
-            if (data.result) {
-              // Один результат
-              responseImages2 = [data.result.imageUrl];
-            } else if (data.results && Array.isArray(data.results)) {
-              // Множественные результаты
-              responseImages2 = data.results.map(r => r.imageUrl);
-            }
-          }
-        } else {
-          // Конвертируем blob в base64 для прямого использования
-          const imageBlob = await response.blob();
-          const reader = new FileReader();
-          responseImages2 = await new Promise((resolve) => {
-            reader.onload = () => resolve([reader.result]);
-            reader.readAsDataURL(imageBlob);
-          });
-        }
-        responseImage = responseImages2[0] || null;
-        responseText = `Объекты успешно удалены с изображения.`;
+        // Обновляем только это AI‑сообщение
+        setAdvancedMessageHistory(prev => ({
+          ...prev,
+          [activeChatId]: (prev[activeChatId] || []).map(msg => 
+            msg.type === 'ai' && msg.messageId === messageId
+              ? { ...msg, image: resultImage, text: '', isGenerating: false, time: new Date().toISOString() }
+              : msg
+          )
+        }));
+        return;
       } else {
         // Обычная обработка для других моделей
         responseText = `Вот результат обработки вашего запроса "${query}".`;
@@ -5439,25 +4378,16 @@ function MonochromeClaudeStyle() {
         image: responseImage,
         rating: null,
         canRegenerate: true,
-        time: new Date().toISOString()
+        time: new Date().toISOString(),
+        isGenerating: false
       };
-      
-      setAdvancedCurrentResult(newResult);
-      
-      // Добавляем изображение в галерею, если оно есть
-      if (responseImage) {
-        const modelName = model === 'techplan' ? 'ARCPLAN MODEL' : 
-                         model === 'cleanup' ? 'ARCPLAN MODEL' : 
-                         'ARCPLAN MODEL';
-        addToGallery(responseImage, query, modelName);
-      }
       
       // Обновляем сообщение в истории для текущего чата
       setAdvancedMessageHistory(prev => ({
         ...prev,
         [activeChatId]: (prev[activeChatId] || []).map(msg => 
-          msg.id === messageId && msg.type === 'ai' 
-            ? { ...newResult, type: 'ai' }
+          msg.type === 'ai' && msg.messageId === messageId 
+            ? { ...msg, ...newResult, type: 'ai' }
             : msg
         )
       }));
@@ -5471,36 +4401,30 @@ function MonochromeClaudeStyle() {
 
     } catch (error) {
       console.error('Ошибка при повторной генерации:', error);
-      setAdvancedCurrentResult({
-        messageId: userMessage.id,
-        text: `Ошибка: ${error.message}`,
-        image: null,
-        rating: null,
-        canRegenerate: true,
-        time: new Date().toISOString()
-      });
+      // Обновляем сообщение с ошибкой
+      setAdvancedMessageHistory(prev => ({
+        ...prev,
+        [activeChatId]: (prev[activeChatId] || []).map(msg => 
+          msg.type === 'ai' && msg.messageId === messageId 
+            ? { 
+                ...msg, 
+                text: '',
+                image: null,
+                rating: null,
+                canRegenerate: true,
+                isGenerating: false,
+                time: new Date().toISOString()
+              }
+            : msg
+        )
+      }));
     } finally {
-      setAdvancedIsGenerating(false);
       // Очищаем прикрепленные фотографии после завершения обработки
       clearAllAttachments();
     }
   };
 
   // Функция для добавления сгенерированного изображения в галерею
-  const addToGallery = (imageUrl, prompt, model = 'ARCPLAN MODEL') => {
-    if (!imageUrl) return;
-    
-    const newImage = {
-      id: Date.now() + Math.random(), // Уникальный ID
-      url: imageUrl,
-      prompt: prompt || 'Сгенерированное изображение',
-      model: model,
-      createdAt: new Date()
-    };
-    
-    setGalleryImages(prev => [newImage, ...prev]);
-    console.log('✅ Изображение добавлено в галерею:', newImage);
-  };
 
   const handleAdvancedDownload = async (imageUrl) => {
     try {
@@ -5694,7 +4618,7 @@ function MonochromeClaudeStyle() {
       setResponses(prev => ({
         ...prev,
         [msg.id]: {
-          text: `Ошибка: ${errorMessage}`,
+          text: '',
           rating: null,
           canRegenerate: !isCometApiError // Не позволяем повторную генерацию при ошибках COMETAPI
         }
@@ -5755,9 +4679,10 @@ function MonochromeClaudeStyle() {
     setAttachments([]);
     setPlanFurniture(null);
     
-    // Очищаем только текущие сообщения при создании нового чата
+    // Очищаем все состояния сообщений
     setAdvancedCurrentMessage(null);
     setAdvancedCurrentResult(null);
+    setAdvancedIsGenerating(false);
     setRemoveDepth(null);
     setHasFirstMessage(false);
     setIsGenerating(false);
@@ -5815,14 +4740,29 @@ function MonochromeClaudeStyle() {
   const onFilesSelected = (e) => {
     const files = Array.from(e.target.files || []);
     const imgs = files.filter((f) => f.type.startsWith("image/"));
-    const items = imgs.map((file) => ({
-      id: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      name: file.name,
-      size: file.size,
-      url: URL.createObjectURL(file),
-      file,
-    }));
-    if (items.length) setAttachments((prev) => [...prev, ...items]);
+    // Если услуга — техплан, разрешаем только один файл
+    if (isPlan) {
+      const first = imgs[0];
+      if (first) {
+        const item = {
+          id: `${first.name}-${first.size}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          name: first.name,
+          size: first.size,
+          url: URL.createObjectURL(first),
+          file: first,
+        };
+        setAttachments([item]);
+      }
+    } else {
+      const items = imgs.map((file) => ({
+        id: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        name: file.name,
+        size: file.size,
+        url: URL.createObjectURL(file),
+        file,
+      }));
+      if (items.length) setAttachments((prev) => [...prev, ...items]);
+    }
     e.target.value = ""; // allow re-upload same file
   };
   const removeAttachment = (id) => {
@@ -5840,21 +4780,8 @@ function MonochromeClaudeStyle() {
   };
 
   const clearAllAttachments = () => {
-    console.log('clearAllAttachments called');
-    setAttachments((prev) => {
-      console.log('Previous attachments:', prev);
-      // Очищаем blob URL для освобождения памяти
-      prev.forEach((item) => {
-        if (item.url && item.url.startsWith('blob:')) {
-          try {
-            URL.revokeObjectURL(item.url);
-          } catch (error) {
-            console.warn('Ошибка при освобождении blob URL:', error);
-          }
-        }
-      });
-      return [];
-    });
+    // Не отзывает blob URL, чтобы не ломать предпросмотр вложений в истории сообщений
+    setAttachments([]);
   };
 
   // Response actions
@@ -5897,23 +4824,29 @@ function MonochromeClaudeStyle() {
     }, 2000);
   };
 
+  // Функция для форматирования даты
+  const formatChatDate = () => {
+    const now = new Date();
+    const day = now.getDate();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
+  };
+  
   // Функция для автоматического переименования чата
   const autoRenameChat = (chatId, model, techplanMode = null) => {
     let newTitle = "Новый чат";
+    const dateStr = formatChatDate();
     
     switch (model) {
       case "techplan":
-        if (techplanMode === "with") {
-          newTitle = "Создание по техплану — С мебелью";
-        } else {
-          newTitle = "Создание по техплану — Без мебели";
-        }
+        newTitle = `Создание плана ${dateStr}`;
         break;
       case "cleanup":
-        newTitle = "Удаление объектов";
-        break;
-      case "3d":
-        newTitle = "3D генерация";
+        newTitle = `Удаление объектов ${dateStr}`;
         break;
       default:
         newTitle = "Новый чат";
@@ -5932,7 +4865,6 @@ function MonochromeClaudeStyle() {
   };
   
   const handleCreateNewChat = () => {
-    setShowGallery(false); // Закрываем галерею при создании нового чата
     createChat();
   };
   
@@ -6083,88 +5015,6 @@ function MonochromeClaudeStyle() {
   };
 
   // Gallery functions
-  const handleGalleryDelete = (id) => {
-    if (confirm('Вы уверены, что хотите удалить это изображение?')) {
-      setGalleryImages(galleryImages.filter(img => img.id !== id));
-      if (selectedGalleryImage?.id === id) {
-        setSelectedGalleryImage(null);
-      }
-    }
-  };
-
-  const handleGalleryDownload = async (url, id) => {
-    try {
-      console.log('Начинаем скачивание изображения из галереи:', url);
-      
-      // Загружаем изображение как blob
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const blob = await response.blob();
-      
-      // Создаем URL для blob
-      const blobUrl = URL.createObjectURL(blob);
-      
-      // Создаем временную ссылку для скачивания
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `image-${id}.jpg`;
-      
-      // Добавляем в DOM, кликаем и удаляем
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Освобождаем память
-      URL.revokeObjectURL(blobUrl);
-      
-      console.log('Изображение из галереи успешно скачано');
-    } catch (error) {
-      console.error('Ошибка при скачивании изображения из галереи:', error);
-      
-      // Fallback: открываем изображение в новой вкладке
-      console.log('Fallback: открываем изображение в новой вкладке');
-      window.open(url, '_blank');
-    }
-  };
-
-  const handleShowGallery = () => {
-    setShowGallery(true);
-  };
-
-  const handleSendFromGallery = (payload) => {
-    // Закрываем галерею
-    setShowGallery(false);
-    
-    // Создаем новый чат (это очистит всю историю)
-    const id = `chat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const chat = { 
-      id, 
-      title: "Новый чат", 
-      messages: [],
-      createdAt: new Date().toISOString(),
-      lastMessageTime: new Date().toISOString()
-    };
-    setChats((prev) => [chat, ...prev]);
-    setActiveChatId(id);
-    setValue("");
-    setAttachments([]);
-    setPlanFurniture(null);
-    
-    // Очищаем только текущие сообщения
-    setAdvancedCurrentMessage(null);
-    setAdvancedCurrentResult(null);
-    setRemoveDepth(null);
-    setHasFirstMessage(false);
-    setIsGenerating(false);
-    setResponses({});
-    
-    // Отправляем сообщение в новый чат
-    handleAdvancedSendMessage(payload);
-  };
-
   // Advanced style layout (единственный доступный стиль)
     return (
       <div data-style={siteStyle} className="relative h-screen w-full text-neutral-200 antialiased" style={{ backgroundColor: '#161618' }}>
@@ -6172,21 +5022,21 @@ function MonochromeClaudeStyle() {
         {backgroundType === "interactive" && <BackgroundParticles />}
         {backgroundType === "alternative" && <AlternativeBackground />}
         <div className={`relative z-10 grid h-screen transition-all duration-300 ${
-          isSidebarCollapsed ? 'grid-cols-[64px_1fr]' : 'grid-cols-[256px_1fr]'
+          isSidebarCollapsed ? 'grid-cols-[56px_1fr]' : 'grid-cols-[256px_1fr]'
         }`}>
           <AdvancedSidebar 
             chats={filteredChats}
             activeChatId={activeChatId}
             onChatSelect={(chatId) => {
-              setShowGallery(false); // Закрываем галерею при переключении на чат
               setActiveChatId(chatId);
               setHasFirstMessage(chats.find(c => c.id === chatId)?.messages.length > 0);
               setIsGenerating(false);
               setResponses({});
               
-              // Очищаем только текущие сообщения при переключении чатов
+              // Очищаем все состояния сообщений при переключении чатов
               setAdvancedCurrentMessage(null);
               setAdvancedCurrentResult(null);
+              setAdvancedIsGenerating(false);
             }}
             onSearch={setSearchQuery}
             searchQuery={searchQuery}
@@ -6195,21 +5045,20 @@ function MonochromeClaudeStyle() {
             searchResults={searchResults}
             onSettingSelect={handleSettingSelect}
             onCreateChat={handleCreateNewChat}
-            onShowGallery={handleShowGallery}
             onHomeClick={handleHomeClick}
-            onHowItWorks={() => setIsHowItWorksOpen(true)}
             user={user}
             onRenameChat={handleRenameChat}
             onDeleteChat={handleDeleteChat}
             onPinChat={handlePinChat}
             onChangelog={() => setIsChangelogOpen(true)}
             onProfile={handleProfile}
-            onLogout={handleLogout}
-            onAuthOpen={() => setIsAuthOpen(true)}
-          />
-          <AdvancedMainArea 
             backgroundType={backgroundType}
             onBackgroundChange={setBackgroundType}
+            onLogout={handleLogout}
+            onAuthOpen={() => setIsAuthOpen(true)}
+            advancedMessageHistory={advancedMessageHistory}
+          />
+          <AdvancedMainArea 
             onAttach={(id, action) => {
               if (action === 'remove') {
                 removeAttachment(id);
@@ -6222,7 +5071,6 @@ function MonochromeClaudeStyle() {
             onModelMenuToggle={setModelMenuOpen}
             onFilesSelected={onFilesSelected}
             onSendMessage={handleAdvancedSendMessage}
-            onSendFromGallery={handleSendFromGallery}
             isGenerating={advancedIsGenerating}
             currentMessage={advancedCurrentMessage}
             currentResult={advancedCurrentResult}
@@ -6232,22 +5080,24 @@ function MonochromeClaudeStyle() {
             onDownload={handleAdvancedDownload}
             onImageClick={handleImageClick}
             onModelChange={setModel}
-            showGallery={showGallery}
-            setShowGallery={setShowGallery}
-            galleryImages={galleryImages}
-            selectedGalleryImage={selectedGalleryImage}
-            setSelectedGalleryImage={setSelectedGalleryImage}
-            galleryModelFilter={galleryModelFilter}
-            setGalleryModelFilter={setGalleryModelFilter}
-            onGalleryDelete={handleGalleryDelete}
-            onGalleryDownload={handleGalleryDownload}
             model={model}
             onModelSelect={setModel}
-            on3DInfoOpen={() => setIs3DInfoModalOpen(true)}
+            service={service}
+            onServiceChange={(newService) => {
+              setService(newService);
+              // Установим модель по умолчанию для выбранной услуги
+              const defaultModel = newService === 'techplan' ? 'boston' : 'charleston';
+              setSelectedModel(defaultModel);
+              setModel(newService); // Для совместимости
+            }}
+            showServiceMenu={showServiceMenu}
+            onServiceMenuToggle={setShowServiceMenu}
+            selectedModel={selectedModel}
+            onSelectedModelChange={setSelectedModel}
           />
           {limitNotice && (
             <div className="mx-auto max-w-3xl w-full px-4 mb-4">
-              <div className="rounded-xl border border-yellow-400/30 bg-yellow-400/10 px-4 py-3 text-xs text-yellow-200">
+              <div className="rounded-md border border-yellow-400/30 bg-yellow-400/10 px-4 py-3 text-xs text-yellow-200">
                 {limitNotice}
               </div>
             </div>
@@ -6284,10 +5134,6 @@ function MonochromeClaudeStyle() {
         />
         
         {/* Feature Modals */}
-        <HowItWorksModal 
-          isOpen={isHowItWorksOpen} 
-          onClose={() => setIsHowItWorksOpen(false)} 
-        />
         <ChangelogModal 
           isOpen={isChangelogOpen} 
           onClose={() => setIsChangelogOpen(false)} 
@@ -6296,19 +5142,12 @@ function MonochromeClaudeStyle() {
           isOpen={isProfileOpen} 
           onClose={() => setIsProfileOpen(false)}
           user={user}
-          backgroundType={backgroundType}
-          onBackgroundChange={setBackgroundType}
-          on3DInfoOpen={() => setIs3DInfoModalOpen(true)}
           onGrantAccess={handleGrantOrganizationAccess}
           onOpenOrganizationList={handleOpenOrganizationList}
         />
         <AuthModal 
           isOpen={isAuthOpen} 
           onClose={() => setIsAuthOpen(false)}
-        />
-        <Plan3DInfoModal 
-          isOpen={is3DInfoModalOpen} 
-          onClose={() => setIs3DInfoModalOpen(false)} 
         />
         <OrganizationUsersModal
           isOpen={organizationModal.isOpen}

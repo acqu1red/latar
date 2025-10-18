@@ -31,10 +31,10 @@ const LoginPage: React.FC = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-zinc-950/60 border-b border-white/5">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <Link to="/" className="group inline-flex items-center gap-2">
-              <div className="h-6 w-6 rounded-lg bg-zinc-100 text-zinc-900 grid place-content-center text-[10px] font-bold">FM</div>
-              <span className="font-medium text-zinc-200 group-hover:text-white transition">Plan 2D</span>
+          <div className="flex h-14 items-center justify-between">
+            <Link to="/" className="group inline-flex items-center gap-1.5">
+              <img src="/latar/logo.svg" alt="Логотип" className="h-7 w-7" />
+              <span className="text-[1.375rem] font-medium text-zinc-200 group-hover:text-white transition">Arcplan</span>
             </Link>
             <Link 
               to="/" 

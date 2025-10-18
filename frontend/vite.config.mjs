@@ -13,17 +13,15 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'https://acqu1red-latar-084a.twc1.net',
+        target: 'http://localhost:3001',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       }
     }
   },
   define: {
     // Определяем переменные окружения для сборки
     'import.meta.env.PROD': JSON.stringify(process.env.NODE_ENV === 'production'),
-    'import.meta.env.MODE': JSON.stringify(process.env.NODE_ENV === 'production' ? 'production' : 'development'),
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'https://acqu1red-latar-084a.twc1.net'),
   },
   build: {
     outDir: 'dist',

@@ -1,8 +1,18 @@
 // Конфигурация API
-// Жестко прописываем URL для production
-export const API_BASE_URL = 'https://acqu1red-latar-084a.twc1.net';
+const getApiBaseUrl = () => {
+  // Если указана переменная окружения, используем её
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  
+  // Определяем URL в зависимости от окружения
+  if (import.meta.env.PROD) {
+    // Production: используем Timeweb URL
+    return 'https://acqu1red-latar-4004.twc1.net';
+  } else {
+    // Development: используем localhost
+    return 'http://localhost:3001';
+  }
+};
 
-// Отладочная информация
-console.log('🌐 API_BASE_URL установлен как:', API_BASE_URL);
-console.log('🔧 VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
-console.log('🔧 MODE:', import.meta.env.MODE);
+export const API_BASE_URL = getApiBaseUrl();
