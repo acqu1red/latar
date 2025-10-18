@@ -1,0 +1,6 @@
+# SPA fallback for all routes
+/* /index.html 200
+
+# Specific redirects for subdomains
+/new /new.html 200
+/new/* /new.html 200
