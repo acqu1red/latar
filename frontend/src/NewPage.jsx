@@ -2323,7 +2323,7 @@ function AdvancedMainArea({
                       onRegenerate={onRegenerate}
                       onDownload={onDownload}
                       onImageClick={onImageClick}
-                      onAddFurniture={handleAddFurniture}
+                      onAddFurniture={onAddFurniture}
                       service={service}
                       selectedModel={selectedModel}
                       onModelChange={onSelectedModelChange}
@@ -2339,7 +2339,7 @@ function AdvancedMainArea({
                       onRegenerate={onRegenerate}
                       onDownload={onDownload}
                       onImageClick={onImageClick}
-                      onAddFurniture={handleAddFurniture}
+                      onAddFurniture={onAddFurniture}
                       service={service}
                       selectedModel={selectedModel}
                       onModelChange={onSelectedModelChange}
@@ -2363,6 +2363,7 @@ function AdvancedMainArea({
                 onRegenerate={onRegenerate}
                 onDownload={onDownload}
                 onImageClick={onImageClick}
+                onAddFurniture={onAddFurniture}
                 service={service}
                 selectedModel={selectedModel}
                 onModelChange={onSelectedModelChange}
