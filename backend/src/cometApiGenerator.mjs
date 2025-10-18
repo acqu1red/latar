@@ -123,8 +123,68 @@ Export 1200×1200.`,
 DON'T REPLY TO THE MESSAGE! JUST GENERATE IT!`,
 
   // Промпты для Melbourne 4.5
-  melbourne_step1: `1`,
-  melbourne_step2: `2`,
+  melbourne_step1: `ROLE
+You are a professional architectural draftsman. When an input image is provided, you must redraw exactly what is there.
+
+NON-NEGOTIABLES
+NUMERICAL ABSOLUTE PROHIBITION (NAP): ABSOLUTELY FORBID ALL FORMS OF QUANTIFICATION. NEITHER NUMBERS, DIGITS, DECIMAL POINTS, NOR FRACTIONAL REPRESENTATIONS ARE PERMITTED.
+Strictly same plan: do not change positions of walls, doors, windows, plumbing, or built-ins.
+No invention: if something is ambiguous, keep a continuous wall; do not guess an opening.
+ABSOLUTE TEXT BAN: produce graphics only. No digits (0-9), no decimal points (.), no fraction bars (/), no ratio colons (:), no letters, no symbols, no words, no abbreviations, no "m²", no arrows, no degree signs, no punctuation, no legends, no stamps/watermarks, no logos, no title blocks, no dimension strings.
+
+INPUT NORMALIZATION (PRESERVE GEOMETRY)
+Rotate to 0°/90°/180°/270°.
+Deskew + orthographic rectify (no foreshortening) while preserving all relative positions and proportions.
+Remove paper edges, shadows, noise, background texture.
+Erase all source text, numerical data, and quantification symbols (including index numbers, dimensions, and area labels). Do not trace any numbers (0-9), decimal points (.), or fractional indicators (/). Replace all numerical zones with a clean white, semantically inert background.
+
+DRAWING SPEC — WALLS & OPENINGS
+All walls are solid black fills (mandatory):
+Color #000000, no transparency/gray/patterns.
+External load-bearing: 4–5 px total thickness.
+Internal load-bearing: 3 px.
+Partitions: 2 px.
+Joints merge seamlessly; no hollow/outline-only walls.
+Openings are white voids cut from black walls:
+Doors: white gap + shortened leaf; add 1 px dashed swing arc inside the gap.
+Windows: white opening with 2 px double frame; 45° glass hatching only inside the opening (walls remain solid black).
+Zero bleed: black must not spill into openings or rooms.
+
+FURNITURE & FIXTURES — REMOVE ALL
+Remove all furniture, fixtures, and decorative elements. Keep only structural elements.
+Create clean, empty rooms ready for furniture placement.
+
+VISUAL STYLE & OUTPUT
+Background: pure white #FFFFFF.
+Graphics: pure black #000000 only; no gray, color, gradients, textures, soft shading, or semi-transparency.
+Canvas: 1200×1200 px, single final image (PNG or high-quality JPEG).
+
+COMPOSITION
+Plan centered; margins ≥ 50 px.
+No borders, title blocks, legends, scale bars, or north arrows.
+
+HARD "NO-TEXT/NO-NUMBERS" ENFORCEMENT
+Forbid any glyphs from any alphabet. Numerals (0-9), including their usage in decimals and fractions, are strictly forbidden. Explicitly exclude the decimal point (.), the fraction bar (/), the ratio colon (:), and the plus/minus symbol (±). Forbid punctuation, math signs, units (m, cm, m²), degree (°), hash (#), plus/minus (±), quotation marks, arrows (→ ↔ ↑ ↓), or OCR remnants.
+If any text/number would appear, mask/paint it out to white instead.
+Do not encode text as tiny strokes, dotted hints, hatch patterns, or decorative marks.
+
+NEGATIVE PROMPTS
+text, label, caption, font, lettering, handwriting, digits, numbers, area label, dimensions, 12.3 m², 1200, scale, north arrow, legend, watermark, logo, stamp, title block, revision table, tag, key, furniture, chair, table, bed, sofa, cabinet, shelf.
+
+EXECUTION ORDER
+Normalize (rotate/deskew/rectify) without altering geometry.
+Erase all text/numbers from the source → replace with white.
+Trace walls as solid black fills to spec; cut clean white openings; add door leaf + dashed arc, window double frame + 45° hatch (inside opening only).
+Remove all furniture and fixtures completely.
+Final verification: layout identical; no text/numbers/symbols anywhere; black-on-white only; empty rooms.
+Export 1200×1200.`,
+  melbourne_step2: `Infill the empty spaces of this 2D architectural floor plan by adding new furniture only. The added furniture must be rendered in the exact same minimalist, top-down 2D line art style as the existing furniture and architectural elements (e.g., walls, doors, bathroom fixtures) shown in the original image.
+
+Crucially, do not change, alter, or redraw the existing structure, layout, or dimensions of the floor plan—only add new objects.
+
+Ensure that at least one relevant piece of furniture is placed in every room to fully furnish the space. Examples of furniture to add include (but are not limited to): a dining table with chairs, sofas, armchairs, coffee tables, beds, nightstands, wardrobes, and kitchen counters.
+
+The output must be the complete, original floor plan with the new furniture objects seamlessly integrated in the matching style.`,
 
   // Обратная совместимость со старыми ключами
   withoutFurniture: `ROLE
