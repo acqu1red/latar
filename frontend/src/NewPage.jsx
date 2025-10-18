@@ -2276,7 +2276,6 @@ function AdvancedMainArea({
   onRegenerate,
   onDownload,
   onImageClick,
-  onAddFurniture,
   onModelChange,
   model,
   onModelSelect,
@@ -2323,7 +2322,6 @@ function AdvancedMainArea({
                       onRegenerate={onRegenerate}
                       onDownload={onDownload}
                       onImageClick={onImageClick}
-                      onAddFurniture={onAddFurniture}
                       service={service}
                       selectedModel={selectedModel}
                       onModelChange={onSelectedModelChange}
@@ -2339,7 +2337,6 @@ function AdvancedMainArea({
                       onRegenerate={onRegenerate}
                       onDownload={onDownload}
                       onImageClick={onImageClick}
-                      onAddFurniture={onAddFurniture}
                       service={service}
                       selectedModel={selectedModel}
                       onModelChange={onSelectedModelChange}
@@ -2363,7 +2360,6 @@ function AdvancedMainArea({
                 onRegenerate={onRegenerate}
                 onDownload={onDownload}
                 onImageClick={onImageClick}
-                onAddFurniture={onAddFurniture}
                 service={service}
                 selectedModel={selectedModel}
                 onModelChange={onSelectedModelChange}
@@ -2601,7 +2597,7 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
           />
         )}
 
-        {service === "techplan" && selectedModel === "boston" && (
+        {model === "techplan" && (
            <div className="flex-1 h-10 flex items-center gap-3 px-6">
             <AdvancedToggleChip
               label="С мебелью"
@@ -2620,12 +2616,6 @@ function AdvancedSearchBar({ onAdvanced, onAttach, attachments = [], modelMenuOp
                 onAdvanced?.();
               }}
             />
-          </div>
-        )}
-
-        {service === "techplan" && selectedModel === "melbourne" && (
-           <div className="flex-1 h-10 flex items-center gap-3 px-6">
-            <div className="text-sm text-neutral-400">Melbourne 4.5 - Продвинутая модель</div>
           </div>
         )}
 
@@ -3068,7 +3058,6 @@ function AdvancedMessageDisplay({
   onRegenerate, 
   onDownload,
   onImageClick,
-  onAddFurniture,
   service = 'techplan',
   selectedModel = 'boston',
   onModelChange,
@@ -3282,8 +3271,8 @@ function AdvancedMessageDisplay({
                     Повторить
                   </button>
                   
-                  {/* Режим для techplan - только для Boston 2.5 */}
-                  {service === 'techplan' && selectedModel === 'boston' && (
+                  {/* Режим для techplan */}
+                  {service === 'techplan' && (
                     <>
                       <div className="h-6 w-px bg-white/10"></div>
                       <button
@@ -3309,24 +3298,6 @@ function AdvancedMessageDisplay({
                         title="Без мебели"
                       >
                         Без мебели
-                      </button>
-                    </>
-                  )}
-
-                  {/* Кнопка "Добавить мебель" для Melbourne 4.5 */}
-                  {service === 'techplan' && selectedModel === 'melbourne' && result.image && !result.text?.includes('Мебель успешно добавлена') && (
-                    <>
-                      <div className="h-6 w-px bg-white/10"></div>
-                      <button
-                        type="button"
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          onAddFurniture?.(result.messageId);
-                        }}
-                        className="h-8 px-3 rounded-md bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 transition-colors text-xs"
-                        title="Добавить мебель к плану"
-                      >
-                        Добавить мебель
                       </button>
                     </>
                   )}
@@ -3919,10 +3890,7 @@ function MonochromeClaudeStyle() {
         const formData = new FormData();
         // прикладываем все изображения
         attachments.forEach((att) => formData.append('image', att.file));
-        // Для Melbourne 4.5 всегда используем withoutFurniture, для Boston 2.5 - выбранный режим
-        const mode = selectedModel === 'melbourne' ? 'withoutFurniture' : (techplanMode === "with" ? "withFurniture" : "withoutFurniture");
-        formData.append('mode', mode);
-        formData.append('model', selectedModel); // Добавляем модель
+        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4274,10 +4242,7 @@ function MonochromeClaudeStyle() {
         const formData = new FormData();
         // прикладываем все изображения
         attachments.forEach((att) => formData.append('image', att.file));
-        // Для Melbourne 4.5 всегда используем withoutFurniture, для Boston 2.5 - выбранный режим
-        const mode = selectedModel === 'melbourne' ? 'withoutFurniture' : (techplanMode === "with" ? "withFurniture" : "withoutFurniture");
-        formData.append('mode', mode);
-        formData.append('model', selectedModel); // Добавляем модель
+        formData.append('mode', techplanMode === "with" ? "withFurniture" : "withoutFurniture");
 
         // Показываем прогресс для множественных изображений
         if (attachments.length > 1) {
@@ -4499,88 +4464,6 @@ function MonochromeClaudeStyle() {
     }
   };
 
-  const handleAddFurniture = async (messageId) => {
-    try {
-      // Находим сообщение с изображением
-      const messageHistory = advancedMessageHistory[activeChatId] || [];
-      const aiMessage = messageHistory.find(msg => msg.type === 'ai' && msg.messageId === messageId);
-      
-      if (!aiMessage || !aiMessage.image) {
-        console.error('Сообщение с изображением не найдено');
-        return;
-      }
-
-      // Показываем индикатор загрузки
-      setAdvancedMessageHistory(prev => ({
-        ...prev,
-        [activeChatId]: (prev[activeChatId] || []).map(msg => 
-          msg.type === 'ai' && msg.messageId === messageId
-            ? { ...msg, isGenerating: true, text: 'Добавляем мебель к плану...' }
-            : msg
-        )
-      }));
-
-      // Конвертируем base64 изображение в файл
-      const response = await fetch(aiMessage.image);
-      const blob = await response.blob();
-      const file = new File([blob], 'plan.jpg', { type: 'image/jpeg' });
-
-      // Отправляем запрос на добавление мебели
-      const formData = new FormData();
-      formData.append('image', file);
-
-      const apiResponse = await fetch(`${API_BASE_URL}/api/add-furniture`, {
-        method: 'POST',
-        headers: {
-          'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
-        },
-        body: formData
-      });
-
-      if (!apiResponse.ok) {
-        const errorData = await apiResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Ошибка добавления мебели');
-      }
-
-      // Получаем результат
-      const result = await apiResponse.json();
-      const furnitureImageUrl = result.result.imageUrl;
-
-      // Обновляем сообщение с новым изображением
-      setAdvancedMessageHistory(prev => ({
-        ...prev,
-        [activeChatId]: (prev[activeChatId] || []).map(msg => 
-          msg.type === 'ai' && msg.messageId === messageId
-            ? { 
-                ...msg, 
-                image: furnitureImageUrl, 
-                text: 'Мебель успешно добавлена к плану!', 
-                isGenerating: false,
-                time: new Date().toISOString() 
-              }
-            : msg
-        )
-      }));
-
-    } catch (error) {
-      console.error('Ошибка добавления мебели:', error);
-      
-      // Показываем ошибку
-      setAdvancedMessageHistory(prev => ({
-        ...prev,
-        [activeChatId]: (prev[activeChatId] || []).map(msg => 
-          msg.type === 'ai' && msg.messageId === messageId
-            ? { 
-                ...msg, 
-                text: `Ошибка добавления мебели: ${error.message}`, 
-                isGenerating: false 
-              }
-            : msg
-        )
-      }));
-    }
-  };
-
   // Image modal handlers
   const handleImageClick = (imageUrl, imageAlt) => {
     setImageModal({ isOpen: true, url: imageUrl, alt: imageAlt });
@@ -4656,10 +4539,7 @@ function MonochromeClaudeStyle() {
         // Генерация технического плана
         const formData = new FormData();
         formData.append('image', attachments[0].file);
-        // Для Melbourne 4.5 всегда используем withoutFurniture, для Boston 2.5 - выбранный режим
-        const mode = selectedModel === 'melbourne' ? 'withoutFurniture' : (planFurniture === "with" ? "withFurniture" : "withoutFurniture");
-        formData.append('mode', mode);
-        formData.append('model', selectedModel); // Добавляем модель
+        formData.append('mode', planFurniture === "with" ? "withFurniture" : "withoutFurniture");
 
         const response = await fetch(`${API_BASE_URL}/api/generate-technical-plan`, {
           method: 'POST',
@@ -5199,7 +5079,6 @@ function MonochromeClaudeStyle() {
             onRegenerate={handleAdvancedRegenerate}
             onDownload={handleAdvancedDownload}
             onImageClick={handleImageClick}
-            onAddFurniture={handleAddFurniture}
             onModelChange={setModel}
             model={model}
             onModelSelect={setModel}
@@ -5294,4 +5173,5 @@ function MonochromeClaudeStyle() {
 }
 
 export default MonochromeClaudeStyle;
+
 

@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
-import { generateTechnicalPlan, checkCometApiHealth, generateCleanupImage, generateFurniturePlan } from './src/cometApiGenerator.mjs';
+import { generateTechnicalPlan, checkCometApiHealth, generateCleanupImage } from './src/cometApiGenerator.mjs';
 import authRoutes from './src/authRoutes.mjs';
 import { userDB, imageUrlsDB } from './src/database.mjs';
 import { generateImageUrl, uploadToExternalService } from './src/imageUrlService.mjs';
@@ -338,12 +338,11 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
       hasFiles: !!req.files,
       filesLength: req.files?.length,
       mode: req.body.mode,
-      model: req.body.model,
       bodyKeys: Object.keys(req.body)
     });
     
     const files = req.files;
-    const { mode, model = 'boston' } = req.body;
+    const { mode } = req.body;
     
     if (!files || !Array.isArray(files) || files.length === 0) {
       console.log('❌ Ошибка: изображения не загружены');
@@ -360,12 +359,6 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
     if (!mode || !['withFurniture', 'withoutFurniture'].includes(mode)) {
       return res.status(400).json({ 
         error: 'Неверный режим. Допустимые значения: withFurniture, withoutFurniture' 
-      });
-    }
-
-    if (!model || !['boston', 'melbourne'].includes(model)) {
-      return res.status(400).json({ 
-        error: 'Неверная модель. Допустимые значения: boston, melbourne' 
       });
     }
 
@@ -441,7 +434,7 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
         fs.writeFileSync(tempFilePath, file.buffer);
         
         // Генерируем технический план
-        const generatedBuffer = await generateTechnicalPlan(tempFilePath, mode, model);
+        const generatedBuffer = await generateTechnicalPlan(tempFilePath, mode);
         
         // Генерируем URL для результата
         const urlData = generateImageUrl('generated_plan', `plan_${i}.jpg`, {
@@ -512,144 +505,6 @@ app.post('/api/generate-technical-plan', upload.array('image', 5), async (req, r
   } catch (error) {
     console.error('Ошибка генерации технического плана:', error);
     res.status(500).json({ error: 'Ошибка генерации технического плана: ' + error.message });
-  }
-});
-
-// Маршрут для добавления мебели к плану (Melbourne 4.5)
-app.post('/api/add-furniture', upload.single('image'), async (req, res) => {
-  try {
-    console.log('📥 Получен запрос на добавление мебели к плану');
-    console.log('📋 Тело запроса:', {
-      hasFile: !!req.file,
-      fileName: req.file?.originalname,
-      fileSize: req.file?.size
-    });
-    
-    const file = req.file;
-    
-    if (!file) {
-      console.log('❌ Ошибка: изображение не загружено');
-      return res.status(400).json({ error: 'Изображение не загружено' });
-    }
-
-    // COMETAPI ключ обязателен
-    if (!isCometApiKeyValid) {
-      console.error('❌ API ключ недействителен для добавления мебели');
-      return res.status(503).json({ 
-        error: 'Сервис добавления мебели временно недоступен. API ключ не настроен.',
-        code: 'API_KEY_MISSING'
-      });
-    }
-
-    const authHeader = req.headers['authorization'];
-    let authUser = null;
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        authUser = userDB.findById(decoded.id);
-        if (!authUser) {
-          return res.status(401).json({ error: 'Пользователь не найден' });
-        }
-      } catch (err) {
-        console.error('Ошибка проверки токена при добавлении мебели:', err);
-        return res.status(401).json({ error: 'Неверный токен' });
-      }
-    }
-
-    const isDirector = authUser?.role === 'director';
-    const isOrganization = authUser?.access_prefix === 'Организация';
-
-    if (authUser && !isDirector && !isOrganization) {
-      if ((authUser.plansUsed ?? 0) >= 1) {
-        return res.status(403).json({ error: 'Лимит генераций исчерпан', code: 'PLAN_LIMIT' });
-      }
-    } else if (!authUser) {
-      // Проверка лимита для гостей
-      const forwarded = req.headers['x-forwarded-for'];
-      const clientIp = forwarded ? forwarded.split(',')[0].trim() : req.ip;
-      const usage = guestUsage.get(clientIp) || { plans: 0 };
-      if (usage.plans >= MAX_GUEST_PLANS) {
-        return res.status(403).json({ error: 'Лимит генераций для гостей исчерпан', code: 'GUEST_LIMIT' });
-      }
-      usage.plans += 1;
-      guestUsage.set(clientIp, usage);
-    }
-
-    console.log(`Обработка изображения для добавления мебели`);
-
-    // Создаем временный файл из загруженного файла
-    const tempFilePath = path.join(__dirname, `temp_furniture_${Date.now()}.jpg`);
-    try {
-      // Записываем файл во временный файл
-      fs.writeFileSync(tempFilePath, file.buffer);
-      
-      // Генерируем план с мебелью
-      const generatedBuffer = await generateFurniturePlan(tempFilePath);
-      
-      // Генерируем URL для результата
-      const urlData = generateImageUrl('furniture_plan', 'furniture_plan.jpg', {
-        mode: 'withFurniture',
-        model: 'melbourne',
-        originalSize: file.buffer.length,
-        processedAt: new Date().toISOString()
-      });
-      
-      // Загружаем изображение на внешний сервис
-      const uploadResult = await uploadToExternalService(generatedBuffer, urlData.filename);
-      
-      // Сохраняем URL в базу данных
-      const dbResult = imageUrlsDB.save(
-        authUser?.id || null,
-        'furniture_plan',
-        'furniture_plan.jpg',
-        uploadResult.imageUrl,
-        uploadResult.thumbnailUrl,
-        {
-          ...urlData.metadata,
-          uploadResult: {
-            service: uploadResult.service || 'temporary',
-            deleteData: uploadResult.deleteHash || uploadResult.publicId || uploadResult.localPath
-          }
-        }
-      );
-
-      console.log('✅ Мебель успешно добавлена к плану');
-      console.log(`📊 Размер изображения: ${generatedBuffer.length} байт`);
-      console.log(`🔗 URL изображения: ${uploadResult.imageUrl}`);
-
-      // Обновляем счетчик использований для пользователя
-      if (authUser) {
-        userDB.update(authUser.id, { plansUsed: (authUser.plansUsed ?? 0) + 1 });
-      }
-
-      // Возвращаем результат
-      res.status(200).json({
-        success: true,
-        result: {
-          id: dbResult.id,
-          imageUrl: uploadResult.imageUrl,
-          thumbnailUrl: uploadResult.thumbnailUrl,
-          filename: urlData.filename,
-          metadata: urlData.metadata,
-          createdAt: new Date().toISOString()
-        },
-        message: 'Мебель успешно добавлена к плану'
-      });
-
-    } finally {
-      // Удаляем временный файл
-      try { 
-        fs.unlinkSync(tempFilePath); 
-      } catch (unlinkError) {
-        console.warn('Не удалось удалить временный файл:', tempFilePath);
-      }
-    }
-
-  } catch (error) {
-    console.error('Ошибка добавления мебели к плану:', error);
-    res.status(500).json({ error: 'Ошибка добавления мебели к плану: ' + error.message });
   }
 });
 
@@ -858,7 +713,6 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌐 Health check доступен по адресу: http://0.0.0.0:${PORT}/healthz`);
   console.log(`📊 API endpoints:`);
   console.log(`   POST /api/generate-technical-plan - генерация технического плана`);
-  console.log(`   POST /api/add-furniture - добавление мебели к плану (Melbourne 4.5)`);
   console.log(`   GET  /api/furniture - получение данных мебели`);
   console.log(`   POST /api/auth/register - регистрация пользователя`);
   console.log(`   POST /api/auth/login - вход пользователя`);
@@ -905,3 +759,4 @@ process.on('SIGTERM', () => {
     process.exit(0);
   });
 });
+
